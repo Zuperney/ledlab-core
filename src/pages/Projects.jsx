@@ -1,5 +1,5 @@
 // pages/Projects.jsx — lista de projetos com filtros; abre o detalhe.
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Download, Trash2 } from "lucide-react";
 import { useLedLabContext, newProject } from "../store/AppContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
@@ -19,11 +19,15 @@ const FILTERS = [
   { key: "cancelled", label: "Cancelado" },
 ];
 
-export default function Projects() {
+export default function Projects({ nav }) {
   const { projects, setProjects } = useLedLabContext();
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useState(nav?.openProjectId || null);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
+
+  // abre o projeto pedido por outra tela (ex.: Agenda)
+  useEffect(() => { if (nav?.openProjectId) setOpenId(nav.openProjectId); }, [nav?.openProjectId]);
+  const closeDetail = () => { setOpenId(null); nav?.clearProject?.(); };
 
   const counts = useMemo(() => {
     const c = { all: projects.length };
@@ -47,7 +51,7 @@ export default function Projects() {
 
   if (openId) {
     const proj = projects.find((p) => p.id === openId);
-    if (proj) return <ProjectDetail project={proj} onBack={() => setOpenId(null)} />;
+    if (proj) return <ProjectDetail project={proj} onBack={closeDetail} />;
   }
 
   return (

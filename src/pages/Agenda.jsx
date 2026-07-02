@@ -1,51 +1,202 @@
-// pages/Agenda.jsx — projetos em ordem cronológica, agrupados por mês.
-import { Activity, Clock, CircleCheck, CircleX, CalendarDays, MapPin, Layers } from "lucide-react";
+// pages/Agenda.jsx — agenda de eventos com 3 visualizações (Linha, Coluna, Grade/calendário),
+// filtros, status automático por data e clique no evento abrindo o projeto.
+import { useState, useMemo } from "react";
+import { Rows3, Columns3, CalendarDays, ChevronLeft, ChevronRight, MapPin, Layers, Search } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
-import { groupByMonth, projectRollup } from "../services/projectCalc.js";
+import { recomputeStatus, projectRollup, groupByMonth, MONTHS_LONG, isoDate } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
-import { T } from "../ui/tokens.js";
-import { card } from "../ui/styles.js";
+import { T, paletteColor } from "../ui/tokens.js";
+import { card, input } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
-import StatusBadge, { STATUS } from "../components/StatusBadge.jsx";
+import StatusBadge, { STATUS, STATUS_ORDER } from "../components/StatusBadge.jsx";
 import Placeholder from "../components/Placeholder.jsx";
 
-export default function Agenda() {
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const pad = (n) => String(n).padStart(2, "0");
+const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+export default function Agenda({ nav }) {
   const { projects } = useLedLabContext();
-  const months = groupByMonth(projects);
+  const [view, setView] = useState("linha");
+  const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const now = new Date();
+  const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
+
+  // cor estável por projeto (ordem original)
+  const colorOf = (id) => paletteColor(Math.max(0, projects.findIndex((p) => p.id === id)));
+  const open = (id) => nav?.openProject?.(id);
+
+  // status sempre derivado da data
+  const withStatus = useMemo(
+    () => projects.map((p) => ({ ...p, status: recomputeStatus(p, isoDate()) })),
+    [projects]
+  );
+  const list = useMemo(
+    () => withStatus.filter((p) =>
+      (statusFilter === "all" || p.status === statusFilter) &&
+      `${p.name} ${p.cliente} ${p.local}`.toLowerCase().includes(q.toLowerCase())
+    ),
+    [withStatus, statusFilter, q]
+  );
+
+  const views = [
+    { id: "linha", label: "Linha", Icon: Rows3 },
+    { id: "coluna", label: "Coluna", Icon: Columns3 },
+    { id: "grade", label: "Grade", Icon: CalendarDays },
+  ];
 
   return (
     <div>
-      <SectionHeader title="Agenda" subtitle={`${projects.length} projetos · visão cronológica por mês.`} />
+      <SectionHeader title="Agenda" subtitle={`${projects.length} projetos · o status acompanha a data do evento.`}>
+        <div style={{ display: "flex", gap: 4, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 3 }}>
+          {views.map((v) => {
+            const active = view === v.id;
+            const Icon = v.Icon;
+            return (
+              <button key={v.id} onClick={() => setView(v.id)} title={v.label}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut }}>
+                <Icon size={15} /> {v.label}
+              </button>
+            );
+          })}
+        </div>
+      </SectionHeader>
 
-      {months.length === 0 ? (
-        <Placeholder icon={CalendarDays} title="Agenda vazia" description="Os projetos com data de início aparecem aqui, agrupados por mês. Crie projetos na aba Projetos / Eventos." />
-      ) : (
-        months.map((m) => (
-          <div key={m.key} style={{ marginBottom: 20 }}>
-            <div style={{ color: T.acM, fontWeight: 700, fontSize: 12, letterSpacing: "0.06em", marginBottom: 10 }}>{m.label}</div>
-            {m.projects.map((p) => {
-              const cfg = STATUS[p.status] || STATUS.planned;
-              const Icon = cfg.Icon;
-              return (
-                <div key={p.id} style={card({ display: "flex", alignItems: "center", gap: 14, marginBottom: 10, borderLeft: `3px solid ${cfg.c}` })}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: cfg.bg, color: cfg.c, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon size={18} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: T.txt, fontWeight: 600 }}>{p.name}</div>
-                    <div style={{ display: "flex", gap: 16, color: T.mut, fontSize: 12, marginTop: 3, flexWrap: "wrap" }}>
-                      <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><CalendarDays size={13} /> {formatRange(p.dataInicio, p.dataFim)}</span>
-                      <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><MapPin size={13} /> {p.local}</span>
-                      <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><Layers size={13} /> {projectRollup(p).gab} gabinetes</span>
-                    </div>
-                  </div>
-                  <StatusBadge s={p.status} />
-                </div>
-              );
-            })}
-          </div>
-        ))
-      )}
+      {/* filtros */}
+      <div style={card({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
+        <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
+          <Search size={15} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.dim }} />
+          <input placeholder="Buscar evento, cliente, local…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ paddingLeft: 32 })} />
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {[{ k: "all", l: "Todos" }, ...STATUS_ORDER.map((s) => ({ k: s, l: STATUS[s].l }))].map((f) => {
+            const active = statusFilter === f.k;
+            const n = f.k === "all" ? withStatus.length : withStatus.filter((p) => p.status === f.k).length;
+            return (
+              <button key={f.k} onClick={() => setStatusFilter(f.k)}
+                style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut }}>
+                {f.l} <span style={{ opacity: 0.7 }}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {view === "linha" && <LinhaView list={list} colorOf={colorOf} open={open} />}
+      {view === "coluna" && <ColunaView list={list} colorOf={colorOf} open={open} />}
+      {view === "grade" && <GradeView list={list} colorOf={colorOf} open={open} cursor={cursor} setCursor={setCursor} />}
     </div>
   );
+}
+
+/* ── Linha: lista agrupada por mês ── */
+function LinhaView({ list, colorOf, open }) {
+  const months = groupByMonth(list);
+  if (!months.length) return <Empty />;
+  return months.map((m) => (
+    <div key={m.key} style={{ marginBottom: 20 }}>
+      <div style={{ color: T.acM, fontWeight: 700, fontSize: 12, letterSpacing: "0.06em", marginBottom: 10 }}>{m.label}</div>
+      {m.projects.map((p) => (
+        <div key={p.id} style={card({ display: "flex", alignItems: "center", gap: 14, marginBottom: 10, borderLeft: `3px solid ${colorOf(p.id)}` })}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <button onClick={() => open(p.id)} style={{ background: "none", border: "none", color: T.txt, fontWeight: 600, fontSize: 15, cursor: "pointer", padding: 0, textAlign: "left" }}>{p.name}</button>
+            <div style={{ display: "flex", gap: 16, color: T.mut, fontSize: 12, marginTop: 3, flexWrap: "wrap" }}>
+              <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><CalendarDays size={13} /> {formatRange(p.dataInicio, p.dataFim)}</span>
+              <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><MapPin size={13} /> {p.local}</span>
+              <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><Layers size={13} /> {projectRollup(p).gab} gabinetes</span>
+            </div>
+          </div>
+          <StatusBadge s={p.status} />
+        </div>
+      ))}
+    </div>
+  ));
+}
+
+/* ── Coluna: kanban agrupado por status ── */
+function ColunaView({ list, colorOf, open }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${STATUS_ORDER.length}, minmax(220px, 1fr))`, gap: 12, alignItems: "start", overflowX: "auto" }}>
+      {STATUS_ORDER.map((s) => {
+        const cfg = STATUS[s];
+        const items = list.filter((p) => p.status === s);
+        return (
+          <div key={s} style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 6px 10px", color: cfg.c, fontWeight: 700, fontSize: 13 }}>
+              <cfg.Icon size={15} /> {cfg.l} <span style={{ marginLeft: "auto", color: T.dim }}>{items.length}</span>
+            </div>
+            {items.map((p) => (
+              <button key={p.id} onClick={() => open(p.id)}
+                style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: T.card, border: `1px solid ${T.bd}`, borderLeft: `3px solid ${colorOf(p.id)}`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
+                <div style={{ color: T.txt, fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+                <div style={{ color: T.dim, fontSize: 12, marginTop: 4 }}>{formatRange(p.dataInicio, p.dataFim)}</div>
+                <div style={{ color: T.dim, fontSize: 12 }}>{p.local} · {projectRollup(p).gab} gab</div>
+              </button>
+            ))}
+            {!items.length && <div style={{ color: T.dim2, fontSize: 12, padding: "6px 6px 10px" }}>—</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Grade: calendário mensal ── */
+function GradeView({ list, colorOf, open, cursor, setCursor }) {
+  const { y, m } = cursor;
+  const first = new Date(y, m, 1);
+  const startDay = first.getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(y, m, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const todayISO = toISO(new Date());
+  const eventsOn = (date) => {
+    const iso = toISO(date);
+    return list.filter((p) => p.dataInicio && iso >= p.dataInicio && iso <= (p.dataFim || p.dataInicio));
+  };
+  const go = (delta) => setCursor(() => { const d = new Date(y, m + delta, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
+
+  const btn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };
+
+  return (
+    <div style={card()}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 14 }}>
+        <button style={btn} onClick={() => go(-1)}><ChevronLeft size={16} /></button>
+        <div style={{ color: T.txt, fontWeight: 700, fontSize: 16, minWidth: 180, textAlign: "center" }}>{MONTHS_LONG[m]} {y}</div>
+        <button style={btn} onClick={() => go(1)}><ChevronRight size={16} /></button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 6 }}>
+        {WEEKDAYS.map((w) => <div key={w} style={{ textAlign: "center", color: T.mut, fontSize: 11, textTransform: "uppercase", fontWeight: 600, padding: "2px 0" }}>{w}</div>)}
+        {cells.map((date, i) => {
+          if (!date) return <div key={i} style={{ minHeight: 96, background: "transparent" }} />;
+          const iso = toISO(date);
+          const evs = eventsOn(date);
+          const isToday = iso === todayISO;
+          return (
+            <div key={i} style={{ minHeight: 96, background: T.card2, border: `1px solid ${isToday ? T.acc : T.bd}`, borderRadius: 8, padding: 6, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
+              <div style={{ fontSize: 12, fontWeight: isToday ? 700 : 500, color: isToday ? T.acM : T.dim, textAlign: "right" }}>{date.getDate()}</div>
+              {evs.map((p) => {
+                const col = colorOf(p.id);
+                return (
+                  <button key={p.id} onClick={() => open(p.id)} title={p.name}
+                    style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: col + "2e", color: "#fff", borderLeft: `3px solid ${col}`, border: "none", borderRadius: 4, padding: "3px 6px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {p.name}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Empty() {
+  return <Placeholder icon={CalendarDays} title="Nenhum evento" description="Ajuste os filtros ou crie projetos na aba Projetos / Eventos." />;
 }

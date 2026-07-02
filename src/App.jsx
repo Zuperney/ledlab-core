@@ -27,13 +27,20 @@ const PAGES = {
 export default function App() {
   const [page, setPage] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
+  const [openProjectId, setOpenProjectId] = useState(null);
   const Page = PAGES[page] || Dashboard;
+
+  // navegação pela sidebar limpa um projeto aberto
+  const navigate = (id) => { setOpenProjectId(null); setPage(id); };
+  // abrir um projeto específico (ex.: a partir da Agenda)
+  const openProject = (id) => { setOpenProjectId(id); setPage("projects"); };
+  const nav = { page, setPage: navigate, openProject, openProjectId, clearProject: () => setOpenProjectId(null) };
 
   const topItems = NAV.filter((n) => n.sec === null && n.id !== "settings");
   const settingsItem = NAV.find((n) => n.id === "settings");
 
   const renderItem = (item) => (
-    <NavBtn key={item.id} item={item} active={page === item.id} collapsed={collapsed} onClick={() => setPage(item.id)} />
+    <NavBtn key={item.id} item={item} active={page === item.id} collapsed={collapsed} onClick={() => navigate(item.id)} />
   );
 
   return (
@@ -83,7 +90,7 @@ export default function App() {
         </header>
         <main style={{ flex: 1, overflowY: "auto", padding: 28 }}>
           <ErrorBoundary>
-            <Page />
+            <Page nav={nav} />
           </ErrorBoundary>
         </main>
       </div>
