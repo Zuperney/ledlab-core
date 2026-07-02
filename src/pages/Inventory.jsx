@@ -10,7 +10,8 @@ import SectionHeader from "../components/SectionHeader.jsx";
 import DropdownMenu from "../components/DropdownMenu.jsx";
 import Drawer from "../components/Drawer.jsx";
 
-const EMPTY = { nome: "", resX: "", resY: "", dimW: "", dimH: "", peso: "", pwrMax: "", pwrMed: "", pwrBlack: "", fp: "0.9", ip: "Indoor", brilho: "", receivingCard: "", conector: "PowerCON Azul/Branco", conectorCustom: "" };
+const EMPTY = { nome: "", marca: "", resX: "", resY: "", dimW: "", dimH: "", peso: "", pwrMax: "", pwrMed: "", pwrBlack: "", fp: "0.9", ip: "Indoor", brilho: "", receivingCard: "", conector: "PowerCON Azul/Branco", conectorCustom: "" };
+const firstWord = (s) => (s || "").trim().split(/\s+/)[0] || "";
 const REQUIRED = ["nome", "resX", "resY", "dimW", "dimH", "peso", "pwrMax"];
 const CONECTORES = ["PowerCON Azul/Branco", "PowerCON TRUE1", "Neutrik True1", "Neutrik True1 TOP", "HangTon SD20", "Personalizado"];
 
@@ -25,8 +26,8 @@ const COLS = [
   { key: "ip", label: "IP" },
 ];
 
-// marca: campo explícito ou primeira palavra do nome (compatível com dados antigos)
-const brandOf = (c) => c.marca || (c.nome || "").split(" ")[0] || "—";
+// marca: campo explícito; senão infere pela 1ª palavra do nome (dados antigos); senão "Genérico"
+const brandOf = (c) => (c.marca && c.marca.trim()) || firstWord(c.nome) || "Genérico";
 const pitchValue = (c) => { const r = parseFloat(c.resX), d = parseFloat(c.dimW); return r > 0 ? d / r : Infinity; };
 
 export default function Inventory() {
@@ -37,6 +38,7 @@ export default function Inventory() {
   const [marcaFilter, setMarcaFilter] = useState("Todas");
   const [drawer, setDrawer] = useState(null); // null | {mode, data}
   const [advOpen, setAdvOpen] = useState(false);
+  const [marcaAuto, setMarcaAuto] = useState(true); // sugerir marca pelo nome até o usuário editar
   const fileRef = useRef(null);
 
   const cols = prefs.cabCols || {};
@@ -83,14 +85,15 @@ export default function Inventory() {
     e.target.value = "";
   };
 
-  const openNew = () => { setDrawer({ mode: "new", data: { ...EMPTY } }); setAdvOpen(false); };
-  const openEdit = (c) => { setDrawer({ mode: "edit", data: { ...c } }); setAdvOpen(false); };
+  const openNew = () => { setDrawer({ mode: "new", data: { ...EMPTY } }); setAdvOpen(false); setMarcaAuto(true); };
+  const openEdit = (c) => { setDrawer({ mode: "edit", data: { ...c } }); setAdvOpen(false); setMarcaAuto(false); };
   const remove = (id) => setCabs(cabs.filter((c) => c.id !== id));
   const setFav = (id) => setPrefs({ ...prefs, favCabId: prefs.favCabId === id ? null : id });
 
   const save = () => {
-    const d = drawer.data;
-    if (REQUIRED.some((f) => !String(d[f] || "").trim())) return;
+    const raw = drawer.data;
+    if (REQUIRED.some((f) => !String(raw[f] || "").trim())) return;
+    const d = { ...raw, marca: (raw.marca || "").trim() || "Genérico" };
     if (drawer.mode === "new") setCabs([...cabs, { ...d, id: genNumericId(cabs.length) }]);
     else setCabs(cabs.map((c) => (c.id === d.id ? d : c)));
     setDrawer(null);
@@ -99,6 +102,8 @@ export default function Inventory() {
   const setField = (k, v) => {
     const next = { ...drawer.data, [k]: v };
     if (k === "pwrMax") { const n = parseFloat(v); next.pwrMed = n > 0 ? String(Math.round(n / 3)) : ""; }
+    if (k === "marca") setMarcaAuto(false);
+    if (k === "nome" && marcaAuto) next.marca = firstWord(v); // sugere a marca pela 1ª palavra
     setDrawer({ ...drawer, data: next });
   };
 
@@ -183,6 +188,11 @@ export default function Inventory() {
         {d && (
           <div style={{ display: "grid", gap: 14 }}>
             <Field lbl="Nome do gabinete" ph="Ex: P2.6 Indoor, P3.9 Outdoor" value={d.nome} onChange={(v) => setField("nome", v)} full />
+            <div>
+              <Label>Marca / Fabricante <Hint>(vazio = Genérico)</Hint></Label>
+              <input list="ll-marcas" placeholder="Ex: ROE, Absen, Unilumin…" value={d.marca ?? ""} onChange={(e) => setField("marca", e.target.value)} style={input()} />
+              <datalist id="ll-marcas">{brands.filter((b) => b !== "Todas").map((b) => <option key={b} value={b} />)}</datalist>
+            </div>
             <Grid2>
               <Field lbl="Resolução — largura (px)" ph="Ex: 256" type="number" value={d.resX} onChange={(v) => setField("resX", v)} />
               <Field lbl="Resolução — altura (px)" ph="Ex: 256" type="number" value={d.resY} onChange={(v) => setField("resY", v)} />
