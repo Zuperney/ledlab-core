@@ -5,7 +5,8 @@ import { useLedLabContext } from "../store/AppContext.jsx";
 import { pitch } from "../services/electricalCalc.js";
 import { genNumericId } from "../services/ids.js";
 import { T } from "../ui/tokens.js";
-import { card, input, btn, iconBtn } from "../ui/styles.js";
+import { card, input, btn, iconBtn, dangerIconBtn } from "../ui/styles.js";
+import { useConfirm, useToast } from "../store/UIContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DropdownMenu from "../components/DropdownMenu.jsx";
 import Drawer from "../components/Drawer.jsx";
@@ -32,6 +33,8 @@ const pitchValue = (c) => { const r = parseFloat(c.resX), d = parseFloat(c.dimW)
 
 export default function Inventory() {
   const { cabs, setCabs, prefs, setPrefs } = useLedLabContext();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [q, setQ] = useState("");
   const [sortBy, setSortBy] = useState("nome");
   const [ipFilter, setIpFilter] = useState("Todos");
@@ -87,7 +90,12 @@ export default function Inventory() {
 
   const openNew = () => { setDrawer({ mode: "new", data: { ...EMPTY } }); setAdvOpen(false); setMarcaAuto(true); };
   const openEdit = (c) => { setDrawer({ mode: "edit", data: { ...c } }); setAdvOpen(false); setMarcaAuto(false); };
-  const remove = (id) => setCabs(cabs.filter((c) => c.id !== id));
+  const remove = async (c) => {
+    if (await confirm({ title: "Excluir gabinete?", message: `"${c.nome}" será removido da biblioteca. Esta ação não pode ser desfeita.` })) {
+      setCabs(cabs.filter((x) => x.id !== c.id));
+      toast("Gabinete excluído");
+    }
+  };
   const setFav = (id) => setPrefs({ ...prefs, favCabId: prefs.favCabId === id ? null : id });
 
   const save = () => {
@@ -169,7 +177,7 @@ export default function Inventory() {
                   {cols.ip && <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, color: c.ip === "Outdoor" ? T.grn : T.acM, background: c.ip === "Outdoor" ? T.grnBg : T.indBg }}>{c.ip}</span></td>}
                   <td style={{ padding: "12px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button style={iconBtn({ marginRight: 6 })} onClick={() => openEdit(c)}><Pencil size={14} /></button>
-                    <button style={iconBtn()} onClick={() => remove(c.id)}><Trash2 size={14} /></button>
+                    <button style={dangerIconBtn()} title="Excluir" onClick={() => remove(c)}><Trash2 size={14} /></button>
                   </td>
                 </tr>
               ))}

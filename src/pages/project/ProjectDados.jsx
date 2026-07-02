@@ -5,11 +5,14 @@ import { useLedLabContext, newScreen } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import { T } from "../../ui/tokens.js";
-import { card, input, label, btn, iconBtn } from "../../ui/styles.js";
+import { card, input, label, btn, iconBtn, dangerIconBtn } from "../../ui/styles.js";
+import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import Drawer from "../../components/Drawer.jsx";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, prefs } = useLedLabContext();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [edit, setEdit] = useState(null); // tela em edição
 
   const telas = project.telas || [];
@@ -21,7 +24,12 @@ export default function ProjectDados({ project, patch, patchTela }) {
     setEdit(t);
   };
   const dupTela = (t) => patch({ telas: [...telas, { ...t, id: genId("tela"), nome: `${t.nome} (cópia)` }] });
-  const delTela = (id) => patch({ telas: telas.filter((t) => t.id !== id) });
+  const delTela = async (t) => {
+    if (await confirm({ title: "Excluir tela?", message: `"${t.nome || "tela"}" será removida deste projeto.` })) {
+      patch({ telas: telas.filter((x) => x.id !== t.id) });
+      toast("Tela excluída");
+    }
+  };
 
   const watts = (t) => (t.cols || 0) * (t.rows || 0) * (parseFloat(t.gabinete?.pwrMax) || 0);
 
@@ -41,8 +49,8 @@ export default function ProjectDados({ project, patch, patchTela }) {
               <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace" }}>{t.gabinete?.nome} · {t.cols}×{t.rows} = {t.cols * t.rows} gab · {watts(t).toLocaleString()} W</div>
             </div>
             <button style={iconBtn()} onClick={() => setEdit(t)}><Pencil size={14} /></button>
-            <button style={iconBtn()} onClick={() => dupTela(t)}><Copy size={14} /></button>
-            <button style={iconBtn()} onClick={() => delTela(t.id)}><Trash2 size={14} /></button>
+            <button style={iconBtn()} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
+            <button style={dangerIconBtn()} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
           </div>
         ))}
       </div>

@@ -2,6 +2,7 @@
 import { useRef } from "react";
 import { Download, Upload, Eraser, RotateCcw } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS } from "../store/AppContext.jsx";
+import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { T } from "../ui/tokens.js";
@@ -10,6 +11,8 @@ import SectionHeader from "../components/SectionHeader.jsx";
 
 export default function Settings() {
   const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets } = useLedLabContext();
+  const confirm = useConfirm();
+  const toast = useToast();
   const fileRef = useRef(null);
 
   const exportBackup = () => {
@@ -32,20 +35,26 @@ export default function Settings() {
         if (Array.isArray(d.projects)) setProjects(d.projects);
         if (d.prefs) setPrefs({ ...DEFAULT_PREFS, ...d.prefs });
         if (Array.isArray(d.tcPresets)) setTcPresets(d.tcPresets);
-        alert("Backup importado com sucesso.");
+        toast("Backup importado");
       } catch {
-        alert("Arquivo inválido.");
+        toast("Arquivo inválido", "info");
       }
     };
     reader.readAsText(file);
     e.target.value = "";
   };
 
-  const clearProjects = () => { if (confirm("Remover TODOS os projetos? Os gabinetes são mantidos.")) setProjects([]); };
-  const factoryReset = () => {
-    if (!confirm("Restaurar de fábrica? Isso apaga tudo e recarrega os dados de exemplo.")) return;
+  const clearProjects = async () => {
+    if (await confirm({ title: "Limpar todos os projetos?", message: "Todos os projetos serão removidos. Os gabinetes da biblioteca são mantidos." })) {
+      setProjects([]);
+      toast("Projetos removidos");
+    }
+  };
+  const factoryReset = async () => {
+    if (!(await confirm({ title: "Restaurar de fábrica?", message: "Isso apaga TODOS os seus dados (gabinetes e projetos) e recarrega os dados de exemplo. Não pode ser desfeito." }))) return;
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
     setCabs(SEED_CABINETS); setProjects(SEED_PROJECTS); setPrefs(DEFAULT_PREFS); setTcPresets([]);
+    toast("Dados restaurados de fábrica");
   };
 
   const row = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "14px 0", borderTop: `1px solid ${T.bd}` };

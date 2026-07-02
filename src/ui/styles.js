@@ -66,3 +66,6 @@ export const iconBtn = (extra = {}) => ({
   cursor: "pointer",
   ...extra,
 });
+
+// botão de ícone destrutivo (lixeira): vermelho
+export const dangerIconBtn = (extra = {}) => iconBtn({ color: T.red, ...extra });

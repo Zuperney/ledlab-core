@@ -5,7 +5,8 @@ import { useLedLabContext, newProject } from "../store/AppContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { T } from "../ui/tokens.js";
-import { card, input, btn, iconBtn } from "../ui/styles.js";
+import { card, input, btn, iconBtn, dangerIconBtn } from "../ui/styles.js";
+import { useConfirm, useToast } from "../store/UIContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge, { STATUS_ORDER } from "../components/StatusBadge.jsx";
 import DropdownMenu from "../components/DropdownMenu.jsx";
@@ -21,6 +22,8 @@ const FILTERS = [
 
 export default function Projects({ nav }) {
   const { projects, setProjects } = useLedLabContext();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [openId, setOpenId] = useState(nav?.openProjectId || null);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
@@ -47,7 +50,12 @@ export default function Projects({ nav }) {
     setProjects([...projects, p]);
     setOpenId(p.id);
   };
-  const remove = (id) => setProjects(projects.filter((p) => p.id !== id));
+  const remove = async (p) => {
+    if (await confirm({ title: "Excluir projeto?", message: `"${p.name || "Sem nome"}" e todas as suas telas serão removidos. Esta ação não pode ser desfeita.` })) {
+      setProjects(projects.filter((x) => x.id !== p.id));
+      toast("Projeto excluído");
+    }
+  };
 
   if (openId) {
     const proj = projects.find((p) => p.id === openId);
@@ -88,7 +96,7 @@ export default function Projects({ nav }) {
           <StatusBadge s={p.status} />
           <button style={btn("ghost")} onClick={() => setOpenId(p.id)}>Abrir</button>
           <button style={iconBtn()} title="Exportar" onClick={() => exportOne(p)}><Download size={15} /></button>
-          <button style={iconBtn()} title="Excluir" onClick={() => remove(p.id)}><Trash2 size={15} /></button>
+          <button style={dangerIconBtn()} title="Excluir" onClick={() => remove(p)}><Trash2 size={15} /></button>
         </div>
       ))}
     </div>
