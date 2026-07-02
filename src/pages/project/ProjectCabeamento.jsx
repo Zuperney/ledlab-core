@@ -27,13 +27,14 @@ const bboxArea = (p) => { let a = 1e9, b = -1, c = 1e9, d = -1; for (const x of 
 
 function bands(total, budget) { const out = []; let rem = total; while (rem > budget) { out.push(budget); rem -= budget; } if (rem > 0) out.push(rem); return out; }
 
-// bloco por linha (row-major) começando no canto INFERIOR-ESQUERDO, serpenteando p/ cima
-function blockLinha(bx, by, w, H, cols) {
+// bloco "sobe e desce" (column-major) começando no canto INFERIOR-ESQUERDO:
+// coluna 0 sobe (baixo→cima), coluna 1 desce, coluna 2 sobe...
+function blockUpDown(bx, by, W, H) {
   const block = [];
-  for (let ri = 0; ri < H; ri++) {
-    const r = by + (H - 1 - ri); // de baixo p/ cima
-    const cc = range(w).map((i) => bx + i).filter((c) => c < cols);
-    (ri % 2 ? cc.slice().reverse() : cc).forEach((c) => block.push({ c, r }));
+  for (let ci = 0; ci < W; ci++) {
+    const c = bx + ci;
+    const col = range(H).map((i) => by + i);              // topo→base
+    (ci % 2 === 0 ? col.slice().reverse() : col).forEach((r) => block.push({ c, r })); // par: base→topo
   }
   return block;
 }
@@ -41,45 +42,32 @@ function portsLinha(cols, rows, budget) {
   const ports = []; let bx = 0;
   for (const w of bands(cols, budget)) {
     const h = Math.max(1, Math.floor(budget / w));
-    for (let by = 0; by < rows; by += h) ports.push(blockLinha(bx, by, w, Math.min(h, rows - by), cols));
+    for (let by = 0; by < rows; by += h) ports.push(blockUpDown(bx, by, Math.min(w, cols - bx), Math.min(h, rows - by)));
     bx += w;
   }
   return ports;
 }
-// bloco por coluna (column-major) começando no canto INFERIOR-ESQUERDO, subindo
 function portsColuna(cols, rows, budget) {
   const ports = []; let by = 0;
   for (const h of bands(rows, budget)) {
     const w = Math.max(1, Math.floor(budget / h));
-    for (let bx = 0; bx < cols; bx += w) {
-      const W = Math.min(w, cols - bx), block = [];
-      for (let ci = 0; ci < W; ci++) {
-        const c = bx + ci; const down = range(h).map((i) => by + i);
-        (ci % 2 === 0 ? down.slice().reverse() : down).forEach((r) => block.push({ c, r }));
-      }
-      ports.push(block);
-    }
+    for (let bx = 0; bx < cols; bx += w) ports.push(blockUpDown(bx, by, Math.min(w, cols - bx), Math.min(h, rows - by)));
     by += h;
   }
   return ports;
 }
-// área: blocos quadrados, início inferior-esquerdo
 function portsArea(cols, rows, budget) {
   const bh = Math.max(1, Math.min(rows, Math.floor(Math.sqrt(budget))));
   const bw = Math.max(1, Math.min(cols, Math.floor(budget / bh)));
   const ports = [];
   for (let by = 0; by < rows; by += bh)
-    for (let bx = 0; bx < cols; bx += bw) ports.push(blockLinha(bx, by, bw, Math.min(bh, rows - by), cols));
+    for (let bx = 0; bx < cols; bx += bw) ports.push(blockUpDown(bx, by, Math.min(bw, cols - bx), Math.min(bh, rows - by)));
   return ports;
 }
 
-export default function ProjectCabeamento({ project }) {
+export default function ProjectCabeamento({ project, patchTela }) {
   const telas = project.telas || [];
   const [telaId, setTelaId] = useState(telas[0]?.id);
-  const [mode, setMode] = useState("sinal");
-  const [strategy, setStrategy] = useState("linha");
-  const [hz, setHz] = useState(60);
-  const [cables, setCables] = useState([]); // modo livre: lista de cabos (arrays de chaves)
   const [active, setActive] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -90,12 +78,23 @@ export default function ProjectCabeamento({ project }) {
   const cols = tela?.cols || 1, rows = tela?.rows || 1;
   const panelW = cols * CELL, panelH = rows * CELL;
 
+  // cabeamento PERSISTIDO por tela (cada painel guarda o seu em tela.cabling)
+  const cab = tela?.cabling || {};
+  const mode = cab.mode || "sinal";
+  const strategy = cab.strategy || "linha";
+  const hz = cab.hz || 60;
+  const cables = cab.cables || [];
+  const setCab = (partial) => patchTela?.(tela.id, { cabling: { mode, strategy, hz, cables, ...partial } });
+  const setMode = (v) => setCab({ mode: v });
+  const setStrategy = (v) => setCab({ strategy: v });
+  const setHz = (v) => setCab({ hz: v });
+
   const fit = useCallback(() => {
     const el = stageRef.current; if (!el) return;
     const z = Math.min(el.clientWidth / panelW, el.clientHeight / panelH) * 0.9 || 1;
     setZoom(z); setPan({ x: (el.clientWidth - panelW * z) / 2, y: (el.clientHeight - panelH * z) / 2 });
   }, [panelW, panelH]);
-  useEffect(() => { fit(); }, [fit, telaId]);
+  useEffect(() => { fit(); setActive(0); }, [fit, telaId]);
 
   const onWheel = (e) => {
     e.preventDefault();
@@ -140,18 +139,19 @@ export default function ProjectCabeamento({ project }) {
   const clickCell = (c, r) => {
     if (strategy !== "livre" || drag.current?.moved) return;
     const k = key(c, r);
-    setCables((prev) => {
-      if (prev.length === 0) return [[k]];
-      const idx = Math.min(active, prev.length - 1);
-      const wasInActive = prev[idx]?.includes(k);
-      const next = prev.map((cab) => cab.filter((x) => x !== k)); // tira de qualquer cabo
-      if (!wasInActive) next[idx] = [...(next[idx] || []), k];    // adiciona ao ativo
-      return next;
-    });
+    let next;
+    if (cables.length === 0) next = [[k]];
+    else {
+      const idx = Math.min(active, cables.length - 1);
+      const wasInActive = cables[idx]?.includes(k);
+      next = cables.map((cbl) => cbl.filter((x) => x !== k)); // tira de qualquer cabo
+      if (!wasInActive) next[idx] = [...(next[idx] || []), k]; // adiciona ao ativo
+    }
+    setCab({ cables: next });
   };
-  const importFrom = (strat) => { setCables(autoPorts(strat).map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(0); };
-  const novoCabo = () => { setActive(cables.length); setCables((prev) => [...prev, []]); };
-  const removerCabo = (i) => { setCables((prev) => prev.filter((_, j) => j !== i)); setActive(0); };
+  const importFrom = (strat) => { setCab({ cables: autoPorts(strat).map((p) => p.map((cell) => key(cell.c, cell.r))) }); setActive(0); };
+  const novoCabo = () => { setActive(cables.length); setCab({ cables: [...cables, []] }); };
+  const removerCabo = (i) => { setCab({ cables: cables.filter((_, j) => j !== i) }); setActive(0); };
 
   return (
     <div>
@@ -174,7 +174,7 @@ export default function ProjectCabeamento({ project }) {
           ))}
           <span style={{ width: 1, height: 22, background: T.bd, margin: "0 4px" }} />
           <button onClick={novoCabo} style={pill(false)}><Plus size={14} /> Novo cabo</button>
-          <button onClick={() => { setCables([]); setActive(0); }} style={pill(false)}><Eraser size={13} /> Limpar</button>
+          <button onClick={() => { setCab({ cables: [] }); setActive(0); }} style={pill(false)}><Eraser size={13} /> Limpar</button>
           <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
             {cables.length ? <>Editando <b style={{ color: paletteColor(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : "Importe do automático ou clique “Novo cabo” para começar"}
           </span>
