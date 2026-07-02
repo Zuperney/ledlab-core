@@ -23,42 +23,67 @@ const bboxArea = (port) => {
   return port.length ? (b - a + 1) * (d - c + 1) : 0;
 };
 
-// dimensões do bloco por estratégia respeitando o orçamento (área p/ sinal, contagem p/ AC)
-function blockDims(strategy, cols, rows, budget) {
-  if (strategy === "coluna") {
-    return rows <= budget ? { bw: Math.max(1, Math.floor(budget / rows)), bh: rows } : { bw: 1, bh: budget };
-  }
-  if (strategy === "area") {
-    const bh = Math.max(1, Math.min(rows, Math.floor(Math.sqrt(budget))));
-    return { bw: Math.max(1, Math.min(cols, Math.floor(budget / bh))), bh };
-  }
-  // linha (padrão): prioriza linhas completas esquerda→direita
-  return cols <= budget ? { bw: cols, bh: Math.max(1, Math.floor(budget / cols)) } : { bw: budget, bh: 1 };
+// canto superior-esquerdo do bounding box (usado p/ ordenar em leitura)
+const topLeft = (p) => { let r = 1e9, c = 1e9; for (const x of p) { r = Math.min(r, x.r); c = Math.min(c, x.c); } return { r, c }; };
+
+// divide um total (linhas p/ coluna, colunas p/ linha) em bandas: cheias (= budget,
+// vira cabo "reto") + uma sobra final (que combina o eixo perpendicular).
+function bands(total, budget) {
+  const out = []; let rem = total;
+  while (rem > budget) { out.push(budget); rem -= budget; }
+  if (rem > 0) out.push(rem);
+  return out;
 }
 
-// blocos retangulares em ordem de leitura (cima→baixo, esquerda→direita);
-// cada bloco começa no canto superior-esquerdo (montagem consistente).
-function buildPorts(cols, rows, strategy, budget) {
-  const { bw, bh } = blockDims(strategy, cols, rows, budget);
-  const ports = [];
-  for (let by = 0; by < rows; by += bh) {
-    for (let bx = 0; bx < cols; bx += bw) {
-      const W = Math.min(bw, cols - bx), H = Math.min(bh, rows - by);
-      const block = [];
-      if (strategy === "coluna") {
-        for (let ci = 0; ci < W; ci++) {
-          const c = bx + ci; const rr = range(H).map((i) => by + i);
-          (ci % 2 ? rr.reverse() : rr).forEach((r) => block.push({ c, r }));
-        }
-      } else {
-        for (let ri = 0; ri < H; ri++) {
-          const r = by + ri; const cc = range(W).map((i) => bx + i);
-          (ri % 2 ? cc.reverse() : cc).forEach((c) => block.push({ c, r }));
-        }
+// LINHA: bandas por colunas; cada cabo inicia no canto superior-esquerdo, serpenteia →.
+function portsLinha(cols, rows, budget) {
+  const ports = []; let bx = 0;
+  for (const w of bands(cols, budget)) {
+    const h = Math.max(1, Math.floor(budget / w)); // linhas somadas por cabo nesta banda
+    for (let by = 0; by < rows; by += h) {
+      const H = Math.min(h, rows - by), block = [];
+      for (let ri = 0; ri < H; ri++) {
+        const r = by + ri; const cc = range(w).map((i) => bx + i).filter((c) => c < cols);
+        (ri % 2 ? cc.reverse() : cc).forEach((c) => block.push({ c, r }));
       }
-      if (block.length) ports.push(block);
+      ports.push(block);
     }
+    bx += w;
   }
+  return ports;
+}
+
+// COLUNA: bandas por linhas; cada cabo INICIA EMBAIXO e sobe, serpenteando.
+// Banda cheia = coluna reta; banda de sobra combina colunas até encher.
+function portsColuna(cols, rows, budget) {
+  const ports = []; let by = 0;
+  for (const h of bands(rows, budget)) {
+    const w = Math.max(1, Math.floor(budget / h)); // colunas somadas por cabo nesta banda
+    for (let bx = 0; bx < cols; bx += w) {
+      const W = Math.min(w, cols - bx), block = [];
+      for (let ci = 0; ci < W; ci++) {
+        const c = bx + ci;
+        const down = range(h).map((i) => by + i);
+        (ci % 2 === 0 ? down.slice().reverse() : down).forEach((r) => block.push({ c, r })); // ci par: baixo→cima
+      }
+      ports.push(block);
+    }
+    by += h;
+  }
+  return ports;
+}
+
+// ÁREA: blocos aproximadamente quadrados, início no canto superior-esquerdo.
+function portsArea(cols, rows, budget) {
+  const bh = Math.max(1, Math.min(rows, Math.floor(Math.sqrt(budget))));
+  const bw = Math.max(1, Math.min(cols, Math.floor(budget / bh)));
+  const ports = [];
+  for (let by = 0; by < rows; by += bh)
+    for (let bx = 0; bx < cols; bx += bw) {
+      const W = Math.min(bw, cols - bx), H = Math.min(bh, rows - by), block = [];
+      for (let ri = 0; ri < H; ri++) { const r = by + ri; const cc = range(W).map((i) => bx + i); (ri % 2 ? cc.reverse() : cc).forEach((c) => block.push({ c, r })); }
+      ports.push(block);
+    }
   return ports;
 }
 
@@ -124,9 +149,12 @@ export default function ProjectCabeamento({ project }) {
     : Math.max(1, Math.floor(connRating / (ampCab || 1)));                    // gab por cabo (AC)
 
   const manualOrder = manual.map((k) => { const [r, c] = k.split(",").map(Number); return { c, r }; });
-  const ports = strategy === "livre"
-    ? (mode === "sinal" ? portsByArea : portsByCount)(manualOrder, budget)
-    : buildPorts(cols, rows, strategy, budget);
+  let ports;
+  if (strategy === "livre") ports = (mode === "sinal" ? portsByArea : portsByCount)(manualOrder, budget);
+  else {
+    ports = strategy === "coluna" ? portsColuna(cols, rows, budget) : strategy === "area" ? portsArea(cols, rows, budget) : portsLinha(cols, rows, budget);
+    ports.sort((a, b) => { const A = topLeft(a), B = topLeft(b); return A.r - B.r || A.c - B.c; }); // numeração cima→baixo, esq→dir
+  }
 
   const portOf = {};
   ports.forEach((p, i) => p.forEach((cell) => { portOf[key(cell.c, cell.r)] = i; }));
