@@ -5,7 +5,6 @@ import { projectRollup } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
-import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 
 const gabCount = (p) => projectRollup(p).gab;
@@ -36,10 +35,8 @@ export default function Dashboard() {
 
   return (
     <div>
-      <SectionHeader title="Dashboard" />
-
       {hero && (
-        <div style={card({ background: T.hero, marginBottom: 16 })}>
+        <div style={card({ background: `linear-gradient(100deg, ${T.strip}, ${T.hero} 42%)`, marginBottom: 16 })}>
           <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.08em", marginBottom: 6 }}>Evento em andamento</div>
           <h2 style={{ color: T.txt, margin: "0 0 10px", fontSize: 24 }}>{hero.name}</h2>
           <MetaLine p={hero} />

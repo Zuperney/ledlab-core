@@ -42,7 +42,12 @@ export default function App() {
       <aside style={{ width: collapsed ? 60 : 220, flexShrink: 0, background: T.sb, borderRight: `1px solid ${T.bd}`, display: "flex", flexDirection: "column", padding: 12, transition: "width 0.15s" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: "8px 4px 16px" }}>
           <img src={logo} alt="LedLab Core" style={{ width: 34, height: 34, filter: "brightness(0) invert(1)" }} />
-          {!collapsed && <span style={{ marginLeft: 10, fontWeight: 700, letterSpacing: "0.02em", lineHeight: 1.1 }}>Led Lab<br /><span style={{ color: T.acM }}>CORE</span></span>}
+          {!collapsed && (
+            <span style={{ marginLeft: 10, lineHeight: 1.05 }}>
+              <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.mut, letterSpacing: "0.02em" }}>Led Lab</span>
+              <span style={{ display: "block", fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "0.14em" }}>CORE</span>
+            </span>
+          )}
         </div>
 
         <nav style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, overflowY: "auto" }}>
