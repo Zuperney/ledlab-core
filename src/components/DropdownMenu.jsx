@@ -1,6 +1,6 @@
 // components/DropdownMenu.jsx — menu "Mais ações" (kebab).
 import { useState, useRef, useEffect } from "react";
-import { Ellipsis, ChevronDown } from "lucide-react";
+import { Ellipsis, ChevronDown, Check } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { iconBtn } from "../ui/styles.js";
 
@@ -34,20 +34,33 @@ export default function DropdownMenu({ items = [], label = "Mais ações", Icon 
         >
           {items.map((it, i) => {
             const ItIcon = it.Icon;
+            const checkable = typeof it.active === "boolean"; // item de alternância (mostrar/ocultar)
             return (
               <button
                 key={i}
                 disabled={it.disabled}
                 title={it.title}
-                onClick={() => { setOpen(false); it.onClick?.(); }}
+                onClick={() => { if (!checkable) setOpen(false); it.onClick?.(); }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = T.card2; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 style={{
                   display: "flex", alignItems: "center", gap: 10, width: "100%",
                   padding: "8px 10px", borderRadius: 6, border: "none", cursor: it.disabled ? "not-allowed" : "pointer",
-                  background: it.active ? T.sel : "transparent",
-                  color: it.disabled ? T.dim2 : it.danger ? T.red : T.txt,
+                  background: "transparent",
+                  color: it.disabled ? T.dim2 : it.danger ? T.red : checkable && !it.active ? T.mut : T.txt,
                   fontSize: 13, textAlign: "left",
                 }}
               >
+                {checkable && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                    background: it.active ? T.acc : "transparent",
+                    border: `1px solid ${it.active ? T.acc : T.dim2}`,
+                  }}>
+                    {it.active && <Check size={12} color="#fff" strokeWidth={3} />}
+                  </span>
+                )}
                 {ItIcon && <ItIcon size={15} />}
                 {it.label}
               </button>
