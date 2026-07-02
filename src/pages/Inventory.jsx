@@ -1,17 +1,18 @@
 // pages/Inventory.jsx — Biblioteca de gabinetes (CRUD, salvo no navegador).
 import { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, Star, Columns3 } from "lucide-react";
+import { Plus, Pencil, Trash2, Star, Columns3, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { pitch } from "../services/electricalCalc.js";
 import { genNumericId } from "../services/ids.js";
 import { T } from "../ui/tokens.js";
-import { card, input, label, btn, iconBtn } from "../ui/styles.js";
+import { card, input, btn, iconBtn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DropdownMenu from "../components/DropdownMenu.jsx";
 import Drawer from "../components/Drawer.jsx";
 
 const EMPTY = { nome: "", resX: "", resY: "", dimW: "", dimH: "", peso: "", pwrMax: "", pwrMed: "", pwrBlack: "", fp: "0.9", ip: "Indoor", brilho: "", receivingCard: "", conector: "PowerCON Azul/Branco", conectorCustom: "" };
 const REQUIRED = ["nome", "resX", "resY", "dimW", "dimH", "peso", "pwrMax"];
+const CONECTORES = ["PowerCON Azul/Branco", "PowerCON TRUE1", "Neutrik True1", "Neutrik True1 TOP", "HangTon SD20", "Personalizado"];
 
 const COLS = [
   { key: "pitch", label: "Pitch" },
@@ -29,6 +30,7 @@ export default function Inventory() {
   const [sortBy, setSortBy] = useState("nome");
   const [ipFilter, setIpFilter] = useState("Todos");
   const [drawer, setDrawer] = useState(null); // null | {mode, data}
+  const [advOpen, setAdvOpen] = useState(false);
 
   const cols = prefs.cabCols || {};
   const toggleCol = (k) => setPrefs({ ...prefs, cabCols: { ...cols, [k]: !cols[k] } });
@@ -40,8 +42,8 @@ export default function Inventory() {
     return r;
   }, [cabs, q, ipFilter, sortBy]);
 
-  const openNew = () => setDrawer({ mode: "new", data: { ...EMPTY } });
-  const openEdit = (c) => setDrawer({ mode: "edit", data: { ...c } });
+  const openNew = () => { setDrawer({ mode: "new", data: { ...EMPTY } }); setAdvOpen(false); };
+  const openEdit = (c) => { setDrawer({ mode: "edit", data: { ...c } }); setAdvOpen(false); };
   const remove = (id) => setCabs(cabs.filter((c) => c.id !== id));
   const setFav = (id) => setPrefs({ ...prefs, favCabId: prefs.favCabId === id ? null : id });
 
@@ -55,9 +57,11 @@ export default function Inventory() {
 
   const setField = (k, v) => {
     const next = { ...drawer.data, [k]: v };
-    if (k === "pwrMax") { const n = parseFloat(v); if (n > 0) next.pwrMed = String(Math.round(n / 3)); }
+    if (k === "pwrMax") { const n = parseFloat(v); next.pwrMed = n > 0 ? String(Math.round(n / 3)) : ""; }
     setDrawer({ ...drawer, data: next });
   };
+
+  const d = drawer?.data;
 
   return (
     <div>
@@ -66,7 +70,7 @@ export default function Inventory() {
         <button style={btn("primary")} onClick={openNew}><Plus size={16} /> Novo gabinete</button>
       </SectionHeader>
 
-      <div style={card({ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" })}>
+      <div style={card({ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" })} className="m-controlbar">
         <input placeholder="Buscar por nome / modelo…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ maxWidth: 280 })} />
         <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Ordenar</span>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input({ width: "auto" })}>
@@ -77,40 +81,44 @@ export default function Inventory() {
         <select value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={input({ width: "auto" })}>
           <option>Todos</option><option>Indoor</option><option>Outdoor</option>
         </select>
-        <DropdownMenu label="Colunas" Icon={Columns3} items={COLS.map((c) => ({ label: c.label, active: !!cols[c.key], onClick: () => toggleCol(c.key) }))} />
+        <DropdownMenu label="Colunas" triggerLabel="Colunas" Icon={Columns3} items={COLS.map((c) => ({ label: c.label, active: !!cols[c.key], onClick: () => toggleCol(c.key) }))} />
       </div>
 
       <div style={card({ padding: 0, overflow: "hidden" })}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ textAlign: "left", color: T.mut, fontSize: 11, textTransform: "uppercase" }}>
-              <th style={{ padding: "12px 16px" }}>Modelo</th>
-              {COLS.filter((c) => cols[c.key]).map((c) => <th key={c.key} style={{ padding: "12px 16px" }}>{c.label}</th>)}
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((c, i) => (
-              <tr key={c.id} style={{ background: i % 2 ? T.zebra : "transparent", borderTop: `1px solid ${T.bd}` }}>
-                <td style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-                  <Star size={15} onClick={() => setFav(c.id)} style={{ cursor: "pointer", color: prefs.favCabId === c.id ? T.amb : T.dim2, fill: prefs.favCabId === c.id ? T.amb : "none" }} />
-                  <b style={{ color: T.txt }}>{c.nome}</b>
-                </td>
-                {cols.pitch && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.acM }}>{pitch(c)}</td>}
-                {cols.resolucao && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.mut }}>{c.resX}×{c.resY}</td>}
-                {cols.dimensoes && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.mut }}>{c.dimW}×{c.dimH} mm</td>}
-                {cols.pwrMax && <td style={{ padding: "12px 16px", color: T.red, fontWeight: 700 }}>{c.pwrMax}W</td>}
-                {cols.pwrMed && <td style={{ padding: "12px 16px", color: T.amb }}>{c.pwrMed}W</td>}
-                {cols.peso && <td style={{ padding: "12px 16px", color: T.txt }}>{c.peso} kg</td>}
-                {cols.ip && <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, color: c.ip === "Outdoor" ? T.grn : T.acM, background: c.ip === "Outdoor" ? T.grnBg : T.indBg }}>{c.ip}</span></td>}
-                <td style={{ padding: "12px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  <button style={iconBtn({ marginRight: 6 })} onClick={() => openEdit(c)}><Pencil size={14} /></button>
-                  <button style={iconBtn()} onClick={() => remove(c.id)}><Trash2 size={14} /></button>
-                </td>
+        <div style={{ overflowX: "auto" }} className="tbl-scroll">
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ textAlign: "left", color: T.mut, fontSize: 11, textTransform: "uppercase" }}>
+                <th style={{ padding: "12px 16px" }}>Modelo</th>
+                {COLS.filter((c) => cols[c.key]).map((c) => <th key={c.key} style={{ padding: "12px 16px" }}>{c.label}</th>)}
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((c, i) => (
+                <tr key={c.id} style={{ background: i % 2 ? T.zebra : "transparent", borderTop: `1px solid ${T.bd}` }}>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                      <Star size={15} onClick={() => setFav(c.id)} style={{ cursor: "pointer", color: prefs.favCabId === c.id ? T.amb : T.dim2, fill: prefs.favCabId === c.id ? T.amb : "none" }} />
+                      <b style={{ color: T.txt }}>{c.nome}</b>
+                    </span>
+                  </td>
+                  {cols.pitch && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.acM }}>{pitch(c)}</td>}
+                  {cols.resolucao && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.mut }}>{c.resX}×{c.resY}</td>}
+                  {cols.dimensoes && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.mut }}>{c.dimW}×{c.dimH} mm</td>}
+                  {cols.pwrMax && <td style={{ padding: "12px 16px", color: T.red, fontWeight: 700 }}>{c.pwrMax}W</td>}
+                  {cols.pwrMed && <td style={{ padding: "12px 16px", color: T.amb }}>{c.pwrMed}W</td>}
+                  {cols.peso && <td style={{ padding: "12px 16px", color: T.txt }}>{c.peso} kg</td>}
+                  {cols.ip && <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, color: c.ip === "Outdoor" ? T.grn : T.acM, background: c.ip === "Outdoor" ? T.grnBg : T.indBg }}>{c.ip}</span></td>}
+                  <td style={{ padding: "12px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
+                    <button style={iconBtn({ marginRight: 6 })} onClick={() => openEdit(c)}><Pencil size={14} /></button>
+                    <button style={iconBtn()} onClick={() => remove(c.id)}><Trash2 size={14} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}><Star size={12} style={{ color: T.amb, fill: T.amb, verticalAlign: "-2px" }} /> O gabinete favorito é carregado automaticamente ao adicionar telas novas nos projetos.</div>
 
@@ -118,29 +126,86 @@ export default function Inventory() {
         open={!!drawer}
         title={drawer?.mode === "new" ? "Novo gabinete" : "Editar gabinete"}
         onClose={() => setDrawer(null)}
-        footer={<><button style={btn("subtle")} onClick={() => setDrawer(null)}>Cancelar</button><button style={btn("primary")} onClick={save}>Salvar</button></>}
+        footer={<><button style={btn("subtle")} onClick={() => setDrawer(null)}>Cancelar</button><button style={btn("primary")} onClick={save}>Salvar gabinete</button></>}
       >
-        {drawer && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {[["nome", "Nome / Modelo", "text"], ["resX", "Resolução X", "number"], ["resY", "Resolução Y", "number"], ["dimW", "Largura (mm)", "number"], ["dimH", "Altura (mm)", "number"], ["peso", "Peso (kg)", "number"], ["pwrMax", "Potência máx. (W)", "number"], ["pwrMed", "Potência méd. (W)", "number"], ["pwrBlack", "Black level (W)", "number"], ["fp", "Fator de potência", "number"], ["brilho", "Brilho (nits)", "number"], ["receivingCard", "Receiving card", "text"]].map(([k, lbl, type]) => (
-              <div key={k} style={{ gridColumn: k === "nome" || k === "receivingCard" ? "1 / -1" : "auto" }}>
-                <label style={label}>{lbl}{REQUIRED.includes(k) ? " *" : ""}</label>
-                <input type={type} value={drawer.data[k]} onChange={(e) => setField(k, e.target.value)} style={input()} />
+        {d && (
+          <div style={{ display: "grid", gap: 14 }}>
+            <Field lbl="Nome do gabinete" ph="Ex: P2.6 Indoor, P3.9 Outdoor" value={d.nome} onChange={(v) => setField("nome", v)} full />
+            <Grid2>
+              <Field lbl="Resolução — largura (px)" ph="Ex: 256" type="number" value={d.resX} onChange={(v) => setField("resX", v)} />
+              <Field lbl="Resolução — altura (px)" ph="Ex: 256" type="number" value={d.resY} onChange={(v) => setField("resY", v)} />
+            </Grid2>
+            <Grid2>
+              <Field lbl="Largura do gabinete (mm)" ph="Ex: 500" type="number" value={d.dimW} onChange={(v) => setField("dimW", v)} />
+              <Field lbl="Altura do gabinete (mm)" ph="Ex: 500" type="number" value={d.dimH} onChange={(v) => setField("dimH", v)} />
+            </Grid2>
+            <Grid2>
+              <div>
+                <Label>Pixel pitch <Hint>(calculado)</Hint></Label>
+                <input readOnly value={pitch(d)} style={input({ color: T.acM, fontFamily: "ui-monospace,monospace", background: T.card })} />
               </div>
-            ))}
+              <Field lbl="Peso por gabinete (kg)" ph="Ex: 7.5" type="number" value={d.peso} onChange={(v) => setField("peso", v)} />
+            </Grid2>
+            <Grid2>
+              <div>
+                <Label>Consumo máximo (W) <Hint color={T.red}>obrigatório</Hint></Label>
+                <input type="number" placeholder="Ex: 300" value={d.pwrMax} onChange={(e) => setField("pwrMax", e.target.value)} style={input()} />
+              </div>
+              <div>
+                <Label>Consumo médio (W) <Hint>auto (1/3 do máx.)</Hint></Label>
+                <input readOnly value={d.pwrMed} placeholder="Preenchido automaticamente" style={input({ background: T.card, color: T.mut })} />
+              </div>
+            </Grid2>
             <div>
-              <label style={label}>IP</label>
-              <select value={drawer.data.ip} onChange={(e) => setField("ip", e.target.value)} style={input()}><option>Indoor</option><option>Outdoor</option></select>
+              <Label>Consumo no preto (W) <Hint color={T.acM}>black level — base do consumo típico</Hint></Label>
+              <input type="number" placeholder="Ex: 45 (datasheet; ~15% do máx. se vazio)" value={d.pwrBlack} onChange={(e) => setField("pwrBlack", e.target.value)} style={input()} />
             </div>
-            <div>
-              <label style={label}>Conector AC</label>
-              <select value={drawer.data.conector} onChange={(e) => setField("conector", e.target.value)} style={input()}>
-                <option>PowerCON Azul/Branco</option><option>PowerCON TRUE1</option><option>Neutrik True1</option><option>Neutrik True1 TOP</option><option>HangTon SD20</option>
-              </select>
-            </div>
+
+            {/* Especificações avançadas */}
+            <button onClick={() => setAdvOpen((o) => !o)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", justifyContent: "space-between", background: T.sel, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: T.acM, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Settings size={15} /> Especificações Avançadas (opcional)</span>
+              {advOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {advOpen && (
+              <div style={{ display: "grid", gap: 14 }}>
+                <Grid2>
+                  <Field lbl="Fator de potência (FP)" type="number" value={d.fp} onChange={(v) => setField("fp", v)} />
+                  <div>
+                    <Label>Classe IP</Label>
+                    <select value={d.ip} onChange={(e) => setField("ip", e.target.value)} style={input()}><option>Indoor</option><option>Outdoor</option></select>
+                  </div>
+                </Grid2>
+                <Grid2>
+                  <Field lbl="Brilho (nit)" ph="Ex: 5000" type="number" value={d.brilho} onChange={(v) => setField("brilho", v)} />
+                  <Field lbl="Receiving card" ph="Ex: MRV328, Armor…" value={d.receivingCard} onChange={(v) => setField("receivingCard", v)} />
+                </Grid2>
+                <div>
+                  <Label>Conector de energia</Label>
+                  <select value={CONECTORES.includes(d.conector) ? d.conector : "Personalizado"} onChange={(e) => setField("conector", e.target.value)} style={input()}>
+                    {CONECTORES.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                {d.conector === "Personalizado" && (
+                  <Field lbl="Conector personalizado" ph="Descreva o conector" value={d.conectorCustom} onChange={(v) => setField("conectorCustom", v)} full />
+                )}
+              </div>
+            )}
           </div>
         )}
       </Drawer>
+    </div>
+  );
+}
+
+const Grid2 = ({ children }) => <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>;
+const Label = ({ children }) => <label style={{ display: "block", textTransform: "uppercase", fontSize: 11, letterSpacing: "0.04em", color: T.mut, marginBottom: 6 }}>{children}</label>;
+const Hint = ({ children, color }) => <span style={{ color: color || T.dim, fontWeight: 500 }}>{children}</span>;
+
+function Field({ lbl, value, onChange, type = "text", ph, full }) {
+  return (
+    <div style={full ? undefined : {}}>
+      <Label>{lbl}</Label>
+      <input type={type} placeholder={ph} value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={input()} />
     </div>
   );
 }

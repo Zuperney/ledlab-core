@@ -1,10 +1,10 @@
 // components/DropdownMenu.jsx — menu "Mais ações" (kebab).
 import { useState, useRef, useEffect } from "react";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, ChevronDown } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { iconBtn } from "../ui/styles.js";
 
-export default function DropdownMenu({ items = [], label = "Mais ações", Icon = Ellipsis, align = "right" }) {
+export default function DropdownMenu({ items = [], label = "Mais ações", Icon = Ellipsis, align = "right", triggerLabel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -14,10 +14,15 @@ export default function DropdownMenu({ items = [], label = "Mais ações", Icon 
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
+  const trigger = triggerLabel
+    ? { display: "inline-flex", alignItems: "center", gap: 8, height: 32, padding: "0 12px", borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 600 }
+    : iconBtn();
+
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <button aria-label={label} title={label} style={iconBtn()} onClick={() => setOpen((o) => !o)}>
+      <button aria-label={label} title={label} style={trigger} onClick={() => setOpen((o) => !o)}>
         <Icon size={16} />
+        {triggerLabel && <>{triggerLabel} <ChevronDown size={14} /></>}
       </button>
       {open && (
         <div
