@@ -69,7 +69,7 @@ export default function Inventory() {
       try {
         const parsed = JSON.parse(reader.result);
         const incoming = Array.isArray(parsed) ? parsed : parsed.cabinets || parsed.cabs || [];
-        if (!Array.isArray(incoming) || !incoming.length) { alert("Nenhum gabinete encontrado no arquivo."); return; }
+        if (!Array.isArray(incoming) || !incoming.length) { toast("Nenhum gabinete encontrado no arquivo.", "info"); return; }
         const byName = new Map(cabs.map((c) => [c.nome.toLowerCase(), c]));
         let added = 0, updated = 0;
         for (const raw of incoming) {
@@ -79,9 +79,9 @@ export default function Inventory() {
           else { byName.set(k, { ...raw, id: genNumericId(byName.size) }); added++; }
         }
         setCabs(Array.from(byName.values()));
-        alert(`Importado: ${added} novo(s), ${updated} atualizado(s).`);
+        toast(`Importado: ${added} novo(s), ${updated} atualizado(s).`);
       } catch {
-        alert("Arquivo inválido. Use um .json exportado do LedLab Core.");
+        toast("Arquivo inválido. Use um .json exportado do LedLab Core.", "info");
       }
     };
     reader.readAsText(file);
