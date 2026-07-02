@@ -1,0 +1,57 @@
+/* index.css — reset global e altura de página cheia (idêntico ao build original). */
+:root {
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #0d0d1a;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsivo (mobile) */
+@media (width <= 768px) {
+  .m-grid1 { grid-template-columns: 1fr !important; }
+  .m-stack { flex-direction: column !important; align-items: stretch !important; }
+  .m-hide { display: none !important; }
+  .m-controlbar { column-gap: 14px; }
+}
+
+/* Impressão do Relatório */
+@media print {
+  body { background: #fff; }
+  body * { visibility: hidden; }
+  .report-doc, .report-doc * { visibility: visible; }
+  .report-doc {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: none !important;
+  }
+  .tbl-scroll { overflow: visible !important; }
+  @page { margin: 14mm; }
+}

@@ -1,0 +1,5 @@
+# Normaliza quebras de linha (evita ruído CRLF/LF entre máquinas)
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.svg text
