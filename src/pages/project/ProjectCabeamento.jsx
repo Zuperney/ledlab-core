@@ -1,11 +1,15 @@
 // pages/project/ProjectCabeamento.jsx — roteamento de sinal/AC num canvas com zoom/pan/fit.
 //
 // SINAL (Novastar básico): capacidade da porta limitada pela ÁREA RETANGULAR
-// (bounding box). Cada cabo é um bloco retangular que começa no canto superior-
-// esquerdo; a ordem dos cabos é cima→baixo e esquerda→direita (prioriza a montagem).
-// (Sistemas novos, ex. VX2000 + receiving cards série A, mudam isso — fica p/ depois.)
+// (bounding box). Cada cabo é um bloco retangular que INICIA no canto inferior-
+// esquerdo. Ordem cima→baixo, esquerda→direita. Parte principal vira cabos "retos";
+// a sobra combina o eixo perpendicular. (VX2000 + série A muda isso — fica p/ depois.)
+//
+// LIVRE: editor manual. Nada é dividido automaticamente — o usuário escolhe o cabo
+// ativo, clica p/ atribuir/reatribuir gabinetes e cria novo cabo quando quiser.
+// Pode IMPORTAR o cabeamento automático (Linha/Coluna/Área) e editar só o necessário.
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download } from "lucide-react";
 import { paletteColor, T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
@@ -17,54 +21,41 @@ const CELL = 64;
 
 const range = (n) => [...Array(Math.max(0, n)).keys()];
 const key = (c, r) => `${r},${c}`;
-const bboxArea = (port) => {
-  let a = 1e9, b = -1, c = 1e9, d = -1;
-  for (const p of port) { a = Math.min(a, p.c); b = Math.max(b, p.c); c = Math.min(c, p.r); d = Math.max(d, p.r); }
-  return port.length ? (b - a + 1) * (d - c + 1) : 0;
-};
-
-// canto superior-esquerdo do bounding box (usado p/ ordenar em leitura)
+const parseKey = (k) => { const [r, c] = k.split(",").map(Number); return { c, r }; };
 const topLeft = (p) => { let r = 1e9, c = 1e9; for (const x of p) { r = Math.min(r, x.r); c = Math.min(c, x.c); } return { r, c }; };
+const bboxArea = (p) => { let a = 1e9, b = -1, c = 1e9, d = -1; for (const x of p) { a = Math.min(a, x.c); b = Math.max(b, x.c); c = Math.min(c, x.r); d = Math.max(d, x.r); } return p.length ? (b - a + 1) * (d - c + 1) : 0; };
 
-// divide um total (linhas p/ coluna, colunas p/ linha) em bandas: cheias (= budget,
-// vira cabo "reto") + uma sobra final (que combina o eixo perpendicular).
-function bands(total, budget) {
-  const out = []; let rem = total;
-  while (rem > budget) { out.push(budget); rem -= budget; }
-  if (rem > 0) out.push(rem);
-  return out;
+function bands(total, budget) { const out = []; let rem = total; while (rem > budget) { out.push(budget); rem -= budget; } if (rem > 0) out.push(rem); return out; }
+
+// bloco por linha (row-major) começando no canto INFERIOR-ESQUERDO, serpenteando p/ cima
+function blockLinha(bx, by, w, H, cols) {
+  const block = [];
+  for (let ri = 0; ri < H; ri++) {
+    const r = by + (H - 1 - ri); // de baixo p/ cima
+    const cc = range(w).map((i) => bx + i).filter((c) => c < cols);
+    (ri % 2 ? cc.slice().reverse() : cc).forEach((c) => block.push({ c, r }));
+  }
+  return block;
 }
-
-// LINHA: bandas por colunas; cada cabo inicia no canto superior-esquerdo, serpenteia →.
 function portsLinha(cols, rows, budget) {
   const ports = []; let bx = 0;
   for (const w of bands(cols, budget)) {
-    const h = Math.max(1, Math.floor(budget / w)); // linhas somadas por cabo nesta banda
-    for (let by = 0; by < rows; by += h) {
-      const H = Math.min(h, rows - by), block = [];
-      for (let ri = 0; ri < H; ri++) {
-        const r = by + ri; const cc = range(w).map((i) => bx + i).filter((c) => c < cols);
-        (ri % 2 ? cc.reverse() : cc).forEach((c) => block.push({ c, r }));
-      }
-      ports.push(block);
-    }
+    const h = Math.max(1, Math.floor(budget / w));
+    for (let by = 0; by < rows; by += h) ports.push(blockLinha(bx, by, w, Math.min(h, rows - by), cols));
     bx += w;
   }
   return ports;
 }
-
-// COLUNA: bandas por linhas; cada cabo INICIA EMBAIXO e sobe, serpenteando.
-// Banda cheia = coluna reta; banda de sobra combina colunas até encher.
+// bloco por coluna (column-major) começando no canto INFERIOR-ESQUERDO, subindo
 function portsColuna(cols, rows, budget) {
   const ports = []; let by = 0;
   for (const h of bands(rows, budget)) {
-    const w = Math.max(1, Math.floor(budget / h)); // colunas somadas por cabo nesta banda
+    const w = Math.max(1, Math.floor(budget / h));
     for (let bx = 0; bx < cols; bx += w) {
       const W = Math.min(w, cols - bx), block = [];
       for (let ci = 0; ci < W; ci++) {
-        const c = bx + ci;
-        const down = range(h).map((i) => by + i);
-        (ci % 2 === 0 ? down.slice().reverse() : down).forEach((r) => block.push({ c, r })); // ci par: baixo→cima
+        const c = bx + ci; const down = range(h).map((i) => by + i);
+        (ci % 2 === 0 ? down.slice().reverse() : down).forEach((r) => block.push({ c, r }));
       }
       ports.push(block);
     }
@@ -72,34 +63,15 @@ function portsColuna(cols, rows, budget) {
   }
   return ports;
 }
-
-// ÁREA: blocos aproximadamente quadrados, início no canto superior-esquerdo.
+// área: blocos quadrados, início inferior-esquerdo
 function portsArea(cols, rows, budget) {
   const bh = Math.max(1, Math.min(rows, Math.floor(Math.sqrt(budget))));
   const bw = Math.max(1, Math.min(cols, Math.floor(budget / bh)));
   const ports = [];
   for (let by = 0; by < rows; by += bh)
-    for (let bx = 0; bx < cols; bx += bw) {
-      const W = Math.min(bw, cols - bx), H = Math.min(bh, rows - by), block = [];
-      for (let ri = 0; ri < H; ri++) { const r = by + ri; const cc = range(W).map((i) => bx + i); (ri % 2 ? cc.reverse() : cc).forEach((c) => block.push({ c, r })); }
-      ports.push(block);
-    }
+    for (let bx = 0; bx < cols; bx += bw) ports.push(blockLinha(bx, by, bw, Math.min(bh, rows - by), cols));
   return ports;
 }
-
-// modo Livre: agrupa a ordem de clique por área (sinal) ou contagem (AC)
-function portsByArea(order, maxArea) {
-  const ports = []; let cur = null, box = null;
-  for (const cell of order) {
-    if (!cur) { cur = [cell]; box = { minC: cell.c, maxC: cell.c, minR: cell.r, maxR: cell.r }; continue; }
-    const nb = { minC: Math.min(box.minC, cell.c), maxC: Math.max(box.maxC, cell.c), minR: Math.min(box.minR, cell.r), maxR: Math.max(box.maxR, cell.r) };
-    if ((nb.maxC - nb.minC + 1) * (nb.maxR - nb.minR + 1) > maxArea) { ports.push(cur); cur = [cell]; box = { minC: cell.c, maxC: cell.c, minR: cell.r, maxR: cell.r }; }
-    else { cur.push(cell); box = nb; }
-  }
-  if (cur) ports.push(cur);
-  return ports;
-}
-const portsByCount = (order, n) => { const o = []; for (let i = 0; i < order.length; i += n) o.push(order.slice(i, i + n)); return o; };
 
 export default function ProjectCabeamento({ project }) {
   const telas = project.telas || [];
@@ -107,7 +79,8 @@ export default function ProjectCabeamento({ project }) {
   const [mode, setMode] = useState("sinal");
   const [strategy, setStrategy] = useState("linha");
   const [hz, setHz] = useState(60);
-  const [manual, setManual] = useState([]);
+  const [cables, setCables] = useState([]); // modo livre: lista de cabos (arrays de chaves)
+  const [active, setActive] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const stageRef = useRef(null);
@@ -131,8 +104,8 @@ export default function ProjectCabeamento({ project }) {
     setZoom((z) => Math.min(6, Math.max(0.1, z * f)));
     setPan((p) => ({ x: mx - (mx - p.x) * f, y: my - (my - p.y) * f }));
   };
-  const onDown = (e) => { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }; };
-  const onMove = (e) => { if (drag.current) setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) }); };
+  const onDown = (e) => { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y, moved: false }; };
+  const onMove = (e) => { if (drag.current) { drag.current.moved = true; setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) }); } };
   const onUp = () => { drag.current = null; };
   const zoomBy = (f) => { const el = stageRef.current, cw = el.clientWidth / 2, ch = el.clientHeight / 2; setZoom((z) => Math.min(6, Math.max(0.1, z * f))); setPan((p) => ({ x: cw - (cw - p.x) * f, y: ch - (ch - p.y) * f })); };
 
@@ -143,18 +116,17 @@ export default function ProjectCabeamento({ project }) {
   const fp = parseFloat(g.fp) || 0.9;
   const ampCab = (parseFloat(g.pwrMax) || 0) / (FASE_V * fp);
   const connRating = CONN_AMP[g.conector] || 16;
-
   const budget = mode === "sinal"
-    ? Math.max(1, Math.floor(Math.floor((PX_PER_PORT * 60) / hz) / pxPerCab)) // área máx (gab) por porta
-    : Math.max(1, Math.floor(connRating / (ampCab || 1)));                    // gab por cabo (AC)
+    ? Math.max(1, Math.floor(Math.floor((PX_PER_PORT * 60) / hz) / pxPerCab))
+    : Math.max(1, Math.floor(connRating / (ampCab || 1)));
 
-  const manualOrder = manual.map((k) => { const [r, c] = k.split(",").map(Number); return { c, r }; });
-  let ports;
-  if (strategy === "livre") ports = (mode === "sinal" ? portsByArea : portsByCount)(manualOrder, budget);
-  else {
-    ports = strategy === "coluna" ? portsColuna(cols, rows, budget) : strategy === "area" ? portsArea(cols, rows, budget) : portsLinha(cols, rows, budget);
-    ports.sort((a, b) => { const A = topLeft(a), B = topLeft(b); return A.r - B.r || A.c - B.c; }); // numeração cima→baixo, esq→dir
-  }
+  const autoPorts = (strat) => {
+    const p = strat === "coluna" ? portsColuna(cols, rows, budget) : strat === "area" ? portsArea(cols, rows, budget) : portsLinha(cols, rows, budget);
+    p.sort((a, b) => { const A = topLeft(a), B = topLeft(b); return A.r - B.r || A.c - B.c; });
+    return p;
+  };
+
+  const ports = strategy === "livre" ? cables.map((ks) => ks.map(parseKey)) : autoPorts(strategy);
 
   const portOf = {};
   ports.forEach((p, i) => p.forEach((cell) => { portOf[key(cell.c, cell.r)] = i; }));
@@ -162,22 +134,52 @@ export default function ProjectCabeamento({ project }) {
   const usage = (port) => mode === "sinal" ? bboxArea(port) / budget : (port.length * ampCab) / connRating;
   const anyOver = ports.some((p) => usage(p) > 1.001);
   const incomplete = strategy === "livre" && assigned < cols * rows;
-  const status = incomplete ? { l: "Incompleto", c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
+  const status = incomplete ? { l: `Faltam ${cols * rows - assigned}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
 
-  const toggleCell = (c, r) => { if (strategy !== "livre") return; const k = key(c, r); setManual((m) => (m.includes(k) ? m.filter((x) => x !== k) : [...m, k])); };
+  // ── modo livre: edição manual ──
+  const clickCell = (c, r) => {
+    if (strategy !== "livre" || drag.current?.moved) return;
+    const k = key(c, r);
+    setCables((prev) => {
+      if (prev.length === 0) return [[k]];
+      const idx = Math.min(active, prev.length - 1);
+      const wasInActive = prev[idx]?.includes(k);
+      const next = prev.map((cab) => cab.filter((x) => x !== k)); // tira de qualquer cabo
+      if (!wasInActive) next[idx] = [...(next[idx] || []), k];    // adiciona ao ativo
+      return next;
+    });
+  };
+  const importFrom = (strat) => { setCables(autoPorts(strat).map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(0); };
+  const novoCabo = () => { setActive(cables.length); setCables((prev) => [...prev, []]); };
+  const removerCabo = (i) => { setCables((prev) => prev.filter((_, j) => j !== i)); setActive(0); };
 
   return (
     <div>
-      <div style={card({ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })} className="m-controlbar">
+      <div style={card({ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: strategy === "livre" ? 8 : 16 })} className="m-controlbar">
         <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
           {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
         <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
         <Seg label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["livre", "Livre"]]} value={strategy} onChange={setStrategy} />
         {mode === "sinal" && <Seg label="Freq" options={[[60, "60"], [50, "50"], [30, "30"]]} value={hz} onChange={setHz} />}
-        {strategy === "livre" && <button onClick={() => setManual([])} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, border: `1px solid ${T.bd}`, background: "transparent", color: T.mut, cursor: "pointer", fontSize: 13 }}><Eraser size={14} /> Limpar</button>}
         <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
       </div>
+
+      {/* barra do modo livre */}
+      {strategy === "livre" && (
+        <div style={card({ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
+          <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Importar do automático</span>
+          {[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]].map(([v, l]) => (
+            <button key={v} onClick={() => importFrom(v)} style={pill(false)}><Download size={13} /> {l}</button>
+          ))}
+          <span style={{ width: 1, height: 22, background: T.bd, margin: "0 4px" }} />
+          <button onClick={novoCabo} style={pill(false)}><Plus size={14} /> Novo cabo</button>
+          <button onClick={() => { setCables([]); setActive(0); }} style={pill(false)}><Eraser size={13} /> Limpar</button>
+          <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
+            {cables.length ? <>Editando <b style={{ color: paletteColor(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : "Importe do automático ou clique “Novo cabo” para começar"}
+          </span>
+        </div>
+      )}
 
       <div style={card({ padding: 0, overflow: "hidden" })}>
         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}` }}>
@@ -185,7 +187,7 @@ export default function ProjectCabeamento({ project }) {
           <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
             {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? "porta (área quadrada)" : "cabo"}
             {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
-            {strategy === "livre" && ` · clique nos gabinetes (${assigned}/${cols * rows})`}
+            {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
           </div>
         </div>
 
@@ -197,10 +199,11 @@ export default function ProjectCabeamento({ project }) {
               <rect x={-8} y={-8} width={panelW + 16} height={panelH + 16} rx={10} fill="#0d0d1a" stroke={T.bd} strokeWidth={1.5} />
               {range(rows).map((r) => range(cols).map((c) => {
                 const pi = portOf[key(c, r)];
+                const isActive = strategy === "livre" && pi === active;
                 const col = pi === undefined ? T.dim2 : paletteColor(pi);
                 return <rect key={key(c, r)} x={c * CELL + 3} y={r * CELL + 3} width={CELL - 6} height={CELL - 6} rx={6}
-                  fill={pi === undefined ? "transparent" : col + "26"} stroke={col} strokeWidth={1.5} strokeDasharray={pi === undefined ? "5 5" : undefined}
-                  onClick={() => toggleCell(c, r)} style={{ cursor: strategy === "livre" ? "pointer" : "inherit" }} />;
+                  fill={pi === undefined ? "transparent" : col + (isActive ? "45" : "26")} stroke={col} strokeWidth={isActive ? 3 : 1.5} strokeDasharray={pi === undefined ? "5 5" : undefined}
+                  onClick={() => clickCell(c, r)} style={{ cursor: strategy === "livre" ? "pointer" : "inherit" }} />;
               }))}
               {ports.map((port, pi) => {
                 if (!port.length) return null;
@@ -208,7 +211,7 @@ export default function ProjectCabeamento({ project }) {
                 const f = port[0];
                 return (
                   <g key={pi} style={{ pointerEvents: "none" }}>
-                    <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={0.95} />
+                    <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={strategy === "livre" && pi !== active ? 0.55 : 0.95} />
                     <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={paletteColor(pi)} stroke="#fff" strokeWidth={2} />
                     <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
                   </g>
@@ -222,29 +225,37 @@ export default function ProjectCabeamento({ project }) {
             ))}
           </div>
           <div style={{ position: "absolute", left: 12, bottom: 12, color: T.dim, fontSize: 11, background: "rgba(0,0,0,0.4)", padding: "4px 8px", borderRadius: 6 }}>
-            ordem cima→baixo · esquerda→direita · arraste p/ mover · scroll p/ zoom
+            início inferior-esquerdo · arraste p/ mover · scroll p/ zoom
           </div>
         </div>
 
-        {/* LEGENDA por cabo (% de uso) */}
+        {/* LEGENDA (clicável no modo livre para escolher o cabo) */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 14, borderTop: `1px solid ${T.bd}` }}>
           {ports.map((port, i) => {
             const pct = Math.round(usage(port) * 100);
             const over = pct > 100;
+            const isActive = strategy === "livre" && i === active;
             return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: T.card2, border: `1px solid ${over ? T.red : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12 }}>
+              <div key={i} onClick={strategy === "livre" ? () => setActive(i) : undefined}
+                style={{ display: "flex", alignItems: "center", gap: 8, background: isActive ? T.sel : T.card2, border: `1px solid ${over ? T.red : isActive ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: strategy === "livre" ? "pointer" : "default" }}>
                 <span style={{ width: 12, height: 12, borderRadius: 3, background: paletteColor(i), flexShrink: 0 }} />
                 <span style={{ color: T.txt, fontWeight: 600 }}>{mode === "sinal" ? "Porta" : "Cabo"} {i + 1}</span>
                 <span style={{ color: over ? T.red : T.mut }}>{pct}%</span>
                 <span style={{ color: T.dim }}>· {port.length} gab</span>
+                {strategy === "livre" && <X size={13} color={T.dim} onClick={(e) => { e.stopPropagation(); removerCabo(i); }} style={{ cursor: "pointer" }} />}
               </div>
             );
           })}
+          {strategy === "livre" && (
+            <button onClick={novoCabo} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, color: T.mut, cursor: "pointer" }}><Plus size={13} /> Novo cabo</button>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+const pill = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : T.card2, color: active ? "#fff" : T.mut, cursor: "pointer", fontSize: 13, fontWeight: 600 });
 
 function Seg({ label, options, value, onChange }) {
   return (
@@ -252,8 +263,8 @@ function Seg({ label, options, value, onChange }) {
       <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>{label}</span>
       <div style={{ display: "flex", gap: 4 }}>
         {options.map(([v, l]) => {
-          const active = v === value;
-          return <button key={String(v)} onClick={() => onChange(v)} style={{ padding: "6px 12px", borderRadius: 7, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : T.card2, color: active ? "#fff" : T.mut }}>{l}</button>;
+          const act = v === value;
+          return <button key={String(v)} onClick={() => onChange(v)} style={{ padding: "6px 12px", borderRadius: 7, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${act ? T.acc : T.bd}`, background: act ? T.acc : T.card2, color: act ? "#fff" : T.mut }}>{l}</button>;
         })}
       </div>
     </div>
