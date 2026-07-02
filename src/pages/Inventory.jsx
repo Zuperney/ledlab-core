@@ -1,6 +1,6 @@
 // pages/Inventory.jsx — Biblioteca de gabinetes (CRUD, salvo no navegador).
-import { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, Star, Columns3, ChevronDown, ChevronUp, Settings } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { Plus, Pencil, Trash2, Star, Columns3, ChevronDown, ChevronUp, Settings, Download, Upload } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { pitch } from "../services/electricalCalc.js";
 import { genNumericId } from "../services/ids.js";
@@ -15,6 +15,7 @@ const REQUIRED = ["nome", "resX", "resY", "dimW", "dimH", "peso", "pwrMax"];
 const CONECTORES = ["PowerCON Azul/Branco", "PowerCON TRUE1", "Neutrik True1", "Neutrik True1 TOP", "HangTon SD20", "Personalizado"];
 
 const COLS = [
+  { key: "marca", label: "Marca" },
   { key: "pitch", label: "Pitch" },
   { key: "resolucao", label: "Resolução" },
   { key: "dimensoes", label: "Dimensões" },
@@ -24,23 +25,63 @@ const COLS = [
   { key: "ip", label: "IP" },
 ];
 
+// marca: campo explícito ou primeira palavra do nome (compatível com dados antigos)
+const brandOf = (c) => c.marca || (c.nome || "").split(" ")[0] || "—";
+const pitchValue = (c) => { const r = parseFloat(c.resX), d = parseFloat(c.dimW); return r > 0 ? d / r : Infinity; };
+
 export default function Inventory() {
   const { cabs, setCabs, prefs, setPrefs } = useLedLabContext();
   const [q, setQ] = useState("");
   const [sortBy, setSortBy] = useState("nome");
   const [ipFilter, setIpFilter] = useState("Todos");
+  const [marcaFilter, setMarcaFilter] = useState("Todas");
   const [drawer, setDrawer] = useState(null); // null | {mode, data}
   const [advOpen, setAdvOpen] = useState(false);
+  const fileRef = useRef(null);
 
   const cols = prefs.cabCols || {};
   const toggleCol = (k) => setPrefs({ ...prefs, cabCols: { ...cols, [k]: !cols[k] } });
+  const brands = useMemo(() => ["Todas", ...Array.from(new Set(cabs.map(brandOf))).sort()], [cabs]);
 
   const rows = useMemo(() => {
     let r = cabs.filter((c) => c.nome.toLowerCase().includes(q.toLowerCase()));
     if (ipFilter !== "Todos") r = r.filter((c) => c.ip === ipFilter);
-    r = [...r].sort((a, b) => (sortBy === "pwrMax" ? (parseFloat(b.pwrMax) || 0) - (parseFloat(a.pwrMax) || 0) : a.nome.localeCompare(b.nome)));
+    if (marcaFilter !== "Todas") r = r.filter((c) => brandOf(c) === marcaFilter);
+    r = [...r].sort((a, b) => {
+      if (sortBy === "pwrMax") return (parseFloat(b.pwrMax) || 0) - (parseFloat(a.pwrMax) || 0);
+      if (sortBy === "pitch") return pitchValue(a) - pitchValue(b);
+      if (sortBy === "marca") return brandOf(a).localeCompare(brandOf(b)) || a.nome.localeCompare(b.nome);
+      return a.nome.localeCompare(b.nome);
+    });
     return r;
-  }, [cabs, q, ipFilter, sortBy]);
+  }, [cabs, q, ipFilter, marcaFilter, sortBy]);
+
+  const importCabs = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const incoming = Array.isArray(parsed) ? parsed : parsed.cabinets || parsed.cabs || [];
+        if (!Array.isArray(incoming) || !incoming.length) { alert("Nenhum gabinete encontrado no arquivo."); return; }
+        const byName = new Map(cabs.map((c) => [c.nome.toLowerCase(), c]));
+        let added = 0, updated = 0;
+        for (const raw of incoming) {
+          if (!raw || !raw.nome) continue;
+          const k = raw.nome.toLowerCase();
+          if (byName.has(k)) { const ex = byName.get(k); byName.set(k, { ...ex, ...raw, id: ex.id }); updated++; }
+          else { byName.set(k, { ...raw, id: genNumericId(byName.size) }); added++; }
+        }
+        setCabs(Array.from(byName.values()));
+        alert(`Importado: ${added} novo(s), ${updated} atualizado(s).`);
+      } catch {
+        alert("Arquivo inválido. Use um .json exportado do LedLab Core.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   const openNew = () => { setDrawer({ mode: "new", data: { ...EMPTY } }); setAdvOpen(false); };
   const openEdit = (c) => { setDrawer({ mode: "edit", data: { ...c } }); setAdvOpen(false); };
@@ -66,7 +107,11 @@ export default function Inventory() {
   return (
     <div>
       <SectionHeader title="Biblioteca de gabinetes" subtitle={`${cabs.length} cadastrados · cadastre uma vez, use em todos os projetos (salvo neste navegador).`}>
-        <DropdownMenu items={[{ label: "Exportar biblioteca (.json)", onClick: () => exportCabs(cabs) }]} />
+        <DropdownMenu items={[
+          { label: "Importar biblioteca (.json)", Icon: Upload, onClick: () => fileRef.current?.click() },
+          { label: "Exportar biblioteca (.json)", Icon: Download, onClick: () => exportCabs(cabs) },
+        ]} />
+        <input ref={fileRef} type="file" accept="application/json" onChange={importCabs} style={{ display: "none" }} />
         <button style={btn("primary")} onClick={openNew}><Plus size={16} /> Novo gabinete</button>
       </SectionHeader>
 
@@ -75,7 +120,13 @@ export default function Inventory() {
         <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Ordenar</span>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input({ width: "auto" })}>
           <option value="nome">Nome</option>
+          <option value="marca">Marca</option>
+          <option value="pitch">Pixel pitch</option>
           <option value="pwrMax">Potência</option>
+        </select>
+        <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Marca</span>
+        <select value={marcaFilter} onChange={(e) => setMarcaFilter(e.target.value)} style={input({ width: "auto" })}>
+          {brands.map((b) => <option key={b}>{b}</option>)}
         </select>
         <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>IP</span>
         <select value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={input({ width: "auto" })}>
@@ -103,6 +154,7 @@ export default function Inventory() {
                       <b style={{ color: T.txt }}>{c.nome}</b>
                     </span>
                   </td>
+                  {cols.marca && <td style={{ padding: "12px 16px", color: T.txt }}>{brandOf(c)}</td>}
                   {cols.pitch && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.acM }}>{pitch(c)}</td>}
                   {cols.resolucao && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.mut }}>{c.resX}×{c.resY}</td>}
                   {cols.dimensoes && <td style={{ padding: "12px 16px", fontFamily: "ui-monospace,monospace", color: T.mut }}>{c.dimW}×{c.dimH} mm</td>}
