@@ -11,8 +11,6 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Agenda from "./pages/Agenda.jsx";
 import Inventory from "./pages/Inventory.jsx";
 import Projects from "./pages/Projects.jsx";
-import CalcElec from "./pages/CalcElec.jsx";
-import CalcAdv from "./pages/CalcAdv.jsx";
 import Diagrams from "./pages/Diagrams.jsx";
 import TestCards from "./pages/TestCards.jsx";
 import Knowledge from "./pages/Knowledge.jsx";
@@ -20,7 +18,7 @@ import Settings from "./pages/Settings.jsx";
 
 const PAGES = {
   dashboard: Dashboard, agenda: Agenda, inventory: Inventory, projects: Projects,
-  calc: CalcElec, "calc-adv": CalcAdv, diagrams: Diagrams, testcards: TestCards,
+  diagrams: Diagrams, testcards: TestCards,
   knowledge: Knowledge, settings: Settings,
 };
 

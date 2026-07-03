@@ -1,27 +1,53 @@
 // pages/project/ProjectRelatorio.jsx — relatório imprimível (PDF via navegador).
+// Completo inclui: visão geral, vídeo/resolução, elétrica, cabeamento de SINAL e de
+// ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
+// no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState } from "react";
 import { Printer } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { aggregateElectrical, projectRollup, screenRollup } from "../../services/projectCalc.js";
+import { cableMeta, cablePorts, bboxArea } from "../../services/cabling.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
-import { T, PRINT } from "../../ui/tokens.js";
+import CableMap from "../../components/CableMap.jsx";
+import { paletteColor, T, PRINT } from "../../ui/tokens.js";
 import { btn } from "../../ui/styles.js";
 
 const TYPES = ["Completo", "Resumido", "Elétrico", "Estrutural", "Design", "Gabinetes"];
 
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+const videoOf = (t) => {
+  const g = t.gabinete || {};
+  const pxW = (parseInt(g.resX) || 0) * (t.cols || 0), pxH = (parseInt(g.resY) || 0) * (t.rows || 0);
+  const d = gcd(pxW, pxH) || 1;
+  const arSimple = pxW && pxH && pxW / d <= 100 && pxH / d <= 100 ? `${pxW / d}:${pxH / d}` : null;
+  const dec = pxH ? (pxW / pxH).toFixed(2) : "—";
+  const pitch = parseFloat(g.dimW) && parseInt(g.resX) ? parseFloat(g.dimW) / parseInt(g.resX) : 0;
+  return { pxW, pxH, mp: (pxW * pxH) / 1e6, ar: arSimple || `${dec}:1`, dec, pitch };
+};
+
 export default function ProjectRelatorio({ project }) {
   const { prefs } = useLedLabContext();
   const [type, setType] = useState("Completo");
+  const numbering = prefs.cableNumbering || "row-tb-lr";
   const cfg = project.config || { vk: prefs.vk, brilho: prefs.brilho, conteudo: prefs.conteudo };
   const agg = aggregateElectrical(project, cfg);
   const roll = projectRollup(project);
   const today = formatFull(new Date().toISOString().slice(0, 10));
+  const telas = project.telas || [];
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
   const showPhys = ["Completo", "Resumido", "Estrutural", "Gabinetes", "Design"].includes(type);
+  const showVideo = ["Completo", "Resumido", "Design"].includes(type);
+  const showSignal = type === "Completo";
+  const showAC = ["Completo", "Elétrico"].includes(type);
 
   const th = { textAlign: "left", padding: "8px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase" };
   const td = { padding: "8px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
+  const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
+  const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: paletteColor(i), flexShrink: 0 });
+  const h3 = { color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 };
+  const telaBlock = { marginBottom: 18, breakInside: "avoid" };
+  const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };
 
   return (
     <div>
@@ -55,11 +81,11 @@ export default function ProjectRelatorio({ project }) {
 
         {showPhys && (
           <section style={{ marginBottom: 24 }}>
-            <h3 style={{ color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 }}>Visão Geral</h3>
+            <h3 style={h3}>Visão Geral</h3>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Gabinete</th><th style={th}>Grade</th><th style={th}>Gab.</th><th style={th}>Dimensão</th><th style={th}>Peso</th><th style={th}>Carga</th></tr></thead>
               <tbody>
-                {project.telas.map((t) => { const r = screenRollup(t); return (
+                {telas.map((t) => { const r = screenRollup(t); return (
                   <tr key={t.id}><td style={td}>{t.nome}</td><td style={td}>{t.gabinete?.nome}</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{r.gab}</td><td style={td}>{r.dim.largura_m.toFixed(1)}×{r.dim.altura_m.toFixed(1)} m</td><td style={td}>{r.peso_kg.toFixed(1)} kg</td><td style={{ ...td, color: PRINT.red }}>{(r.pwrMax_w / 1000).toFixed(1)} kW</td></tr>
                 ); })}
                 <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}></td><td style={td}></td><td style={td}>{roll.gab}</td><td style={td}>{roll.area_m2.toFixed(1)} m²</td><td style={td}>{roll.peso_kg.toFixed(1)} kg</td><td style={{ ...td, color: PRINT.red }}>{(roll.pwrMax_w / 1000).toFixed(1)} kW</td></tr>
@@ -68,9 +94,24 @@ export default function ProjectRelatorio({ project }) {
           </section>
         )}
 
+        {showVideo && (
+          <section style={{ marginBottom: 24 }}>
+            <h3 style={h3}>Vídeo / Resolução</h3>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Resolução total por tela (para configurar processador/mídia) e proporção de tela.</p>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Total</th><th style={th}>Aspecto</th><th style={th}>Pitch</th></tr></thead>
+              <tbody>
+                {telas.map((t) => { const v = videoOf(t); return (
+                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={td}>{v.mp.toFixed(2)} Mpx</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={td}>{v.pitch ? `${v.pitch.toFixed(2)} mm` : "—"}</td></tr>
+                ); })}
+              </tbody>
+            </table>
+          </section>
+        )}
+
         {showElec && (
-          <section>
-            <h3 style={{ color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 }}>Informações Elétricas</h3>
+          <section style={{ marginBottom: 24 }}>
+            <h3 style={h3}>Informações Elétricas</h3>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Pico (pwrMax) dimensiona disjuntor e cabo; típico estima o gerador. {agg.vc.label}.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Gab.</th><th style={th}>Pico kW</th><th style={th}>Pico kVA</th><th style={th}>Pico A</th><th style={th}>Disjuntor</th><th style={th}>Típ. kVA</th><th style={th}>Típ. A</th></tr></thead>
@@ -82,6 +123,50 @@ export default function ProjectRelatorio({ project }) {
               </tbody>
             </table>
             <p style={{ color: PRINT.mut, fontSize: 12, marginTop: 8 }}>Gerador sugerido (típico + 25% de margem): <b style={{ color: PRINT.acc }}>~{agg.gerador} kVA</b>.</p>
+          </section>
+        )}
+
+        {showSignal && (
+          <section style={{ marginBottom: 24 }}>
+            <h3 style={h3}>Cabeamento de Sinal</h3>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela (regra de área quadrada). O selo numerado indica o início de cada cabo (canto inferior-esquerdo).</p>
+            {telas.map((t) => {
+              const { sinalBudget } = cableMeta(t);
+              const ports = cablePorts(t, "sinal", numbering);
+              return (
+                <div key={t.id} style={telaBlock}>
+                  <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "porta" : "portas"} · máx {sinalBudget} gab/porta</div>
+                  <CableMap tela={t} mode="sinal" numbering={numbering} />
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                    {ports.map((p, i) => { const pct = Math.round((bboxArea(p) / sinalBudget) * 100); return (
+                      <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(i)} />Porta {i + 1} · {pct}% · {p.length} gab</span>
+                    ); })}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        {showAC && (
+          <section style={{ marginBottom: 24 }}>
+            <h3 style={h3}>Energia — Cabeamento AC</h3>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
+            {telas.map((t) => {
+              const { ampCab, connRating, acBudget } = cableMeta(t);
+              const ports = cablePorts(t, "ac", numbering);
+              return (
+                <div key={t.id} style={telaBlock}>
+                  <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "cabo" : "cabos"} · {acBudget} gab/cabo · {ampCab.toFixed(2)} A/gab · conector {connRating} A</div>
+                  <CableMap tela={t} mode="ac" numbering={numbering} />
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                    {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); return (
+                      <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(i)} />Cabo {i + 1} · {load.toFixed(1)} A ({pct}%) · {p.length} gab</span>
+                    ); })}
+                  </div>
+                </div>
+              );
+            })}
           </section>
         )}
       </div>
