@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, ArrowLeft } from "lucide-react
 import { MONTHS_LONG } from "../../services/projectCalc.js";
 import { useWorklog } from "../../hooks/useWorklog.js";
 import { useActivityTypes } from "../../hooks/useActivityTypes.js";
+import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { T } from "../../ui/tokens.js";
 import { card, input, btn, label as lbl } from "../../ui/styles.js";
 import BottomSheet from "../../components/BottomSheet.jsx";
@@ -26,6 +27,8 @@ function toISO(dataRef, time) {
 export default function DiariasView() {
   const { worklog, addEntry, updateEntry, removeEntry, breakdown, dia } = useWorklog();
   const { activityTypes } = useActivityTypes();
+  const confirm = useConfirm();
+  const toast = useToast();
   const ativos = activityTypes.filter((t) => t.ativo);
 
   const now = new Date();
@@ -68,8 +71,16 @@ export default function DiariasView() {
     const e = buildEntry(form);
     if (form.id) updateEntry({ ...e, id: form.id }); else addEntry(e);
     setForm(null);
+    toast(form.id ? "Atividade atualizada" : "Atividade adicionada");
   };
-  const excluir = () => { if (form.id) removeEntry(form.id); setForm(null); };
+  const excluir = async () => {
+    if (!form.id) return;
+    if (await confirm({ title: "Excluir atividade?", message: "Este lançamento será removido do seu registro. Não pode ser desfeito." })) {
+      removeEntry(form.id);
+      setForm(null);
+      toast("Atividade excluída");
+    }
+  };
 
   const preview = form ? breakdown(buildEntry(form)) : null;
   const chip = { fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
