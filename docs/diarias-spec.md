@@ -37,7 +37,10 @@ Cada tipo tem: **nome**, **cor**, **valor base (cachê)** e duas chaves independ
 | Operação | Sim | **Sim** | Sim |
 | Desmontagem | Sim | **Sim** | Sim |
 | Trabalho em viagem | Sim | **Sim** | Sim |
-| **Dia de deslocamento** | Sim | **Não** (flat) | **Não** |
+| **Diária de viagem** (viagem longa paga à parte) | Sim | **Não** (flat) | **Sim** |
+| **Dia de deslocamento** (curto) | Sim | **Não** (flat) | **Não** |
+
+> **Deslocamento × Diária de viagem:** deslocamento curto é **absorvido** quando há trabalho no dia (não dobra o cachê — a regra pra não cobrar viagem+trabalho em dobro). Já a **diária de viagem longa empilha** como cachê próprio (clientes que pagam a estrada à parte). O **tipo** define o padrão; o **override por lançamento** (`cobrarSeparado`, §5.5) resolve a exceção "a mesma viagem um cliente paga e outro não".
 
 ## 5. Regras de cobrança (motor de cálculo)
 
@@ -51,6 +54,7 @@ Cada tipo tem: **nome**, **cor**, **valor base (cachê)** e duas chaves independ
 ### 5.2 Fórmula **por evento** (tipos com `geraHoraExtra = sim`)
 ```
 h = duração em horas do turno (check-in → checkout; PODE cruzar a meia-noite)
+Se o lançamento NÃO tem horários (só o cachê): total = C  (sem hora extra).
 
 se h <= J:
     total = C
@@ -91,14 +95,15 @@ Regra em palavras: até a jornada = 1 cachê. Passou: conta blocos cheios de `J`
 
 Serve para qualquer jornada (10h, 8h…): muda só o `J` que o usuário configura.
 
-### 5.4 Tipos **flat** (`geraHoraExtra = não`, ex.: deslocamento)
+### 5.4 Tipos **flat** (`geraHoraExtra = não`, ex.: deslocamento / diária de viagem)
 `total = C` independentemente das horas (a duração é registrada só para histórico/desgaste).
 
 ### 5.5 Agregação do **dia** (empilhamento + deslocamento)
 ```
 eventos_do_dia = registros com mesma dataRef
-stackers    = eventos com podeSegundoCache = true    # trabalho (cada um é 1 cachê)
-naoStackers = eventos com podeSegundoCache = false   # deslocamento
+# "empilha?" = cobrarSeparado (override do lançamento) se definido; senão tipo.podeSegundoCache
+stackers    = eventos que empilham    # trabalho / diária de viagem (cada um é 1 cachê)
+naoStackers = eventos que não empilham # deslocamento curto
 
 total_dia = soma(valorEvento(e)) para e em stackers
 se stackers está vazio e há naoStackers:
@@ -107,17 +112,27 @@ se stackers está vazio e há naoStackers:
 senão:
     naoStackers = R$0 (registrados)           # já há cachê de trabalho no dia → deslocamento não cobra
 ```
-> É isto que impede o **cachê duplo indevido** no dia de "desmontou de madrugada + voltou de viagem + fez outro evento": os dois trabalhos contam, o deslocamento entre eles não. E um dia só de deslocamento (ida + volta) = **1 cachê**.
+> Impede o **cachê duplo indevido** ("desmontou de madrugada + voltou de viagem + fez outro evento": os dois trabalhos contam, o deslocamento entre eles não). Um dia só de deslocamento (ida + volta) = **1 cachê**.
+> **Override por lançamento:** `cobrarSeparado` (sim/não) força se aquele lançamento gera cachê próprio, ignorando o padrão do tipo — ex.: a mesma viagem paga como diária por um cliente e absorvida por outro.
 
 ### 5.6 Arredondamento
 Tudo **para cima, sem centavos** (R$ inteiro) — para não gerar "R$7,89 sobrando" e facilitar a conferência. Horas extras sempre em **horas inteiras** (regra dos 50 min, §5.1).
 
-## 6. Check-in / Checkout / Local
-- **Check-in (por evento):** escolhe o **tipo**, captura a **hora** e o **local (GPS, opcional)**; se houver evento do LedLab naquele dia, sugere **linkar** (puxa cliente/local).
+### 5.7 Fuso horário e datas (à prova de viagem)
+- **Instantes com offset:** check-in/checkout guardados em ISO **com fuso** (ex.: `2026-07-03T22:00-03:00`).
+- **Duração é TZ-safe:** a hora extra vem da **diferença de instantes** → correta mesmo trabalhando em outro fuso (ex.: evento no AM, técnico de Brasília). Viajar não altera o cálculo.
+- **`dataRef` manda no agrupamento:** o "dia" do cachê é o campo **explícito** que o técnico define — **nunca** derivado do relógio/fuso do aparelho. Assim a quebra de meia-noite e o agrupamento do dia não bugam em viagem.
+
+## 6. Registro do trabalho (entrada manual + check-in)
+O registro é **por evento**, e a **entrada manual é o caminho principal** — o check-in/checkout ao vivo é só um **atalho opcional**.
+
+- **Manual (principal):** pela Agenda, lança o evento com **tipo**, **cliente/local** (ou linka a um Projeto) e, se quiser, **hora de início e fim** — ou nem isso, só marca "1 cachê".
+  - Com início/fim → o motor calcula hora extra (§5).
+  - **Sem horários → 1 cachê base** do tipo (sem hora extra). Bom para os serviços curtos do dia a dia.
+- **Check-in / Checkout (atalho ao vivo):** botão que carimba a **hora** (e o **GPS**, opcional) na entrada e na saída, preenchendo os mesmos campos do lançamento manual.
 - **Turno aberto:** banner "check-in ativo desde HH:MM em [local] — [Checkout]".
-- **Checkout:** marca a hora de saída → duração → alimenta o motor (§5).
-- **Late checkout:** ao abrir o app, se há **turno aberto de um dia anterior**, o app avisa e deixa preencher a hora de saída manualmente (marca `lateCheckout = true`).
-- **Aviso de jornada:** se a duração passar muito da jornada (ex.: além de `J`+janela), destaca que virou cachê dobrado.
+- **Late checkout:** se ficou um turno aberto de um dia anterior, o app avisa ao abrir e deixa preencher/ajustar a hora de saída (marca `lateCheckout = true`).
+- **Tolerância a imprecisão:** como a hora extra é em horas inteiras com tolerância de 50 min (§5.1), pequenos erros de horário **quase nunca mudam o valor** — dá pra registrar "de cabeça" depois sem medo (mudar 1 hora extra exige errar ~1h; mudar um cachê inteiro, ~4h).
 
 ## 7. Estruturas de dados (rascunho)
 ```
@@ -131,15 +146,16 @@ ActivityType {
 
 WorkEntry {                    // = um evento/serviço
   id,
-  dataRef: "YYYY-MM-DD",       // dia de referência (agrupamento)
+  dataRef: "YYYY-MM-DD",       // dia de referência (agrupamento; explícito, não derivado do fuso)
   tipoId,                      // -> ActivityType
   eventoId?: string,           // link opcional a um Projeto do LedLab
   clienteLivre?, localLivre?,  // quando não linkado a projeto
-  checkin?: ISOdatetime,
-  checkout?: ISOdatetime,
+  checkin?: ISOcomOffset,      // opcional; sem checkin/checkout => 1 cachê base (sem hora extra)
+  checkout?: ISOcomOffset,
   lateCheckout?: boolean,
   local?: { lat, lng, label? },
   valorOverride?: number,      // cachê específico deste evento
+  cobrarSeparado?: boolean,    // override: força gerar (ou não) cachê próprio no dia, ignorando o tipo
   obs?
 }
 // Sem campo de status de pagamento (decisão: menos fricção; §12.3).
@@ -156,8 +172,8 @@ Storage: ledlab.worklog.v1 (WorkEntry[]) · ledlab.activitytypes.v1 (ActivityTyp
 ```
 
 ## 8. Telas / UX (mobile-first)
-- **Agenda (grade do mês) — vira o "ponto":** dia **tocável** → bottom sheet "adicionar atividade / check-in" (data já preenchida). Cada dia mostra **marcadores por tipo/cor**; eventos do LedLab ficam de fundo (contexto). FAB **"Check-in agora"**.
-- **Check-in / Checkout:** fluxo curto com tipo + GPS + hora; banner de turno aberto; late checkout.
+- **Agenda (grade do mês) — vira o "ponto":** dia **tocável** → bottom sheet "adicionar atividade" (data já preenchida), com **entrada manual** (tipo, cliente/local, horários opcionais) ou **check-in**. Cada dia mostra **marcadores por tipo/cor**; eventos do LedLab ficam de fundo (contexto). FAB **"Check-in agora"**.
+- **Check-in / Checkout:** atalho ao vivo (tipo + GPS + hora); banner de turno aberto; late checkout.
 - **Financeiro (aba própria):** filtros por **período** e **cliente**; **recibo por evento** — cada evento **datado**, com sua **franquia de horas** e **valor**; quando o dia tem **mais de uma atividade**, agrupa sob o dia com **subtotal do dia**. Total do período no rodapé. Export **PDF** (recibo) + **CSV** (planilha/contador). *(Sem status de pago.)*
 - **Configurações:** jornada (global), janela (global), tolerância da fração (global); **CRUD de tipos de atividade** (nome, cor, valor base, "gera hora extra?", "pode 2º cachê?").
 - **Dashboard (fase 4):** card "diárias do mês · total do mês".
@@ -165,37 +181,45 @@ Storage: ledlab.worklog.v1 (WorkEntry[]) · ledlab.activitytypes.v1 (ActivityTyp
 ## 9. Casos de borda (tratados)
 - **Turno cruzando a meia-noite:** é **um** evento; a duração vai de check-in a checkout; blocos se repetem dentro dele (32h = 3 cachês).
 - **Vários eventos no mesmo dia:** cada um é um cachê independente com franquia própria (nunca soma o span do dia).
+- **Sem horários:** lançamento só com o cachê (sem início/fim) = **1 cachê base** do tipo, sem hora extra.
 - **Esqueceu o checkout:** late checkout retroativo por evento.
 - **Deslocamento:** só cobra se for a **única** atividade do dia (mesmo **ida + volta = 1 cachê**); havendo trabalho no dia, é registrado a R$0.
+- **Viagem longa cobrada à parte:** usar o tipo **"Diária de viagem"** (empilha) ou `cobrarSeparado = sim` no lançamento.
 - **Tempinho a mais (≤50 min):** tolerância — não vira hora extra (espera de Uber / arrumar material).
+- **Fuso em viagem:** duração pelos instantes (com offset); dia pelo `dataRef` explícito (§5.7).
 - **Valor variável:** `valorOverride` por evento (cachê não é igual entre técnicos/clientes).
 
 ## 10. Fora de escopo (por ora)
+- **Auditoria / aprovação externa** (assinatura de produtor, prova de terceiros, GPS contínuo): **não é objetivo** — é um **registro pessoal** do técnico. Quem confere é o **financeiro do contratante**, cruzando os dados e negociando por técnico.
 - **Auto-checkout por geofencing** (sair do local): **não é confiável em PWA** (sem GPS em segundo plano garantido, pior no iOS) → checkout manual + late checkout.
 - **Reverse-geocode** (coordenada → endereço): precisa de serviço externo → fase posterior; no MVP guarda lat/lng + link pro mapa (ou usa o `local` do evento linkado).
 - **Status de pagamento (pago/a receber):** removido de propósito — §12.3.
 - **Multiusuário / sync / backend:** só se virar produto — o storage isolado deixa isso barato depois.
 
 ## 11. Plano de implementação (fases)
-- **Fase 0 — motor + config:** `services/worklog.js` (fórmula §5, por evento; agregação do dia §5.5), hooks `useWorklog`/`useActivityTypes`, Configurações (jornada, janela, tolerância, tipos).
-- **Fase 1 — registro pela Agenda:** grade tocável → adicionar atividade; marcadores; aviso de cachê duplo (deslocamento). (Sem GPS ainda — já usável.)
+- **Fase 0 — motor + config:** `services/worklog.js` (fórmula §5, por evento; agregação §5.5; **política de fuso §5.7** — instantes com offset), hooks `useWorklog`/`useActivityTypes`, Configurações (jornada, janela, tolerância, tipos).
+- **Fase 1 — registro pela Agenda:** grade tocável → **entrada manual** (com/sem horário); marcadores; aviso de cachê duplo (deslocamento). (Sem GPS ainda — já usável.)
 - **Fase 2 — check-in/out + GPS + late checkout:** turno com local, checkout, late checkout, cálculo por evento (cruzando meia-noite), aviso de jornada.
 - **Fase 3 — Financeiro:** fechamento por período/cliente; recibo por evento **agrupado por dia** (subtotal do dia); export PDF + CSV.
 - **Fase 4 — refino:** card no Dashboard, reverse-geocode opcional, valores recorrentes por cliente.
 
 ## 12. Decisões (todas fechadas)
 - **12.1 ✅ Deslocamento ida + volta no mesmo dia = 1 cachê** (só um por dia; extras registrados a R$0).
-- **12.2 ✅ Jornada é GLOBAL** — mesma franquia para todos os tipos, definida pelo usuário. Sem override por tipo.
-- **12.3 ✅ Sem status de pagamento** — não há "previsto/confirmado/pago" (evita fricção e alertas que o técnico não vai manter). O financeiro só soma o que foi registrado no período.
-- **12.4 ✅ Fechamento por evento** — datado, com franquia de horas e valor por evento; quando o dia tem mais de uma atividade, agrupa sob o dia com subtotal.
-- **12.5 ✅ Fração de hora extra = regra dos 50 min** — a fração só vira hora extra (1 hora cheia) se **passar de 50 min**; até 50 min é tolerância (sem cobrança). Nunca há meia hora; extra sempre em horas inteiras. Tolerância configurável (`toleranciaExtraMin`, padrão 50).
-- **12.6 ✅ Janela é GLOBAL** e configurável (a prática de horas é individual, programável nas Configurações).
+- **12.2 ✅ Jornada é GLOBAL** — mesma franquia para todos os tipos. Sem override por tipo.
+- **12.3 ✅ Sem status de pagamento** — o financeiro só soma o que foi registrado no período.
+- **12.4 ✅ Fechamento por evento** — datado, com franquia e valor; agrupa por dia com subtotal quando há +1 atividade.
+- **12.5 ✅ Fração de hora extra = regra dos 50 min** — só vira 1 hora cheia passando de 50 min; até 50 min é tolerância. Sempre horas inteiras. `toleranciaExtraMin` configurável.
+- **12.6 ✅ Janela é GLOBAL** e configurável.
+- **12.7 ✅ Fuso à prova de viagem** — instantes com offset; duração pela diferença de instantes; `dataRef` explícito manda no dia (§5.7).
+- **12.8 ✅ Viagem flexível** — tipo "Diária de viagem" (empilha) × "Deslocamento" (absorvido) + override `cobrarSeparado` por lançamento.
+- **12.9 ✅ Entrada manual first-class** — horários opcionais (sem horário = 1 cachê base); check-in ao vivo é atalho. Billing tolerante a imprecisão (§6).
 
-> **Especificação fechada.** Pronta para iniciar a **Fase 0** (motor de cálculo + config) quando você quiser.
+> **Especificação fechada.** Pronta para iniciar a **Fase 0** (motor + config) quando você quiser.
 
 ---
 
 ### Changelog
-- **2026-07-03 (fração de hora extra):** definida a **regra dos 50 min** (§5.2/§12.5) — fração só vira hora extra passando de 50 min; tolerância configurável. Spec marcada como **fechada**.
-- **2026-07-03 (refinos):** jornada e janela **globais**; **sem status de pagamento**; deslocamento **ida+volta = 1 cachê**; fechamento **por evento, agrupado por dia**.
-- **2026-07-03** — v0 do rascunho (cobrança por evento, fórmula de blocos+janela, tipos, regra de deslocamento, check-in/GPS/late checkout, exportação financeira).
+- **2026-07-03 (review externo):** fuso horário à prova de viagem (§5.7); **entrada manual first-class** (§6); tipo **"Diária de viagem"** + override `cobrarSeparado` (§4/§5.5); **auditoria externa fora de escopo** (§10, registro pessoal — o financeiro cruza os dados).
+- **2026-07-03 (fração de hora extra):** regra dos 50 min (§5.2/§12.5).
+- **2026-07-03 (refinos):** jornada e janela globais; sem status de pagamento; deslocamento ida+volta = 1 cachê; fechamento por evento agrupado por dia.
+- **2026-07-03** — v0 do rascunho.
