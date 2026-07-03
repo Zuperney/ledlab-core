@@ -16,7 +16,7 @@ export default function TestCards() {
 
   const manualProject = useMemo(() => {
     const c = cabs.find((x) => x.id === cabId) || cabs[0] || {};
-    return { id: "manual", name: "Manual", telas: [{ id: "m1", nome: "Grade manual", cols, rows, gabinete: { nome: c.nome, resX: c.resX, resY: c.resY, dimW: c.dimW, dimH: c.dimH, pwrMax: c.pwrMax } }] };
+    return { id: "manual", name: "Manual", telas: [{ id: "m1", nome: "Grade manual", cols, rows, gabinete: { nome: c.nome, resX: c.resX, resY: c.resY, dimW: c.dimW, dimH: c.dimH, pwrMax: c.pwrMax, fp: c.fp, conector: c.conector } }] };
   }, [cabs, cabId, cols, rows]);
 
   const project = mode === "projeto" ? projects.find((p) => p.id === projId) : manualProject;
