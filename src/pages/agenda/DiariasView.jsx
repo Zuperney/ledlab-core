@@ -245,7 +245,7 @@ export default function DiariasView() {
               {preview && (
                 <div style={{ background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ color: T.mut, fontSize: 12 }}>
-                    {preview.flat ? "Cachê fixo" : `${preview.cachês} cachê${preview.cachês > 1 ? "s" : ""}${preview.horasExtras ? ` + ${preview.horasExtras}h extra` : ""}`}
+                    {`${preview.cachês} cachê${preview.cachês > 1 ? "s" : ""}${preview.horasExtras ? ` + ${preview.horasExtras}h extra` : ""}`}
                     {preview.duracaoH != null && ` · ${preview.duracaoH.toFixed(1)}h`}
                   </span>
                   <b style={{ color: T.grn, fontSize: 18 }}>{brl(preview.total)}</b>

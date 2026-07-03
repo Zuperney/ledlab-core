@@ -7,10 +7,10 @@ const pad = (n) => String(n).padStart(2, "0");
 const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 const hhmm = (iso) => { if (!iso) return ""; const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toTimeString().slice(0, 5); };
 
-// "1 cachê", "2 cachês + 3h extra", "cachê fixo" (flat)
+// "1 cachê", "2 cachês + 3h extra". Vazio quando não cobra (0 cachês).
+// (Sem "fixo" aqui — "Fixo" é só o retainer mensal, pra não confundir.)
 export function descBreakdown(bd) {
-  if (!bd) return "";
-  if (bd.flat) return "cachê fixo";
+  if (!bd || !bd.cachês) return "";
   const ch = `${bd.cachês} cachê${bd.cachês > 1 ? "s" : ""}`;
   return bd.horasExtras ? `${ch} + ${bd.horasExtras}h extra` : ch;
 }
@@ -50,7 +50,8 @@ export function reciboWhatsApp({ grupos = [], tecnico, periodoLabel, clienteLabe
       const dur = it.breakdown?.duracaoH != null ? ` (${it.breakdown.duracaoH.toFixed(1)}h)` : "";
       const val = it.cobrado ? brl(it.breakdown.total) : "não cobra";
       const cli = showCliente && it.entry.clienteLivre ? ` · ${it.entry.clienteLivre}` : "";
-      L.push(`• ${it.tipo?.nome || "?"}${h ? " " + h : ""}${dur} — ${descBreakdown(it.breakdown)} — ${val}${cli}`);
+      const meio = [`${it.tipo?.nome || "?"}${h ? " " + h : ""}${dur}`, descBreakdown(it.breakdown), val].filter(Boolean).join(" — ");
+      L.push(`• ${meio}${cli}`);
     }
     if (g.itens.length > 1) L.push(`Subtotal: ${brl(g.total)}`);
     L.push("");
