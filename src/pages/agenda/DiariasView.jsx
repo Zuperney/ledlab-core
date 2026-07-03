@@ -1,12 +1,13 @@
 // pages/agenda/DiariasView.jsx — modo "Diárias" da Agenda: calendário do mês tocável
-// para registrar atividades (entrada manual). Usa o motor via useWorklog (Fase 1 do
-// módulo Diárias — ver docs/diarias-spec.md). Sem GPS ainda (Fase 2).
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Trash2, ArrowLeft } from "lucide-react";
+// para registrar atividades. Entrada manual (Fase 1) + check-in/checkout ao vivo com
+// GPS e checkout tardio (Fase 2). Usa o motor via useWorklog — ver docs/diarias-spec.md.
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, ArrowLeft, Play, Square, MapPin, Clock, AlertTriangle } from "lucide-react";
 import { MONTHS_LONG } from "../../services/projectCalc.js";
 import { useWorklog } from "../../hooks/useWorklog.js";
 import { useActivityTypes } from "../../hooks/useActivityTypes.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
+import { getPosition, mapsUrl } from "../../services/geo.js";
 import { T } from "../../ui/tokens.js";
 import { card, input, btn, label as lbl } from "../../ui/styles.js";
 import BottomSheet from "../../components/BottomSheet.jsx";
@@ -15,7 +16,11 @@ const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const pad = (n) => String(n).padStart(2, "0");
 const isoDay = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
-const hhmm = (iso) => { try { return new Date(iso).toTimeString().slice(0, 5); } catch { return ""; } };
+const hhmm = (iso) => { if (!iso) return ""; const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toTimeString().slice(0, 5); };
+const nowISO = () => new Date().toISOString();
+const minutesSince = (iso) => Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+const fmtDur = (min) => { const h = Math.floor(min / 60), m = min % 60; return h ? `${h}h${m ? " " + pad(m) : ""}` : `${m}min`; };
+const diaCurto = (dataRef) => { try { return new Date(dataRef + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); } catch { return dataRef; } };
 
 // monta o instante ISO a partir de "YYYY-MM-DD" + "HH:MM" (hora local do device)
 function toISO(dataRef, time) {
@@ -25,7 +30,7 @@ function toISO(dataRef, time) {
 }
 
 export default function DiariasView() {
-  const { worklog, addEntry, updateEntry, removeEntry, breakdown, dia } = useWorklog();
+  const { worklog, addEntry, updateEntry, removeEntry, breakdown, dia, typesById } = useWorklog();
   const { activityTypes } = useActivityTypes();
   const confirm = useConfirm();
   const toast = useToast();
@@ -33,8 +38,12 @@ export default function DiariasView() {
 
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
-  const [daySheet, setDaySheet] = useState(null); // dataRef aberto (ou null)
-  const [form, setForm] = useState(null);         // formulário de atividade (ou null)
+  const [daySheet, setDaySheet] = useState(null);   // dataRef aberto (ou null)
+  const [form, setForm] = useState(null);           // formulário de atividade (ou null)
+  const [checkinForm, setCheckinForm] = useState(null); // sheet de check-in ao vivo (ou null)
+  const [lateForm, setLateForm] = useState(null);   // sheet de checkout tardio (ou null)
+  const [gpsBusy, setGpsBusy] = useState(false);    // capturando GPS
+  const [, setTick] = useState(0);                  // atualiza o "há Xh" do turno aberto
 
   const { y, m } = cursor;
   const prefix = `${y}-${pad(m + 1)}`;
@@ -53,6 +62,50 @@ export default function DiariasView() {
   while (cells.length % 7 !== 0) cells.push(null);
   const todayISO = isoDay(now.getFullYear(), now.getMonth(), now.getDate());
   const go = (delta) => setCursor(() => { const d = new Date(y, m + delta, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
+
+  // ── turno ao vivo (check-in / checkout) ─────────────────────────────
+  const abertos = worklog.filter((e) => e.checkin && !e.checkout).sort((a, b) => (a.checkin < b.checkin ? -1 : 1));
+  const aberto = abertos[0] || null;                       // turno em andamento (o mais antigo aberto vem primeiro)
+  const abertoTipo = aberto ? typesById[aberto.tipoId] : null;
+  const abertoMin = aberto ? minutesSince(aberto.checkin) : 0;
+  const abertoSuspeito = !!aberto && abertoMin > 18 * 60;  // provável esquecimento de checkout
+
+  useEffect(() => {
+    if (!aberto) return;
+    const id = setInterval(() => setTick((t) => t + 1), 30000); // mantém o "há Xh" fresco
+    return () => clearInterval(id);
+  }, [aberto?.id]);
+
+  const abrirCheckin = () => {
+    if (!ativos.length) { toast("Cadastre um tipo em Configurações", "info"); return; }
+    setCheckinForm({ tipoId: ativos[0].id, cliente: "", local: "" });
+  };
+  const fazerCheckin = async () => {
+    if (!checkinForm.tipoId) { toast("Escolha um tipo", "info"); return; }
+    setGpsBusy(true);
+    const loc = await getPosition();
+    setGpsBusy(false);
+    addEntry({
+      dataRef: todayISO, tipoId: checkinForm.tipoId, checkin: nowISO(),
+      clienteLivre: checkinForm.cliente || undefined, localLivre: checkinForm.local || undefined,
+      local: loc || undefined,
+    });
+    setCheckinForm(null);
+    toast(loc ? "Check-in feito · local salvo 📍" : "Check-in feito");
+  };
+  const fazerCheckout = (entry, checkoutISO, late = false) => {
+    updateEntry({ id: entry.id, checkout: checkoutISO, ...(late ? { lateCheckout: true } : {}) });
+    const bd = breakdown({ ...entry, checkout: checkoutISO });
+    setLateForm(null);
+    toast(`Checkout · ${brl(bd.total)}`);
+  };
+  const abrirLate = () => setLateForm({ entry: aberto, data: aberto.dataRef, hora: "" });
+  const confirmarLate = () => {
+    const out = toISO(lateForm.data, lateForm.hora);
+    if (!out) { toast("Informe a data e a hora de saída", "info"); return; }
+    if (Date.parse(out) <= Date.parse(lateForm.entry.checkin)) { toast("A saída precisa ser depois do check-in", "info"); return; }
+    fazerCheckout(lateForm.entry, out, true);
+  };
 
   const openNew = (dataRef) => setForm({ id: null, dataRef, tipoId: ativos[0]?.id || "", inicio: "", fim: "", valorOverride: "", cliente: "", local: "", obs: "" });
   const openEdit = (e) => setForm({ id: e.id, dataRef: e.dataRef, tipoId: e.tipoId, inicio: hhmm(e.checkin), fim: hhmm(e.checkout), valorOverride: e.valorOverride ?? "", cliente: e.clienteLivre ?? "", local: e.localLivre ?? "", obs: e.obs ?? "" });
@@ -99,6 +152,39 @@ export default function DiariasView() {
           <div style={{ fontSize: 20, fontWeight: 800, color: T.grn }}>{brl(mesTotal)}</div>
         </div>
       </div>
+
+      {/* turno ao vivo: check-in / em andamento / checkout tardio */}
+      {!aberto ? (
+        <button onClick={abrirCheckin}
+          style={{ ...card({ marginBottom: 12, borderColor: T.bdA, cursor: "pointer" }), width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, color: T.acM, fontWeight: 700, fontSize: 15, fontFamily: "inherit" }}>
+          <Play size={16} /> Check-in agora
+        </button>
+      ) : abertoSuspeito ? (
+        <div style={card({ marginBottom: 12, borderColor: T.amb, background: T.ambBg, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" })}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <AlertTriangle size={18} color={T.amb} style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ color: T.txt, fontWeight: 700 }}>Turno aberto — confira a saída</div>
+              <div style={{ color: T.mut, fontSize: 12 }}>{abertoTipo?.nome || "?"} · check-in {diaCurto(aberto.dataRef)} {hhmm(aberto.checkin)} · há {fmtDur(abertoMin)}</div>
+            </div>
+          </div>
+          <button style={btn("primary")} onClick={abrirLate}><Square size={14} /> Fazer checkout</button>
+        </div>
+      ) : (
+        <div style={card({ marginBottom: 12, borderColor: T.acc, background: T.strip, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" })}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 999, background: T.grn, boxShadow: `0 0 0 4px ${T.grn}22`, flexShrink: 0 }} />
+            <div>
+              <div style={{ color: T.txt, fontWeight: 700 }}>Em andamento — {abertoTipo?.nome || "?"}</div>
+              <div style={{ color: T.mut, fontSize: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><Clock size={11} /> desde {hhmm(aberto.checkin)} · há {fmtDur(abertoMin)}</span>
+                {aberto.local && <a href={mapsUrl(aberto.local)} target="_blank" rel="noreferrer" style={{ color: T.acM, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}><MapPin size={11} /> local</a>}
+              </div>
+            </div>
+          </div>
+          <button style={btn("primary")} onClick={() => fazerCheckout(aberto, nowISO(), false)}><Square size={14} /> Checkout</button>
+        </div>
+      )}
 
       {/* calendário */}
       <div style={card({ padding: 12 })}>
@@ -174,33 +260,111 @@ export default function DiariasView() {
           )}
         </BottomSheet>
       )}
+
+      {/* folha de check-in ao vivo */}
+      {checkinForm && (
+        <BottomSheet title="Check-in agora" onClose={() => setCheckinForm(null)}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ color: T.mut, fontSize: 13 }}>Carimba a hora de agora e abre o turno. O checkout você faz ao terminar.</div>
+            <div>
+              <div style={lbl}>Tipo de atividade</div>
+              <select value={checkinForm.tipoId} onChange={(e) => setCheckinForm({ ...checkinForm, tipoId: e.target.value })} style={input()}>
+                {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div><div style={lbl}>Cliente (opcional)</div><input value={checkinForm.cliente} onChange={(e) => setCheckinForm({ ...checkinForm, cliente: e.target.value })} style={input()} /></div>
+              <div><div style={lbl}>Local (opcional)</div><input value={checkinForm.local} onChange={(e) => setCheckinForm({ ...checkinForm, local: e.target.value })} style={input()} /></div>
+            </div>
+            <div style={{ color: T.dim, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              <MapPin size={12} /> Se você permitir, salvo o GPS junto — é opcional.
+            </div>
+            <button style={{ ...btn("primary"), justifyContent: "center", opacity: gpsBusy ? 0.6 : 1 }} disabled={gpsBusy} onClick={fazerCheckin}>
+              <Play size={15} /> {gpsBusy ? "Pegando local…" : "Fazer check-in"}
+            </button>
+          </div>
+        </BottomSheet>
+      )}
+
+      {/* folha de checkout tardio (turno esquecido em aberto) */}
+      {lateForm && (
+        <BottomSheet title="Fazer checkout" onClose={() => setLateForm(null)}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ color: T.mut, fontSize: 13 }}>
+              Turno de <b style={{ color: T.txt }}>{typesById[lateForm.entry.tipoId]?.nome || "?"}</b>, check-in em {diaCurto(lateForm.entry.dataRef)} às {hhmm(lateForm.entry.checkin)}. Informe quando você saiu.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div><div style={lbl}>Data da saída</div><input type="date" value={lateForm.data} onChange={(e) => setLateForm({ ...lateForm, data: e.target.value })} style={input()} /></div>
+              <div><div style={lbl}>Hora da saída</div><input type="time" value={lateForm.hora} onChange={(e) => setLateForm({ ...lateForm, hora: e.target.value })} style={input()} /></div>
+            </div>
+            {(() => {
+              const out = toISO(lateForm.data, lateForm.hora);
+              if (!out || Date.parse(out) <= Date.parse(lateForm.entry.checkin)) return null;
+              const bd = breakdown({ ...lateForm.entry, checkout: out });
+              return (
+                <div style={{ background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: T.mut, fontSize: 12 }}>
+                    {bd.flat ? "Cachê fixo" : `${bd.cachês} cachê${bd.cachês > 1 ? "s" : ""}${bd.horasExtras ? ` + ${bd.horasExtras}h extra` : ""}`}
+                    {bd.duracaoH != null && ` · ${bd.duracaoH.toFixed(1)}h`}
+                  </span>
+                  <b style={{ color: T.grn, fontSize: 18 }}>{brl(bd.total)}</b>
+                </div>
+              );
+            })()}
+            <button style={{ ...btn("primary"), justifyContent: "center" }} onClick={confirmarLate}><Square size={15} /> Confirmar saída</button>
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 }
+
+const badgeAcc = { fontSize: 10, fontWeight: 700, color: T.acM, background: T.acc + "22", borderRadius: 999, padding: "1px 7px" };
+const badgeAmb = { fontSize: 10, fontWeight: 700, color: T.amb, background: T.amb + "22", borderRadius: 999, padding: "1px 7px" };
 
 function DayList({ data, onAdd, onEdit }) {
   const { total, itens } = data;
   return (
     <div style={{ display: "grid", gap: 8 }}>
       {itens.length === 0 && <div style={{ color: T.dim, fontSize: 13 }}>Nenhuma atividade nesse dia.</div>}
-      {itens.map((it, i) => (
-        <button key={i} onClick={() => onEdit(it.entry)}
-          style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", cursor: "pointer", background: T.card2, border: `1px solid ${T.bd}`, borderLeft: `3px solid ${it.tipo?.cor || T.dim2}`, borderRadius: 8, padding: "10px 12px" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: T.txt, fontWeight: 600 }}>{it.tipo?.nome || "?"}</div>
-            <div style={{ color: T.dim, fontSize: 12 }}>
-              {it.entry.checkin ? `${new Date(it.entry.checkin).toTimeString().slice(0, 5)}${it.entry.checkout ? `–${new Date(it.entry.checkout).toTimeString().slice(0, 5)}` : ""}` : "sem horário"}
-              {it.breakdown.duracaoH != null && ` · ${it.breakdown.duracaoH.toFixed(1)}h`}
-              {it.entry.clienteLivre ? ` · ${it.entry.clienteLivre}` : ""}
-            </div>
+      {itens.map((it, i) => {
+        const e = it.entry;
+        const emAndamento = e.checkin && !e.checkout;
+        const tempo = e.checkin ? (e.checkout ? `${hhmm(e.checkin)}–${hhmm(e.checkout)}` : `desde ${hhmm(e.checkin)}`) : "sem horário";
+        const gps = mapsUrl(e.local);
+        return (
+          <div key={i} style={{ display: "flex", alignItems: "stretch", background: T.card2, border: `1px solid ${emAndamento ? T.acc : T.bd}`, borderLeft: `3px solid ${it.tipo?.cor || T.dim2}`, borderRadius: 8, overflow: "hidden" }}>
+            <button onClick={() => onEdit(e)}
+              style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: "10px 12px", color: "inherit", fontFamily: "inherit" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: T.txt, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  {it.tipo?.nome || "?"}
+                  {emAndamento && <span style={badgeAcc}>em andamento</span>}
+                  {e.lateCheckout && <span style={badgeAmb}>saída tardia</span>}
+                </div>
+                <div style={{ color: T.dim, fontSize: 12 }}>
+                  {tempo}
+                  {it.breakdown.duracaoH != null && ` · ${it.breakdown.duracaoH.toFixed(1)}h`}
+                  {e.clienteLivre ? ` · ${e.clienteLivre}` : ""}
+                </div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                {emAndamento
+                  ? <span style={{ fontSize: 11, color: T.acM }}>em curso</span>
+                  : it.cobrado
+                    ? <b style={{ color: T.grn }}>{brl(it.breakdown.total)}</b>
+                    : <span style={{ fontSize: 11, color: T.dim, border: `1px solid ${T.bd}`, borderRadius: 999, padding: "1px 8px" }}>não cobra</span>}
+              </div>
+            </button>
+            {gps && (
+              <a href={gps} target="_blank" rel="noreferrer" title="Ver no mapa"
+                style={{ display: "flex", alignItems: "center", padding: "0 12px", color: T.acM, borderLeft: `1px solid ${T.bd}` }}>
+                <MapPin size={15} />
+              </a>
+            )}
           </div>
-          <div style={{ textAlign: "right" }}>
-            {it.cobrado
-              ? <b style={{ color: T.grn }}>{brl(it.breakdown.total)}</b>
-              : <span style={{ fontSize: 11, color: T.dim, border: `1px solid ${T.bd}`, borderRadius: 999, padding: "1px 8px" }}>não cobra</span>}
-          </div>
-        </button>
-      ))}
+        );
+      })}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
         <button style={btn("primary")} onClick={onAdd}><Plus size={15} /> Adicionar atividade</button>
         {total > 0 && <span style={{ color: T.mut, fontSize: 13 }}>Total do dia: <b style={{ color: T.grn }}>{brl(total)}</b></span>}
