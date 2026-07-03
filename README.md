@@ -6,6 +6,18 @@ cálculo elétrico, dimensionamento de dados/sinal, gestão de gabinetes e proje
 > App **React + Vite + Electron**, 100% client-side (dados salvos no navegador via `localStorage`).
 > Tema dark/roxo. Sem TypeScript por enquanto.
 
+## 🌐 App online (PWA)
+
+Publicado no **GitHub Pages** — abra no celular e **instale** (menu do navegador → *Adicionar à tela inicial*). Funciona **offline** após o primeiro acesso; os dados ficam no aparelho.
+
+### 👉 https://zuperney.github.io/ledlab-core/
+
+<a href="https://zuperney.github.io/ledlab-core/">
+  <img src="qrcode.png" alt="QR code para abrir o LedLab Core no celular" width="200" />
+</a>
+
+_Aponte a câmera do celular para o QR code acima._
+
 ## Rodar em desenvolvimento
 
 ```bash
