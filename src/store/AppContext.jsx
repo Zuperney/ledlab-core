@@ -27,6 +27,7 @@ export const DEFAULT_PREFS = {
   dashUpcoming: 5,
   cabCols: { pitch: true, resolucao: true, dimensoes: false, pwrMax: true, pwrMed: false, peso: true, ip: false },
   cablingAreaCount: true,
+  cableNumbering: "row-tb-lr", // ordem de numeração dos cabos (ver ProjectCabeamento)
 };
 
 // Config de cabeamento padrão de uma tela nova.

@@ -62,6 +62,21 @@ export default function Settings() {
   return (
     <div>
       <SectionHeader title="Configurações" subtitle="Backup, importação e manutenção dos dados (salvos neste navegador)." />
+
+      <div style={card({ maxWidth: 640, marginBottom: 16 })}>
+        <div style={{ color: T.txt, fontWeight: 600 }}>Numeração dos cabos</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 10px" }}>Ordem em que os cabos são numerados no cabeamento (sinal e AC), conforme sua preferência de montagem em campo.</div>
+        <select value={prefs.cableNumbering || "row-tb-lr"} onChange={(e) => setPrefs({ ...prefs, cableNumbering: e.target.value })}
+          style={{ width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 14 }}>
+          <option value="col-lr-bt">Coluna · esquerda→direita · de baixo p/ cima</option>
+          <option value="col-lr-tb">Coluna · esquerda→direita · de cima p/ baixo</option>
+          <option value="col-rl-bt">Coluna · direita→esquerda · de baixo p/ cima</option>
+          <option value="row-bt-lr">Linha · de baixo p/ cima · esquerda→direita</option>
+          <option value="row-tb-lr">Linha · de cima p/ baixo · esquerda→direita</option>
+          <option value="row-bt-rl">Linha · de baixo p/ cima · direita→esquerda</option>
+        </select>
+      </div>
+
       <div style={card({ maxWidth: 640 })}>
         <div style={{ ...row, borderTop: "none" }}>
           <div><div style={{ color: T.txt, fontWeight: 600 }}>Backup completo</div><div style={{ color: T.dim, fontSize: 13 }}>Gabinetes, projetos e preferências em um arquivo.</div></div>

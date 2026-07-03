@@ -13,6 +13,7 @@ import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2,
 import { paletteColor, T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
+import { useLedLabContext } from "../../store/AppContext.jsx";
 import Placeholder from "../../components/Placeholder.jsx";
 
 const PX_PER_PORT = 655360; // sinal (Gigabit) @60Hz
@@ -26,6 +27,23 @@ const parseKey = (k) => { const [r, c] = k.split(",").map(Number); return { c, r
 const topLeft = (p) => { let r = 1e9, c = 1e9; for (const x of p) { r = Math.min(r, x.r); c = Math.min(c, x.c); } return { r, c }; };
 const bboxArea = (p) => { let a = 1e9, b = -1, c = 1e9, d = -1; for (const x of p) { a = Math.min(a, x.c); b = Math.max(b, x.c); c = Math.min(c, x.r); d = Math.max(d, x.r); } return p.length ? (b - a + 1) * (d - c + 1) : 0; };
 const chunkArr = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
+
+// ordem de numeração dos cabos (config global). scheme = "eixo-dir1-dir2":
+//   col-lr-bt = colunas esq→dir, cada coluna de baixo p/ cima
+//   row-tb-lr = linhas de cima p/ baixo, cada linha esq→dir
+function orderPorts(ports, scheme) {
+  const bb = (p) => { let minR = 1e9, minC = 1e9; for (const x of p) { if (x.r < minR) minR = x.r; if (x.c < minC) minC = x.c; } return { minR, minC }; };
+  const [axis, d1, d2] = (scheme || "row-tb-lr").split("-");
+  return [...ports].sort((A, B) => {
+    const a = bb(A), b = bb(B);
+    if (axis === "col") {
+      const c = d1 === "lr" ? a.minC - b.minC : b.minC - a.minC;
+      return c || (d2 === "bt" ? b.minR - a.minR : a.minR - b.minR);
+    }
+    const r = d1 === "bt" ? b.minR - a.minR : a.minR - b.minR;
+    return r || (d2 === "lr" ? a.minC - b.minC : b.minC - a.minC);
+  });
+}
 
 function bands(total, budget) { const out = []; let rem = total; while (rem > budget) { out.push(budget); rem -= budget; } if (rem > 0) out.push(rem); return out; }
 
@@ -95,6 +113,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   // cabeamento PERSISTIDO por tela; SINAL e AC têm configs SEPARADAS (mexer no AC não muda o sinal)
   const confirm = useConfirm();
+  const { prefs } = useLedLabContext();
+  const numbering = prefs.cableNumbering || "row-tb-lr"; // ordem global de numeração dos cabos
   const cabling = tela?.cabling || {};
   const mode = cabling.mode || "sinal";
   const sinalCfg = cabling.sinal || {};
@@ -142,8 +162,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   const buildAuto = (strat, bud, rout) => {
     const p = strat === "coluna" ? portsColuna(cols, rows, bud, rout) : strat === "area" ? portsArea(cols, rows, bud, rout) : portsLinha(cols, rows, bud, rout);
-    p.sort((a, b) => { const A = topLeft(a), B = topLeft(b); return A.r - B.r || A.c - B.c; });
-    return p;
+    return orderPorts(p, numbering);
   };
   // rota do SINAL (usada pelo AC "atrelado ao sinal")
   const signalRoute = () => (sinalCfg.strategy === "livre")
