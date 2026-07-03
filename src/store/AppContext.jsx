@@ -32,7 +32,9 @@ export const DEFAULT_PREFS = {
   // no fechamento além dos cachês variáveis (ex.: acordo de prioridade).
   fixo: { valor: 0, cliente: "" },
   // dados legais do emitente (prestador) que aparecem no recibo de mão de obra
-  emitente: { nomeFantasia: "", razaoSocial: "", cnpj: "", endereco: "" },
+  emitente: { nomeFantasia: "", razaoSocial: "", cnpj: "", endereco: "", cidade: "" },
+  // pagadores (tomadores) lembrados por nome de cliente: { [cliente]: { nome, doc } }
+  pagadores: {},
 };
 
 // Config de cabeamento padrão de uma tela nova.

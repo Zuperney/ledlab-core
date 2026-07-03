@@ -64,7 +64,8 @@ export default function DiariasConfig() {
           <div><div style={lbl}>Nome fantasia</div><input value={emit.nomeFantasia} onChange={(e) => setEmit({ nomeFantasia: e.target.value })} placeholder="Ex.: LedLab" style={input()} /></div>
           <div><div style={lbl}>Razão social / nome fiscal</div><input value={emit.razaoSocial} onChange={(e) => setEmit({ razaoSocial: e.target.value })} placeholder="Ex.: Fulano ME" style={input()} /></div>
           <div><div style={lbl}>CNPJ / CPF</div><input value={emit.cnpj} onChange={(e) => setEmit({ cnpj: e.target.value })} placeholder="00.000.000/0001-00" style={input()} /></div>
-          <div><div style={lbl}>Endereço</div><input value={emit.endereco} onChange={(e) => setEmit({ endereco: e.target.value })} placeholder="Rua, nº, cidade/UF" style={input()} /></div>
+          <div><div style={lbl}>Endereço</div><input value={emit.endereco} onChange={(e) => setEmit({ endereco: e.target.value })} placeholder="Rua, nº, bairro" style={input()} /></div>
+          <div><div style={lbl}>Cidade (p/ "local, data")</div><input value={emit.cidade} onChange={(e) => setEmit({ cidade: e.target.value })} placeholder="Ex.: Foz do Iguaçu/PR" style={input()} /></div>
         </div>
       </div>
 

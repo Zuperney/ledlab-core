@@ -2,7 +2,7 @@
 // cliente, recibo por evento AGRUPADO POR DIA (subtotal quando há +1 no dia) e
 // export via PDF (window.print sobre .report-doc) + texto puro pra WhatsApp.
 // Sem CSV (decisão do usuário). Ver docs/diarias-spec.md §8.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Printer, Copy, MessageCircle } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { useToast } from "../store/UIContext.jsx";
@@ -77,6 +77,20 @@ export default function Financeiro() {
   const temEmitente = !!(emit.razaoSocial || emit.nomeFantasia || emit.cnpj || emit.endereco);
   const nomeAssina = prefs.tecnico || emit.razaoSocial || emit.nomeFantasia || "";
 
+  // pagador (tomador) — quem paga; lembrado por cliente do filtro
+  const pagadores = prefs.pagadores || {};
+  const [pagNome, setPagNome] = useState("");
+  const [pagDoc, setPagDoc] = useState("");
+  useEffect(() => {
+    const saved = pagadores[cliente] || {};
+    setPagNome(saved.nome ?? (cliente || ""));
+    setPagDoc(saved.doc ?? "");
+  }, [cliente]); // recarrega ao trocar o cliente do filtro
+  const savePagador = (nome, doc) => {
+    setPagNome(nome); setPagDoc(doc);
+    if (cliente) setPrefs({ ...prefs, pagadores: { ...pagadores, [cliente]: { nome, doc } } });
+  };
+
   const copiar = async () => {
     try { await navigator.clipboard.writeText(texto); toast("Recibo copiado — é só colar no WhatsApp"); }
     catch { toast("Não consegui copiar automaticamente", "info"); }
@@ -114,6 +128,10 @@ export default function Financeiro() {
             </select>
           </div>
           <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: Ney" style={input()} /></div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginTop: 12 }}>
+          <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} placeholder="Nome / razão social do cliente" style={input()} /></div>
+          <div><div style={lbl}>CPF / CNPJ do pagador</div><input value={pagDoc} onChange={(e) => savePagador(pagNome, e.target.value)} placeholder="Opcional" style={input()} /></div>
         </div>
         {fixoAtivo && (
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: T.txt, fontSize: 14, cursor: "pointer" }}>
@@ -204,13 +222,14 @@ export default function Financeiro() {
               <div style={{ fontWeight: 800, fontSize: 22, color: PRINT.grn }}>{brl(grandTotal)}</div>
             </div>
 
-            {/* declaração de recebimento + assinatura */}
+            {/* declaração de recebimento + local/data + assinatura */}
             <div style={{ marginTop: 22, fontSize: 13, lineHeight: 1.7 }}>
-              Recebi{cliente ? ` de ${cliente}` : ""} a importância de <b>{brl(grandTotal)}</b> ({extenso(grandTotal)}), referente a serviços de mão de obra prestados no período de {periodoLabel}.
+              Recebi{pagNome ? <> de <b>{pagNome}</b>{pagDoc ? ` (CPF/CNPJ: ${pagDoc})` : ""}</> : ""} a importância de <b>{brl(grandTotal)}</b> ({extenso(grandTotal)}), referente a serviços de mão de obra prestados no período de {periodoLabel}, dando plena, rasa e geral quitação.
             </div>
+            <div style={{ marginTop: 18, fontSize: 13 }}>{emit.cidade ? `${emit.cidade}, ` : ""}{fmtBR(isoOf(now))}.</div>
             <div style={{ marginTop: 44, textAlign: "center" }}>
               <div style={{ borderTop: `1px solid ${PRINT.ink}`, width: 320, maxWidth: "100%", margin: "0 auto", paddingTop: 6, fontSize: 13 }}>
-                {nomeAssina || "Assinatura"}
+                {nomeAssina || "Assinatura do prestador"}
                 {emit.cnpj && <div style={{ color: PRINT.mut, fontSize: 12 }}>CNPJ/CPF: {emit.cnpj}</div>}
               </div>
             </div>
