@@ -8,6 +8,7 @@ import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { T } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
+import DiariasConfig from "./settings/DiariasConfig.jsx";
 
 export default function Settings() {
   const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets } = useLedLabContext();
@@ -76,6 +77,8 @@ export default function Settings() {
           <option value="row-bt-rl">Linha · de baixo p/ cima · direita→esquerda</option>
         </select>
       </div>
+
+      <DiariasConfig />
 
       {tcPresets.length > 0 && (
         <div style={card({ maxWidth: 640, marginBottom: 16 })}>
