@@ -1,8 +1,9 @@
 // pages/Dashboard.jsx — visão geral: evento atual, contadores e próximos.
-import { CalendarDays, MapPin, Layers } from "lucide-react";
+import { CalendarDays, MapPin, Layers, ChevronRight } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
 import StatusBadge from "../components/StatusBadge.jsx";
@@ -19,13 +20,15 @@ function MetaLine({ p }) {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ nav }) {
   const { projects, prefs } = useLedLabContext();
+  const isMobile = useIsMobile();
   const active = projects.filter((p) => p.status === "active");
   const planned = projects.filter((p) => p.status === "planned");
   const done = projects.filter((p) => p.status === "done");
   const hero = active[0];
-  const upcoming = planned.slice(0, prefs.dashUpcoming || 5);
+  const limit = isMobile ? 3 : (prefs.dashUpcoming || 5);
+  const upcoming = planned.slice(0, limit);
 
   const stats = [
     { l: "Em andamento", v: active.length, c: T.acM },
@@ -64,6 +67,12 @@ export default function Dashboard() {
             <StatusBadge s={p.status} />
           </div>
         ))}
+        {planned.length > limit && (
+          <button onClick={() => nav?.setPage?.("projects")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 12, background: "none", border: "none", color: T.acM, fontWeight: 600, cursor: "pointer", fontSize: 13, padding: 0 }}>
+            Ver todos ({planned.length}) <ChevronRight size={15} />
+          </button>
+        )}
       </div>
     </div>
   );

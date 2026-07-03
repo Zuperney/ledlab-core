@@ -4,9 +4,9 @@
 // SINAL (Novastar básico): capacidade da porta pela ÁREA RETANGULAR (bounding box).
 // Cabo inicia no canto inferior-esquerdo; parte principal "reta" + sobra combinada.
 
-export const PX_PER_PORT = 655360; // sinal (Gigabit) @60Hz
-export const FASE_V = 220;
-export const CONN_AMP = { "PowerCON Azul/Branco": 20, "PowerCON TRUE1": 16, "Neutrik True1": 16, "Neutrik True1 TOP": 20, "HangTon SD20": 20, PowerCON: 20 };
+// Constantes elétricas/sinal — fonte única em src/config/electricalConfig.js
+import { PX_PER_PORT, FASE_V, CONN_AMP } from "../config/electricalConfig.js";
+export { PX_PER_PORT, FASE_V, CONN_AMP };
 
 export const range = (n) => [...Array(Math.max(0, n)).keys()];
 export const key = (c, r) => `${r},${c}`;

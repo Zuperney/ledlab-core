@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, Save, Folder, Zap, GitBranch, Monitor, FileText } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 import { T } from "../ui/tokens.js";
 import { btn } from "../ui/styles.js";
 import StatusBadge from "../components/StatusBadge.jsx";
@@ -23,6 +24,7 @@ const TABS = [
 
 export default function ProjectDetail({ project, onBack }) {
   const { projects, setProjects } = useLedLabContext();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState("dados");
 
   const patch = (partial) => setProjects(projects.map((p) => (p.id === project.id ? { ...p, ...partial, updatedAt: Date.now() } : p)));
@@ -34,14 +36,14 @@ export default function ProjectDetail({ project, onBack }) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button style={btn("ghost")} onClick={onBack}><ArrowLeft size={15} /> Projetos</button>
-          <span style={{ color: T.dim }}>›</span>
-          <h2 style={{ color: T.txt, margin: 0, fontSize: 20 }}>{project.name || "Sem nome"}</h2>
-          <StatusBadge s={project.status} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <button style={btn("ghost", isMobile ? { padding: "9px 11px" } : {})} onClick={onBack}><ArrowLeft size={15} />{!isMobile && " Projetos"}</button>
+          {!isMobile && <span style={{ color: T.dim }}>›</span>}
+          <h2 style={{ color: T.txt, margin: 0, fontSize: isMobile ? 17 : 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{project.name || "Sem nome"}</h2>
+          {!isMobile && <StatusBadge s={project.status} />}
         </div>
-        <button style={btn("primary")} onClick={() => patch({})}><Save size={15} /> Salvar</button>
+        <button style={btn("primary", isMobile ? { padding: "9px 12px", flexShrink: 0 } : {})} onClick={() => patch({})}><Save size={15} />{!isMobile && " Salvar"}</button>
       </div>
 
       <div style={{ display: "flex", gap: 20, color: T.mut, fontSize: 13, marginBottom: 16 }}>
@@ -50,13 +52,13 @@ export default function ProjectDetail({ project, onBack }) {
         <span><b style={{ color: T.grn }}>{roll.area_m2.toFixed(2)}</b> m²</span>
       </div>
 
-      <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: 20 }}>
+      <div className="no-scrollbar" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: 20, overflowX: "auto", flexWrap: "nowrap" }}>
         {TABS.map((t) => {
           const active = tab === t.id;
           const Icon = t.Icon;
           return (
             <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", flexShrink: 0 }}>
               <Icon size={15} /> {t.label}
             </button>
           );

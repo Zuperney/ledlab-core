@@ -4,7 +4,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import logo from "./assets/logo.svg";
 import { NAV, SECTIONS, LABELS, VERSION } from "./nav.js";
 import { T, FONT } from "./ui/tokens.js";
+import { useIsMobile } from "./hooks/useIsMobile.js";
 import NavBtn from "./components/NavBtn.jsx";
+import BottomNav from "./components/BottomNav.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
@@ -29,12 +31,34 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [openProjectId, setOpenProjectId] = useState(null);
   const Page = PAGES[page] || Dashboard;
+  const isMobile = useIsMobile();
 
   // navegação pela sidebar limpa um projeto aberto
   const navigate = (id) => { setOpenProjectId(null); setPage(id); };
   // abrir um projeto específico (ex.: a partir da Agenda)
   const openProject = (id) => { setOpenProjectId(id); setPage("projects"); };
   const nav = { page, setPage: navigate, openProject, openProjectId, clearProject: () => setOpenProjectId(null) };
+
+  // ── Shell mobile: topbar compacta + conteúdo + bottom navigation ──
+  if (isMobile) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <img src={logo} alt="" style={{ width: 24, height: 24, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
+            <h1 style={{ margin: 0, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{LABELS[page] || "LedLab Core"}</h1>
+          </div>
+          <span style={{ flexShrink: 0, background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
+        </header>
+        <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 16, paddingBottom: "calc(76px + env(safe-area-inset-bottom))" }}>
+          <ErrorBoundary>
+            <Page nav={nav} />
+          </ErrorBoundary>
+        </main>
+        <BottomNav page={page} onNavigate={navigate} />
+      </div>
+    );
+  }
 
   const topItems = NAV.filter((n) => n.sec === null && n.id !== "settings");
   const settingsItem = NAV.find((n) => n.id === "settings");

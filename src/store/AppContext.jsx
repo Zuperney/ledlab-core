@@ -12,13 +12,9 @@ import { recomputeStatus, isoDate } from "../services/projectCalc.js";
 import { fullSnapshot } from "../services/cabinets.js";
 import { genId } from "../services/ids.js";
 
-// Chaves de localStorage (versionadas).
-export const KEYS = {
-  cabs: "ledlab.cabs.v1",
-  projects: "ledlab.projects.v1",
-  prefs: "ledlab.prefs.v1",
-  tcPresets: "ledlab.testcard-presets.v1",
-};
+// Chaves de localStorage — fonte única em src/config/storageConfig.js
+import { KEYS } from "../config/storageConfig.js";
+export { KEYS };
 
 export const DEFAULT_PREFS = {
   vk: "220_tri",

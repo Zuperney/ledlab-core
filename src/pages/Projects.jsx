@@ -4,6 +4,8 @@ import { Plus, Download, Trash2 } from "lucide-react";
 import { useLedLabContext, newProject } from "../store/AppContext.jsx";
 import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
+import { Z } from "../config/uiConfig.js";
 import { T } from "../ui/tokens.js";
 import { card, input, btn, iconBtn, dangerIconBtn } from "../ui/styles.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
@@ -24,6 +26,7 @@ const FILTERS = [
 
 export default function Projects({ nav }) {
   const { projects, setProjects } = useLedLabContext();
+  const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
   const [openId, setOpenId] = useState(nav?.openProjectId || null);
@@ -99,7 +102,7 @@ export default function Projects({ nav }) {
     <div>
       <SectionHeader title="Projetos / Eventos" subtitle={`${projects.length} projetos · abra um para acessar energia, sinal, test card e relatório.`}>
         <DropdownMenu items={[{ label: "Exportar todos (.json)", Icon: Download, onClick: () => exportAll(projects) }]} />
-        <button style={btn("primary")} onClick={create}><Plus size={16} /> Novo Projeto</button>
+        {!isMobile && <button style={btn("primary")} onClick={create}><Plus size={16} /> Novo Projeto</button>}
       </SectionHeader>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
@@ -135,21 +138,34 @@ export default function Projects({ nav }) {
           <div key={g.key} style={{ marginBottom: g.label ? 18 : 0 }}>
             {g.label && <div style={{ color: T.acM, fontWeight: 700, fontSize: 12, letterSpacing: "0.06em", margin: "4px 0 10px" }}>{g.label}</div>}
             {g.projects.map((p) => (
-              <div key={p.id} style={card({ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 })}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div key={p.id} style={card({ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12, marginBottom: 10, flexDirection: isMobile ? "column" : "row" })}>
+                <div style={{ flex: 1, minWidth: 0, width: "100%" }}>
                   <button onClick={() => setOpenId(p.id)} style={{ background: "none", border: "none", color: T.txt, fontWeight: 600, fontSize: 15, cursor: "pointer", padding: 0, textAlign: "left" }}>{p.name || "Sem nome"}</button>
                   <div style={{ color: T.dim, fontSize: 12, marginTop: 3 }}>
                     {formatRange(p.dataInicio, p.dataFim)} · {p.local} · {p.telas?.length || 0} tela(s) · {projectRollup(p).gab} gabinetes
                   </div>
                 </div>
-                <StatusBadge s={p.status} />
-                <button style={btn("ghost")} onClick={() => setOpenId(p.id)}>Abrir</button>
-                <button style={iconBtn()} title="Exportar JSON" onClick={() => exportOne(p)}><Download size={15} /></button>
-                <button style={dangerIconBtn()} title="Excluir" onClick={() => remove(p)}><Trash2 size={15} /></button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end" }}>
+                  <StatusBadge s={p.status} />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {isMobile
+                      ? <button style={iconBtn({ width: 40, height: 40, color: T.txt })} title="Abrir" onClick={() => setOpenId(p.id)}><FolderOpen size={16} /></button>
+                      : <button style={btn("ghost")} onClick={() => setOpenId(p.id)}>Abrir</button>}
+                    <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Exportar JSON" onClick={() => exportOne(p)}><Download size={15} /></button>
+                    <button style={dangerIconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Excluir" onClick={() => remove(p)}><Trash2 size={15} /></button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         ))
+      )}
+
+      {isMobile && (
+        <button onClick={create} title="Novo projeto"
+          style={{ position: "fixed", right: 16, bottom: "calc(84px + env(safe-area-inset-bottom))", width: 56, height: 56, borderRadius: "50%", background: T.acc, color: "#fff", border: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.45)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z.fab }}>
+          <Plus size={24} />
+        </button>
       )}
     </div>
   );

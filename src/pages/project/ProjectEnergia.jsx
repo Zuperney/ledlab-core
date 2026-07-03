@@ -2,11 +2,13 @@
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { aggregateElectrical } from "../../services/projectCalc.js";
 import { VOLT } from "../../services/electricalCalc.js";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 
 export default function ProjectEnergia({ project, patch }) {
   const { prefs } = useLedLabContext();
+  const isMobile = useIsMobile();
   const cfg = project.config || { vk: prefs.vk, brilho: prefs.brilho, conteudo: prefs.conteudo };
   const setCfg = (partial) => patch({ config: { ...cfg, ...partial } });
 
@@ -26,12 +28,12 @@ export default function ProjectEnergia({ project, patch }) {
       </div>
 
       {agg.perTela.map(({ tela, peak, typ }) => (
-        <div key={tela.id} style={card({ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 10 })}>
+        <div key={tela.id} style={card({ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 10, flexWrap: "wrap", gap: 10, flexDirection: isMobile ? "column" : "row" })}>
           <div>
             <div style={{ color: T.txt, fontWeight: 600 }}>{tela.nome}</div>
             <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace" }}>{tela.gabinete?.nome} · {tela.cols}×{tela.rows} = {tela.cols * tela.rows} gab · {tela.gabinete?.pwrMax}W máx.</div>
           </div>
-          <div style={{ textAlign: "right", fontSize: 13, fontFamily: "ui-monospace,monospace" }}>
+          <div style={{ textAlign: isMobile ? "left" : "right", fontSize: 13, fontFamily: "ui-monospace,monospace" }}>
             <div><span style={{ color: T.mut }}>PICO </span><b style={{ color: T.acM }}>{peak.W.toLocaleString()} W</b> · <b style={{ color: T.grn }}>{peak.kVA} kVA</b> · <b style={{ color: T.amb }}>{peak.I} A</b> · <b style={{ color: T.red }}>disj {peak.breaker} A</b></div>
             <div style={{ color: T.dim }}>TÍP. {Math.round(typ.W).toLocaleString()} W · {typ.kVA} kVA · {typ.I} A</div>
           </div>
@@ -40,21 +42,30 @@ export default function ProjectEnergia({ project, patch }) {
 
       <div style={card({ marginTop: 6 })}>
         <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 12 }}>Total do projeto · {agg.vc.label}</div>
-        <Row tag="PICO" tagColor={T.red} cols={[["Carga", `${agg.W.toLocaleString()} W`, T.txt], ["kVA", agg.kVA, T.grn], ["A/fase", agg.I, T.amb], ["Disj. geral", `${agg.breaker} A`, T.red]]} />
-        <Row tag="TÍPICO" tagColor={T.acM} cols={[["Carga", `${Math.round(agg.typW).toLocaleString()} W`, T.txt], ["kVA", agg.typKva, T.grn], ["A/fase", agg.typI, T.amb], ["Gerador ~", `${agg.gerador} kVA`, T.acM]]} />
+        <Row tag="PICO" tagColor={T.red} isMobile={isMobile} cols={[["Carga", `${agg.W.toLocaleString()} W`, T.txt], ["kVA", agg.kVA, T.grn], ["A/fase", agg.I, T.amb], ["Disj. geral", `${agg.breaker} A`, T.red]]} />
+        <Row tag="TÍPICO" tagColor={T.acM} isMobile={isMobile} cols={[["Carga", `${Math.round(agg.typW).toLocaleString()} W`, T.txt], ["kVA", agg.typKva, T.grn], ["A/fase", agg.typI, T.amb], ["Gerador ~", `${agg.gerador} kVA`, T.acM]]} />
       </div>
       <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}><b style={{ color: T.red }}>Pico</b> (consumo máximo) dimensiona disjuntor e cabo; <b style={{ color: T.grn }}>Típico</b> (black level + brilho × conteúdo) estima o gerador / consumo real.</div>
     </div>
   );
 }
 
-function Row({ tag, tagColor, cols }) {
+function Row({ tag, tagColor, cols, isMobile }) {
+  const metric = ([l, v, c]) => (
+    <div key={l}><div style={{ fontSize: 10, textTransform: "uppercase", color: T.dim }}>{l}</div><div style={{ fontWeight: 700, color: c }}>{v}</div></div>
+  );
+  if (isMobile) {
+    return (
+      <div style={{ padding: "8px 0", borderTop: `1px solid ${T.bd}` }}>
+        <div style={{ color: tagColor, fontWeight: 700, fontSize: 12, marginBottom: 6 }}>{tag}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{cols.map(metric)}</div>
+      </div>
+    );
+  }
   return (
     <div style={{ display: "grid", gridTemplateColumns: "80px repeat(4,1fr)", gap: 8, alignItems: "center", padding: "6px 0" }}>
       <span style={{ color: tagColor, fontWeight: 700, fontSize: 12 }}>{tag}</span>
-      {cols.map(([l, v, c]) => (
-        <div key={l}><div style={{ fontSize: 10, textTransform: "uppercase", color: T.dim }}>{l}</div><div style={{ fontWeight: 700, color: c }}>{v}</div></div>
-      ))}
+      {cols.map(metric)}
     </div>
   );
 }
