@@ -4,6 +4,7 @@ import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save } from "lucide-react
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt } from "../../store/UIContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { PALETTE, T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
@@ -130,6 +131,7 @@ function draw(canvas, tela, o, mapPorts) {
 
 export default function ProjectTestCard({ project }) {
   const { tcPresets, setTcPresets, prefs } = useLedLabContext();
+  const isMobile = useIsMobile();
   const toast = useToast();
   const prompt = usePrompt();
   const numbering = prefs.cableNumbering || "row-tb-lr";
@@ -178,11 +180,11 @@ export default function ProjectTestCard({ project }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
-        <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", marginBottom: 16, gap: 10, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
+        <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", width: isMobile ? "100%" : undefined }}>
           {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
-        <button style={btn("primary")} onClick={exportPng}><Download size={15} /> Exportar PNG ({W}×{H})</button>
+        <button style={btn("primary", isMobile ? { justifyContent: "center" } : {})} onClick={exportPng}><Download size={15} /> Exportar PNG ({W}×{H})</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">

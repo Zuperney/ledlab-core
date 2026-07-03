@@ -1,16 +1,17 @@
 // pages/Agenda.jsx — agenda de eventos com 3 visualizações (Linha, Coluna, Grade/calendário),
 // filtros, status automático por data e clique no evento abrindo o projeto.
 import { useState, useMemo } from "react";
-import { Rows3, Columns3, CalendarDays, ChevronLeft, ChevronRight, MapPin, Layers, Search } from "lucide-react";
+import { Rows3, Columns3, CalendarDays, ChevronLeft, ChevronRight, MapPin, Layers, Search, SlidersHorizontal } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { recomputeStatus, projectRollup, groupByMonth, MONTHS_LONG, isoDate } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { T, paletteColor } from "../ui/tokens.js";
-import { card, input } from "../ui/styles.js";
+import { card, input, btn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge, { STATUS, STATUS_ORDER } from "../components/StatusBadge.jsx";
 import Placeholder from "../components/Placeholder.jsx";
+import BottomSheet from "../components/BottomSheet.jsx";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const pad = (n) => String(n).padStart(2, "0");
@@ -22,6 +23,7 @@ export default function Agenda({ nav }) {
   const [view, setView] = useState("linha");
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
 
@@ -48,6 +50,18 @@ export default function Agenda({ nav }) {
     { id: "grade", label: "Grade", Icon: CalendarDays },
   ];
 
+  const statusItems = [{ k: "all", l: "Todos" }, ...STATUS_ORDER.map((s) => ({ k: s, l: STATUS[s].l }))];
+  const statusChip = (f) => {
+    const active = statusFilter === f.k;
+    const n = f.k === "all" ? withStatus.length : withStatus.filter((p) => p.status === f.k).length;
+    return (
+      <button key={f.k} onClick={() => { setStatusFilter(f.k); setFilterOpen(false); }}
+        style={{ padding: isMobile ? "9px 14px" : "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut }}>
+        {f.l} <span style={{ opacity: 0.7 }}>{n}</span>
+      </button>
+    );
+  };
+
   return (
     <div>
       <SectionHeader title="Agenda" subtitle={`${projects.length} projetos · o status acompanha a data do evento.`}>
@@ -66,24 +80,31 @@ export default function Agenda({ nav }) {
       </SectionHeader>
 
       {/* filtros */}
-      <div style={card({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
-        <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
-          <Search size={15} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.dim }} />
-          <input placeholder="Buscar evento, cliente, local…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ paddingLeft: 32 })} />
+      {isMobile ? (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <Search size={15} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.dim }} />
+            <input placeholder="Buscar evento…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ paddingLeft: 32 })} />
+          </div>
+          <button style={btn("ghost", { flexShrink: 0, borderColor: statusFilter !== "all" ? T.acc : T.bd })} onClick={() => setFilterOpen(true)}>
+            <SlidersHorizontal size={16} /> {statusFilter === "all" ? "Filtros" : STATUS[statusFilter].l}
+          </button>
         </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[{ k: "all", l: "Todos" }, ...STATUS_ORDER.map((s) => ({ k: s, l: STATUS[s].l }))].map((f) => {
-            const active = statusFilter === f.k;
-            const n = f.k === "all" ? withStatus.length : withStatus.filter((p) => p.status === f.k).length;
-            return (
-              <button key={f.k} onClick={() => setStatusFilter(f.k)}
-                style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut }}>
-                {f.l} <span style={{ opacity: 0.7 }}>{n}</span>
-              </button>
-            );
-          })}
+      ) : (
+        <div style={card({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
+          <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
+            <Search size={15} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.dim }} />
+            <input placeholder="Buscar evento, cliente, local…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ paddingLeft: 32 })} />
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{statusItems.map(statusChip)}</div>
         </div>
-      </div>
+      )}
+
+      {isMobile && filterOpen && (
+        <BottomSheet title="Filtrar por status" onClose={() => setFilterOpen(false)}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{statusItems.map(statusChip)}</div>
+        </BottomSheet>
+      )}
 
       {view === "linha" && <LinhaView list={list} colorOf={colorOf} open={open} />}
       {view === "coluna" && <ColunaView list={list} colorOf={colorOf} open={open} />}

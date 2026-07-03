@@ -15,6 +15,8 @@ import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { range, key, parseKey, bboxArea, chunkArr, mkBlock, buildAuto, signalRoute, cablePorts, cableMeta } from "../../services/cabling.js";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
+import { FLAGS } from "../../config/featureFlags.js";
 import Placeholder from "../../components/Placeholder.jsx";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
@@ -28,6 +30,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const stageRef = useRef(null);
   const drag = useRef(null);
+  const isMobile = useIsMobile();
 
   const tela = telas.find((t) => t.id === telaId) || telas[0];
   const cols = tela?.cols || 1, rows = tela?.rows || 1;
@@ -44,6 +47,9 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const cfg = mode === "ac" ? acCfg : sinalCfg;
   const strategy = cfg.strategy || "linha";
   const routing = cfg.routing || "updown"; // "updown" (sobe/desce) | "zigzag"
+  // no celular, edição avançada (modo Livre) fica oculta — foco em visualização/estatísticas
+  const allowAdvanced = !isMobile || FLAGS.advancedCablingOnMobile;
+  const livreEdit = strategy === "livre" && allowAdvanced;
   const hz = sinalCfg.hz || 60; // frequência é conceito do sinal
   const cables = cfg.cables || [];
   const setMode = (v) => patchTela?.(tela.id, { cabling: { ...cabling, mode: v } });
@@ -69,6 +75,9 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const onDown = (e) => { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y, moved: false }; };
   const onMove = (e) => { if (drag.current) { drag.current.moved = true; setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) }); } };
   const onUp = () => { drag.current = null; };
+  // pan por toque (mobile)
+  const onTouchStart = (e) => { const t = e.touches[0]; if (t) drag.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y, moved: false }; };
+  const onTouchMove = (e) => { const t = e.touches[0]; if (!drag.current || !t) return; drag.current.moved = true; setPan({ x: drag.current.px + (t.clientX - drag.current.x), y: drag.current.py + (t.clientY - drag.current.y) }); };
   const zoomBy = (f) => { const el = stageRef.current, cw = el.clientWidth / 2, ch = el.clientHeight / 2; setZoom((z) => Math.min(6, Math.max(0.1, z * f))); setPan((p) => ({ x: cw - (cw - p.x) * f, y: ch - (ch - p.y) * f })); };
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o cabeamento." />;
@@ -91,7 +100,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const undo = () => { if (!history.length) return; setCfg({ cables: history[history.length - 1] }); setHistory(history.slice(0, -1)); };
 
   const clickCell = (c, r) => {
-    if (strategy !== "livre" || drag.current?.moved) return;
+    if (!livreEdit || drag.current?.moved) return;
     if (active == null || active >= cables.length) return; // precisa de um cabo selecionado
     const k = key(c, r);
     const wasInActive = cables[active]?.includes(k);
@@ -120,19 +129,19 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   return (
     <div>
-      <div style={card({ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: strategy === "livre" ? 8 : 16 })} className="m-controlbar">
+      <div style={card({ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: livreEdit ? 8 : 16 })} className="m-controlbar">
         <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
           {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
         <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
-        <Seg label="Disp." options={mode === "ac" ? [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["sinal", "Atrelar sinal"], ["livre", "Livre"]] : [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["livre", "Livre"]]} value={strategy} onChange={setStrategy} />
+        <Seg label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />
         {["linha", "coluna", "area"].includes(strategy) && <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
         {mode === "sinal" && <Seg label="Freq" options={[[60, "60"], [50, "50"], [30, "30"]]} value={hz} onChange={setHz} />}
         <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
       </div>
 
       {/* barra do modo livre */}
-      {strategy === "livre" && (
+      {livreEdit && (
         <div style={card({ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
           <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Importar do automático</span>
           {(mode === "ac" ? [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["sinal", "Sinal"]] : [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]).map(([v, l]) => (
@@ -167,7 +176,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
         {/* CANVAS */}
         <div ref={stageRef} onWheel={onWheel} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
-          style={{ position: "relative", height: 460, background: "#08080f", overflow: "hidden", cursor: drag.current ? "grabbing" : "grab" }}>
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onUp}
+          style={{ position: "relative", height: isMobile ? 380 : 460, background: "#08080f", overflow: "hidden", cursor: drag.current ? "grabbing" : "grab", touchAction: "none" }}>
           <svg width="100%" height="100%" style={{ display: "block" }}>
             <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
               <rect x={-8} y={-8} width={panelW + 16} height={panelH + 16} rx={10} fill="#0d0d1a" stroke={T.bd} strokeWidth={1.5} />
@@ -177,7 +187,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
                 const col = pi === undefined ? T.dim2 : paletteColor(pi);
                 return <rect key={key(c, r)} x={c * CELL + 3} y={r * CELL + 3} width={CELL - 6} height={CELL - 6} rx={6}
                   fill={pi === undefined ? "transparent" : col + (isActive ? "45" : "26")} stroke={col} strokeWidth={isActive ? 3 : 1.5} strokeDasharray={pi === undefined ? "5 5" : undefined}
-                  onClick={() => clickCell(c, r)} style={{ cursor: strategy === "livre" ? "pointer" : "inherit" }} />;
+                  onClick={() => clickCell(c, r)} style={{ cursor: livreEdit ? "pointer" : "inherit" }} />;
               }))}
               {ports.map((port, pi) => {
                 if (!port.length) return null;
@@ -208,19 +218,19 @@ export default function ProjectCabeamento({ project, patchTela }) {
           {ports.map((port, i) => {
             const pct = Math.round(usage(port) * 100);
             const over = pct > 100;
-            const isActive = strategy === "livre" && i === active;
+            const isActive = livreEdit && i === active;
             return (
-              <div key={i} onClick={strategy === "livre" ? () => setActive(active === i ? null : i) : undefined}
-                style={{ display: "flex", alignItems: "center", gap: 8, background: isActive ? T.sel : T.card2, border: `1px solid ${over ? T.red : isActive ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: strategy === "livre" ? "pointer" : "default" }}>
+              <div key={i} onClick={livreEdit ? () => setActive(active === i ? null : i) : undefined}
+                style={{ display: "flex", alignItems: "center", gap: 8, background: isActive ? T.sel : T.card2, border: `1px solid ${over ? T.red : isActive ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: livreEdit ? "pointer" : "default" }}>
                 <span style={{ width: 12, height: 12, borderRadius: 3, background: paletteColor(i), flexShrink: 0 }} />
                 <span style={{ color: T.txt, fontWeight: 600 }}>{mode === "sinal" ? "Porta" : "Cabo"} {i + 1}</span>
                 <span style={{ color: over ? T.red : T.mut }}>{pct}%</span>
                 <span style={{ color: T.dim }}>· {port.length} gab</span>
-                {strategy === "livre" && <X size={13} color={T.dim} onClick={(e) => { e.stopPropagation(); removerCabo(i); }} style={{ cursor: "pointer" }} />}
+                {livreEdit && <X size={13} color={T.dim} onClick={(e) => { e.stopPropagation(); removerCabo(i); }} style={{ cursor: "pointer" }} />}
               </div>
             );
           })}
-          {strategy === "livre" && (
+          {livreEdit && (
             <button onClick={novoCabo} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, color: T.mut, cursor: "pointer" }}><Plus size={13} /> Novo cabo</button>
           )}
         </div>

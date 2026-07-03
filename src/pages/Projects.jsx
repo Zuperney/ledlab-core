@@ -1,19 +1,19 @@
 // pages/Projects.jsx — lista de projetos com filtros, ordenação e agrupamento; abre o detalhe.
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Download, Trash2 } from "lucide-react";
+import { Plus, Download, Trash2, SlidersHorizontal, FolderOpen } from "lucide-react";
 import { useLedLabContext, newProject } from "../store/AppContext.jsx";
 import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { Z } from "../config/uiConfig.js";
 import { T } from "../ui/tokens.js";
-import { card, input, btn, iconBtn, dangerIconBtn } from "../ui/styles.js";
+import { card, input, btn, iconBtn, dangerIconBtn, label as lblStyle } from "../ui/styles.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge, { STATUS, STATUS_ORDER } from "../components/StatusBadge.jsx";
 import Placeholder from "../components/Placeholder.jsx";
 import DropdownMenu from "../components/DropdownMenu.jsx";
-import { FolderOpen } from "lucide-react";
+import BottomSheet from "../components/BottomSheet.jsx";
 import ProjectDetail from "./ProjectDetail.jsx";
 
 const FILTERS = [
@@ -35,6 +35,8 @@ export default function Projects({ nav }) {
   const [ano, setAno] = useState("all");
   const [sortBy, setSortBy] = useState("date");
   const [agrupar, setAgrupar] = useState("none");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filtersActive = ano !== "all" || sortBy !== "date" || agrupar !== "none";
 
   useEffect(() => { if (nav?.openProjectId) setOpenId(nav.openProjectId); }, [nav?.openProjectId]);
   const closeDetail = () => { setOpenId(null); nav?.clearProject?.(); };
@@ -117,19 +119,40 @@ export default function Projects({ nav }) {
         })}
       </div>
 
-      <div style={card({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })} className="m-controlbar">
-        <input placeholder="Buscar nome, cliente, local…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ maxWidth: 260, flex: 1 })} />
-        <span style={lbl}>Ano</span>
-        <select value={ano} onChange={(e) => setAno(e.target.value)} style={selStyle}>{years.map((y) => <option key={y} value={y}>{y === "all" ? "Todos" : y}</option>)}</select>
-        <span style={lbl}>Ordenar</span>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={selStyle}>
-          <option value="date">Data</option><option value="name">Nome</option><option value="status">Status</option>
-        </select>
-        <span style={lbl}>Agrupar</span>
-        <select value={agrupar} onChange={(e) => setAgrupar(e.target.value)} style={selStyle}>
-          <option value="none">Não</option><option value="month">Por mês</option><option value="status">Por status</option>
-        </select>
-      </div>
+      {isMobile ? (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <input placeholder="Buscar nome, cliente, local…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ flex: 1 })} />
+          <button style={btn("ghost", { position: "relative", flexShrink: 0 })} onClick={() => setFilterOpen(true)}>
+            <SlidersHorizontal size={16} /> Filtros
+            {filtersActive && <span style={{ position: "absolute", top: 5, right: 6, width: 8, height: 8, borderRadius: "50%", background: T.acc, border: `1px solid ${T.card}` }} />}
+          </button>
+        </div>
+      ) : (
+        <div style={card({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })} className="m-controlbar">
+          <input placeholder="Buscar nome, cliente, local…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ maxWidth: 260, flex: 1 })} />
+          <span style={lbl}>Ano</span>
+          <select value={ano} onChange={(e) => setAno(e.target.value)} style={selStyle}>{years.map((y) => <option key={y} value={y}>{y === "all" ? "Todos" : y}</option>)}</select>
+          <span style={lbl}>Ordenar</span>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={selStyle}>
+            <option value="date">Data</option><option value="name">Nome</option><option value="status">Status</option>
+          </select>
+          <span style={lbl}>Agrupar</span>
+          <select value={agrupar} onChange={(e) => setAgrupar(e.target.value)} style={selStyle}>
+            <option value="none">Não</option><option value="month">Por mês</option><option value="status">Por status</option>
+          </select>
+        </div>
+      )}
+
+      {isMobile && filterOpen && (
+        <BottomSheet title="Filtros" onClose={() => setFilterOpen(false)}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <div><div style={lblStyle}>Ano</div><select value={ano} onChange={(e) => setAno(e.target.value)} style={input()}>{years.map((y) => <option key={y} value={y}>{y === "all" ? "Todos" : y}</option>)}</select></div>
+            <div><div style={lblStyle}>Ordenar por</div><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input()}><option value="date">Data</option><option value="name">Nome</option><option value="status">Status</option></select></div>
+            <div><div style={lblStyle}>Agrupar</div><select value={agrupar} onChange={(e) => setAgrupar(e.target.value)} style={input()}><option value="none">Não</option><option value="month">Por mês</option><option value="status">Por status</option></select></div>
+            <button style={btn("primary", { justifyContent: "center" })} onClick={() => setFilterOpen(false)}>Aplicar</button>
+          </div>
+        </BottomSheet>
+      )}
 
       {sorted.length === 0 ? (
         <Placeholder icon={FolderOpen} title="Nenhum projeto" description="Ajuste os filtros ou clique em “Novo Projeto” para começar." />
