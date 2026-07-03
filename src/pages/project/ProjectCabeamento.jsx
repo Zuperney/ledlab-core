@@ -25,6 +25,7 @@ const key = (c, r) => `${r},${c}`;
 const parseKey = (k) => { const [r, c] = k.split(",").map(Number); return { c, r }; };
 const topLeft = (p) => { let r = 1e9, c = 1e9; for (const x of p) { r = Math.min(r, x.r); c = Math.min(c, x.c); } return { r, c }; };
 const bboxArea = (p) => { let a = 1e9, b = -1, c = 1e9, d = -1; for (const x of p) { a = Math.min(a, x.c); b = Math.max(b, x.c); c = Math.min(c, x.r); d = Math.max(d, x.r); } return p.length ? (b - a + 1) * (d - c + 1) : 0; };
+const chunkArr = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
 
 function bands(total, budget) { const out = []; let rem = total; while (rem > budget) { out.push(budget); rem -= budget; } if (rem > 0) out.push(rem); return out; }
 
@@ -92,19 +93,22 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const cols = tela?.cols || 1, rows = tela?.rows || 1;
   const panelW = cols * CELL, panelH = rows * CELL;
 
-  // cabeamento PERSISTIDO por tela (cada painel guarda o seu em tela.cabling)
+  // cabeamento PERSISTIDO por tela; SINAL e AC têm configs SEPARADAS (mexer no AC não muda o sinal)
   const confirm = useConfirm();
-  const cab = tela?.cabling || {};
-  const mode = cab.mode || "sinal";
-  const strategy = cab.strategy || "linha";
-  const routing = cab.routing || "updown"; // "updown" (sobe/desce) | "zigzag"
-  const hz = cab.hz || 60;
-  const cables = cab.cables || [];
-  const setCab = (partial) => patchTela?.(tela.id, { cabling: { mode, strategy, routing, hz, cables, ...partial } });
-  const setMode = (v) => setCab({ mode: v });
-  const setStrategy = (v) => setCab({ strategy: v });
-  const setRouting = (v) => setCab({ routing: v });
-  const setHz = (v) => setCab({ hz: v });
+  const cabling = tela?.cabling || {};
+  const mode = cabling.mode || "sinal";
+  const sinalCfg = cabling.sinal || {};
+  const acCfg = cabling.ac || {};
+  const cfg = mode === "ac" ? acCfg : sinalCfg;
+  const strategy = cfg.strategy || "linha";
+  const routing = cfg.routing || "updown"; // "updown" (sobe/desce) | "zigzag"
+  const hz = sinalCfg.hz || 60; // frequência é conceito do sinal
+  const cables = cfg.cables || [];
+  const setMode = (v) => patchTela?.(tela.id, { cabling: { ...cabling, mode: v } });
+  const setCfg = (partial) => patchTela?.(tela.id, { cabling: { ...cabling, [mode]: { ...cfg, ...partial } } });
+  const setStrategy = (v) => setCfg({ strategy: v });
+  const setRouting = (v) => setCfg({ routing: v });
+  const setHz = (v) => patchTela?.(tela.id, { cabling: { ...cabling, sinal: { ...sinalCfg, hz: v } } });
 
   const fit = useCallback(() => {
     const el = stageRef.current; if (!el) return;
@@ -132,17 +136,25 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const fp = parseFloat(g.fp) || 0.9;
   const ampCab = (parseFloat(g.pwrMax) || 0) / (FASE_V * fp);
   const connRating = CONN_AMP[g.conector] || 16;
-  const budget = mode === "sinal"
-    ? Math.max(1, Math.floor(Math.floor((PX_PER_PORT * 60) / hz) / pxPerCab))
-    : Math.max(1, Math.floor(connRating / (ampCab || 1)));
+  const acBudget = Math.max(1, Math.floor(connRating / (ampCab || 1)));
+  const sinalBudget = Math.max(1, Math.floor(Math.floor((PX_PER_PORT * 60) / (sinalCfg.hz || 60)) / pxPerCab));
+  const budget = mode === "sinal" ? sinalBudget : acBudget;
 
-  const autoPorts = (strat) => {
-    const p = strat === "coluna" ? portsColuna(cols, rows, budget, routing) : strat === "area" ? portsArea(cols, rows, budget, routing) : portsLinha(cols, rows, budget, routing);
+  const buildAuto = (strat, bud, rout) => {
+    const p = strat === "coluna" ? portsColuna(cols, rows, bud, rout) : strat === "area" ? portsArea(cols, rows, bud, rout) : portsLinha(cols, rows, bud, rout);
     p.sort((a, b) => { const A = topLeft(a), B = topLeft(b); return A.r - B.r || A.c - B.c; });
     return p;
   };
+  // rota do SINAL (usada pelo AC "atrelado ao sinal")
+  const signalRoute = () => (sinalCfg.strategy === "livre")
+    ? (sinalCfg.cables || []).map((ks) => ks.map(parseKey)).filter((p) => p.length)
+    : buildAuto(sinalCfg.strategy || "linha", sinalBudget, sinalCfg.routing || "updown");
+  const autoPorts = (strat) => buildAuto(strat, budget, routing);
 
-  const ports = strategy === "livre" ? cables.map((ks) => ks.map(parseKey)) : autoPorts(strategy);
+  let ports;
+  if (strategy === "livre") ports = cables.map((ks) => ks.map(parseKey));
+  else if (mode === "ac" && strategy === "sinal") ports = signalRoute().flatMap((p) => chunkArr(p, acBudget)); // segue a rota do sinal, quebrando pela capacidade do AC
+  else ports = autoPorts(strategy);
 
   const portOf = {};
   ports.forEach((p, i) => p.forEach((cell) => { portOf[key(cell.c, cell.r)] = i; }));
@@ -154,8 +166,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   // ── modo livre: edição manual ──
   // grava o estado atual no histórico (undo) antes de alterar
-  const setCables = (next) => { setHistory((h) => [...h.slice(-29), cables]); setCab({ cables: next }); };
-  const undo = () => { if (!history.length) return; setCab({ cables: history[history.length - 1] }); setHistory(history.slice(0, -1)); };
+  const setCables = (next) => { setHistory((h) => [...h.slice(-29), cables]); setCfg({ cables: next }); };
+  const undo = () => { if (!history.length) return; setCfg({ cables: history[history.length - 1] }); setHistory(history.slice(0, -1)); };
 
   const clickCell = (c, r) => {
     if (strategy !== "livre" || drag.current?.moved) return;
@@ -166,7 +178,10 @@ export default function ProjectCabeamento({ project, patchTela }) {
     if (!wasInActive) next[active] = [...(next[active] || []), k]; // adiciona ao cabo selecionado
     setCables(next);
   };
-  const importFrom = (strat) => { setCables(autoPorts(strat).map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(null); };
+  const importFrom = (strat) => {
+    const src = strat === "sinal" ? signalRoute().flatMap((p) => chunkArr(p, acBudget)) : autoPorts(strat);
+    setCables(src.map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(null);
+  };
   const novoCabo = () => { setActive(cables.length); setCables([...cables, []]); };
   const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActive(null); };
   const inverterCabo = () => { if (cables[active]?.length) setCables(cables.map((c, i) => (i === active ? [...c].reverse() : c))); };
@@ -189,8 +204,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
           {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
         <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
-        <Seg label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["livre", "Livre"]]} value={strategy} onChange={setStrategy} />
-        {strategy !== "livre" && <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
+        <Seg label="Disp." options={mode === "ac" ? [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["sinal", "Atrelar sinal"], ["livre", "Livre"]] : [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["livre", "Livre"]]} value={strategy} onChange={setStrategy} />
+        {["linha", "coluna", "area"].includes(strategy) && <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
         {mode === "sinal" && <Seg label="Freq" options={[[60, "60"], [50, "50"], [30, "30"]]} value={hz} onChange={setHz} />}
         <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
       </div>
@@ -199,7 +214,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
       {strategy === "livre" && (
         <div style={card({ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
           <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Importar do automático</span>
-          {[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]].map(([v, l]) => (
+          {(mode === "ac" ? [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["sinal", "Sinal"]] : [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]).map(([v, l]) => (
             <button key={v} onClick={() => importFrom(v)} style={pill(false)}><Download size={13} /> {l}</button>
           ))}
           <span style={{ width: 1, height: 22, background: T.bd, margin: "0 2px" }} />
@@ -224,6 +239,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
           <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
             {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? "porta (área quadrada)" : "cabo"}
             {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
+            {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal"}
             {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
           </div>
         </div>
