@@ -81,7 +81,7 @@ function portsArea(cols, rows, budget, routing) {
 export default function ProjectCabeamento({ project, patchTela }) {
   const telas = project.telas || [];
   const [telaId, setTelaId] = useState(telas[0]?.id);
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(null); // cabo em edição (null = nenhum)
   const [history, setHistory] = useState([]); // undo do modo livre
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -111,7 +111,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
     const z = Math.min(el.clientWidth / panelW, el.clientHeight / panelH) * 0.9 || 1;
     setZoom(z); setPan({ x: (el.clientWidth - panelW * z) / 2, y: (el.clientHeight - panelH * z) / 2 });
   }, [panelW, panelH]);
-  useEffect(() => { fit(); setActive(0); setHistory([]); }, [fit, telaId]);
+  useEffect(() => { fit(); setActive(null); setHistory([]); }, [fit, telaId]);
 
   const onWheel = (e) => {
     e.preventDefault();
@@ -159,20 +159,16 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   const clickCell = (c, r) => {
     if (strategy !== "livre" || drag.current?.moved) return;
+    if (active == null || active >= cables.length) return; // precisa de um cabo selecionado
     const k = key(c, r);
-    let next;
-    if (cables.length === 0) next = [[k]];
-    else {
-      const idx = Math.min(active, cables.length - 1);
-      const wasInActive = cables[idx]?.includes(k);
-      next = cables.map((cbl) => cbl.filter((x) => x !== k)); // tira de qualquer cabo
-      if (!wasInActive) next[idx] = [...(next[idx] || []), k]; // adiciona ao ativo
-    }
+    const wasInActive = cables[active]?.includes(k);
+    const next = cables.map((cbl) => cbl.filter((x) => x !== k)); // tira de qualquer cabo
+    if (!wasInActive) next[active] = [...(next[active] || []), k]; // adiciona ao cabo selecionado
     setCables(next);
   };
-  const importFrom = (strat) => { setCables(autoPorts(strat).map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(0); };
+  const importFrom = (strat) => { setCables(autoPorts(strat).map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(null); };
   const novoCabo = () => { setActive(cables.length); setCables([...cables, []]); };
-  const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActive(0); };
+  const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActive(null); };
   const inverterCabo = () => { if (cables[active]?.length) setCables(cables.map((c, i) => (i === active ? [...c].reverse() : c))); };
   // reordena o cabo ATIVO no padrão escolhido (dentro do seu bounding box)
   const reorderActive = (routing) => {
@@ -212,11 +208,12 @@ export default function ProjectCabeamento({ project, patchTela }) {
           <button onClick={() => reorderActive("updown")} style={pill(false)} title="Reordenar cabo em sobe/desce"><ArrowUpDown size={13} /> Sobe/desce</button>
           <button onClick={() => reorderActive("zigzag")} style={pill(false)} title="Reordenar cabo em zig-zag"><ArrowLeftRight size={13} /> Zig-zag</button>
           <button onClick={inverterCabo} style={pill(false)} title="Inverter início/fim"><Repeat2 size={13} /> Inverter</button>
+          <button onClick={() => setActive(null)} disabled={active == null} style={{ ...pill(false), opacity: active == null ? 0.4 : 1, cursor: active == null ? "not-allowed" : "pointer" }} title="Sair da edição do cabo"><X size={13} /> Sair da edição</button>
           <span style={{ width: 1, height: 22, background: T.bd, margin: "0 2px" }} />
           <button onClick={undo} disabled={!history.length} style={{ ...pill(false), opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" }}><Undo2 size={13} /> Desfazer</button>
           <button onClick={limparCabos} style={pill(false)}><Eraser size={13} /> Limpar</button>
           <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
-            {cables.length ? <>Editando <b style={{ color: paletteColor(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : "Importe do automático ou clique “Novo cabo” para começar"}
+            {active != null ? <>Editando <b style={{ color: paletteColor(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda para editar" : "Importe do automático ou clique “Novo cabo”"}
           </span>
         </div>
       )}
@@ -251,7 +248,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
                 const f = port[0];
                 return (
                   <g key={pi} style={{ pointerEvents: "none" }}>
-                    <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={strategy === "livre" && pi !== active ? 0.55 : 0.95} />
+                    <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={strategy === "livre" && active != null && pi !== active ? 0.55 : 0.95} />
                     <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={paletteColor(pi)} stroke="#fff" strokeWidth={2} />
                     <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
                   </g>
@@ -276,7 +273,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
             const over = pct > 100;
             const isActive = strategy === "livre" && i === active;
             return (
-              <div key={i} onClick={strategy === "livre" ? () => setActive(i) : undefined}
+              <div key={i} onClick={strategy === "livre" ? () => setActive(active === i ? null : i) : undefined}
                 style={{ display: "flex", alignItems: "center", gap: 8, background: isActive ? T.sel : T.card2, border: `1px solid ${over ? T.red : isActive ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: strategy === "livre" ? "pointer" : "default" }}>
                 <span style={{ width: 12, height: 12, borderRadius: 3, background: paletteColor(i), flexShrink: 0 }} />
                 <span style={{ color: T.txt, fontWeight: 600 }}>{mode === "sinal" ? "Porta" : "Cabo"} {i + 1}</span>
