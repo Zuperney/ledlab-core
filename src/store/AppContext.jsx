@@ -8,6 +8,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
+import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
 import { recomputeStatus, isoDate } from "../services/projectCalc.js";
 import { fullSnapshot } from "../services/cabinets.js";
 import { genId } from "../services/ids.js";
@@ -24,6 +25,8 @@ export const DEFAULT_PREFS = {
   cabCols: { pitch: true, resolucao: true, dimensoes: false, pwrMax: true, pwrMed: false, peso: true, ip: false },
   cablingAreaCount: true,
   cableNumbering: "row-tb-lr", // ordem de numeração dos cabos (ver ProjectCabeamento)
+  // módulo Diárias — parâmetros globais de cálculo (ver docs/diarias-spec.md §5.1)
+  worklog: { jornadaH: 12, janelaExtraH: 4, toleranciaExtraMin: 50 },
 };
 
 // Config de cabeamento padrão de uma tela nova.
@@ -103,17 +106,24 @@ export function AppProvider({ children }) {
   );
   const [prefs, setPrefs] = useState(() => loadObject(KEYS.prefs, DEFAULT_PREFS));
   const [tcPresets, setTcPresets] = useState(() => loadArray(KEYS.tcPresets, []));
+  // módulo Diárias
+  const [worklog, setWorklog] = useState(() => loadArray(KEYS.worklog, []));
+  const [activityTypes, setActivityTypes] = useState(() => loadArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES));
 
   useEffect(() => save(KEYS.cabs, cabs), [cabs]);
   useEffect(() => save(KEYS.projects, projects), [projects]);
   useEffect(() => save(KEYS.prefs, prefs), [prefs]);
   useEffect(() => save(KEYS.tcPresets, tcPresets), [tcPresets]);
+  useEffect(() => save(KEYS.worklog, worklog), [worklog]);
+  useEffect(() => save(KEYS.activityTypes, activityTypes), [activityTypes]);
 
   const value = {
     cabs, setCabs,
     projects, setProjects,
     prefs, setPrefs,
     tcPresets, setTcPresets,
+    worklog, setWorklog,
+    activityTypes, setActivityTypes,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
