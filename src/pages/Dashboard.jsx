@@ -1,12 +1,16 @@
 // pages/Dashboard.jsx — visão geral: evento atual, contadores e próximos.
-import { CalendarDays, MapPin, Layers, ChevronRight } from "lucide-react";
+import { CalendarDays, MapPin, Layers, ChevronRight, Receipt } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
-import { projectRollup } from "../services/projectCalc.js";
+import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useWorklog } from "../hooks/useWorklog.js";
 import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
 import StatusBadge from "../components/StatusBadge.jsx";
+
+const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
+const pad2 = (n) => String(n).padStart(2, "0");
 
 const gabCount = (p) => projectRollup(p).gab;
 
@@ -22,6 +26,7 @@ function MetaLine({ p }) {
 
 export default function Dashboard({ nav }) {
   const { projects, prefs } = useLedLabContext();
+  const { worklog, porDia } = useWorklog();
   const isMobile = useIsMobile();
   const active = projects.filter((p) => p.status === "active");
   const planned = projects.filter((p) => p.status === "planned");
@@ -35,6 +40,18 @@ export default function Dashboard({ nav }) {
     { l: "Próximos eventos", v: planned.length, c: T.amb },
     { l: "Concluídos", v: done.length, c: T.grn },
   ];
+
+  // diárias do mês corrente (módulo Diárias)
+  const nowD = new Date();
+  const mesPrefix = `${nowD.getFullYear()}-${pad2(nowD.getMonth() + 1)}`;
+  const mesEntries = worklog.filter((e) => (e.dataRef || "").startsWith(mesPrefix));
+  const gruposMes = porDia(mesEntries);
+  const diariasVar = gruposMes.reduce((s, g) => s + g.total, 0);
+  const diariasDias = gruposMes.length;
+  const diariasCaches = gruposMes.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.cobrado ? (it.breakdown.cachês || 0) : 0), 0), 0);
+  const fixoVal = Number(prefs.fixo?.valor) || 0;
+  const diariasTotal = diariasVar + fixoVal;
+  const mostraDiarias = mesEntries.length > 0 || fixoVal > 0;
 
   return (
     <div>
@@ -54,6 +71,21 @@ export default function Dashboard({ nav }) {
           </div>
         ))}
       </div>
+
+      {mostraDiarias && (
+        <button onClick={() => nav?.setPage?.("financeiro")}
+          style={{ ...card({ marginBottom: 16, cursor: "pointer", background: `linear-gradient(100deg, ${T.strip}, ${T.hero} 60%)`, borderColor: T.bdA }), width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, fontFamily: "inherit" }}>
+          <div>
+            <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 6 }}><Receipt size={13} /> Diárias · {MONTHS_LONG[nowD.getMonth()]}</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: T.grn, margin: "6px 0 2px" }}>{brl(diariasTotal)}</div>
+            <div style={{ color: T.mut, fontSize: 13 }}>
+              {diariasDias} {diariasDias === 1 ? "dia" : "dias"} · {diariasCaches} cachê{diariasCaches === 1 ? "" : "s"}
+              {fixoVal > 0 ? ` · inclui fixo ${brl(fixoVal)}` : ""}
+            </div>
+          </div>
+          <ChevronRight size={20} color={T.mut} />
+        </button>
+      )}
 
       <div style={card()}>
         <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 12 }}>Próximos eventos</div>
