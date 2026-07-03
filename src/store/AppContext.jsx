@@ -27,6 +27,7 @@ export const DEFAULT_PREFS = {
   cableNumbering: "row-tb-lr", // ordem de numeração dos cabos (ver ProjectCabeamento)
   // módulo Diárias — parâmetros globais de cálculo (ver docs/diarias-spec.md §5.1)
   worklog: { jornadaH: 12, janelaExtraH: 4, toleranciaExtraMin: 50 },
+  tecnico: "", // nome que aparece no recibo do Financeiro (Diárias)
 };
 
 // Config de cabeamento padrão de uma tela nova.

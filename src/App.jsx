@@ -11,6 +11,7 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
 import Agenda from "./pages/Agenda.jsx";
+import Financeiro from "./pages/Financeiro.jsx";
 import Inventory from "./pages/Inventory.jsx";
 import Projects from "./pages/Projects.jsx";
 import Diagrams from "./pages/Diagrams.jsx";
@@ -20,7 +21,7 @@ import Knowledge from "./pages/Knowledge.jsx";
 import Settings from "./pages/Settings.jsx";
 
 const PAGES = {
-  dashboard: Dashboard, agenda: Agenda, inventory: Inventory, projects: Projects,
+  dashboard: Dashboard, agenda: Agenda, financeiro: Financeiro, inventory: Inventory, projects: Projects,
   diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio,
   knowledge: Knowledge, settings: Settings,
 };

@@ -1,12 +1,13 @@
 // nav.js — modelo de navegação (itens, ícones e seções da sidebar).
 import {
-  LayoutDashboard, CalendarDays, Package, FolderOpen,
+  LayoutDashboard, CalendarDays, Receipt, Package, FolderOpen,
   GitBranch, Monitor, Ratio, BookOpen, Settings,
 } from "lucide-react";
 
 export const NAV = [
   { id: "dashboard", label: "Dashboard",            Icon: LayoutDashboard, sec: null },
   { id: "agenda",    label: "Agenda",               Icon: CalendarDays,    sec: null },
+  { id: "financeiro", label: "Financeiro",          Icon: Receipt,         sec: null },
   { id: "inventory", label: "Gabinetes",            Icon: Package,         sec: "GESTÃO" },
   { id: "projects",  label: "Projetos / Eventos",   Icon: FolderOpen,      sec: "GESTÃO" },
   { id: "diagrams",  label: "Diagramação",          Icon: GitBranch,       sec: "FERRAMENTAS RÁPIDAS" },
