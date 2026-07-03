@@ -18,6 +18,7 @@ const monthStart = (d) => isoOf(new Date(d.getFullYear(), d.getMonth(), 1));
 const monthEnd = (d) => isoOf(new Date(d.getFullYear(), d.getMonth() + 1, 0));
 const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
 const fmtBR = (iso) => { const d = new Date(iso + "T12:00"); return isNaN(d.getTime()) ? iso : `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; };
+const fmtHoras = (min) => { const h = Math.floor(min / 60), m = min % 60; return `${h}h${m ? " " + m + "min" : ""}`; };
 
 const PRESETS = [
   { id: "mes", label: "Este mês" },
@@ -59,6 +60,7 @@ export default function Financeiro() {
   const total = grupos.reduce((s, g) => s + g.total, 0);
   const nDias = grupos.length;
   const nCaches = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.cobrado ? (it.breakdown.cachês || 0) : 0), 0), 0);
+  const totalMin = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.breakdown.duracaoH != null ? Math.round(it.breakdown.duracaoH * 60) : 0), 0), 0);
 
   // fixo mensal (retainer): só quando configurado e o filtro de cliente casa (ou é "Todos")
   const fixoCfg = prefs.fixo || { valor: 0, cliente: "" };
@@ -138,10 +140,9 @@ export default function Financeiro() {
         </div>
 
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 20 }}>
-          {stat("Total do período", brl(grandTotal), PRINT.grn)}
           {stat("Dias", nDias)}
           {stat("Cachês", nCaches)}
-          {fixoValor > 0 && stat("Fixo", brl(fixoValor), PRINT.acc)}
+          {stat("Horas trabalhadas", fmtHoras(totalMin))}
         </div>
 
         {!temConteudo ? (
