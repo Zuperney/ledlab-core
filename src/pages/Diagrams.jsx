@@ -61,6 +61,8 @@ export default function Diagrams() {
   const onDown = (e) => { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }; };
   const onMove = (e) => { if (drag.current) setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) }); };
   const onUp = () => { drag.current = null; };
+  const onTouchStart = (e) => { const t = e.touches[0]; if (t) drag.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y }; };
+  const onTouchMove = (e) => { const t = e.touches[0]; if (drag.current && t) setPan({ x: drag.current.px + (t.clientX - drag.current.x), y: drag.current.py + (t.clientY - drag.current.y) }); };
   const zoomBy = (f) => { const el = stageRef.current, cw = el.clientWidth / 2, ch = el.clientHeight / 2; setZoom((z) => Math.min(6, Math.max(0.1, z * f))); setPan((p) => ({ x: cw - (cw - p.x) * f, y: ch - (ch - p.y) * f })); };
 
   const inp = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" };
@@ -90,7 +92,8 @@ export default function Diagrams() {
 
         {/* CANVAS */}
         <div ref={stageRef} onWheel={onWheel} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
-          style={{ position: "relative", height: 460, background: "#08080f", overflow: "hidden", cursor: drag.current ? "grabbing" : "grab" }}>
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onUp}
+          style={{ position: "relative", height: 460, background: "#08080f", overflow: "hidden", cursor: drag.current ? "grabbing" : "grab", touchAction: "none" }}>
           <svg width="100%" height="100%" style={{ display: "block" }}>
             <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
               <rect x={-8} y={-8} width={panelW + 16} height={panelH + 16} rx={10} fill="#0d0d1a" stroke={T.bd} strokeWidth={1.5} />

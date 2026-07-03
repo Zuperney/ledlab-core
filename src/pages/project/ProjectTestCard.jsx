@@ -5,6 +5,7 @@ import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt } from "../../store/UIContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
+import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { PALETTE, T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
@@ -229,8 +230,7 @@ export default function ProjectTestCard({ project }) {
                 ))}
               </div>
 
-              <Label style={{ marginTop: 16 }}>Tamanho do número — {o.numScale.toFixed(1)}×</Label>
-              <input type="range" min={0.5} max={2} step={0.1} value={o.numScale} onChange={(e) => set({ numScale: parseFloat(e.target.value) })} style={{ width: "100%", accentColor: T.acc }} />
+              <NumScaleSlider value={o.numScale} onChange={(n) => set({ numScale: n })} />
 
               <Label style={{ marginTop: 16 }}>Color bar</Label>
               <Seg options={[["off", "Off"], ["topo", "Topo"], ["centro", "Centro"], ["base", "Base"]]} value={o.colorBar} onChange={(v) => set({ colorBar: v })} small />
@@ -273,6 +273,19 @@ export default function ProjectTestCard({ project }) {
 
 const sel = { flex: 1, background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13 };
 const Label = ({ children, style }) => <div style={{ textTransform: "uppercase", fontSize: 11, color: T.mut, marginBottom: 6, ...style }}>{children}</div>;
+
+// slider próprio: re-renderiza só a si mesmo enquanto arrasta e comita (redesenho) com debounce
+function NumScaleSlider({ value, onChange }) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  const commit = useDebouncedCallback(onChange, 150);
+  return (
+    <>
+      <Label style={{ marginTop: 16 }}>Tamanho do número — {v.toFixed(1)}×</Label>
+      <input type="range" min={0.5} max={2} step={0.1} value={v} onChange={(e) => { const n = parseFloat(e.target.value); setV(n); commit(n); }} style={{ width: "100%", accentColor: T.acc }} />
+    </>
+  );
+}
 
 function Toggle({ on, onClick, children, full, style }) {
   return (

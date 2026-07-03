@@ -1,18 +1,15 @@
 // pages/project/ProjectEnergia.jsx — aba Energia (AC): pico + típico por tela e total.
-import { useLedLabContext } from "../../store/AppContext.jsx";
-import { aggregateElectrical } from "../../services/projectCalc.js";
-import { VOLT } from "../../services/electricalCalc.js";
+import { useState, useEffect } from "react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
+import { useElectrical } from "../../hooks/useElectrical.js";
+import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 
 export default function ProjectEnergia({ project, patch }) {
-  const { prefs } = useLedLabContext();
   const isMobile = useIsMobile();
-  const cfg = project.config || { vk: prefs.vk, brilho: prefs.brilho, conteudo: prefs.conteudo };
+  const { cfg, agg, VOLT } = useElectrical(project);
   const setCfg = (partial) => patch({ config: { ...cfg, ...partial } });
-
-  const agg = aggregateElectrical(project, { vk: cfg.vk, brilho: cfg.brilho, conteudo: cfg.conteudo });
 
   return (
     <div>
@@ -71,12 +68,15 @@ function Row({ tag, tagColor, cols, isMobile }) {
 }
 
 function RangeInline({ label, value, onChange }) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  const commit = useDebouncedCallback(onChange, 180); // persiste/recalcula só ao parar de arrastar
   return (
     <div style={{ flex: 1, minWidth: 200 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.mut, marginBottom: 4 }}>
-        <span>{label}</span><span style={{ color: T.acM, fontWeight: 700 }}>{Math.round(value * 100)}%</span>
+        <span>{label}</span><span style={{ color: T.acM, fontWeight: 700 }}>{Math.round(v * 100)}%</span>
       </div>
-      <input type="range" min={0} max={1} step={0.01} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} style={{ width: "100%", accentColor: T.acc }} />
+      <input type="range" min={0} max={1} step={0.01} value={v} onChange={(e) => { const n = parseFloat(e.target.value); setV(n); commit(n); }} style={{ width: "100%", accentColor: T.acc }} />
     </div>
   );
 }

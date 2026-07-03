@@ -1,9 +1,10 @@
 // pages/project/ProjectDados.jsx — aba Dados: telas + ficha do projeto.
 import { useState } from "react";
 import { Plus, Pencil, Copy, Trash2 } from "lucide-react";
-import { useLedLabContext, newScreen } from "../../store/AppContext.jsx";
+import { newScreen } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
+import { useCabinets } from "../../hooks/useCabinets.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { T } from "../../ui/tokens.js";
 import { card, input, label, btn, iconBtn, dangerIconBtn } from "../../ui/styles.js";
@@ -11,14 +12,13 @@ import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import Drawer from "../../components/Drawer.jsx";
 
 export default function ProjectDados({ project, patch, patchTela }) {
-  const { cabs, prefs } = useLedLabContext();
+  const { cabs, favCab } = useCabinets();
   const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
   const [edit, setEdit] = useState(null); // tela em edição
 
   const telas = project.telas || [];
-  const favCab = cabs.find((c) => c.id === prefs.favCabId) || cabs[0];
 
   const addTela = () => {
     const t = newScreen(favCab, { nome: `Tela ${telas.length + 1}`, cols: 8, rows: 6 });

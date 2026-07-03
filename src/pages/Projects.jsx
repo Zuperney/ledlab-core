@@ -1,9 +1,9 @@
 // pages/Projects.jsx — lista de projetos com filtros, ordenação e agrupamento; abre o detalhe.
 import { useState, useMemo, useEffect } from "react";
 import { Plus, Download, Trash2, SlidersHorizontal, FolderOpen } from "lucide-react";
-import { useLedLabContext, newProject } from "../store/AppContext.jsx";
 import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
+import { useProjects } from "../hooks/useProjects.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { Z } from "../config/uiConfig.js";
 import { T } from "../ui/tokens.js";
@@ -25,7 +25,7 @@ const FILTERS = [
 ];
 
 export default function Projects({ nav }) {
-  const { projects, setProjects } = useLedLabContext();
+  const { projects, createProject, removeProject } = useProjects();
   const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
@@ -81,13 +81,12 @@ export default function Projects({ nav }) {
   }, [sorted, agrupar]);
 
   const create = () => {
-    const p = newProject({ name: "Novo Projeto" });
-    setProjects([...projects, p]);
+    const p = createProject({ name: "Novo Projeto" });
     setOpenId(p.id);
   };
   const remove = async (p) => {
     if (await confirm({ title: "Excluir projeto?", message: `"${p.name || "Sem nome"}" e todas as suas telas serão removidos. Esta ação não pode ser desfeita.` })) {
-      setProjects(projects.filter((x) => x.id !== p.id));
+      removeProject(p.id);
       toast("Projeto excluído");
     }
   };
