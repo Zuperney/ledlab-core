@@ -80,6 +80,7 @@ export default function Financeiro() {
   const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em" };
   const td = { padding: "6px 8px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink, fontSize: 12.5 };
   const footRow = { display: "flex", justifyContent: "space-between", color: PRINT.mut, fontSize: 13, padding: "3px 0" };
+  const COLW = ["38%", "16%", "11%", "20%", "15%"]; // Atividade · Horário · Duração · Cálculo · Valor (iguais em todo dia)
   const stat = (l, v, c = PRINT.ink) => (
     <div><div style={{ fontSize: 10, textTransform: "uppercase", color: PRINT.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v}</div></div>
   );
@@ -153,7 +154,8 @@ export default function Financeiro() {
                 {g.itens.length > 1 && <div style={{ color: PRINT.mut, fontSize: 12 }}>subtotal <b style={{ color: PRINT.ink }}>{brl(g.total)}</b></div>}
               </div>
               <div className="tbl-scroll" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                  <colgroup>{COLW.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
                   <thead><tr><th style={th}>Atividade</th><th style={th}>Horário</th><th style={th}>Duração</th><th style={th}>Cálculo</th><th style={{ ...th, textAlign: "right" }}>Valor</th></tr></thead>
                   <tbody>
                     {g.itens.map((it, i) => (
