@@ -34,6 +34,7 @@ export default function Financeiro() {
   const [preset, setPreset] = useState("mes");
   const [range, setRange] = useState({ from: monthStart(now), to: monthEnd(now) });
   const [cliente, setCliente] = useState("");
+  const [incluirFixo, setIncluirFixo] = useState(true);
 
   const applyPreset = (p) => {
     setPreset(p);
@@ -59,9 +60,16 @@ export default function Financeiro() {
   const nDias = grupos.length;
   const nCaches = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.cobrado ? (it.breakdown.cachês || 0) : 0), 0), 0);
 
+  // fixo mensal (retainer): só quando configurado e o filtro de cliente casa (ou é "Todos")
+  const fixoCfg = prefs.fixo || { valor: 0, cliente: "" };
+  const fixoAtivo = (Number(fixoCfg.valor) || 0) > 0 && (cliente === "" || cliente === fixoCfg.cliente);
+  const fixoValor = fixoAtivo && incluirFixo ? Number(fixoCfg.valor) : 0;
+  const grandTotal = total + fixoValor;
+  const temConteudo = nDias > 0 || fixoValor > 0;
+
   const periodoLabel = `${fmtBR(range.from)} a ${fmtBR(range.to)}`;
   const clienteLabel = cliente || "Todos";
-  const texto = reciboWhatsApp({ grupos, tecnico: prefs.tecnico, periodoLabel, clienteLabel, showCliente: cliente === "", total });
+  const texto = reciboWhatsApp({ grupos, tecnico: prefs.tecnico, periodoLabel, clienteLabel, showCliente: cliente === "", total, fixoValor, fixoCliente: fixoCfg.cliente });
 
   const copiar = async () => {
     try { await navigator.clipboard.writeText(texto); toast("Recibo copiado — é só colar no WhatsApp"); }
@@ -71,6 +79,7 @@ export default function Financeiro() {
 
   const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em" };
   const td = { padding: "6px 8px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink, fontSize: 12.5 };
+  const footRow = { display: "flex", justifyContent: "space-between", color: PRINT.mut, fontSize: 13, padding: "3px 0" };
   const stat = (l, v, c = PRINT.ink) => (
     <div><div style={{ fontSize: 10, textTransform: "uppercase", color: PRINT.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v}</div></div>
   );
@@ -99,13 +108,19 @@ export default function Financeiro() {
           </div>
           <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: Ney" style={input()} /></div>
         </div>
+        {fixoAtivo && (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: T.txt, fontSize: 14, cursor: "pointer" }}>
+            <input type="checkbox" checked={incluirFixo} onChange={(e) => setIncluirFixo(e.target.checked)} style={{ width: 16, height: 16, accentColor: T.acc, cursor: "pointer" }} />
+            Incluir fixo mensal{fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} — <b>{brl(fixoCfg.valor)}</b>
+          </label>
+        )}
       </div>
 
       {/* ações */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <button style={btn("primary")} onClick={() => window.print()} disabled={!nDias}><Printer size={15} /> Imprimir / Salvar PDF</button>
-        <button style={btn("ghost")} onClick={copiar} disabled={!nDias}><Copy size={15} /> Copiar texto</button>
-        <button style={btn("ghost")} onClick={abrirWhats} disabled={!nDias}><MessageCircle size={15} /> WhatsApp</button>
+        <button style={btn("primary")} onClick={() => window.print()} disabled={!temConteudo}><Printer size={15} /> Imprimir / Salvar PDF</button>
+        <button style={btn("ghost")} onClick={copiar} disabled={!temConteudo}><Copy size={15} /> Copiar texto</button>
+        <button style={btn("ghost")} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
       </div>
 
       {/* recibo imprimível */}
@@ -122,12 +137,13 @@ export default function Financeiro() {
         </div>
 
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 20 }}>
-          {stat("Total do período", brl(total), PRINT.grn)}
+          {stat("Total do período", brl(grandTotal), PRINT.grn)}
           {stat("Dias", nDias)}
           {stat("Cachês", nCaches)}
+          {fixoValor > 0 && stat("Fixo", brl(fixoValor), PRINT.acc)}
         </div>
 
-        {!nDias ? (
+        {!temConteudo ? (
           <div style={{ color: PRINT.mut, padding: "24px 0", textAlign: "center" }}>Nenhum lançamento no período selecionado.</div>
         ) : (
           grupos.map((g) => (
@@ -156,10 +172,18 @@ export default function Financeiro() {
           ))
         )}
 
-        {nDias > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `2px solid ${PRINT.ink}`, paddingTop: 12, marginTop: 8 }}>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>Total do período</div>
-            <div style={{ fontWeight: 800, fontSize: 22, color: PRINT.grn }}>{brl(total)}</div>
+        {temConteudo && (
+          <div style={{ borderTop: `2px solid ${PRINT.ink}`, paddingTop: 12, marginTop: 8 }}>
+            {fixoValor > 0 && (
+              <>
+                <div style={footRow}><span>Variáveis{nDias ? ` · ${nDias} ${nDias === 1 ? "dia" : "dias"}` : ""}</span><span>{brl(total)}</span></div>
+                <div style={footRow}><span>Fixo mensal{fixoCfg.cliente ? ` · ${fixoCfg.cliente}` : ""}</span><span>{brl(fixoValor)}</span></div>
+              </>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: fixoValor > 0 ? 8 : 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Total do período</div>
+              <div style={{ fontWeight: 800, fontSize: 22, color: PRINT.grn }}>{brl(grandTotal)}</div>
+            </div>
           </div>
         )}
       </div>

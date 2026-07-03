@@ -30,7 +30,7 @@ export function horarioLabel(e) {
 
 // Texto formatado pra colar/mandar no WhatsApp (usa *negrito* do WhatsApp).
 // grupos = [{ dataRef, total, itens:[{ entry, tipo, breakdown, cobrado }] }]
-export function reciboWhatsApp({ grupos = [], tecnico, periodoLabel, clienteLabel, showCliente = true, total = 0 }) {
+export function reciboWhatsApp({ grupos = [], tecnico, periodoLabel, clienteLabel, showCliente = true, total = 0, fixoValor = 0, fixoCliente = "" }) {
   const L = [];
   L.push("*RECIBO DE DIÁRIAS*");
   if (tecnico) L.push(`Técnico: ${tecnico}`);
@@ -38,7 +38,7 @@ export function reciboWhatsApp({ grupos = [], tecnico, periodoLabel, clienteLabe
   if (clienteLabel) L.push(`Cliente: ${clienteLabel}`);
   L.push("");
 
-  if (!grupos.length) {
+  if (!grupos.length && !fixoValor) {
     L.push("Nenhum lançamento no período.");
     return L.join("\n");
   }
@@ -56,6 +56,13 @@ export function reciboWhatsApp({ grupos = [], tecnico, periodoLabel, clienteLabe
     L.push("");
   }
 
-  L.push(`*TOTAL: ${brl(total)}*`);
+  // fixo mensal (retainer) somado às variáveis
+  if (fixoValor > 0) {
+    L.push(`Variáveis: ${brl(total)}`);
+    L.push(`Fixo${fixoCliente ? " · " + fixoCliente : ""}: ${brl(fixoValor)}`);
+    L.push(`*TOTAL: ${brl(total + fixoValor)}*`);
+  } else {
+    L.push(`*TOTAL: ${brl(total)}*`);
+  }
   return L.join("\n");
 }

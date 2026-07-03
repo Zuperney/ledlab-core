@@ -28,6 +28,9 @@ export const DEFAULT_PREFS = {
   // módulo Diárias — parâmetros globais de cálculo (ver docs/diarias-spec.md §5.1)
   worklog: { jornadaH: 12, janelaExtraH: 4, toleranciaExtraMin: 50 },
   tecnico: "", // nome que aparece no recibo do Financeiro (Diárias)
+  // fixo mensal (retainer): valor fixo por mês de um cliente prioritário, somado
+  // no fechamento além das diárias variáveis (ex.: acordo de prioridade).
+  fixo: { valor: 0, cliente: "" },
 };
 
 // Config de cabeamento padrão de uma tela nova.

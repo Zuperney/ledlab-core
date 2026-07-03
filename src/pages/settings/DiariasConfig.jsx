@@ -21,6 +21,9 @@ export default function DiariasConfig() {
   const setCfg = (partial) => setPrefs({ ...prefs, worklog: { ...cfg, ...partial } });
   const num = (v, min) => Math.max(min, parseInt(v) || min);
 
+  const fixo = prefs.fixo || { valor: 0, cliente: "" };
+  const setFixo = (partial) => setPrefs({ ...prefs, fixo: { ...fixo, ...partial } });
+
   const openNew = () => setEdit({ id: null, nome: "", cor: "#7c3aed", valorBase: "", geraHoraExtra: true, podeSegundoCache: true, ativo: true });
   const save = () => {
     if (!edit.nome.trim()) { toast("Dê um nome ao tipo", "info"); return; }
@@ -41,6 +44,15 @@ export default function DiariasConfig() {
           <div><div style={lbl}>Tolerância da fração (min)</div><input type="number" value={cfg.toleranciaExtraMin} onChange={(e) => setCfg({ toleranciaExtraMin: num(e.target.value, 0) })} style={input()} /></div>
         </div>
         <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>Ex.: cachê ÷ jornada = valor da hora extra; a fração só vira 1 hora cheia passando da tolerância.</div>
+      </div>
+
+      <div style={card({ maxWidth: 640, marginBottom: 16 })}>
+        <div style={{ color: T.txt, fontWeight: 600 }}>Fixo mensal (opcional)</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além das diárias. Deixe 0 se não usa.</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div><div style={lbl}>Valor por mês (R$)</div><input type="number" value={fixo.valor} onChange={(e) => setFixo({ valor: Math.max(0, parseInt(e.target.value) || 0) })} placeholder="Ex.: 6000" style={input()} /></div>
+          <div><div style={lbl}>Cliente do fixo</div><input value={fixo.cliente} onChange={(e) => setFixo({ cliente: e.target.value })} placeholder="Ex.: Mega Led" style={input()} /></div>
+        </div>
       </div>
 
       <div style={card({ maxWidth: 640 })}>
