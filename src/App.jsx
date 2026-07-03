@@ -16,13 +16,12 @@ import Projects from "./pages/Projects.jsx";
 import Diagrams from "./pages/Diagrams.jsx";
 import TestCards from "./pages/TestCards.jsx";
 import AspectRatio from "./pages/AspectRatio.jsx";
-import VideoTiming from "./pages/VideoTiming.jsx";
 import Knowledge from "./pages/Knowledge.jsx";
 import Settings from "./pages/Settings.jsx";
 
 const PAGES = {
   dashboard: Dashboard, agenda: Agenda, inventory: Inventory, projects: Projects,
-  diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio, timing: VideoTiming,
+  diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio,
   knowledge: Knowledge, settings: Settings,
 };
 

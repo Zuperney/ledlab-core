@@ -3,5 +3,4 @@
 
 export const FLAGS = {
   advancedCablingOnMobile: false, // edição avançada de cabeamento (modo livre) no celular
-  showVideoTiming: true,          // aba Timing de Vídeo (CVT/MCTRL4K)
 };

@@ -7,7 +7,7 @@ import { T } from "../ui/tokens.js";
 import { Z, TOUCH_MIN } from "../config/uiConfig.js";
 import BottomSheet from "./BottomSheet.jsx";
 
-const TOOL_IDS = ["diagrams", "testcards", "aspect", "timing"];
+const TOOL_IDS = ["diagrams", "testcards", "aspect"];
 const MORE_IDS = ["inventory", "knowledge", "settings"];
 const byId = (id) => NAV.find((n) => n.id === id);
 
