@@ -4,6 +4,8 @@ import { Plus, Pencil, Trash2, Star, Columns3, ChevronDown, ChevronUp, Settings,
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { pitch } from "../services/electricalCalc.js";
 import { genNumericId } from "../services/ids.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
+import { Z } from "../config/uiConfig.js";
 import { T } from "../ui/tokens.js";
 import { card, input, btn, iconBtn, dangerIconBtn } from "../ui/styles.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
@@ -33,6 +35,7 @@ const pitchValue = (c) => { const r = parseFloat(c.resX), d = parseFloat(c.dimW)
 
 export default function Inventory() {
   const { cabs, setCabs, prefs, setPrefs } = useLedLabContext();
+  const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
   const [q, setQ] = useState("");
@@ -125,7 +128,7 @@ export default function Inventory() {
           { label: "Exportar biblioteca (.json)", Icon: Download, onClick: () => exportCabs(cabs) },
         ]} />
         <input ref={fileRef} type="file" accept="application/json" onChange={importCabs} style={{ display: "none" }} />
-        <button style={btn("primary")} onClick={openNew}><Plus size={16} /> Novo gabinete</button>
+        {!isMobile && <button style={btn("primary")} onClick={openNew}><Plus size={16} /> Novo gabinete</button>}
       </SectionHeader>
 
       <div style={card({ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" })} className="m-controlbar">
@@ -145,9 +148,10 @@ export default function Inventory() {
         <select value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={input({ width: "auto" })}>
           <option>Todos</option><option>Indoor</option><option>Outdoor</option>
         </select>
-        <DropdownMenu label="Colunas" triggerLabel="Colunas" Icon={Columns3} items={COLS.map((c) => ({ label: c.label, active: !!cols[c.key], onClick: () => toggleCol(c.key) }))} />
+        {!isMobile && <DropdownMenu label="Colunas" triggerLabel="Colunas" Icon={Columns3} items={COLS.map((c) => ({ label: c.label, active: !!cols[c.key], onClick: () => toggleCol(c.key) }))} />}
       </div>
 
+      {!isMobile && (
       <div style={card({ padding: 0, overflow: "hidden" })}>
         <div style={{ overflowX: "auto" }} className="tbl-scroll">
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
@@ -185,6 +189,38 @@ export default function Inventory() {
           </table>
         </div>
       </div>
+      )}
+
+      {isMobile && rows.map((c) => (
+        <div key={c.id} style={card({ marginBottom: 10 })}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Star size={16} onClick={() => setFav(c.id)} style={{ cursor: "pointer", flexShrink: 0, color: prefs.favCabId === c.id ? T.amb : T.dim2, fill: prefs.favCabId === c.id ? T.amb : "none" }} />
+                <b style={{ color: T.txt }}>{c.nome}</b>
+              </div>
+              <div style={{ color: T.dim, fontSize: 12, marginTop: 5, fontFamily: "ui-monospace,monospace" }}>{brandOf(c)} · pitch {pitch(c)} · {c.resX}×{c.resY}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12, color: T.mut }}>
+                <span style={{ color: T.red, fontWeight: 700 }}>{c.pwrMax}W</span>
+                <span>· {c.peso} kg ·</span>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, color: c.ip === "Outdoor" ? T.grn : T.acM, background: c.ip === "Outdoor" ? T.grnBg : T.indBg }}>{c.ip}</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <button style={iconBtn({ width: 40, height: 40 })} title="Editar" onClick={() => openEdit(c)}><Pencil size={15} /></button>
+              <button style={dangerIconBtn({ width: 40, height: 40 })} title="Excluir" onClick={() => remove(c)}><Trash2 size={15} /></button>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {isMobile && (
+        <button onClick={openNew} title="Novo gabinete"
+          style={{ position: "fixed", right: 16, bottom: "calc(84px + env(safe-area-inset-bottom))", width: 56, height: 56, borderRadius: "50%", background: T.acc, color: "#fff", border: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.45)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z.fab }}>
+          <Plus size={24} />
+        </button>
+      )}
+
       <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}><Star size={12} style={{ color: T.amb, fill: T.amb, verticalAlign: "-2px" }} /> O gabinete favorito é carregado automaticamente ao adicionar telas novas nos projetos.</div>
 
       <Drawer

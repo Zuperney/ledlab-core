@@ -1,13 +1,15 @@
 // components/Drawer.jsx — painel deslizante à direita (formulários / detalhes).
+// No celular ocupa a largura toda (maxWidth cede) e fica acima da bottom nav.
 import { X } from "lucide-react";
 import { T } from "../ui/tokens.js";
+import { Z } from "../config/uiConfig.js";
 
 export default function Drawer({ open, title, onClose, children, footer, width = 480 }) {
   if (!open) return null;
   return (
     <div
       onClick={onClose}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 50, display: "flex", justifyContent: "flex-end" }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: Z.drawer, display: "flex", justifyContent: "flex-end" }}
     >
       <div
         onClick={(e) => e.stopPropagation()}

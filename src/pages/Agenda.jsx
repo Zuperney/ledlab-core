@@ -5,6 +5,7 @@ import { Rows3, Columns3, CalendarDays, ChevronLeft, ChevronRight, MapPin, Layer
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { recomputeStatus, projectRollup, groupByMonth, MONTHS_LONG, isoDate } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 import { T, paletteColor } from "../ui/tokens.js";
 import { card, input } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
@@ -17,6 +18,7 @@ const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDat
 
 export default function Agenda({ nav }) {
   const { projects } = useLedLabContext();
+  const isMobile = useIsMobile();
   const [view, setView] = useState("linha");
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -55,8 +57,8 @@ export default function Agenda({ nav }) {
             const Icon = v.Icon;
             return (
               <button key={v.id} onClick={() => setView(v.id)} title={v.label}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut }}>
-                <Icon size={15} /> {v.label}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "8px 12px" : "6px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut }}>
+                <Icon size={15} />{!isMobile && ` ${v.label}`}
               </button>
             );
           })}

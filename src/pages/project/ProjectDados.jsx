@@ -4,6 +4,7 @@ import { Plus, Pencil, Copy, Trash2 } from "lucide-react";
 import { useLedLabContext, newScreen } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { T } from "../../ui/tokens.js";
 import { card, input, label, btn, iconBtn, dangerIconBtn } from "../../ui/styles.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
@@ -11,6 +12,7 @@ import Drawer from "../../components/Drawer.jsx";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, prefs } = useLedLabContext();
+  const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
   const [edit, setEdit] = useState(null); // tela em edição
@@ -34,7 +36,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
   const watts = (t) => (t.cols || 0) * (t.rows || 0) * (parseFloat(t.gabinete?.pwrMax) || 0);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(320px,1fr) minmax(340px,1fr)", gap: 16, alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(320px,1fr) minmax(340px,1fr)", gap: 16, alignItems: "start" }}>
       {/* telas */}
       <div style={card()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -48,9 +50,9 @@ export default function ProjectDados({ project, patch, patchTela }) {
               <div style={{ color: T.txt, fontWeight: 600 }}>{t.nome}</div>
               <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace" }}>{t.gabinete?.nome} · {t.cols}×{t.rows} = {t.cols * t.rows} gab · {watts(t).toLocaleString()} W</div>
             </div>
-            <button style={iconBtn()} onClick={() => setEdit(t)}><Pencil size={14} /></button>
-            <button style={iconBtn()} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
-            <button style={dangerIconBtn()} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
+            <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Editar" onClick={() => setEdit(t)}><Pencil size={14} /></button>
+            <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
+            <button style={dangerIconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
           </div>
         ))}
       </div>
@@ -58,11 +60,11 @@ export default function ProjectDados({ project, patch, patchTela }) {
       {/* ficha */}
       <div style={card()}>
         <Field lbl="Nome do projeto" req value={project.name} onChange={(v) => patch({ name: v })} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
           <Field lbl="Cliente" value={project.cliente} onChange={(v) => patch({ cliente: v })} />
           <Field lbl="Local" value={project.local} onChange={(v) => patch({ local: v })} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 12 }}>
           <Field lbl="Início" type="date" value={project.dataInicio} onChange={(v) => patch({ dataInicio: v })} />
           <Field lbl="Fim" type="date" value={project.dataFim} onChange={(v) => patch({ dataFim: v })} />
           <div>
