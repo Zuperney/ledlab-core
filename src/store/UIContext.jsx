@@ -11,6 +11,7 @@ const UIContext = createContext(null);
 
 export function UIProvider({ children }) {
   const [dialog, setDialog] = useState(null); // { title, message, confirmLabel, danger, resolve }
+  const [promptState, setPromptState] = useState(null); // { title, message, defaultValue, placeholder, resolve }
   const [toasts, setToasts] = useState([]);
 
   const confirm = useCallback(
@@ -18,6 +19,8 @@ export function UIProvider({ children }) {
     []
   );
   const closeDialog = (value) => { setDialog((d) => { d?.resolve(value); return null; }); };
+  const prompt = useCallback((opts) => new Promise((resolve) => setPromptState({ ...opts, resolve })), []);
+  const closePrompt = (value) => { setPromptState((d) => { d?.resolve(value); return null; }); };
 
   const toast = useCallback((message, type = "success") => {
     const id = Date.now() + Math.random();
@@ -26,9 +29,10 @@ export function UIProvider({ children }) {
   }, []);
 
   return (
-    <UIContext.Provider value={{ confirm, toast }}>
+    <UIContext.Provider value={{ confirm, toast, prompt }}>
       {children}
       {dialog && <ConfirmDialog dialog={dialog} onClose={closeDialog} />}
+      {promptState && <PromptDialog dialog={promptState} onClose={closePrompt} />}
       <ToastStack toasts={toasts} />
     </UIContext.Provider>
   );
@@ -36,6 +40,28 @@ export function UIProvider({ children }) {
 
 export const useConfirm = () => useContext(UIContext).confirm;
 export const useToast = () => useContext(UIContext).toast;
+export const usePrompt = () => useContext(UIContext).prompt;
+
+function PromptDialog({ dialog, onClose }) {
+  const [val, setVal] = useState(dialog.defaultValue || "");
+  return (
+    <div onClick={() => onClose(null)}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 420, background: T.card, border: `1px solid ${T.bd}`, borderRadius: 14, padding: 22, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
+        <h3 style={{ margin: "0 0 6px", color: T.txt, fontSize: 16 }}>{dialog.title || "Digite um valor"}</h3>
+        {dialog.message && <p style={{ margin: "0 0 12px", color: T.mut, fontSize: 13 }}>{dialog.message}</p>}
+        <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder={dialog.placeholder}
+          onKeyDown={(e) => { if (e.key === "Enter") onClose(val); if (e.key === "Escape") onClose(null); }}
+          style={{ width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 14, outline: "none" }} />
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
+          <button style={btn("subtle")} onClick={() => onClose(null)}>Cancelar</button>
+          <button style={btn("ghost", { background: T.acc, color: "#fff", borderColor: T.acc })} onClick={() => onClose(val)}>OK</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ConfirmDialog({ dialog, onClose }) {
   const { title, message, confirmLabel, danger } = dialog;

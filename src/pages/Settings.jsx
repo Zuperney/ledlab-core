@@ -1,6 +1,6 @@
 // pages/Settings.jsx — backup, importação e restauração.
 import { useRef } from "react";
-import { Download, Upload, Eraser, RotateCcw } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2 } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS } from "../store/AppContext.jsx";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
@@ -76,6 +76,19 @@ export default function Settings() {
           <option value="row-bt-rl">Linha · de baixo p/ cima · direita→esquerda</option>
         </select>
       </div>
+
+      {tcPresets.length > 0 && (
+        <div style={card({ maxWidth: 640, marginBottom: 16 })}>
+          <div style={{ color: T.txt, fontWeight: 600 }}>Predefinições de Test Card</div>
+          <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 6px" }}>Predefinições salvas no gerador de test card.</div>
+          {tcPresets.map((p) => (
+            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderTop: `1px solid ${T.bd}` }}>
+              <span style={{ color: T.txt, fontSize: 14 }}>{p.name}</span>
+              <button style={btn("danger")} onClick={async () => { if (await confirm({ title: "Excluir predefinição?", message: `"${p.name}" será removida.` })) { setTcPresets(tcPresets.filter((x) => x.id !== p.id)); toast("Predefinição excluída"); } }}><Trash2 size={14} /> Excluir</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={card({ maxWidth: 640 })}>
         <div style={{ ...row, borderTop: "none" }}>

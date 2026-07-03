@@ -14,88 +14,10 @@ import { paletteColor, T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
+import { range, key, parseKey, bboxArea, chunkArr, mkBlock, buildAuto, signalRoute, cablePorts, cableMeta } from "../../services/cabling.js";
 import Placeholder from "../../components/Placeholder.jsx";
 
-const PX_PER_PORT = 655360; // sinal (Gigabit) @60Hz
-const FASE_V = 220;
-const CONN_AMP = { "PowerCON Azul/Branco": 20, "PowerCON TRUE1": 16, "Neutrik True1": 16, "Neutrik True1 TOP": 20, "HangTon SD20": 20, PowerCON: 20 };
-const CELL = 64;
-
-const range = (n) => [...Array(Math.max(0, n)).keys()];
-const key = (c, r) => `${r},${c}`;
-const parseKey = (k) => { const [r, c] = k.split(",").map(Number); return { c, r }; };
-const topLeft = (p) => { let r = 1e9, c = 1e9; for (const x of p) { r = Math.min(r, x.r); c = Math.min(c, x.c); } return { r, c }; };
-const bboxArea = (p) => { let a = 1e9, b = -1, c = 1e9, d = -1; for (const x of p) { a = Math.min(a, x.c); b = Math.max(b, x.c); c = Math.min(c, x.r); d = Math.max(d, x.r); } return p.length ? (b - a + 1) * (d - c + 1) : 0; };
-const chunkArr = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
-
-// ordem de numeração dos cabos (config global). scheme = "eixo-dir1-dir2":
-//   col-lr-bt = colunas esq→dir, cada coluna de baixo p/ cima
-//   row-tb-lr = linhas de cima p/ baixo, cada linha esq→dir
-function orderPorts(ports, scheme) {
-  const bb = (p) => { let minR = 1e9, minC = 1e9; for (const x of p) { if (x.r < minR) minR = x.r; if (x.c < minC) minC = x.c; } return { minR, minC }; };
-  const [axis, d1, d2] = (scheme || "row-tb-lr").split("-");
-  return [...ports].sort((A, B) => {
-    const a = bb(A), b = bb(B);
-    if (axis === "col") {
-      const c = d1 === "lr" ? a.minC - b.minC : b.minC - a.minC;
-      return c || (d2 === "bt" ? b.minR - a.minR : a.minR - b.minR);
-    }
-    const r = d1 === "bt" ? b.minR - a.minR : a.minR - b.minR;
-    return r || (d2 === "lr" ? a.minC - b.minC : b.minC - a.minC);
-  });
-}
-
-function bands(total, budget) { const out = []; let rem = total; while (rem > budget) { out.push(budget); rem -= budget; } if (rem > 0) out.push(rem); return out; }
-
-// Ambos os padrões começam no canto INFERIOR-ESQUERDO.
-// "sobe/desce" (column-major): sobe uma coluna, desce a outra.
-function blockUpDown(bx, by, W, H) {
-  const block = [];
-  for (let ci = 0; ci < W; ci++) {
-    const c = bx + ci;
-    const col = range(H).map((i) => by + i); // topo→base
-    (ci % 2 === 0 ? col.slice().reverse() : col).forEach((r) => block.push({ c, r })); // par: base→topo
-  }
-  return block;
-}
-// "zig-zag" (row-major): vai numa linha, sobe, volta na outra.
-function blockZigZag(bx, by, W, H) {
-  const block = [];
-  for (let ri = 0; ri < H; ri++) {
-    const r = by + (H - 1 - ri); // base→topo
-    const cc = range(W).map((i) => bx + i);
-    (ri % 2 === 0 ? cc : cc.slice().reverse()).forEach((c) => block.push({ c, r })); // linha de baixo: esq→dir
-  }
-  return block;
-}
-const mkBlock = (bx, by, W, H, routing) => (routing === "zigzag" ? blockZigZag : blockUpDown)(bx, by, W, H);
-
-function portsLinha(cols, rows, budget, routing) {
-  const ports = []; let bx = 0;
-  for (const w of bands(cols, budget)) {
-    const h = Math.max(1, Math.floor(budget / w));
-    for (let by = 0; by < rows; by += h) ports.push(mkBlock(bx, by, Math.min(w, cols - bx), Math.min(h, rows - by), routing));
-    bx += w;
-  }
-  return ports;
-}
-function portsColuna(cols, rows, budget, routing) {
-  const ports = []; let by = 0;
-  for (const h of bands(rows, budget)) {
-    const w = Math.max(1, Math.floor(budget / h));
-    for (let bx = 0; bx < cols; bx += w) ports.push(mkBlock(bx, by, Math.min(w, cols - bx), Math.min(h, rows - by), routing));
-    by += h;
-  }
-  return ports;
-}
-function portsArea(cols, rows, budget, routing) {
-  const bh = Math.max(1, Math.min(rows, Math.floor(Math.sqrt(budget))));
-  const bw = Math.max(1, Math.min(cols, Math.floor(budget / bh)));
-  const ports = [];
-  for (let by = 0; by < rows; by += bh)
-    for (let bx = 0; bx < cols; bx += bw) ports.push(mkBlock(bx, by, Math.min(bw, cols - bx), Math.min(bh, rows - by), routing));
-  return ports;
-}
+const CELL = 64; // tamanho da célula no canvas (o zoom escala)
 
 export default function ProjectCabeamento({ project, patchTela }) {
   const telas = project.telas || [];
@@ -151,29 +73,9 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o cabeamento." />;
 
-  const g = tela.gabinete || {};
-  const pxPerCab = (parseFloat(g.resX) || 1) * (parseFloat(g.resY) || 1);
-  const fp = parseFloat(g.fp) || 0.9;
-  const ampCab = (parseFloat(g.pwrMax) || 0) / (FASE_V * fp);
-  const connRating = CONN_AMP[g.conector] || 16;
-  const acBudget = Math.max(1, Math.floor(connRating / (ampCab || 1)));
-  const sinalBudget = Math.max(1, Math.floor(Math.floor((PX_PER_PORT * 60) / (sinalCfg.hz || 60)) / pxPerCab));
+  const { ampCab, connRating, acBudget, sinalBudget } = cableMeta(tela);
   const budget = mode === "sinal" ? sinalBudget : acBudget;
-
-  const buildAuto = (strat, bud, rout) => {
-    const p = strat === "coluna" ? portsColuna(cols, rows, bud, rout) : strat === "area" ? portsArea(cols, rows, bud, rout) : portsLinha(cols, rows, bud, rout);
-    return orderPorts(p, numbering);
-  };
-  // rota do SINAL (usada pelo AC "atrelado ao sinal")
-  const signalRoute = () => (sinalCfg.strategy === "livre")
-    ? (sinalCfg.cables || []).map((ks) => ks.map(parseKey)).filter((p) => p.length)
-    : buildAuto(sinalCfg.strategy || "linha", sinalBudget, sinalCfg.routing || "updown");
-  const autoPorts = (strat) => buildAuto(strat, budget, routing);
-
-  let ports;
-  if (strategy === "livre") ports = cables.map((ks) => ks.map(parseKey));
-  else if (mode === "ac" && strategy === "sinal") ports = signalRoute().flatMap((p) => chunkArr(p, acBudget)); // segue a rota do sinal, quebrando pela capacidade do AC
-  else ports = autoPorts(strategy);
+  const ports = cablePorts(tela, mode, numbering); // mesma lógica usada pelo Test Card
 
   const portOf = {};
   ports.forEach((p, i) => p.forEach((cell) => { portOf[key(cell.c, cell.r)] = i; }));
@@ -198,7 +100,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
     setCables(next);
   };
   const importFrom = (strat) => {
-    const src = strat === "sinal" ? signalRoute().flatMap((p) => chunkArr(p, acBudget)) : autoPorts(strat);
+    const src = strat === "sinal" ? signalRoute(tela, numbering).flatMap((p) => chunkArr(p, acBudget)) : buildAuto(cols, rows, strat, budget, routing, numbering);
     setCables(src.map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(null);
   };
   const novoCabo = () => { setActive(cables.length); setCables([...cables, []]); };
