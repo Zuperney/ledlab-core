@@ -20,13 +20,14 @@ Cada **cachê = um evento/serviço**, com seu **próprio check-in/checkout** e s
 > **Exemplo real:** 4 serviços num dia (2h + 3h + 1h + 2h) = **4 cachês independentes**. Se num deles for preciso ficar até tarde, a hora extra sai da **franquia daquele evento** — não das 8h da manhã do primeiro serviço. São serviços separados, já cobrados um a um.
 
 ## 4. Tipos de atividade (configuráveis pelo usuário)
-Cada tipo tem: **nome**, **cor**, **valor base (cachê)** e três chaves independentes:
+Cada tipo tem: **nome**, **cor**, **valor base (cachê)** e duas chaves independentes:
 
 | Chave | Significado |
 |---|---|
 | `geraHoraExtra` | Se **sim**, aplica a fórmula de horas extras (§5.2). Se **não**, é **flat** (1 cachê, ignora horas, mas registra a duração). |
 | `podeSegundoCache` | Se **sim**, pode somar como cachê adicional no mesmo dia (2 eventos = 2 cachês). Se **não**, só cobra se for a **única** atividade do dia. |
-| `jornadaOverrideH` (opcional) | Franquia de horas própria; se vazio, usa a **jornada global**. |
+
+> A **franquia de horas (jornada) é global** — a mesma para todos os tipos, definida pelo usuário nas Configurações. Não há jornada por tipo.
 
 **Tipos-semente sugeridos:**
 
@@ -41,9 +42,9 @@ Cada tipo tem: **nome**, **cor**, **valor base (cachê)** e três chaves indepen
 ## 5. Regras de cobrança (motor de cálculo)
 
 ### 5.1 Parâmetros
-- `J` = **jornada** (franquia de horas) — global, configurável (ex.: 8 / 10 / 12h); pode ter override por tipo.
+- `J` = **jornada** (franquia de horas) — **global**, configurável pelo usuário (ex.: 8 / 10 / 12h). Igual para todos os tipos.
 - `C` = **cachê base** do tipo — **editável por evento** (valor varia por cliente/negociação).
-- `W` = **janela de hora extra** — configurável; padrão **4h**.
+- `W` = **janela de hora extra** — **global**, configurável; padrão **4h**.
 - `r` = **valor/hora extra** = `arredondaPraCima(C / J)` → **R$ inteiro** (ex.: 350 ÷ 12 = 29,17 → **R$30**).
 
 ### 5.2 Fórmula **por evento** (tipos com `geraHoraExtra = sim`)
@@ -55,7 +56,7 @@ senão:
     blocos = floor(h / J)
     resto  = h - blocos * J
     se resto == 0:              total = blocos * C
-    senão se resto <= W:        total = blocos * C + resto * r      # proporcional, taxa limpa (R$30)
+    senão se resto <= W:        total = blocos * C + resto * r      # ver §12.5 (arredondar a fração?)
     senão (resto > W):          total = (blocos + 1) * C            # arredonda pra +1 cachê (dobra/triplica…)
 
 total = arredondaPraCima(total)   # sem centavos
@@ -87,12 +88,12 @@ naoStackers = eventos com podeSegundoCache = false   # deslocamento
 
 total_dia = soma(valorEvento(e)) para e em stackers
 se stackers está vazio e há naoStackers:
-    total_dia += valorEvento(1 naoStacker)   # deslocamento como ÚNICA atividade do dia cobra 1 cachê
-    (demais naoStackers = R$0, apenas registrados)
+    total_dia += 1 cachê de deslocamento     # única atividade do dia; IDA + VOLTA ainda = 1 cachê
+    (todos os deslocamentos extras = R$0, apenas registrados)
 senão:
     naoStackers = R$0 (registrados)           # já há cachê de trabalho no dia → deslocamento não cobra
 ```
-> É isto que impede o **cachê duplo indevido** no dia de "desmontou de madrugada + voltou de viagem + fez outro evento": os dois trabalhos contam, o deslocamento entre eles não.
+> É isto que impede o **cachê duplo indevido** no dia de "desmontou de madrugada + voltou de viagem + fez outro evento": os dois trabalhos contam, o deslocamento entre eles não. E um dia só de deslocamento (ida + volta) = **1 cachê**.
 
 ### 5.6 Arredondamento
 Tudo **para cima, sem centavos** (R$ inteiro) — para não gerar "R$7,89 sobrando" e facilitar a conferência.
@@ -111,7 +112,6 @@ ActivityType {
   valorBase: number,          // R$ (default do cachê)
   geraHoraExtra: boolean,
   podeSegundoCache: boolean,
-  jornadaOverrideH?: number,  // opcional; senão usa a global
   ativo: boolean
 }
 
@@ -126,13 +126,13 @@ WorkEntry {                    // = um evento/serviço
   lateCheckout?: boolean,
   local?: { lat, lng, label? },
   valorOverride?: number,      // cachê específico deste evento
-  status: "previsto" | "confirmado" | "pago",
   obs?
 }
+// Sem campo de status de pagamento (decisão: menos fricção; ver §12.3).
 
 Config (em ledlab.prefs.v1) {
-  jornadaH: number = 12,
-  janelaExtraH: number = 4,
+  jornadaH: number = 12,       // global
+  janelaExtraH: number = 4,    // global
   moeda: "BRL",
   arredondamento: "cima-inteiro"
 }
@@ -143,38 +143,45 @@ Storage: ledlab.worklog.v1 (WorkEntry[]) · ledlab.activitytypes.v1 (ActivityTyp
 ## 8. Telas / UX (mobile-first)
 - **Agenda (grade do mês) — vira o "ponto":** dia **tocável** → bottom sheet "adicionar atividade / check-in" (data já preenchida). Cada dia mostra **marcadores por tipo/cor**; eventos do LedLab ficam de fundo (contexto). FAB **"Check-in agora"**.
 - **Check-in / Checkout:** fluxo curto com tipo + GPS + hora; banner de turno aberto; late checkout.
-- **Financeiro (aba própria):** filtros por período/cliente/status; totais (base + extra, previsto × pago); **marcar como pago**; **export PDF (recibo, detalhando cada cachê)** + **CSV** para planilha/contador.
-- **Configurações:** jornada, janela; **CRUD de tipos de atividade** (nome, cor, valor base, "gera hora extra?", "pode 2º cachê?").
-- **Dashboard (fase 4):** card "diárias do mês · a receber".
+- **Financeiro (aba própria):** filtros por **período** e **cliente**; **recibo por evento** — cada evento **datado**, com sua **franquia de horas** e **valor**; quando o dia tem **mais de uma atividade**, agrupa sob o dia com **subtotal do dia**. Total do período no rodapé. Export **PDF** (recibo) + **CSV** (planilha/contador). *(Sem status de pago.)*
+- **Configurações:** jornada (global), janela (global); **CRUD de tipos de atividade** (nome, cor, valor base, "gera hora extra?", "pode 2º cachê?").
+- **Dashboard (fase 4):** card "diárias do mês · total do mês".
 
 ## 9. Casos de borda (tratados)
 - **Turno cruzando a meia-noite:** é **um** evento; a duração vai de check-in a checkout; blocos se repetem dentro dele (32h = 3 cachês).
 - **Vários eventos no mesmo dia:** cada um é um cachê independente com franquia própria (nunca soma o span do dia).
 - **Esqueceu o checkout:** late checkout retroativo por evento.
-- **Deslocamento:** só cobra se for a única atividade do dia; senão é registrado a R$0.
+- **Deslocamento:** só cobra se for a **única** atividade do dia (mesmo **ida + volta = 1 cachê**); havendo trabalho no dia, é registrado a R$0.
 - **Valor variável:** `valorOverride` por evento (cachê não é igual entre técnicos/clientes).
 
 ## 10. Fora de escopo (por ora)
 - **Auto-checkout por geofencing** (sair do local): **não é confiável em PWA** (sem GPS em segundo plano garantido, pior no iOS) → checkout manual + late checkout.
 - **Reverse-geocode** (coordenada → endereço): precisa de serviço externo → fase posterior; no MVP guarda lat/lng + link pro mapa (ou usa o `local` do evento linkado).
+- **Status de pagamento (pago/a receber):** removido de propósito — ver §12.3.
 - **Multiusuário / sync / backend:** só se virar produto — o storage isolado deixa isso barato depois.
 
 ## 11. Plano de implementação (fases)
 - **Fase 0 — motor + config:** `services/worklog.js` (fórmula §5, por evento; agregação do dia §5.5), hooks `useWorklog`/`useActivityTypes`, Configurações (jornada, janela, tipos).
 - **Fase 1 — registro pela Agenda:** grade tocável → adicionar atividade; marcadores; aviso de cachê duplo (deslocamento). (Sem GPS ainda — já usável.)
 - **Fase 2 — check-in/out + GPS + late checkout:** turno com local, checkout, late checkout, cálculo por evento (cruzando meia-noite), aviso de jornada.
-- **Fase 3 — Financeiro:** fechamento por período/cliente/evento, previsto × pago, export PDF + CSV.
+- **Fase 3 — Financeiro:** fechamento por período/cliente; recibo por evento **agrupado por dia** (subtotal do dia); export PDF + CSV.
 - **Fase 4 — refino:** card no Dashboard, reverse-geocode opcional, valores recorrentes por cliente.
 
-## 12. Pontos em aberto (para refinar)
-1. **Dois deslocamentos no mesmo dia sem trabalho** (ida e volta) = **1 ou 2 cachês**?
-2. **Jornada por tipo** (override) é necessária, ou **só global** basta?
-3. **Fluxo de status**: `previsto → confirmado → pago` (3 estados) ou só `a receber / pago` (2)?
-4. **Recibo/fechamento**: o contratante espera por **evento**, por **cliente**, por **período** — qual formato/layout?
-5. **Hora extra dentro da janela**: confirmado **proporcional** com taxa limpa (ex.: 12h30 = C + 0,5×30 = C+15). OK?
-6. **Janela por tipo?** (ex.: alguns clientes dão 2h de tolerância, outros 4h) — global basta ou precisa por tipo/cliente?
+## 12. Decisões e pontos em aberto
+- **12.1 ✅ Deslocamento ida + volta no mesmo dia = 1 cachê** (só um por dia; extras registrados a R$0).
+- **12.2 ✅ Jornada é GLOBAL** — mesma franquia para todos os tipos, definida pelo usuário. Sem override por tipo.
+- **12.3 ✅ Sem status de pagamento** — não há "previsto/confirmado/pago" (evita fricção e alertas que o técnico não vai manter). O financeiro só soma o que foi registrado no período.
+- **12.4 ✅ Fechamento por evento** — datado, com franquia de horas e valor por evento; quando o dia tem mais de uma atividade, agrupa sob o dia com subtotal.
+- **12.5 ⏳ EM ABERTO — arredondamento da fração de hora extra dentro da janela.** Quando o turno passa a jornada por um tempo *quebrado* (ex.: 30 min além das 12h), como cobrar essa fração? (ver detalhe abaixo)
+- **12.6 ✅ Janela é GLOBAL** e configurável pelo usuário (a prática de horas é individual, programável nas Configurações).
+
+### Detalhe do 12.5 (a única pendência)
+Com jornada 12h, cachê R$350, hora extra R$30, e um turno de **12h30** (meia hora além da jornada):
+- **Opção A — proporcional:** meia hora = metade da hora extra → `350 + 0,5 × 30` = **R$365**.
+- **Opção B — arredonda a hora pra cima:** qualquer fração conta 1 hora cheia → `350 + 1 × 30` = **R$380** (nunca aparece "meia hora", tudo em horas inteiras).
 
 ---
 
 ### Changelog
-- **2026-07-03** — v0 do rascunho, consolidando as regras discutidas (cobrança por evento, fórmula de blocos+janela, tipos com 3 chaves, regra de deslocamento, check-in/GPS/late checkout, exportação financeira).
+- **2026-07-03 (refinos):** jornada e janela **globais** (sem override por tipo); **sem status de pagamento**; deslocamento **ida+volta = 1 cachê**; fechamento **por evento, agrupado por dia**. Pendente: arredondamento da fração de hora extra (§12.5).
+- **2026-07-03** — v0 do rascunho, consolidando as regras discutidas (cobrança por evento, fórmula de blocos+janela, tipos, regra de deslocamento, check-in/GPS/late checkout, exportação financeira).
