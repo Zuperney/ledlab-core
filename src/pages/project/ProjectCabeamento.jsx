@@ -9,7 +9,7 @@
 // ativo, clica p/ atribuir/reatribuir gabinetes e cria novo cabo quando quiser.
 // Pode IMPORTAR o cabeamento automático (Linha/Coluna/Área) e editar só o necessário.
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2 } from "lucide-react";
+import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight } from "lucide-react";
 import { paletteColor, T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
@@ -82,6 +82,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const telas = project.telas || [];
   const [telaId, setTelaId] = useState(telas[0]?.id);
   const [active, setActive] = useState(0);
+  const [history, setHistory] = useState([]); // undo do modo livre
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const stageRef = useRef(null);
@@ -110,7 +111,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
     const z = Math.min(el.clientWidth / panelW, el.clientHeight / panelH) * 0.9 || 1;
     setZoom(z); setPan({ x: (el.clientWidth - panelW * z) / 2, y: (el.clientHeight - panelH * z) / 2 });
   }, [panelW, panelH]);
-  useEffect(() => { fit(); setActive(0); }, [fit, telaId]);
+  useEffect(() => { fit(); setActive(0); setHistory([]); }, [fit, telaId]);
 
   const onWheel = (e) => {
     e.preventDefault();
@@ -152,6 +153,10 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const status = incomplete ? { l: `Faltam ${cols * rows - assigned}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
 
   // ── modo livre: edição manual ──
+  // grava o estado atual no histórico (undo) antes de alterar
+  const setCables = (next) => { setHistory((h) => [...h.slice(-29), cables]); setCab({ cables: next }); };
+  const undo = () => { if (!history.length) return; setCab({ cables: history[history.length - 1] }); setHistory(history.slice(0, -1)); };
+
   const clickCell = (c, r) => {
     if (strategy !== "livre" || drag.current?.moved) return;
     const k = key(c, r);
@@ -163,13 +168,23 @@ export default function ProjectCabeamento({ project, patchTela }) {
       next = cables.map((cbl) => cbl.filter((x) => x !== k)); // tira de qualquer cabo
       if (!wasInActive) next[idx] = [...(next[idx] || []), k]; // adiciona ao ativo
     }
-    setCab({ cables: next });
+    setCables(next);
   };
-  const importFrom = (strat) => { setCab({ cables: autoPorts(strat).map((p) => p.map((cell) => key(cell.c, cell.r))) }); setActive(0); };
-  const novoCabo = () => { setActive(cables.length); setCab({ cables: [...cables, []] }); };
-  const removerCabo = (i) => { setCab({ cables: cables.filter((_, j) => j !== i) }); setActive(0); };
-  const inverterCabo = () => { if (cables[active]?.length) setCab({ cables: cables.map((c, i) => (i === active ? [...c].reverse() : c)) }); };
-  const limparCabos = async () => { if (await confirm({ title: "Limpar cabeamento?", message: "Todos os cabos desta tela (modo livre) serão removidos." })) { setCab({ cables: [] }); setActive(0); } };
+  const importFrom = (strat) => { setCables(autoPorts(strat).map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(0); };
+  const novoCabo = () => { setActive(cables.length); setCables([...cables, []]); };
+  const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActive(0); };
+  const inverterCabo = () => { if (cables[active]?.length) setCables(cables.map((c, i) => (i === active ? [...c].reverse() : c))); };
+  // reordena o cabo ATIVO no padrão escolhido (dentro do seu bounding box)
+  const reorderActive = (routing) => {
+    const cab0 = cables[active];
+    if (!cab0?.length) return;
+    let a = 1e9, b = -1, c = 1e9, d = -1;
+    for (const x of cab0.map(parseKey)) { a = Math.min(a, x.c); b = Math.max(b, x.c); c = Math.min(c, x.r); d = Math.max(d, x.r); }
+    const inSet = new Set(cab0);
+    const seq = mkBlock(a, c, b - a + 1, d - c + 1, routing).map((cell) => key(cell.c, cell.r)).filter((k) => inSet.has(k));
+    setCables(cables.map((cc, i) => (i === active ? seq : cc)));
+  };
+  const limparCabos = async () => { if (await confirm({ title: "Limpar cabeamento?", message: "Todos os cabos desta tela (modo livre) serão removidos." })) { setCables([]); setActive(0); } };
 
   return (
     <div>
@@ -191,9 +206,14 @@ export default function ProjectCabeamento({ project, patchTela }) {
           {[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]].map(([v, l]) => (
             <button key={v} onClick={() => importFrom(v)} style={pill(false)}><Download size={13} /> {l}</button>
           ))}
-          <span style={{ width: 1, height: 22, background: T.bd, margin: "0 4px" }} />
+          <span style={{ width: 1, height: 22, background: T.bd, margin: "0 2px" }} />
           <button onClick={novoCabo} style={pill(false)}><Plus size={14} /> Novo cabo</button>
-          <button onClick={inverterCabo} style={pill(false)}><Repeat2 size={14} /> Inverter cabo</button>
+          <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Cabo ativo</span>
+          <button onClick={() => reorderActive("updown")} style={pill(false)} title="Reordenar cabo em sobe/desce"><ArrowUpDown size={13} /> Sobe/desce</button>
+          <button onClick={() => reorderActive("zigzag")} style={pill(false)} title="Reordenar cabo em zig-zag"><ArrowLeftRight size={13} /> Zig-zag</button>
+          <button onClick={inverterCabo} style={pill(false)} title="Inverter início/fim"><Repeat2 size={13} /> Inverter</button>
+          <span style={{ width: 1, height: 22, background: T.bd, margin: "0 2px" }} />
+          <button onClick={undo} disabled={!history.length} style={{ ...pill(false), opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" }}><Undo2 size={13} /> Desfazer</button>
           <button onClick={limparCabos} style={pill(false)}><Eraser size={13} /> Limpar</button>
           <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
             {cables.length ? <>Editando <b style={{ color: paletteColor(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : "Importe do automático ou clique “Novo cabo” para começar"}
