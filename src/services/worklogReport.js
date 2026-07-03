@@ -7,6 +7,34 @@ const pad = (n) => String(n).padStart(2, "0");
 const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 const hhmm = (iso) => { if (!iso) return ""; const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toTimeString().slice(0, 5); };
 
+// ── valor por extenso (reais inteiros — o motor arredonda sem centavos) ──
+const UNI = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+const DEZ = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+const CEM = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+function trio(n) { // 0..999
+  if (n === 0) return "";
+  if (n === 100) return "cem";
+  const c = Math.floor(n / 100), resto = n % 100, d = Math.floor(resto / 10), u = resto % 10;
+  let s = c ? CEM[c] : "";
+  if (resto) {
+    if (s) s += " e ";
+    s += resto < 20 ? UNI[resto] : DEZ[d] + (u ? " e " + UNI[u] : "");
+  }
+  return s;
+}
+export function extenso(n) {
+  n = Math.round(Math.abs(n || 0));
+  if (n === 0) return "zero reais";
+  const mi = Math.floor(n / 1000000), mil = Math.floor((n % 1000000) / 1000), r = n % 1000;
+  const g = [];
+  if (mi) g.push(mi === 1 ? "um milhão" : trio(mi) + " milhões");
+  if (mil) g.push(mil === 1 ? "mil" : trio(mil) + " mil");
+  if (r) g.push(trio(r));
+  const useE = r > 0 && (r < 100 || r % 100 === 0) && g.length > 1; // "mil e quinhentos", "seis mil e cem"
+  const s = useE ? g.slice(0, -1).join(" ") + " e " + g[g.length - 1] : g.join(" ");
+  return `${s} ${n === 1 ? "real" : "reais"}`;
+}
+
 // "1 cachê", "2 cachês + 3h extra". Vazio quando não cobra (0 cachês).
 // (Sem "fixo" aqui — "Fixo" é só o retainer mensal, pra não confundir.)
 export function descBreakdown(bd) {

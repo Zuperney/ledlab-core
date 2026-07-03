@@ -72,7 +72,7 @@ export default function Agenda({ nav }) {
       <SectionHeader title="Agenda" subtitle={mode === "diarias" ? "Seu registro de trabalho — toque num dia para lançar." : `${projects.length} projetos · o status acompanha a data do evento.`}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div style={segBox}>
-            {[["eventos", "Eventos"], ["diarias", "Diárias"]].map(([k, l]) => (
+            {[["eventos", "Eventos"], ["diarias", "Cachês"]].map(([k, l]) => (
               <button key={k} onClick={() => setMode(k)} style={segBtn(mode === k)}>{l}</button>
             ))}
           </div>

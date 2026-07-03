@@ -7,7 +7,7 @@ import { Printer, Copy, MessageCircle } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { useToast } from "../store/UIContext.jsx";
 import { useWorklog } from "../hooks/useWorklog.js";
-import { reciboWhatsApp, descBreakdown, diaLabelBR, horarioLabel } from "../services/worklogReport.js";
+import { reciboWhatsApp, descBreakdown, diaLabelBR, horarioLabel, extenso } from "../services/worklogReport.js";
 import { T, PRINT } from "../ui/tokens.js";
 import { card, btn, input, label as lbl } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
@@ -70,8 +70,12 @@ export default function Financeiro() {
   const temConteudo = nDias > 0 || fixoValor > 0;
 
   const periodoLabel = `${fmtBR(range.from)} a ${fmtBR(range.to)}`;
-  const clienteLabel = cliente || "Todos";
-  const texto = reciboWhatsApp({ grupos, tecnico: prefs.tecnico, periodoLabel, clienteLabel, showCliente: cliente === "", total, fixoValor, fixoCliente: fixoCfg.cliente });
+  const texto = reciboWhatsApp({ grupos, tecnico: prefs.tecnico, periodoLabel, clienteLabel: cliente, showCliente: cliente === "", total, fixoValor, fixoCliente: fixoCfg.cliente });
+
+  // emitente (prestador) — dados legais do recibo
+  const emit = prefs.emitente || {};
+  const temEmitente = !!(emit.razaoSocial || emit.nomeFantasia || emit.cnpj || emit.endereco);
+  const nomeAssina = prefs.tecnico || emit.razaoSocial || emit.nomeFantasia || "";
 
   const copiar = async () => {
     try { await navigator.clipboard.writeText(texto); toast("Recibo copiado — é só colar no WhatsApp"); }
@@ -89,7 +93,7 @@ export default function Financeiro() {
 
   return (
     <div>
-      <SectionHeader title="Financeiro" subtitle="Fechamento das diárias por período — recibo pra mandar pro contratante (PDF ou WhatsApp)." />
+      <SectionHeader title="Financeiro" subtitle="Fechamento dos cachês por período — recibo pra mandar pro contratante (PDF ou WhatsApp)." />
 
       {/* filtros */}
       <div style={card({ maxWidth: 860, marginBottom: 16 })}>
@@ -128,15 +132,27 @@ export default function Financeiro() {
 
       {/* recibo imprimível */}
       <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: `2px solid ${PRINT.ink}`, paddingBottom: 14, marginBottom: 16, gap: 16, flexWrap: "wrap" }}>
+        {/* emitente (prestador) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 12 }}>
           <div>
-            <div style={{ color: PRINT.acc, fontWeight: 700, fontSize: 11, letterSpacing: "0.08em" }}>LEDLAB CORE — DIÁRIAS</div>
-            <h1 style={{ margin: "6px 0 4px", fontSize: 24 }}>Recibo de diárias</h1>
-            <div style={{ color: PRINT.mut }}>{[prefs.tecnico, `Período: ${periodoLabel}`, `Cliente: ${clienteLabel}`].filter(Boolean).join(" · ")}</div>
+            {temEmitente ? (
+              <>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{emit.razaoSocial || emit.nomeFantasia}</div>
+                {emit.nomeFantasia && emit.razaoSocial && emit.nomeFantasia !== emit.razaoSocial && <div style={{ color: PRINT.mut, fontSize: 13 }}>{emit.nomeFantasia}</div>}
+                {emit.cnpj && <div style={{ color: PRINT.mut, fontSize: 12 }}>CNPJ/CPF: {emit.cnpj}</div>}
+                {emit.endereco && <div style={{ color: PRINT.mut, fontSize: 12 }}>{emit.endereco}</div>}
+              </>
+            ) : (
+              <div style={{ color: PRINT.acc, fontWeight: 700, fontSize: 11, letterSpacing: "0.08em" }}>LEDLAB CORE</div>
+            )}
           </div>
-          <div style={{ textAlign: "right", color: PRINT.dim, fontSize: 12 }}>
-            <div>Gerado em {fmtBR(isoOf(now))}</div>
-          </div>
+          <div style={{ textAlign: "right", color: PRINT.dim, fontSize: 12 }}>Emitido em {fmtBR(isoOf(now))}</div>
+        </div>
+
+        {/* título */}
+        <div style={{ borderTop: `2px solid ${PRINT.ink}`, borderBottom: `1px solid ${PRINT.line}`, padding: "12px 0", marginBottom: 16 }}>
+          <h1 style={{ margin: 0, fontSize: 22 }}>Recibo de mão de obra</h1>
+          <div style={{ color: PRINT.mut, fontSize: 13, marginTop: 4 }}>{[prefs.tecnico && `Prestador: ${prefs.tecnico}`, `Período: ${periodoLabel}`, cliente && `Cliente: ${cliente}`].filter(Boolean).join(" · ")}</div>
         </div>
 
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 20 }}>
@@ -186,6 +202,17 @@ export default function Financeiro() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: fixoValor > 0 ? 8 : 0 }}>
               <div style={{ fontWeight: 700, fontSize: 15 }}>Total do período</div>
               <div style={{ fontWeight: 800, fontSize: 22, color: PRINT.grn }}>{brl(grandTotal)}</div>
+            </div>
+
+            {/* declaração de recebimento + assinatura */}
+            <div style={{ marginTop: 22, fontSize: 13, lineHeight: 1.7 }}>
+              Recebi{cliente ? ` de ${cliente}` : ""} a importância de <b>{brl(grandTotal)}</b> ({extenso(grandTotal)}), referente a serviços de mão de obra prestados no período de {periodoLabel}.
+            </div>
+            <div style={{ marginTop: 44, textAlign: "center" }}>
+              <div style={{ borderTop: `1px solid ${PRINT.ink}`, width: 320, maxWidth: "100%", margin: "0 auto", paddingTop: 6, fontSize: 13 }}>
+                {nomeAssina || "Assinatura"}
+                {emit.cnpj && <div style={{ color: PRINT.mut, fontSize: 12 }}>CNPJ/CPF: {emit.cnpj}</div>}
+              </div>
             </div>
           </div>
         )}

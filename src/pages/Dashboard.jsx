@@ -76,7 +76,7 @@ export default function Dashboard({ nav }) {
         <button onClick={() => nav?.setPage?.("financeiro")}
           style={{ ...card({ marginBottom: 16, cursor: "pointer", background: `linear-gradient(100deg, ${T.strip}, ${T.hero} 60%)`, borderColor: T.bdA }), width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, fontFamily: "inherit" }}>
           <div>
-            <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 6 }}><Receipt size={13} /> Diárias · {MONTHS_LONG[nowD.getMonth()]}</div>
+            <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 6 }}><Receipt size={13} /> Cachês · {MONTHS_LONG[nowD.getMonth()]}</div>
             <div style={{ fontSize: 30, fontWeight: 800, color: T.grn, margin: "6px 0 2px" }}>{brl(diariasTotal)}</div>
             <div style={{ color: T.mut, fontSize: 13 }}>
               {diariasDias} {diariasDias === 1 ? "dia" : "dias"} · {diariasCaches} cachê{diariasCaches === 1 ? "" : "s"}

@@ -23,6 +23,8 @@ export default function DiariasConfig() {
 
   const fixo = prefs.fixo || { valor: 0, cliente: "" };
   const setFixo = (partial) => setPrefs({ ...prefs, fixo: { ...fixo, ...partial } });
+  const emit = prefs.emitente || { nomeFantasia: "", razaoSocial: "", cnpj: "", endereco: "" };
+  const setEmit = (partial) => setPrefs({ ...prefs, emitente: { ...emit, ...partial } });
 
   const openNew = () => setEdit({ id: null, nome: "", cor: "#7c3aed", valorBase: "", geraHoraExtra: true, podeSegundoCache: true, ativo: true });
   const save = () => {
@@ -36,8 +38,8 @@ export default function DiariasConfig() {
   return (
     <>
       <div style={card({ maxWidth: 640, marginBottom: 16 })}>
-        <div style={{ color: T.txt, fontWeight: 600 }}>Diárias — parâmetros de cálculo</div>
-        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Franquia de horas e tolerância que valem para todos os tipos (ver a lógica no módulo Diárias).</div>
+        <div style={{ color: T.txt, fontWeight: 600 }}>Cachês — parâmetros de cálculo</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Franquia de horas e tolerância que valem para todos os tipos (ver a lógica no módulo Cachês).</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div><div style={lbl}>Jornada (horas)</div><input type="number" value={cfg.jornadaH} onChange={(e) => setCfg({ jornadaH: num(e.target.value, 1) })} style={input()} /></div>
           <div><div style={lbl}>Janela hora extra (h)</div><input type="number" value={cfg.janelaExtraH} onChange={(e) => setCfg({ janelaExtraH: num(e.target.value, 0) })} style={input()} /></div>
@@ -48,10 +50,21 @@ export default function DiariasConfig() {
 
       <div style={card({ maxWidth: 640, marginBottom: 16 })}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Fixo mensal (opcional)</div>
-        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além das diárias. Deixe 0 se não usa.</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além dos cachês. Deixe 0 se não usa.</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><div style={lbl}>Valor por mês (R$)</div><input type="number" value={fixo.valor} onChange={(e) => setFixo({ valor: Math.max(0, parseInt(e.target.value) || 0) })} placeholder="Ex.: 6000" style={input()} /></div>
           <div><div style={lbl}>Cliente do fixo</div><input value={fixo.cliente} onChange={(e) => setFixo({ cliente: e.target.value })} placeholder="Ex.: Mega Led" style={input()} /></div>
+        </div>
+      </div>
+
+      <div style={card({ maxWidth: 640, marginBottom: 16 })}>
+        <div style={{ color: T.txt, fontWeight: 600 }}>Dados do recibo (emitente)</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Aparecem no cabeçalho e na assinatura do recibo de mão de obra. Opcional — preencha se for entregar recibo formal.</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div><div style={lbl}>Nome fantasia</div><input value={emit.nomeFantasia} onChange={(e) => setEmit({ nomeFantasia: e.target.value })} placeholder="Ex.: LedLab" style={input()} /></div>
+          <div><div style={lbl}>Razão social / nome fiscal</div><input value={emit.razaoSocial} onChange={(e) => setEmit({ razaoSocial: e.target.value })} placeholder="Ex.: Fulano ME" style={input()} /></div>
+          <div><div style={lbl}>CNPJ / CPF</div><input value={emit.cnpj} onChange={(e) => setEmit({ cnpj: e.target.value })} placeholder="00.000.000/0001-00" style={input()} /></div>
+          <div><div style={lbl}>Endereço</div><input value={emit.endereco} onChange={(e) => setEmit({ endereco: e.target.value })} placeholder="Rua, nº, cidade/UF" style={input()} /></div>
         </div>
       </div>
 
