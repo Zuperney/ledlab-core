@@ -11,29 +11,34 @@ import SectionHeader from "../components/SectionHeader.jsx";
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
 
-// formatos nomeados (para achar o mais próximo) e tiles da visualização
+// formatos nomeados (nome comercial + valor decimal) — cinema, TV/vídeo e displays.
+// Usados para nomear a proporção e achar o formato mais próximo.
 const NAMED = [
-  ["32:9", 32 / 9], ["21:9", 21 / 9], ["2.39:1", 2.39], ["1.85:1", 1.85],
-  ["16:9", 16 / 9], ["16:10", 16 / 10], ["3:2", 3 / 2], ["4:3", 4 / 3],
-  ["5:4", 5 / 4], ["1:1", 1], ["4:5", 4 / 5], ["9:16", 9 / 16],
+  ["32:9", 32 / 9], ["2.39:1", 2.39], ["2.35:1", 2.35], ["21:9", 21 / 9],
+  ["2:1", 2], ["1.9:1", 1.9], ["1.85:1", 1.85], ["16:9", 16 / 9],
+  ["1.66:1", 5 / 3], ["16:10", 16 / 10], ["3:2", 3 / 2], ["1.43:1", 1.43],
+  ["4:3", 4 / 3], ["5:4", 5 / 4], ["1:1", 1], ["4:5", 4 / 5], ["9:16", 9 / 16],
 ];
-const TILES = ["32:9", "21:9", "16:9", "16:10", "4:3", "1:1", "9:16"];
+const TILES = ["32:9", "2.39:1", "21:9", "16:9", "16:10", "4:3", "1:1", "9:16"];
 
-// resoluções padrão de referência
+// nome comercial exato quando bate com um formato conhecido; senão, a razão simplificada (GCD)
+const friendly = (w, h) => { const d = w / h; const n = NAMED.find((x) => Math.abs(x[1] - d) < 0.004); return n ? n[0] : ratioStr(w, h); };
+
+// resoluções padrão de referência (ar = nome comercial do formato)
 const STD = [
-  { name: "nHD", w: 640, h: 360 },
-  { name: "HD 720p", w: 1280, h: 720 },
-  { name: "FHD 1080p", w: 1920, h: 1080 },
-  { name: "QHD 1440p", w: 2560, h: 1440 },
-  { name: "4K UHD", w: 3840, h: 2160 },
-  { name: "8K UHD", w: 7680, h: 4320 },
-  { name: "WUXGA", w: 1920, h: 1200 },
-  { name: "UW-FHD", w: 2560, h: 1080 },
-  { name: "UW-QHD", w: 3440, h: 1440 },
-  { name: "XGA", w: 1024, h: 768 },
-  { name: "SXGA", w: 1280, h: 1024 },
-  { name: "DCI 4K", w: 4096, h: 2160 },
-  { name: "Quadrado HD", w: 1080, h: 1080 },
+  { name: "nHD", w: 640, h: 360, ar: "16:9" },
+  { name: "HD 720p", w: 1280, h: 720, ar: "16:9" },
+  { name: "FHD 1080p", w: 1920, h: 1080, ar: "16:9" },
+  { name: "QHD 1440p", w: 2560, h: 1440, ar: "16:9" },
+  { name: "4K UHD", w: 3840, h: 2160, ar: "16:9" },
+  { name: "8K UHD", w: 7680, h: 4320, ar: "16:9" },
+  { name: "WUXGA", w: 1920, h: 1200, ar: "16:10" },
+  { name: "UW-FHD", w: 2560, h: 1080, ar: "21:9" },
+  { name: "UW-QHD", w: 3440, h: 1440, ar: "21:9" },
+  { name: "XGA", w: 1024, h: 768, ar: "4:3" },
+  { name: "SXGA", w: 1280, h: 1024, ar: "5:4" },
+  { name: "DCI 4K", w: 4096, h: 2160, ar: "1.9:1" },
+  { name: "Quadrado HD", w: 1080, h: 1080, ar: "1:1" },
 ];
 
 export default function AspectRatio() {
@@ -46,8 +51,6 @@ export default function AspectRatio() {
 
   const W = Math.max(1, Math.round(w) || 1), H = Math.max(1, Math.round(h) || 1);
   const dec = W / H;
-  const g = gcd(W, H) || 1;
-  const rw = W / g, rh = H / g;
   const mp = (W * H) / 1e6;
   const orient = dec > 1.02 ? "Paisagem" : dec < 0.98 ? "Retrato" : "Quadrado";
   const named = NAMED.reduce((a, b) => (Math.abs(b[1] - dec) < Math.abs(a[1] - dec) ? b : a));
@@ -104,7 +107,7 @@ export default function AspectRatio() {
           <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
         </div>
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>
-          {stat("Proporção", `${rw}:${rh}`, T.acM)}
+          {stat("Proporção", friendly(W, H), T.acM)}
           {stat("Decimal", `${dec.toFixed(3)}:1`)}
           {stat("Formato", `${namedExact ? "" : "≈ "}${named[0]}`, namedExact ? T.grn : T.txt)}
           {stat("Resolução", `${W} × ${H}`)}
@@ -120,7 +123,7 @@ export default function AspectRatio() {
           <svg width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, flexShrink: 0, maxWidth: "100%" }}>
             <rect x={cx - rr.w / 2} y={cy - rr.h / 2} width={rr.w} height={rr.h} fill="none" stroke={T.dim2} strokeWidth={1.5} strokeDasharray="5 4" />
             <rect x={cx - pr.w / 2} y={cy - pr.h / 2} width={pr.w} height={pr.h} rx={3} fill={T.acc + "33"} stroke={T.acc} strokeWidth={2} />
-            <text x={cx} y={cy - 5} fill={T.txt} fontSize={16} fontWeight="800" textAnchor="middle">{rw}:{rh}</text>
+            <text x={cx} y={cy - 5} fill={T.txt} fontSize={16} fontWeight="800" textAnchor="middle">{friendly(W, H)}</text>
             <text x={cx} y={cy + 15} fill={T.mut} fontSize={12} textAnchor="middle">{W} × {H}</text>
           </svg>
           <div>
@@ -143,7 +146,7 @@ export default function AspectRatio() {
                 <tr key={s.name} style={{ background: match ? T.sel : "transparent" }}>
                   <td style={{ ...cellTd, color: T.txt, fontWeight: 600 }}>{s.name}</td>
                   <td style={{ ...cellTd, color: T.mut }}>{s.w} × {s.h}</td>
-                  <td style={{ ...cellTd, color: match ? T.acM : T.mut, fontWeight: match ? 700 : 400 }}>{ratioStr(s.w, s.h)}</td>
+                  <td style={{ ...cellTd, color: match ? T.acM : T.mut, fontWeight: match ? 700 : 400 }}>{s.ar}</td>
                   <td style={{ ...cellTd, color: T.dim }}>{(s.w * s.h / 1e6).toFixed(2)} Mpx</td>
                   <td style={cellTd}>{match && <span style={{ color: T.grn, fontSize: 12, fontWeight: 700 }}>✓ mesmo aspecto</span>}</td>
                 </tr>
