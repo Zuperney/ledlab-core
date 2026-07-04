@@ -5,19 +5,20 @@ import { useLedLabContext, KEYS, DEFAULT_PREFS } from "../store/AppContext.jsx";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
+import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
 import { T } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DiariasConfig from "./settings/DiariasConfig.jsx";
 
 export default function Settings() {
-  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets } = useLedLabContext();
+  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, worklog, setWorklog, activityTypes, setActivityTypes } = useLedLabContext();
   const confirm = useConfirm();
   const toast = useToast();
   const fileRef = useRef(null);
 
   const exportBackup = () => {
-    const data = { schema: "ledlab.backup.v1", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets };
+    const data = { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -36,6 +37,8 @@ export default function Settings() {
         if (Array.isArray(d.projects)) setProjects(d.projects);
         if (d.prefs) setPrefs({ ...DEFAULT_PREFS, ...d.prefs });
         if (Array.isArray(d.tcPresets)) setTcPresets(d.tcPresets);
+        if (Array.isArray(d.worklog)) setWorklog(d.worklog);
+        if (Array.isArray(d.activityTypes)) setActivityTypes(d.activityTypes);
         toast("Backup importado");
       } catch {
         toast("Arquivo inválido", "info");
@@ -55,6 +58,7 @@ export default function Settings() {
     if (!(await confirm({ title: "Restaurar de fábrica?", message: "Isso apaga TODOS os seus dados (gabinetes e projetos) e recarrega os dados de exemplo. Não pode ser desfeito." }))) return;
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
     setCabs(SEED_CABINETS); setProjects(SEED_PROJECTS); setPrefs(DEFAULT_PREFS); setTcPresets([]);
+    setWorklog([]); setActivityTypes(SEED_ACTIVITY_TYPES);
     toast("Dados restaurados de fábrica");
   };
 
@@ -95,7 +99,7 @@ export default function Settings() {
 
       <div style={card({ maxWidth: 640 })}>
         <div style={{ ...row, borderTop: "none" }}>
-          <div><div style={{ color: T.txt, fontWeight: 600 }}>Backup completo</div><div style={{ color: T.dim, fontSize: 13 }}>Gabinetes, projetos e preferências em um arquivo.</div></div>
+          <div><div style={{ color: T.txt, fontWeight: 600 }}>Backup completo</div><div style={{ color: T.dim, fontSize: 13 }}>Gabinetes, projetos, cachês (lançamentos + tipos) e preferências em um arquivo.</div></div>
           <button style={btn("ghost")} onClick={exportBackup}><Download size={15} /> Exportar</button>
         </div>
         <div style={row}>

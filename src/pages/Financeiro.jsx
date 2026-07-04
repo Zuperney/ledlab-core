@@ -36,6 +36,7 @@ export default function Financeiro() {
   const [range, setRange] = useState({ from: monthStart(now), to: monthEnd(now) });
   const [cliente, setCliente] = useState("");
   const [incluirFixo, setIncluirFixo] = useState(true);
+  const [docTipo, setDocTipo] = useState("planilha"); // "planilha" (p/ aprovar) | "recibo" (validado)
 
   const applyPreset = (p) => {
     setPreset(p);
@@ -70,7 +71,8 @@ export default function Financeiro() {
   const temConteudo = nDias > 0 || fixoValor > 0;
 
   const periodoLabel = `${fmtBR(range.from)} a ${fmtBR(range.to)}`;
-  const texto = reciboWhatsApp({ grupos, tecnico: prefs.tecnico, periodoLabel, clienteLabel: cliente, showCliente: cliente === "", total, fixoValor, fixoCliente: fixoCfg.cliente });
+  const docTitulo = docTipo === "recibo" ? "Recibo de mão de obra" : "Planilha de pagamento";
+  const texto = reciboWhatsApp({ grupos, titulo: docTitulo.toUpperCase(), tecnico: prefs.tecnico, periodoLabel, clienteLabel: cliente, showCliente: cliente === "", total, fixoValor, fixoCliente: fixoCfg.cliente });
 
   // emitente (prestador) — dados legais do recibo
   const emit = prefs.emitente || {};
@@ -141,6 +143,15 @@ export default function Financeiro() {
         )}
       </div>
 
+      {/* tipo de documento */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+        {[["planilha", "Planilha (p/ aprovar)"], ["recibo", "Recibo (validado)"]].map(([k, l]) => (
+          <button key={k} onClick={() => setDocTipo(k)}
+            style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${docTipo === k ? T.acc : T.bd}`, background: docTipo === k ? T.acc : "transparent", color: docTipo === k ? "#fff" : T.mut }}>{l}</button>
+        ))}
+        <span style={{ color: T.dim, fontSize: 12 }}>{docTipo === "planilha" ? "lista pra o cliente conferir e aprovar" : "recibo com quitação, após validado"}</span>
+      </div>
+
       {/* ações */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button style={btn("primary")} onClick={() => window.print()} disabled={!temConteudo}><Printer size={15} /> Imprimir / Salvar PDF</button>
@@ -170,7 +181,7 @@ export default function Financeiro() {
 
         {/* título */}
         <div style={{ borderTop: `2px solid ${PRINT.ink}`, borderBottom: `1px solid ${PRINT.line}`, padding: "12px 0", marginBottom: 16 }}>
-          <h1 style={{ margin: 0, fontSize: 22 }}>Recibo de mão de obra</h1>
+          <h1 style={{ margin: 0, fontSize: 22 }}>{docTitulo}</h1>
           <div style={{ color: PRINT.mut, fontSize: 13, marginTop: 4 }}>{[prefs.tecnico && `Prestador: ${prefs.tecnico}`, `Período: ${periodoLabel}`, cliente && `Cliente: ${cliente}`].filter(Boolean).join(" · ")}</div>
         </div>
 
@@ -223,17 +234,36 @@ export default function Financeiro() {
               <div style={{ fontWeight: 800, fontSize: 22, color: PRINT.grn }}>{brl(grandTotal)}</div>
             </div>
 
-            {/* declaração de recebimento + local/data + assinatura */}
-            <div style={{ marginTop: 22, fontSize: 13, lineHeight: 1.7 }}>
-              Recebi{pagNome ? <> de <b>{pagNome}</b>{pagDoc ? ` (CPF/CNPJ: ${pagDoc})` : ""}</> : ""} a importância de <b>{brl(grandTotal)}</b> ({extenso(grandTotal)}), referente a serviços de mão de obra prestados no período de {periodoLabel}, dando plena, rasa e geral quitação.
-            </div>
-            <div style={{ marginTop: 18, fontSize: 13 }}>{emit.cidade ? `${emit.cidade}, ` : ""}{fmtBR(isoOf(now))}.</div>
-            <div style={{ marginTop: 44, textAlign: "center" }}>
-              <div style={{ borderTop: `1px solid ${PRINT.ink}`, width: 320, maxWidth: "100%", margin: "0 auto", paddingTop: 6, fontSize: 13 }}>
-                {nomeAssina || "Assinatura do prestador"}
-                {(emit.cnpj || emit.cpf) && <div style={{ color: PRINT.mut, fontSize: 12 }}>{emit.cnpj ? `CNPJ: ${emit.cnpj}` : `CPF: ${emit.cpf}`}</div>}
-              </div>
-            </div>
+            {/* corpo final: recibo (quitação + assinatura do prestador) ou planilha (aprovação) */}
+            {docTipo === "recibo" ? (
+              <>
+                <div style={{ marginTop: 22, fontSize: 13, lineHeight: 1.7 }}>
+                  Recebi{pagNome ? <> de <b>{pagNome}</b>{pagDoc ? ` (CPF/CNPJ: ${pagDoc})` : ""}</> : ""} a importância de <b>{brl(grandTotal)}</b> ({extenso(grandTotal)}), referente a serviços de mão de obra prestados no período de {periodoLabel}, dando plena, rasa e geral quitação.
+                </div>
+                <div style={{ marginTop: 18, fontSize: 13 }}>{emit.cidade ? `${emit.cidade}, ` : ""}{fmtBR(isoOf(now))}.</div>
+                <div style={{ marginTop: 44, textAlign: "center" }}>
+                  <div style={{ borderTop: `1px solid ${PRINT.ink}`, width: 320, maxWidth: "100%", margin: "0 auto", paddingTop: 6, fontSize: 13 }}>
+                    {nomeAssina || "Assinatura do prestador"}
+                    {(emit.cnpj || emit.cpf) && <div style={{ color: PRINT.mut, fontSize: 12 }}>{emit.cnpj ? `CNPJ: ${emit.cnpj}` : `CPF: ${emit.cpf}`}</div>}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ marginTop: 22, fontSize: 13, lineHeight: 1.7 }}>
+                  Relação de serviços prestados no período{pagNome ? <> para <b>{pagNome}</b></> : ""}, enviada para <b>conferência e aprovação</b>. Havendo divergência, favor apontar antes de aprovar. Total a pagar: <b>{brl(grandTotal)}</b> ({extenso(grandTotal)}).
+                </div>
+                <div style={{ marginTop: 18, fontSize: 13 }}>{emit.cidade ? `${emit.cidade}, ` : ""}{fmtBR(isoOf(now))}.</div>
+                <div style={{ display: "flex", gap: 40, justifyContent: "space-between", marginTop: 48, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 200, textAlign: "center" }}>
+                    <div style={{ borderTop: `1px solid ${PRINT.ink}`, paddingTop: 6, fontSize: 13 }}>{nomeAssina || "Prestador"}<div style={{ color: PRINT.mut, fontSize: 12 }}>Prestador</div></div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 200, textAlign: "center" }}>
+                    <div style={{ borderTop: `1px solid ${PRINT.ink}`, paddingTop: 6, fontSize: 13 }}>{pagNome || "Contratante"}<div style={{ color: PRINT.mut, fontSize: 12 }}>De acordo — contratante</div></div>
+                  </div>
+                </div>
+              </>
+            )}
             {(emit.pix || emit.banco) && (
               <div style={{ marginTop: 22, paddingTop: 10, borderTop: `1px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 12 }}>
                 <b style={{ color: PRINT.ink }}>Dados para pagamento:</b> {[emit.pix && `PIX: ${emit.pix}`, emit.banco].filter(Boolean).join(" · ")}

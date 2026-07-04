@@ -58,9 +58,9 @@ export function horarioLabel(e) {
 
 // Texto formatado pra colar/mandar no WhatsApp (usa *negrito* do WhatsApp).
 // grupos = [{ dataRef, total, itens:[{ entry, tipo, breakdown, cobrado }] }]
-export function reciboWhatsApp({ grupos = [], tecnico, periodoLabel, clienteLabel, showCliente = true, total = 0, fixoValor = 0, fixoCliente = "" }) {
+export function reciboWhatsApp({ grupos = [], titulo = "RECIBO DE MÃO DE OBRA", tecnico, periodoLabel, clienteLabel, showCliente = true, total = 0, fixoValor = 0, fixoCliente = "" }) {
   const L = [];
-  L.push("*RECIBO DE DIÁRIAS*");
+  L.push(`*${titulo}*`);
   if (tecnico) L.push(`Técnico: ${tecnico}`);
   if (periodoLabel) L.push(`Período: ${periodoLabel}`);
   if (clienteLabel) L.push(`Cliente: ${clienteLabel}`);
