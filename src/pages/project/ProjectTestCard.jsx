@@ -201,41 +201,55 @@ export default function ProjectTestCard({ project }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
-        <div style={card()}>
-          <Label>Esquema de cor</Label>
-          <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={{ ...sel, width: "100%", marginBottom: 12 }}>
-            <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
-          </select>
-
-          {o.scheme === "arcoiris" && <Drop label="Direção" options={[["h", "Horizontal"], ["v", "Vertical"], ["d", "Diagonal"]]} value={o.rainbowDir} onChange={(v) => set({ rainbowDir: v })} />}
-          {o.scheme === "solida" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 40, height: 32, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer" }} />
-              <Toggle on={o.solidAlpha} onClick={() => toggle("solidAlpha")} full>Fundo transparente (alpha)</Toggle>
-            </div>
+        <div style={card({ padding: "4px 16px" })}>
+          <Row label="Esquema de cor" top>
+            <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={rsel}>
+              <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
+            </select>
+          </Row>
+          {o.scheme === "arcoiris" && (
+            <Row label="Direção">
+              <select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={rsel}>
+                <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
+              </select>
+            </Row>
           )}
-
+          {o.scheme === "solida" && (
+            <>
+              <Row label="Cor sólida"><input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 44, height: 30, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer", padding: 0 }} /></Row>
+              <Row label="Fundo transparente"><Switch on={o.solidAlpha} onClick={() => toggle("solidAlpha")} /></Row>
+            </>
+          )}
           {locked ? (
-            <div style={{ marginTop: 14, color: T.dim, fontSize: 12, background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 10 }}>
+            <div style={{ margin: "10px 0", color: T.dim, fontSize: 12, background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 10 }}>
               Predefinição de calibração (preto→branco por coluna). Sem edições.
             </div>
           ) : (
             <>
-              <Label style={{ marginTop: 16 }}>Elementos</Label>
-              <DropdownMenu triggerLabel={`Elementos${elCount ? ` · ${elCount}` : ""}`} Icon={Shapes} align="left"
-                items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
-
-              <NumScaleSlider value={o.numScale} onChange={(n) => set({ numScale: n })} />
-
-              <Drop label="Color bar" options={[["off", "Off"], ["topo", "Topo"], ["centro", "Centro"], ["base", "Base"]]} value={o.colorBar} onChange={(v) => set({ colorBar: v })} />
-              <Drop label="Mapa de cabos" options={[["off", "Off"], ["sinal", "Sinal"], ["ac", "AC"]]} value={o.cableMap} onChange={(v) => set({ cableMap: v })} />
-
-              <Label style={{ marginTop: 16 }}>Caixa de info</Label>
-              <Toggle on={o.info} onClick={() => toggle("info")} full>Mostrar info</Toggle>
+              <Row label="Elementos">
+                <DropdownMenu triggerLabel={`${elCount} ativo${elCount === 1 ? "" : "s"}`} Icon={Shapes} align="right"
+                  items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
+              </Row>
+              <NumScaleRow value={o.numScale} onChange={(n) => set({ numScale: n })} />
+              <Row label="Color bar">
+                <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={rsel}>
+                  <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
+                </select>
+              </Row>
+              <Row label="Mapa de cabos">
+                <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={rsel}>
+                  <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
+                </select>
+              </Row>
+              <Row label="Caixa de info"><Switch on={o.info} onClick={() => toggle("info")} /></Row>
               {o.info && (
                 <>
-                  <Toggle on={o.infoInline} onClick={() => toggle("infoInline")} full style={{ marginTop: 8 }}>Em linha</Toggle>
-                  <Drop label="Posição" options={[["sup-esq", "Sup. esq"], ["sup-dir", "Sup. dir"], ["centro", "Centro"], ["inf-esq", "Inf. esq"], ["inf-dir", "Inf. dir"]]} value={o.infoPos} onChange={(v) => set({ infoPos: v })} />
+                  <Row label="Info em linha"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Row>
+                  <Row label="Posição">
+                    <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={rsel}>
+                      <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
+                    </select>
+                  </Row>
                 </>
               )}
             </>
@@ -264,38 +278,38 @@ export default function ProjectTestCard({ project }) {
 
 const sel = { flex: 1, background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13 };
 const tbBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 36, padding: "0 11px", borderRadius: 8, border: `1px solid ${T.bd}`, background: T.card2, color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 600, flexShrink: 0 };
-const Label = ({ children, style }) => <div style={{ textTransform: "uppercase", fontSize: 11, color: T.mut, marginBottom: 6, ...style }}>{children}</div>;
+const rsel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer", maxWidth: 190 };
 
-// slider próprio: re-renderiza só a si mesmo enquanto arrasta e comita (redesenho) com debounce
-function NumScaleSlider({ value, onChange }) {
-  const [v, setV] = useState(value);
-  useEffect(() => setV(value), [value]);
-  const commit = useDebouncedCallback(onChange, 150);
+// linha de ajuste: rótulo à esquerda, controle à direita (lista consistente, com divisória)
+function Row({ label, children, top }) {
   return (
-    <>
-      <Label style={{ marginTop: 16 }}>Tamanho do número — {v.toFixed(1)}×</Label>
-      <input type="range" min={0.5} max={2} step={0.1} value={v} onChange={(e) => { const n = parseFloat(e.target.value); setV(n); commit(n); }} style={{ width: "100%", accentColor: T.acc }} />
-    </>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 46, padding: "6px 0", borderTop: top ? "none" : `1px solid ${T.bd}` }}>
+      <span style={{ color: T.mut, fontSize: 13 }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>{children}</div>
+    </div>
   );
 }
 
-function Toggle({ on, onClick, children, full, style }) {
+// interruptor (liga/desliga) — substitui os botões "ON/OFF"
+function Switch({ on, onClick }) {
   return (
-    <button onClick={onClick} style={{ gridColumn: full ? "1 / -1" : "auto", padding: "8px 6px", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 600, border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.sel : T.card2, color: on ? T.acM : T.mut, ...style }}>
-      {children} {on ? "ON" : "OFF"}
+    <button onClick={onClick} role="switch" aria-checked={on}
+      style={{ width: 42, height: 24, borderRadius: 999, border: "none", padding: 0, cursor: "pointer", background: on ? T.acc : T.dim2, position: "relative", transition: "background .15s", flexShrink: 0 }}>
+      <span style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
     </button>
   );
 }
 
-// dropdown compacto com rótulo à esquerda (economiza espaço vs. grupo de botões)
-function Drop({ label, options, value, onChange }) {
+// tamanho do número: linha com slider inline (rótulo · slider · valor)
+function NumScaleRow({ value, onChange }) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  const commit = useDebouncedCallback(onChange, 150);
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 16 }}>
-      <span style={{ textTransform: "uppercase", fontSize: 11, color: T.mut }}>{label}</span>
-      <select value={String(value)} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }}
-        style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer", minWidth: 130 }}>
-        {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
-      </select>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 46, padding: "6px 0", borderTop: `1px solid ${T.bd}` }}>
+      <span style={{ color: T.mut, fontSize: 13, flexShrink: 0 }}>Tamanho do nº</span>
+      <input type="range" min={0.5} max={2} step={0.1} value={v} onChange={(e) => { const n = parseFloat(e.target.value); setV(n); commit(n); }} style={{ flex: 1, accentColor: T.acc, minWidth: 60 }} />
+      <span style={{ color: T.acM, fontWeight: 700, fontSize: 13, flexShrink: 0, width: 34, textAlign: "right" }}>{v.toFixed(1)}×</span>
     </div>
   );
 }
