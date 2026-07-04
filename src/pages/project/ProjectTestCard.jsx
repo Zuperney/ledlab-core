@@ -1,14 +1,15 @@
 // pages/project/ProjectTestCard.jsx — gerador de test card (canvas + export PNG).
 import { useRef, useEffect, useState } from "react";
-import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save } from "lucide-react";
+import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt } from "../../store/UIContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { PALETTE, T } from "../../ui/tokens.js";
-import { card, btn } from "../../ui/styles.js";
+import { card } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
+import DropdownMenu from "../../components/DropdownMenu.jsx";
 
 const BAR_COLORS = ["#ffffff", "#ffff00", "#00ffff", "#00ff00", "#ff00ff", "#ff0000", "#0000ff"];
 const DEFAULTS = { scheme: "cores", rainbowDir: "h", solidColor: "#ffffff", solidAlpha: false, numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, numScale: 1, colorBar: "off", cableMap: "off", info: true, infoPos: "inf-esq", infoInline: false };
@@ -154,6 +155,7 @@ export default function ProjectTestCard({ project }) {
   const set = (patch) => setO((prev) => ({ ...prev, ...patch }));
   const toggle = (k) => setO((prev) => ({ ...prev, [k]: !prev[k] }));
   const locked = o.scheme === "cinza";
+  const elCount = [o.numbers, o.junctions, o.circle, o.cross, o.corner, o.side].filter(Boolean).length;
 
   const applyPreset = (val) => {
     setPresetSel(val);
@@ -181,29 +183,25 @@ export default function ProjectTestCard({ project }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", marginBottom: 16, gap: 10, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
-        <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", width: isMobile ? "100%" : undefined }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: "2 1 130px", minWidth: 0 }}>
           {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
-        <button style={btn("primary", isMobile ? { justifyContent: "center" } : {})} onClick={exportPng}><Download size={15} /> Exportar PNG ({W}×{H})</button>
+        <select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: "2 1 150px", minWidth: 0 }}>
+          <option value="">Predefinição…</option>
+          <option value="map">Mapa de gabinetes</option>
+          <option value="align">Alinhamento / geometria</option>
+          <option value="solid">Cor sólida</option>
+          <option value="bars">Barras de cor</option>
+          <option value="cabsig">Mapa de cabos (sinal)</option>
+          {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <button style={tbBtn} title="Salvar predefinição" onClick={savePreset}><Save size={16} /></button>
+        <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} />{!isMobile && " PNG"}</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
         <div style={card()}>
-          <Label>Predefinição</Label>
-          <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-            <select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={sel}>
-              <option value="">— aplicar predefinição —</option>
-              <option value="map">Mapa de gabinetes</option>
-              <option value="align">Alinhamento / geometria</option>
-              <option value="solid">Cor sólida</option>
-              <option value="bars">Barras de cor</option>
-              <option value="cabsig">Mapa de cabos (sinal)</option>
-              {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <button style={btn("ghost", { padding: "8px 10px" })} title="Salvar predefinição" onClick={savePreset}><Save size={14} /></button>
-          </div>
-
           <Label>Esquema de cor</Label>
           <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={{ ...sel, width: "100%", marginBottom: 12 }}>
             <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
@@ -224,11 +222,8 @@ export default function ProjectTestCard({ project }) {
           ) : (
             <>
               <Label style={{ marginTop: 16 }}>Elementos</Label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {[["numbers", "Numerar gab."], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => (
-                  <Toggle key={k} on={o[k]} onClick={() => toggle(k)}>{l}</Toggle>
-                ))}
-              </div>
+              <DropdownMenu triggerLabel={`Elementos${elCount ? ` · ${elCount}` : ""}`} Icon={Shapes} align="left"
+                items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
 
               <NumScaleSlider value={o.numScale} onChange={(n) => set({ numScale: n })} />
 
@@ -268,6 +263,7 @@ export default function ProjectTestCard({ project }) {
 }
 
 const sel = { flex: 1, background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13 };
+const tbBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 36, padding: "0 11px", borderRadius: 8, border: `1px solid ${T.bd}`, background: T.card2, color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 600, flexShrink: 0 };
 const Label = ({ children, style }) => <div style={{ textTransform: "uppercase", fontSize: 11, color: T.mut, marginBottom: 6, ...style }}>{children}</div>;
 
 // slider próprio: re-renderiza só a si mesmo enquanto arrasta e comita (redesenho) com debounce
