@@ -15,6 +15,7 @@ export function genId(prefix = "id") {
   return `${prefix}-${t}${r}`;
 }
 
-// id numérico (usado ao importar gabinetes antigos)
-export const genNumericId = (i = 0) =>
-  Date.now() + i + Math.floor(Math.random() * 1000);
+// id numérico (usado ao importar gabinetes antigos). Date.now()*1000 reserva 1000 "slots"
+// por milissegundo; o índice incremental i (0..999) desambigua itens do mesmo lote sem
+// colidir (o additivo antigo, Date.now()+i+random, podia repetir dentro de um mesmo import).
+export const genNumericId = (i = 0) => Date.now() * 1000 + (i % 1000);

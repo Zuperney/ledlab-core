@@ -26,8 +26,6 @@ export function recomputeStatus(project, today = isoDate()) {
   return "planned";
 }
 
-export const activeProjects = (projects) => projects.filter((p) => p.status === "active");
-
 // Agrupa projetos (com data de início) por "AAAA-MM", ordenado cronologicamente.
 export function groupByMonth(projects) {
   const groups = {};

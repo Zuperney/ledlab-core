@@ -15,7 +15,7 @@ export const bboxArea = (p) => { let a = 1e9, b = -1, c = 1e9, d = -1; for (cons
 export const chunkArr = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
 
 // ordem de numeração dos cabos (config global). scheme = "eixo-dir1-dir2".
-export function orderPorts(ports, scheme) {
+function orderPorts(ports, scheme) {
   const bb = (p) => { let minR = 1e9, minC = 1e9; for (const x of p) { if (x.r < minR) minR = x.r; if (x.c < minC) minC = x.c; } return { minR, minC }; };
   const [axis, d1, d2] = (scheme || "row-tb-lr").split("-");
   return [...ports].sort((A, B) => {
@@ -29,9 +29,9 @@ export function orderPorts(ports, scheme) {
   });
 }
 
-export function bands(total, budget) { const out = []; let rem = total; while (rem > budget) { out.push(budget); rem -= budget; } if (rem > 0) out.push(rem); return out; }
+function bands(total, budget) { const out = []; let rem = total; while (rem > budget) { out.push(budget); rem -= budget; } if (rem > 0) out.push(rem); return out; }
 
-export function blockUpDown(bx, by, W, H) {
+function blockUpDown(bx, by, W, H) {
   const block = [];
   for (let ci = 0; ci < W; ci++) {
     const c = bx + ci;
@@ -40,7 +40,7 @@ export function blockUpDown(bx, by, W, H) {
   }
   return block;
 }
-export function blockZigZag(bx, by, W, H) {
+function blockZigZag(bx, by, W, H) {
   const block = [];
   for (let ri = 0; ri < H; ri++) {
     const r = by + (H - 1 - ri);
@@ -51,7 +51,7 @@ export function blockZigZag(bx, by, W, H) {
 }
 export const mkBlock = (bx, by, W, H, routing) => (routing === "zigzag" ? blockZigZag : blockUpDown)(bx, by, W, H);
 
-export function portsLinha(cols, rows, budget, routing) {
+function portsLinha(cols, rows, budget, routing) {
   const ports = []; let bx = 0;
   for (const w of bands(cols, budget)) {
     const h = Math.max(1, Math.floor(budget / w));
@@ -60,7 +60,7 @@ export function portsLinha(cols, rows, budget, routing) {
   }
   return ports;
 }
-export function portsColuna(cols, rows, budget, routing) {
+function portsColuna(cols, rows, budget, routing) {
   const ports = []; let by = 0;
   for (const h of bands(rows, budget)) {
     const w = Math.max(1, Math.floor(budget / h));
@@ -69,7 +69,7 @@ export function portsColuna(cols, rows, budget, routing) {
   }
   return ports;
 }
-export function portsArea(cols, rows, budget, routing) {
+function portsArea(cols, rows, budget, routing) {
   const bh = Math.max(1, Math.min(rows, Math.floor(Math.sqrt(budget))));
   const bw = Math.max(1, Math.min(cols, Math.floor(budget / bh)));
   const ports = [];

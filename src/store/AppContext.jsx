@@ -65,7 +65,17 @@ const loadObject = (key, fallback) => {
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
     const v = JSON.parse(raw);
-    return v && typeof v === "object" ? { ...fallback, ...v } : fallback;
+    if (!v || typeof v !== "object") return fallback;
+    const out = { ...fallback, ...v };
+    // merge de 1 nível: subcampos NOVOS de subobjetos (worklog/emitente/fixo/cabCols…)
+    // retroalimentam prefs já salvas, sem sobrescrever o que o usuário tinha
+    for (const k of Object.keys(fallback)) {
+      const fk = fallback[k], vk = v[k];
+      if (fk && typeof fk === "object" && !Array.isArray(fk) && vk && typeof vk === "object" && !Array.isArray(vk)) {
+        out[k] = { ...fk, ...vk };
+      }
+    }
+    return out;
   } catch {
     return fallback;
   }
@@ -108,7 +118,7 @@ export function newScreen(cab, overrides = {}) {
   return {
     id: genId("tela"),
     nome: "", cenario: "",
-    cabling: { ...DEFAULT_CABLING },
+    cabling: { ...DEFAULT_CABLING, manual: [] }, // manual próprio (não compartilha a ref de DEFAULT_CABLING)
     cabId: cab?.id ?? null,
     gabinete: fullSnapshot(cab),
     cols: 1, rows: 1,
