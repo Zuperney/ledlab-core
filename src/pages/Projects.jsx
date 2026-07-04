@@ -109,9 +109,13 @@ export default function Projects({ nav }) {
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
         {FILTERS.map((f) => {
           const active = filter === f.key;
+          const isAll = f.key === "all";
+          const col = isAll ? T.acc : STATUS[f.key].c;      // cor do status (âmbar/violeta/verde/vermelho)
+          const bgcol = isAll ? T.sel : STATUS[f.key].bg;   // fundo tonalizado
           return (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? col : T.bd}`, background: active ? bgcol : "transparent", color: active ? col : T.mut }}>
+              {!isAll && <span style={{ width: 8, height: 8, borderRadius: 999, background: col, flexShrink: 0 }} />}
               {f.label} <span style={{ opacity: 0.7 }}>{counts[f.key] ?? 0}</span>
             </button>
           );

@@ -56,9 +56,13 @@ export default function Agenda({ nav }) {
   const statusChip = (f) => {
     const active = statusFilter === f.k;
     const n = f.k === "all" ? withStatus.length : withStatus.filter((p) => p.status === f.k).length;
+    const isAll = f.k === "all";
+    const col = isAll ? T.acc : STATUS[f.k].c;      // cor do status
+    const bgcol = isAll ? T.sel : STATUS[f.k].bg;   // fundo tonalizado
     return (
       <button key={f.k} onClick={() => { setStatusFilter(f.k); setFilterOpen(false); }}
-        style={{ padding: isMobile ? "9px 14px" : "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut }}>
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "9px 14px" : "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? col : T.bd}`, background: active ? bgcol : "transparent", color: active ? col : T.mut }}>
+        {!isAll && <span style={{ width: 8, height: 8, borderRadius: 999, background: col, flexShrink: 0 }} />}
         {f.l} <span style={{ opacity: 0.7 }}>{n}</span>
       </button>
     );
