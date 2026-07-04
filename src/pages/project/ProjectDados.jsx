@@ -22,7 +22,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
 
   const addTela = () => {
     const t = newScreen(favCab, { nome: `Tela ${telas.length + 1}`, cols: 8, rows: 6 });
-    patch({ telas: [...telas, t] });
+    patch({ telas: [t, ...telas] }); // nova entra no topo (já expandida, sem precisar rolar)
     setEditId(t.id);
   };
   const dupTela = (t) => patch({ telas: [...telas, { ...t, id: genId("tela"), nome: `${t.nome} (cópia)` }] });
