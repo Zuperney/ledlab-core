@@ -18,6 +18,7 @@ import { range, key, parseKey, bboxArea, chunkArr, mkBlock, buildAuto, signalRou
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { FLAGS } from "../../config/featureFlags.js";
 import Placeholder from "../../components/Placeholder.jsx";
+import DropdownMenu from "../../components/DropdownMenu.jsx";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
 
@@ -142,23 +143,21 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
       {/* barra do modo livre */}
       {livreEdit && (
-        <div style={card({ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
-          <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Importar do automático</span>
-          {(mode === "ac" ? [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["sinal", "Sinal"]] : [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]).map(([v, l]) => (
-            <button key={v} onClick={() => importFrom(v)} style={pill(false)}><Download size={13} /> {l}</button>
-          ))}
-          <span style={{ width: 1, height: 22, background: T.bd, margin: "0 2px" }} />
-          <button onClick={novoCabo} style={pill(false)}><Plus size={14} /> Novo cabo</button>
+        <div style={card({ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
+          <DropdownMenu triggerLabel="Importar" Icon={Download} align="left" label="Importar do automático"
+            items={(mode === "ac" ? [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ["sinal", "Sinal"]] : [["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]).map(([v, l]) => ({ label: l, Icon: Download, onClick: () => importFrom(v) }))} />
+          <span style={sep} />
+          <button onClick={novoCabo} style={ibtn()} title="Novo cabo"><Plus size={16} /></button>
           <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Cabo ativo</span>
-          <button onClick={() => reorderActive("updown")} style={pill(false)} title="Reordenar cabo em sobe/desce"><ArrowUpDown size={13} /> Sobe/desce</button>
-          <button onClick={() => reorderActive("zigzag")} style={pill(false)} title="Reordenar cabo em zig-zag"><ArrowLeftRight size={13} /> Zig-zag</button>
-          <button onClick={inverterCabo} style={pill(false)} title="Inverter início/fim"><Repeat2 size={13} /> Inverter</button>
-          <button onClick={() => setActive(null)} disabled={active == null} style={{ ...pill(false), opacity: active == null ? 0.4 : 1, cursor: active == null ? "not-allowed" : "pointer" }} title="Sair da edição do cabo"><X size={13} /> Sair da edição</button>
-          <span style={{ width: 1, height: 22, background: T.bd, margin: "0 2px" }} />
-          <button onClick={undo} disabled={!history.length} style={{ ...pill(false), opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" }}><Undo2 size={13} /> Desfazer</button>
-          <button onClick={limparCabos} style={pill(false)}><Eraser size={13} /> Limpar</button>
+          <button onClick={() => reorderActive("updown")} style={ibtn()} title="Reordenar em sobe/desce"><ArrowUpDown size={15} /></button>
+          <button onClick={() => reorderActive("zigzag")} style={ibtn()} title="Reordenar em zig-zag"><ArrowLeftRight size={15} /></button>
+          <button onClick={inverterCabo} style={ibtn()} title="Inverter início/fim"><Repeat2 size={15} /></button>
+          <button onClick={() => setActive(null)} disabled={active == null} style={ibtn({ opacity: active == null ? 0.4 : 1, cursor: active == null ? "not-allowed" : "pointer" })} title="Sair da edição do cabo"><X size={15} /></button>
+          <span style={sep} />
+          <button onClick={undo} disabled={!history.length} style={ibtn({ opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" })} title="Desfazer"><Undo2 size={15} /></button>
+          <button onClick={limparCabos} style={ibtn()} title="Limpar cabos"><Eraser size={15} /></button>
           <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
-            {active != null ? <>Editando <b style={{ color: paletteColor(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda para editar" : "Importe do automático ou clique “Novo cabo”"}
+            {active != null ? <>Editando <b style={{ color: paletteColor(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda" : "Importe ou clique “Novo cabo”"}
           </span>
         </div>
       )}
@@ -239,7 +238,9 @@ export default function ProjectCabeamento({ project, patchTela }) {
   );
 }
 
-const pill = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : T.card2, color: active ? "#fff" : T.mut, cursor: "pointer", fontSize: 13, fontWeight: 600 });
+// botão de ícone quadrado (barra do modo livre) + separador
+const ibtn = (extra = {}) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 8, border: `1px solid ${T.bd}`, background: T.card2, color: T.txt, cursor: "pointer", ...extra });
+const sep = { width: 1, height: 22, background: T.bd, margin: "0 2px" };
 
 const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 
