@@ -12,7 +12,6 @@ import { useConfirm, useToast } from "../store/UIContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge, { STATUS, STATUS_ORDER } from "../components/StatusBadge.jsx";
 import Placeholder from "../components/Placeholder.jsx";
-import DropdownMenu from "../components/DropdownMenu.jsx";
 import BottomSheet from "../components/BottomSheet.jsx";
 import ProjectDetail from "./ProjectDetail.jsx";
 
@@ -102,24 +101,27 @@ export default function Projects({ nav }) {
   return (
     <div>
       <SectionHeader title="Projetos / Eventos" subtitle={`${projects.length} projetos · abra um para acessar energia, sinal, test card e relatório.`}>
-        <DropdownMenu items={[{ label: "Exportar todos (.json)", Icon: Download, onClick: () => exportAll(projects) }]} />
         {!isMobile && <button style={btn("primary")} onClick={create}><Plus size={16} /> Novo Projeto</button>}
       </SectionHeader>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-        {FILTERS.map((f) => {
-          const active = filter === f.key;
-          const isAll = f.key === "all";
-          const col = isAll ? T.acc : STATUS[f.key].c;      // cor do status (âmbar/violeta/verde/vermelho)
-          const bgcol = isAll ? T.sel : STATUS[f.key].bg;   // fundo tonalizado
-          return (
-            <button key={f.key} onClick={() => setFilter(f.key)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? col : T.bd}`, background: active ? bgcol : "transparent", color: active ? col : T.mut }}>
-              {!isAll && <span style={{ width: 8, height: 8, borderRadius: 999, background: col, flexShrink: 0 }} />}
-              {f.label} <span style={{ opacity: 0.7 }}>{counts[f.key] ?? 0}</span>
-            </button>
-          );
-        })}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+          {FILTERS.map((f) => {
+            const active = filter === f.key;
+            const isAll = f.key === "all";
+            const col = isAll ? T.acc : STATUS[f.key].c;      // cor do status (âmbar/violeta/verde/vermelho)
+            const bgcol = isAll ? T.sel : STATUS[f.key].bg;   // fundo tonalizado
+            const showLabel = isAll || active || !isMobile;   // no mobile, nome só no selecionado
+            return (
+              <button key={f.key} onClick={() => setFilter(f.key)} title={f.label}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${active ? col : T.bd}`, background: active ? bgcol : "transparent", color: active ? col : T.mut }}>
+                {!isAll && <span style={{ width: 8, height: 8, borderRadius: 999, background: col, flexShrink: 0 }} />}
+                {showLabel && <span>{f.label} </span>}<span style={{ opacity: 0.7 }}>{counts[f.key] ?? 0}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button style={btn("ghost", { flexShrink: 0 })} onClick={() => exportAll(projects)} title="Exportar todos (.json)"><Download size={15} />{!isMobile && " Exportar"}</button>
       </div>
 
       {isMobile ? (
