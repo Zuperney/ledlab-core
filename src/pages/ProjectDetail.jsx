@@ -57,9 +57,9 @@ export default function ProjectDetail({ project, onBack }) {
           const active = tab === t.id;
           const Icon = t.Icon;
           return (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", flexShrink: 0 }}>
-              <Icon size={15} /> {t.label}
+            <button key={t.id} onClick={() => setTab(t.id)} title={t.label}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", flexShrink: 0 }}>
+              <Icon size={16} />{(!isMobile || active) && <span>{t.label}</span>}
             </button>
           );
         })}

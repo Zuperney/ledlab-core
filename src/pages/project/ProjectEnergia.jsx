@@ -1,5 +1,6 @@
 // pages/project/ProjectEnergia.jsx — aba Energia (AC): pico + típico por tela e total.
 import { useState, useEffect } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useElectrical } from "../../hooks/useElectrical.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
@@ -10,18 +11,21 @@ export default function ProjectEnergia({ project, patch }) {
   const isMobile = useIsMobile();
   const { cfg, agg, VOLT } = useElectrical(project);
   const setCfg = (partial) => patch({ config: { ...cfg, ...partial } });
+  const [open, setOpen] = useState(null); // "brilho" | "conteudo" | null — qual slider está aberto
 
   return (
     <div>
-      <div style={card({ display: "flex", gap: 24, alignItems: "center", marginBottom: 16, flexWrap: "wrap" })}>
-        <div>
-          <div style={{ textTransform: "uppercase", fontSize: 11, color: T.mut, marginBottom: 6 }}>Tensão do evento</div>
-          <select value={cfg.vk} onChange={(e) => setCfg({ vk: e.target.value })} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px" }}>
+      <div style={card({ marginBottom: 16 })}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <select value={cfg.vk} onChange={(e) => setCfg({ vk: e.target.value })} title="Tensão do evento"
+            style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, fontWeight: 600 }}>
             {Object.entries(VOLT).map(([k, v]) => <option key={k} value={k}>{v.g}V · {v.label}</option>)}
           </select>
+          <ValueChip label="Brilho" pct={Math.round(cfg.brilho * 100)} active={open === "brilho"} onClick={() => setOpen((o) => (o === "brilho" ? null : "brilho"))} />
+          <ValueChip label="Conteúdo" pct={Math.round(cfg.conteudo * 100)} active={open === "conteudo"} onClick={() => setOpen((o) => (o === "conteudo" ? null : "conteudo"))} />
         </div>
-        <RangeInline label="Brilho de operação" value={cfg.brilho} onChange={(v) => setCfg({ brilho: v })} />
-        <RangeInline label="Conteúdo (fração da potência)" value={cfg.conteudo} onChange={(v) => setCfg({ conteudo: v })} />
+        {open === "brilho" && <SliderRow label="Brilho de operação" value={cfg.brilho} onChange={(v) => setCfg({ brilho: v })} />}
+        {open === "conteudo" && <SliderRow label="Conteúdo (fração da potência)" value={cfg.conteudo} onChange={(v) => setCfg({ conteudo: v })} />}
       </div>
 
       {agg.perTela.map(({ tela, peak, typ }) => (
@@ -67,12 +71,24 @@ function Row({ tag, tagColor, cols, isMobile }) {
   );
 }
 
-function RangeInline({ label, value, onChange }) {
+// chip compacto que mostra o valor e abre o slider ao tocar
+function ValueChip({ label, pct, active, onClick }) {
+  return (
+    <button onClick={onClick} title={label}
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.sel : T.card2, color: T.txt, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
+      <span style={{ color: T.mut }}>{label}</span>
+      <b style={{ color: T.acM }}>{pct}%</b>
+      <SlidersHorizontal size={13} style={{ color: T.dim }} />
+    </button>
+  );
+}
+
+function SliderRow({ label, value, onChange }) {
   const [v, setV] = useState(value);
   useEffect(() => setV(value), [value]);
   const commit = useDebouncedCallback(onChange, 180); // persiste/recalcula só ao parar de arrastar
   return (
-    <div style={{ flex: 1, minWidth: 200 }}>
+    <div style={{ marginTop: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.mut, marginBottom: 4 }}>
         <span>{label}</span><span style={{ color: T.acM, fontWeight: 700 }}>{Math.round(v * 100)}%</span>
       </div>

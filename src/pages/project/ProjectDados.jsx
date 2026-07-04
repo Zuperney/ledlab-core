@@ -17,6 +17,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
   const confirm = useConfirm();
   const toast = useToast();
   const [edit, setEdit] = useState(null); // tela em edição
+  const [dimMode, setDimMode] = useState("gab"); // entrada da dimensão: "gab" (colunas×linhas) | "m" (metros)
 
   const telas = project.telas || [];
 
@@ -92,10 +93,38 @@ export default function ProjectDados({ project, patch, patchTela }) {
                 {cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Field lbl="Colunas" type="number" value={edit.cols} onChange={(v) => { const n = parseInt(v) || 0; patchTela(edit.id, { cols: n }); setEdit({ ...edit, cols: n }); }} />
-              <Field lbl="Linhas" type="number" value={edit.rows} onChange={(v) => { const n = parseInt(v) || 0; patchTela(edit.id, { rows: n }); setEdit({ ...edit, rows: n }); }} />
-            </div>
+            {(() => {
+              const g = edit.gabinete || {};
+              const dW = parseFloat(g.dimW) || 0, dH = parseFloat(g.dimH) || 0;
+              const larguraM = (edit.cols || 0) * dW / 1000, alturaM = (edit.rows || 0) * dH / 1000;
+              const usaM = dimMode === "m" && dW;
+              const setCols = (n) => { n = Math.max(0, n || 0); patchTela(edit.id, { cols: n }); setEdit({ ...edit, cols: n }); };
+              const setRows = (n) => { n = Math.max(0, n || 0); patchTela(edit.id, { rows: n }); setEdit({ ...edit, rows: n }); };
+              return (
+                <>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[["gab", "Gabinetes"], ["m", "Metros"]].map(([k, l]) => (
+                      <button key={k} onClick={() => dW || k === "gab" ? setDimMode(k) : null}
+                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: dW || k === "gab" ? "pointer" : "not-allowed", border: `1px solid ${(usaM ? "m" : "gab") === k ? T.acc : T.bd}`, background: (usaM ? "m" : "gab") === k ? T.acc : "transparent", color: (usaM ? "m" : "gab") === k ? "#fff" : T.mut, opacity: k === "m" && !dW ? 0.5 : 1 }}>{l}</button>
+                    ))}
+                  </div>
+                  {usaM ? (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <Field lbl="Largura (m)" type="number" value={larguraM ? larguraM.toFixed(2) : ""} onChange={(v) => setCols(Math.round((parseFloat(v) || 0) * 1000 / dW))} />
+                      <Field lbl="Altura (m)" type="number" value={alturaM ? alturaM.toFixed(2) : ""} onChange={(v) => setRows(Math.round((parseFloat(v) || 0) * 1000 / dH))} />
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <Field lbl="Colunas" type="number" value={edit.cols} onChange={(v) => setCols(parseInt(v) || 0)} />
+                      <Field lbl="Linhas" type="number" value={edit.rows} onChange={(v) => setRows(parseInt(v) || 0)} />
+                    </div>
+                  )}
+                  <div style={{ color: T.dim, fontSize: 12, marginTop: -4 }}>
+                    {(edit.cols || 0)}×{(edit.rows || 0)} = {(edit.cols || 0) * (edit.rows || 0)} gab{dW ? ` · ${larguraM.toFixed(2)} × ${alturaM.toFixed(2)} m` : ""}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
       </Drawer>
