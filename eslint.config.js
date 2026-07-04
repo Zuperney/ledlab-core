@@ -18,4 +18,9 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  // arquivos de configuração rodam em Node (usam process, etc.)
+  {
+    files: ['**/*.config.js'],
+    languageOptions: { globals: globals.node },
+  },
 ])
