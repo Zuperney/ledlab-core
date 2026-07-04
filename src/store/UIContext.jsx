@@ -3,7 +3,7 @@
 //   const confirm = useConfirm();  if (await confirm({ title, message })) { ... }
 //   const toast = useToast();      toast("Item excluído");
 import { createContext, useContext, useState, useCallback } from "react";
-import { TriangleAlert, X, CircleCheck, Info } from "lucide-react";
+import { TriangleAlert, CircleCheck, Info } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { btn } from "../ui/styles.js";
 

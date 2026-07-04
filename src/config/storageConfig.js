@@ -1,4 +1,4 @@
-// config/storageConfig.js — chaves de localStorage (versionadas) e schemas de backup.
+// config/storageConfig.js — chaves de localStorage (versionadas).
 // Fonte única; o AppContext importa daqui.
 
 export const KEYS = {
@@ -9,5 +9,3 @@ export const KEYS = {
   worklog: "ledlab.worklog.v1",           // módulo Diárias: lançamentos (WorkEntry[])
   activityTypes: "ledlab.activitytypes.v1", // módulo Diárias: tipos de atividade
 };
-
-export const BACKUP_SCHEMA = "ledlab.backup.v1";
