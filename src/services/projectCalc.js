@@ -7,9 +7,13 @@ import { calcScreen, typicalPerTile, pickBreaker, VOLT } from "./electricalCalc.
 export const MONTHS_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 export const MONTHS_LONG = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+// data LOCAL no formato YYYY-MM-DD. NÃO usar toISOString() aqui: ela converte p/ UTC e,
+// em fusos negativos (ex.: UTC-3), à noite já retorna o dia seguinte — o que flipava o
+// status do projeto e a data do recibo cedo. getFullYear/Month/Date usam o fuso local.
 export const isoDate = (d = new Date()) => {
   const t = new Date(d);
-  return t.toISOString().slice(0, 10);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`;
 };
 
 // Recalcula o status a partir das datas (a menos que fixado manualmente / cancelado).

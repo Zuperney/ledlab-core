@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Printer } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
-import { aggregateElectrical, projectRollup, screenRollup } from "../../services/projectCalc.js";
+import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
 import { cableMeta, cablePorts, bboxArea } from "../../services/cabling.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
@@ -35,7 +35,7 @@ export default function ProjectRelatorio({ project }) {
   const cfg = project.config || { vk: prefs.vk, brilho: prefs.brilho, conteudo: prefs.conteudo };
   const agg = aggregateElectrical(project, cfg);
   const roll = projectRollup(project);
-  const today = formatFull(new Date().toISOString().slice(0, 10));
+  const today = formatFull(isoDate()); // data LOCAL (evita virar o dia seguinte à noite)
   const telas = project.telas || [];
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
   const showPhys = ["Completo", "Resumido", "Estrutural", "Gabinetes", "Design"].includes(type);
