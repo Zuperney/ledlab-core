@@ -1,6 +1,6 @@
 // pages/project/ProjectDados.jsx — aba Dados: telas + ficha do projeto.
 import { useState } from "react";
-import { Plus, Pencil, Copy, Trash2 } from "lucide-react";
+import { Plus, ChevronRight, Copy, Trash2 } from "lucide-react";
 import { newScreen } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
@@ -9,14 +9,13 @@ import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { T } from "../../ui/tokens.js";
 import { card, input, label, btn, iconBtn, dangerIconBtn } from "../../ui/styles.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
-import Drawer from "../../components/Drawer.jsx";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, favCab } = useCabinets();
   const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
-  const [edit, setEdit] = useState(null); // tela em edição
+  const [editId, setEditId] = useState(null); // id da tela expandida (edição inline) ou null
   const [dimMode, setDimMode] = useState("gab"); // entrada da dimensão: "gab" (colunas×linhas) | "m" (metros)
 
   const telas = project.telas || [];
@@ -24,7 +23,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
   const addTela = () => {
     const t = newScreen(favCab, { nome: `Tela ${telas.length + 1}`, cols: 8, rows: 6 });
     patch({ telas: [...telas, t] });
-    setEdit(t);
+    setEditId(t.id);
   };
   const dupTela = (t) => patch({ telas: [...telas, { ...t, id: genId("tela"), nome: `${t.nome} (cópia)` }] });
   const delTela = async (t) => {
@@ -45,17 +44,65 @@ export default function ProjectDados({ project, patch, patchTela }) {
           <button style={btn("primary")} onClick={addTela}><Plus size={15} /> Adicionar tela</button>
         </div>
         {telas.length === 0 && <div style={{ color: T.dim, fontSize: 13 }}>Nenhuma tela ainda.</div>}
-        {telas.map((t) => (
-          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: `1px solid ${T.bd}` }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: T.txt, fontWeight: 600 }}>{t.nome}</div>
-              <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace" }}>{t.gabinete?.nome} · {t.cols}×{t.rows} = {t.cols * t.rows} gab · {watts(t).toLocaleString()} W</div>
+        {telas.map((t) => {
+          const open = editId === t.id;
+          const g = t.gabinete || {};
+          const dW = parseFloat(g.dimW) || 0, dH = parseFloat(g.dimH) || 0;
+          const larguraM = (t.cols || 0) * dW / 1000, alturaM = (t.rows || 0) * dH / 1000;
+          const usaM = dimMode === "m" && dW;
+          const setCols = (n) => patchTela(t.id, { cols: Math.max(0, n || 0) });
+          const setRows = (n) => patchTela(t.id, { rows: Math.max(0, n || 0) });
+          return (
+            <div key={t.id} style={{ borderTop: `1px solid ${T.bd}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0" }}>
+                <button onClick={() => setEditId(open ? null : t.id)}
+                  style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer", color: "inherit", fontFamily: "inherit" }}>
+                  <ChevronRight size={16} style={{ color: T.mut, flexShrink: 0, transform: open ? "rotate(90deg)" : "none", transition: "transform .12s" }} />
+                  <span style={{ minWidth: 0 }}>
+                    <div style={{ color: T.txt, fontWeight: 600 }}>{t.nome}</div>
+                    <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.nome} · {t.cols}×{t.rows} = {t.cols * t.rows} gab · {watts(t).toLocaleString()} W</div>
+                  </span>
+                </button>
+                <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
+                <button style={dangerIconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
+              </div>
+              {open && (
+                <div style={{ display: "grid", gap: 12, padding: "2px 0 14px 24px" }}>
+                  <Field lbl="Nome da tela" value={t.nome} onChange={(v) => patchTela(t.id, { nome: v })} />
+                  <div>
+                    <label style={label}>Gabinete</label>
+                    <select value={t.cabId ?? ""} onChange={(e) => {
+                      const c = cabs.find((x) => String(x.id) === e.target.value);
+                      patchTela(t.id, { cabId: c?.id ?? null, gabinete: c ? { nome: c.nome, resX: c.resX, resY: c.resY, dimW: c.dimW, dimH: c.dimH, peso: c.peso, pwrMax: c.pwrMax, pwrMed: c.pwrMed, pwrBlack: c.pwrBlack, fp: c.fp, ip: c.ip, conector: c.conector } : t.gabinete });
+                    }} style={input()}>
+                      {cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[["gab", "Gabinetes"], ["m", "Metros"]].map(([k, l]) => (
+                      <button key={k} onClick={() => (dW || k === "gab") && setDimMode(k)}
+                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: dW || k === "gab" ? "pointer" : "not-allowed", border: `1px solid ${(usaM ? "m" : "gab") === k ? T.acc : T.bd}`, background: (usaM ? "m" : "gab") === k ? T.acc : "transparent", color: (usaM ? "m" : "gab") === k ? "#fff" : T.mut, opacity: k === "m" && !dW ? 0.5 : 1 }}>{l}</button>
+                    ))}
+                  </div>
+                  {usaM ? (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <Field lbl="Largura (m)" type="number" value={larguraM ? larguraM.toFixed(2) : ""} onChange={(v) => setCols(Math.round((parseFloat(v) || 0) * 1000 / dW))} />
+                      <Field lbl="Altura (m)" type="number" value={alturaM ? alturaM.toFixed(2) : ""} onChange={(v) => setRows(Math.round((parseFloat(v) || 0) * 1000 / dH))} />
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <Field lbl="Colunas" type="number" value={t.cols} onChange={(v) => setCols(parseInt(v) || 0)} />
+                      <Field lbl="Linhas" type="number" value={t.rows} onChange={(v) => setRows(parseInt(v) || 0)} />
+                    </div>
+                  )}
+                  <div style={{ color: T.dim, fontSize: 12, marginTop: -4 }}>
+                    {(t.cols || 0)}×{(t.rows || 0)} = {(t.cols || 0) * (t.rows || 0)} gab{dW ? ` · ${larguraM.toFixed(2)} × ${alturaM.toFixed(2)} m` : ""}
+                  </div>
+                </div>
+              )}
             </div>
-            <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Editar" onClick={() => setEdit(t)}><Pencil size={14} /></button>
-            <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
-            <button style={dangerIconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ficha */}
@@ -79,55 +126,6 @@ export default function ProjectDados({ project, patch, patchTela }) {
         <textarea value={project.obs} onChange={(e) => patch({ obs: e.target.value })} placeholder="Notas técnicas, demandas, contatos…" rows={4} style={input({ resize: "vertical" })} />
       </div>
 
-      <Drawer open={!!edit} title="Editar tela" onClose={() => setEdit(null)} footer={<button style={btn("primary")} onClick={() => setEdit(null)}>Concluir</button>}>
-        {edit && (
-          <div style={{ display: "grid", gap: 12 }}>
-            <Field lbl="Nome da tela" value={edit.nome} onChange={(v) => { patchTela(edit.id, { nome: v }); setEdit({ ...edit, nome: v }); }} />
-            <div>
-              <label style={label}>Gabinete</label>
-              <select value={edit.cabId ?? ""} onChange={(e) => {
-                const c = cabs.find((x) => String(x.id) === e.target.value);
-                const partial = { cabId: c?.id ?? null, gabinete: c ? { nome: c.nome, resX: c.resX, resY: c.resY, dimW: c.dimW, dimH: c.dimH, peso: c.peso, pwrMax: c.pwrMax, pwrMed: c.pwrMed, pwrBlack: c.pwrBlack, fp: c.fp, ip: c.ip, conector: c.conector } : edit.gabinete };
-                patchTela(edit.id, partial); setEdit({ ...edit, ...partial });
-              }} style={input()}>
-                {cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            </div>
-            {(() => {
-              const g = edit.gabinete || {};
-              const dW = parseFloat(g.dimW) || 0, dH = parseFloat(g.dimH) || 0;
-              const larguraM = (edit.cols || 0) * dW / 1000, alturaM = (edit.rows || 0) * dH / 1000;
-              const usaM = dimMode === "m" && dW;
-              const setCols = (n) => { n = Math.max(0, n || 0); patchTela(edit.id, { cols: n }); setEdit({ ...edit, cols: n }); };
-              const setRows = (n) => { n = Math.max(0, n || 0); patchTela(edit.id, { rows: n }); setEdit({ ...edit, rows: n }); };
-              return (
-                <>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {[["gab", "Gabinetes"], ["m", "Metros"]].map(([k, l]) => (
-                      <button key={k} onClick={() => dW || k === "gab" ? setDimMode(k) : null}
-                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: dW || k === "gab" ? "pointer" : "not-allowed", border: `1px solid ${(usaM ? "m" : "gab") === k ? T.acc : T.bd}`, background: (usaM ? "m" : "gab") === k ? T.acc : "transparent", color: (usaM ? "m" : "gab") === k ? "#fff" : T.mut, opacity: k === "m" && !dW ? 0.5 : 1 }}>{l}</button>
-                    ))}
-                  </div>
-                  {usaM ? (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      <Field lbl="Largura (m)" type="number" value={larguraM ? larguraM.toFixed(2) : ""} onChange={(v) => setCols(Math.round((parseFloat(v) || 0) * 1000 / dW))} />
-                      <Field lbl="Altura (m)" type="number" value={alturaM ? alturaM.toFixed(2) : ""} onChange={(v) => setRows(Math.round((parseFloat(v) || 0) * 1000 / dH))} />
-                    </div>
-                  ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      <Field lbl="Colunas" type="number" value={edit.cols} onChange={(v) => setCols(parseInt(v) || 0)} />
-                      <Field lbl="Linhas" type="number" value={edit.rows} onChange={(v) => setRows(parseInt(v) || 0)} />
-                    </div>
-                  )}
-                  <div style={{ color: T.dim, fontSize: 12, marginTop: -4 }}>
-                    {(edit.cols || 0)}×{(edit.rows || 0)} = {(edit.cols || 0) * (edit.rows || 0)} gab{dW ? ` · ${larguraM.toFixed(2)} × ${alturaM.toFixed(2)} m` : ""}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        )}
-      </Drawer>
     </div>
   );
 }
