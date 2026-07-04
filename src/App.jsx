@@ -1,10 +1,11 @@
 // App.jsx — shell: sidebar, topbar e roteamento simples por estado.
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
 import logo from "./assets/logo.svg";
 import { NAV, SECTIONS, LABELS, VERSION } from "./nav.js";
 import { T, FONT } from "./ui/tokens.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
+import { useLedLabContext } from "./store/AppContext.jsx";
 import NavBtn from "./components/NavBtn.jsx";
 import BottomNav from "./components/BottomNav.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -32,6 +33,7 @@ export default function App() {
   const [openProjectId, setOpenProjectId] = useState(null);
   const Page = PAGES[page] || Dashboard;
   const isMobile = useIsMobile();
+  const { storageOk } = useLedLabContext();
 
   // navegação pela sidebar limpa um projeto aberto
   const navigate = (id) => { setOpenProjectId(null); setPage(id); };
@@ -51,6 +53,7 @@ export default function App() {
           <span style={{ flexShrink: 0, background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
         </header>
         <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 16, paddingBottom: "calc(76px + env(safe-area-inset-bottom))" }}>
+          {!storageOk && <StorageBanner />}
           <ErrorBoundary>
             <Page nav={nav} />
           </ErrorBoundary>
@@ -113,11 +116,22 @@ export default function App() {
           </div>
         </header>
         <main style={{ flex: 1, overflowY: "auto", padding: 28 }}>
+          {!storageOk && <StorageBanner />}
           <ErrorBoundary>
             <Page nav={nav} />
           </ErrorBoundary>
         </main>
       </div>
+    </div>
+  );
+}
+
+// aviso persistente quando o navegador não consegue gravar (modo privado / quota cheia)
+function StorageBanner() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.overloadBg, border: `1px solid ${T.red}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: T.txt }}>
+      <TriangleAlert size={16} color={T.red} style={{ flexShrink: 0 }} />
+      <span>Este navegador não está salvando seus dados (modo privado ou armazenamento cheio). <b>As alterações se perderão ao fechar</b> — exporte um backup em Configurações.</span>
     </div>
   );
 }

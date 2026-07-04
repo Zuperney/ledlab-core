@@ -75,9 +75,21 @@ const save = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    /* quota / privado — ignora */
+    /* quota / privado — ignora; STORAGE_WRITABLE já avisa o usuário */
   }
 };
+
+// checa UMA vez, no carregamento, se dá pra gravar no localStorage (modo privado ou
+// armazenamento desabilitado bloqueiam a escrita). Alimenta o aviso global em <App>.
+const STORAGE_WRITABLE = (() => {
+  try {
+    localStorage.setItem("__ledlab_probe__", "1");
+    localStorage.removeItem("__ledlab_probe__");
+    return true;
+  } catch {
+    return false;
+  }
+})();
 
 // ── factories ────────────────────────────────────────────────
 export function newProject(overrides = {}) {
@@ -132,6 +144,7 @@ export function AppProvider({ children }) {
     tcPresets, setTcPresets,
     worklog, setWorklog,
     activityTypes, setActivityTypes,
+    storageOk: STORAGE_WRITABLE,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

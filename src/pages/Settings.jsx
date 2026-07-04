@@ -30,19 +30,37 @@ export default function Settings() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
+      let d;
       try {
-        const d = JSON.parse(reader.result);
-        if (Array.isArray(d.cabs)) setCabs(d.cabs);
-        if (Array.isArray(d.projects)) setProjects(d.projects);
-        if (d.prefs) setPrefs({ ...DEFAULT_PREFS, ...d.prefs });
-        if (Array.isArray(d.tcPresets)) setTcPresets(d.tcPresets);
-        if (Array.isArray(d.worklog)) setWorklog(d.worklog);
-        if (Array.isArray(d.activityTypes)) setActivityTypes(d.activityTypes);
-        toast("Backup importado");
+        d = JSON.parse(reader.result);
       } catch {
         toast("Arquivo inválido", "info");
+        return;
       }
+      // valida que é mesmo um backup do LedLab (schema conhecido ou campos reconhecíveis)
+      if (!d || typeof d !== "object" || (d.schema && !String(d.schema).startsWith("ledlab.backup"))) {
+        toast("Este arquivo não é um backup do LedLab", "info");
+        return;
+      }
+      const campos = ["cabs", "projects", "prefs", "tcPresets", "worklog", "activityTypes"];
+      if (!campos.some((k) => d[k] != null)) {
+        toast("Backup vazio ou não reconhecido", "info");
+        return;
+      }
+      // substitui os dados atuais → confirma antes (não pode ser desfeito)
+      if (!(await confirm({
+        title: "Importar backup?",
+        message: "Isso substitui seus dados atuais (gabinetes, projetos, cachês e preferências) pelos do arquivo. Não pode ser desfeito.",
+        confirmLabel: "Importar",
+      }))) return;
+      if (Array.isArray(d.cabs)) setCabs(d.cabs);
+      if (Array.isArray(d.projects)) setProjects(d.projects);
+      if (d.prefs) setPrefs({ ...DEFAULT_PREFS, ...d.prefs });
+      if (Array.isArray(d.tcPresets)) setTcPresets(d.tcPresets);
+      if (Array.isArray(d.worklog)) setWorklog(d.worklog);
+      if (Array.isArray(d.activityTypes)) setActivityTypes(d.activityTypes);
+      toast("Backup importado");
     };
     reader.readAsText(file);
     e.target.value = "";
