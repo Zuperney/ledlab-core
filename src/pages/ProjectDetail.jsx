@@ -1,6 +1,6 @@
 // pages/ProjectDetail.jsx — detalhe do projeto com abas.
 import { useState } from "react";
-import { ArrowLeft, Save, Folder, Zap, GitBranch, Monitor, FileText } from "lucide-react";
+import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, FileText } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -43,7 +43,10 @@ export default function ProjectDetail({ project, onBack }) {
           <h2 style={{ color: T.txt, margin: 0, fontSize: isMobile ? 17 : 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{project.name || "Sem nome"}</h2>
           {!isMobile && <StatusBadge s={project.status} />}
         </div>
-        <button style={btn("primary", isMobile ? { padding: "9px 12px", flexShrink: 0 } : {})} onClick={() => patch({})}><Save size={15} />{!isMobile && " Salvar"}</button>
+        {/* dados gravam sozinhos a cada edição (AppContext persiste em localStorage); selo só reforça isso */}
+        <span title="Suas alterações são gravadas automaticamente neste dispositivo" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.dim, fontSize: isMobile ? 12 : 13, fontWeight: 500, flexShrink: 0, whiteSpace: "nowrap" }}>
+          <Check size={15} style={{ color: T.grn }} /> {isMobile ? "Salvo" : "Salvo automaticamente"}
+        </span>
       </div>
 
       <div style={{ display: "flex", gap: 20, color: T.mut, fontSize: 13, marginBottom: 16 }}>
