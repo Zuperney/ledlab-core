@@ -209,7 +209,7 @@ export default function ProjectTestCard({ project }) {
             <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
           </select>
 
-          {o.scheme === "arcoiris" && (<><Label>Direção</Label><Seg options={[["h", "Horizontal"], ["v", "Vertical"], ["d", "Diagonal"]]} value={o.rainbowDir} onChange={(v) => set({ rainbowDir: v })} /></>)}
+          {o.scheme === "arcoiris" && <Drop label="Direção" options={[["h", "Horizontal"], ["v", "Vertical"], ["d", "Diagonal"]]} value={o.rainbowDir} onChange={(v) => set({ rainbowDir: v })} />}
           {o.scheme === "solida" && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
               <input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 40, height: 32, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer" }} />
@@ -232,19 +232,15 @@ export default function ProjectTestCard({ project }) {
 
               <NumScaleSlider value={o.numScale} onChange={(n) => set({ numScale: n })} />
 
-              <Label style={{ marginTop: 16 }}>Color bar</Label>
-              <Seg options={[["off", "Off"], ["topo", "Topo"], ["centro", "Centro"], ["base", "Base"]]} value={o.colorBar} onChange={(v) => set({ colorBar: v })} small />
-
-              <Label style={{ marginTop: 16 }}>Mapa de cabos</Label>
-              <Seg options={[["off", "Off"], ["sinal", "Sinal"], ["ac", "AC"]]} value={o.cableMap} onChange={(v) => set({ cableMap: v })} />
+              <Drop label="Color bar" options={[["off", "Off"], ["topo", "Topo"], ["centro", "Centro"], ["base", "Base"]]} value={o.colorBar} onChange={(v) => set({ colorBar: v })} />
+              <Drop label="Mapa de cabos" options={[["off", "Off"], ["sinal", "Sinal"], ["ac", "AC"]]} value={o.cableMap} onChange={(v) => set({ cableMap: v })} />
 
               <Label style={{ marginTop: 16 }}>Caixa de info</Label>
               <Toggle on={o.info} onClick={() => toggle("info")} full>Mostrar info</Toggle>
               {o.info && (
                 <>
                   <Toggle on={o.infoInline} onClick={() => toggle("infoInline")} full style={{ marginTop: 8 }}>Em linha</Toggle>
-                  <Label style={{ marginTop: 10 }}>Posição</Label>
-                  <Seg options={[["sup-esq", "Sup. esq"], ["sup-dir", "Sup. dir"], ["centro", "Centro"], ["inf-esq", "Inf. esq"], ["inf-dir", "Inf. dir"]]} value={o.infoPos} onChange={(v) => set({ infoPos: v })} small />
+                  <Drop label="Posição" options={[["sup-esq", "Sup. esq"], ["sup-dir", "Sup. dir"], ["centro", "Centro"], ["inf-esq", "Inf. esq"], ["inf-dir", "Inf. dir"]]} value={o.infoPos} onChange={(v) => set({ infoPos: v })} />
                 </>
               )}
             </>
@@ -295,13 +291,15 @@ function Toggle({ on, onClick, children, full, style }) {
   );
 }
 
-function Seg({ options, value, onChange, small }) {
+// dropdown compacto com rótulo à esquerda (economiza espaço vs. grupo de botões)
+function Drop({ label, options, value, onChange }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${options.length},1fr)`, gap: 4 }}>
-      {options.map(([v, l]) => {
-        const active = v === value;
-        return <button key={v} onClick={() => onChange(v)} style={{ padding: small ? "6px 2px" : "8px 4px", borderRadius: 6, cursor: "pointer", fontSize: small ? 11 : 12, fontWeight: 600, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : T.card2, color: active ? "#fff" : T.mut }}>{l}</button>;
-      })}
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 16 }}>
+      <span style={{ textTransform: "uppercase", fontSize: 11, color: T.mut }}>{label}</span>
+      <select value={String(value)} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }}
+        style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer", minWidth: 130 }}>
+        {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
+      </select>
     </div>
   );
 }
