@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { Printer } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup } from "../../services/projectCalc.js";
 import { cableMeta, cablePorts, bboxArea } from "../../services/cabling.js";
 import { formatRange, formatFull } from "../../services/dates.js";
@@ -28,6 +29,7 @@ const videoOf = (t) => {
 
 export default function ProjectRelatorio({ project }) {
   const { prefs } = useLedLabContext();
+  const isMobile = useIsMobile();
   const [type, setType] = useState("Completo");
   const numbering = prefs.cableNumbering || "row-tb-lr";
   const cfg = project.config || { vk: prefs.vk, brilho: prefs.brilho, conteudo: prefs.conteudo };
@@ -60,7 +62,7 @@ export default function ProjectRelatorio({ project }) {
         <button style={btn("primary")} onClick={() => window.print()}><Printer size={15} /> Imprimir / Salvar PDF</button>
       </div>
 
-      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
+      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: isMobile ? 18 : 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: `2px solid ${PRINT.ink}`, paddingBottom: 14, marginBottom: 16 }}>
           <div>
             <div style={{ color: PRINT.acc, fontWeight: 700, fontSize: 11, letterSpacing: "0.08em" }}>LEDLAB CORE — {type.toUpperCase()}</div>

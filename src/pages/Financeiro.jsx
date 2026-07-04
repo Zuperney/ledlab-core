@@ -7,6 +7,7 @@ import { Printer, Copy, MessageCircle } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { useToast } from "../store/UIContext.jsx";
 import { useWorklog } from "../hooks/useWorklog.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 import { reciboWhatsApp, descBreakdown, diaLabelBR, horarioLabel, extenso } from "../services/worklogReport.js";
 import { T, PRINT } from "../ui/tokens.js";
 import { card, btn, input, label as lbl } from "../ui/styles.js";
@@ -30,6 +31,7 @@ export default function Financeiro() {
   const { prefs, setPrefs } = useLedLabContext();
   const { worklog, porDia } = useWorklog();
   const toast = useToast();
+  const isMobile = useIsMobile();
 
   const now = new Date();
   const [preset, setPreset] = useState("mes");
@@ -102,7 +104,8 @@ export default function Financeiro() {
   const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em" };
   const td = { padding: "6px 8px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink, fontSize: 12.5 };
   const footRow = { display: "flex", justifyContent: "space-between", color: PRINT.mut, fontSize: 13, padding: "3px 0" };
-  const COLW = ["38%", "16%", "11%", "20%", "15%"]; // Atividade · Horário · Duração · Cálculo · Valor (iguais em todo dia)
+  // larguras de coluna iguais em todo dia; no mobile omite Duração (horário já indica)
+  const COLW = isMobile ? ["40%", "22%", "23%", "15%"] : ["38%", "16%", "11%", "20%", "15%"];
   const stat = (l, v, c = PRINT.ink) => (
     <div><div style={{ fontSize: 10, textTransform: "uppercase", color: PRINT.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v}</div></div>
   );
@@ -160,7 +163,7 @@ export default function Financeiro() {
       </div>
 
       {/* recibo imprimível */}
-      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
+      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: isMobile ? 18 : 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
         {/* emitente (prestador) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 12 }}>
           <div>
@@ -203,13 +206,13 @@ export default function Financeiro() {
               <div className="tbl-scroll" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                   <colgroup>{COLW.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
-                  <thead><tr><th style={th}>Atividade</th><th style={th}>Horário</th><th style={th}>Duração</th><th style={th}>Cálculo</th><th style={{ ...th, textAlign: "right" }}>Valor</th></tr></thead>
+                  <thead><tr><th style={th}>Atividade</th><th style={th}>Horário</th>{!isMobile && <th style={th}>Duração</th>}<th style={th}>Cálculo</th><th style={{ ...th, textAlign: "right" }}>Valor</th></tr></thead>
                   <tbody>
                     {g.itens.map((it, i) => (
                       <tr key={i}>
                         <td style={td}>{it.tipo?.nome || "?"}{it.entry.clienteLivre && cliente === "" ? <span style={{ color: PRINT.dim }}> · {it.entry.clienteLivre}</span> : ""}{it.entry.lateCheckout ? <span style={{ color: PRINT.amb, fontSize: 11 }}> · saída tardia</span> : ""}</td>
                         <td style={td}>{horarioLabel(it.entry) || "—"}</td>
-                        <td style={td}>{it.breakdown.duracaoH != null ? `${it.breakdown.duracaoH.toFixed(1)}h` : "—"}</td>
+                        {!isMobile && <td style={td}>{it.breakdown.duracaoH != null ? `${it.breakdown.duracaoH.toFixed(1)}h` : "—"}</td>}
                         <td style={{ ...td, color: PRINT.mut }}>{descBreakdown(it.breakdown)}</td>
                         <td style={{ ...td, textAlign: "right", fontWeight: 700, color: it.cobrado ? PRINT.ink : PRINT.dim }}>{it.cobrado ? brl(it.breakdown.total) : "não cobra"}</td>
                       </tr>

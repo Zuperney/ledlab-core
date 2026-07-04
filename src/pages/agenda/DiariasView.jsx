@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, ArrowLeft, Play, Square, MapPi
 import { MONTHS_LONG } from "../../services/projectCalc.js";
 import { useWorklog } from "../../hooks/useWorklog.js";
 import { useActivityTypes } from "../../hooks/useActivityTypes.js";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { getPosition, mapsUrl } from "../../services/geo.js";
 import { T } from "../../ui/tokens.js";
@@ -34,6 +35,7 @@ export default function DiariasView() {
   const { activityTypes } = useActivityTypes();
   const confirm = useConfirm();
   const toast = useToast();
+  const isMobile = useIsMobile();
   const ativos = activityTypes.filter((t) => t.ativo);
 
   const now = new Date();
@@ -202,21 +204,36 @@ export default function DiariasView() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 5 }}>
           {WEEKDAYS.map((w) => <div key={w} style={{ textAlign: "center", color: T.mut, fontSize: 11, textTransform: "uppercase", fontWeight: 600 }}>{w}</div>)}
           {cells.map((d, i) => {
-            if (!d) return <div key={i} style={{ minHeight: 74 }} />;
+            if (!d) return <div key={i} style={{ minHeight: isMobile ? 50 : 74 }} />;
             const dataRef = isoDay(y, m, d);
             const { total, itens } = totalDiaOf(dataRef);
             const isToday = dataRef === todayISO;
             return (
               <button key={i} onClick={() => setDaySheet(dataRef)}
-                style={{ minHeight: 74, textAlign: "left", cursor: "pointer", background: T.card2, border: `1px solid ${isToday ? T.acc : T.bd}`, borderRadius: 8, padding: 5, display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                style={{ minHeight: isMobile ? 50 : 74, textAlign: "left", cursor: "pointer", background: T.card2, border: `1px solid ${isToday ? T.acc : T.bd}`, borderRadius: 8, padding: isMobile ? 4 : 5, display: "flex", flexDirection: "column", gap: isMobile ? 2 : 3, overflow: "hidden" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
                   <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 500, color: isToday ? T.acM : T.dim }}>{d}</span>
-                  {total > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: T.grn }}>{brl(total)}</span>}
+                  {!isMobile && total > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: T.grn }}>{brl(total)}</span>}
                 </div>
-                {itens.slice(0, 3).map((it, j) => (
-                  <span key={j} style={{ ...chip, background: (it.tipo?.cor || T.dim2) + "2e", color: "#fff", opacity: it.cobrado ? 1 : 0.5 }}>{it.tipo?.nome || "?"}</span>
-                ))}
-                {itens.length > 3 && <span style={{ fontSize: 9, color: T.dim }}>+{itens.length - 3}</span>}
+                {isMobile ? (
+                  <>
+                    {total > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: T.grn, whiteSpace: "nowrap" }}>{brl(total)}</span>}
+                    {itens.length > 0 && (
+                      <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                        {itens.slice(0, 4).map((it, j) => (
+                          <span key={j} style={{ width: 6, height: 6, borderRadius: 999, background: it.tipo?.cor || T.dim2, opacity: it.cobrado ? 1 : 0.4 }} />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {itens.slice(0, 3).map((it, j) => (
+                      <span key={j} style={{ ...chip, background: (it.tipo?.cor || T.dim2) + "2e", color: "#fff", opacity: it.cobrado ? 1 : 0.5 }}>{it.tipo?.nome || "?"}</span>
+                    ))}
+                    {itens.length > 3 && <span style={{ fontSize: 9, color: T.dim }}>+{itens.length - 3}</span>}
+                  </>
+                )}
               </button>
             );
           })}
