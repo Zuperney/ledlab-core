@@ -157,8 +157,9 @@ export default function Financeiro() {
               <>
                 <div style={{ fontSize: 18, fontWeight: 800 }}>{emit.razaoSocial || emit.nomeFantasia}</div>
                 {emit.nomeFantasia && emit.razaoSocial && emit.nomeFantasia !== emit.razaoSocial && <div style={{ color: PRINT.mut, fontSize: 13 }}>{emit.nomeFantasia}</div>}
-                {emit.cnpj && <div style={{ color: PRINT.mut, fontSize: 12 }}>CNPJ/CPF: {emit.cnpj}</div>}
-                {emit.endereco && <div style={{ color: PRINT.mut, fontSize: 12 }}>{emit.endereco}</div>}
+                {(emit.cnpj || emit.cpf) && <div style={{ color: PRINT.mut, fontSize: 12 }}>{emit.cnpj ? `CNPJ: ${emit.cnpj}` : `CPF: ${emit.cpf}`}</div>}
+                {(emit.endereco || emit.cep || emit.cidade) && <div style={{ color: PRINT.mut, fontSize: 12 }}>{[emit.endereco, emit.cep && `CEP ${emit.cep}`, emit.cidade].filter(Boolean).join(" · ")}</div>}
+                {(emit.telefone || emit.email) && <div style={{ color: PRINT.mut, fontSize: 12 }}>{[emit.telefone, emit.email].filter(Boolean).join(" · ")}</div>}
               </>
             ) : (
               <div style={{ color: PRINT.acc, fontWeight: 700, fontSize: 11, letterSpacing: "0.08em" }}>LEDLAB CORE</div>
@@ -230,9 +231,14 @@ export default function Financeiro() {
             <div style={{ marginTop: 44, textAlign: "center" }}>
               <div style={{ borderTop: `1px solid ${PRINT.ink}`, width: 320, maxWidth: "100%", margin: "0 auto", paddingTop: 6, fontSize: 13 }}>
                 {nomeAssina || "Assinatura do prestador"}
-                {emit.cnpj && <div style={{ color: PRINT.mut, fontSize: 12 }}>CNPJ/CPF: {emit.cnpj}</div>}
+                {(emit.cnpj || emit.cpf) && <div style={{ color: PRINT.mut, fontSize: 12 }}>{emit.cnpj ? `CNPJ: ${emit.cnpj}` : `CPF: ${emit.cpf}`}</div>}
               </div>
             </div>
+            {(emit.pix || emit.banco) && (
+              <div style={{ marginTop: 22, paddingTop: 10, borderTop: `1px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 12 }}>
+                <b style={{ color: PRINT.ink }}>Dados para pagamento:</b> {[emit.pix && `PIX: ${emit.pix}`, emit.banco].filter(Boolean).join(" · ")}
+              </div>
+            )}
           </div>
         )}
       </div>
