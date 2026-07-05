@@ -25,18 +25,18 @@ body {
 }
 
 .app-mobile-header {
-  padding-top: 12px;
+  padding-top: 9px;
 }
 
 @supports (padding-top: env(safe-area-inset-top)) {
   .app-mobile-header {
-    padding-top: calc(12px + env(safe-area-inset-top));
+    padding-top: calc(9px + env(safe-area-inset-top));
   }
 }
 
 @supports (padding-top: constant(safe-area-inset-top)) {
   .app-mobile-header {
-    padding-top: calc(12px + constant(safe-area-inset-top));
+    padding-top: calc(9px + constant(safe-area-inset-top));
   }
 }
 
