@@ -38,10 +38,10 @@ export default function ProjectDados({ project, patch, patchTela }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(320px,1fr) minmax(340px,1fr)", gap: 16, alignItems: "start" }}>
       {/* telas */}
-      <div style={card()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div style={card({ minWidth: 0 })}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
           <span style={{ textTransform: "uppercase", fontSize: 11, letterSpacing: "0.06em", color: T.mut }}>Telas — {telas.length}</span>
-          <button style={btn("primary")} onClick={addTela}><Plus size={15} /> Adicionar tela</button>
+          <button style={btn("primary", isMobile ? { width: "100%", justifyContent: "center" } : {})} onClick={addTela}><Plus size={15} /> Adicionar tela</button>
         </div>
         {telas.length === 0 && <div style={{ color: T.dim, fontSize: 13 }}>Nenhuma tela ainda.</div>}
         {telas.map((t) => {
@@ -54,48 +54,57 @@ export default function ProjectDados({ project, patch, patchTela }) {
           const setRows = (n) => patchTela(t.id, { rows: Math.max(0, n || 0) });
           return (
             <div key={t.id} style={{ borderTop: `1px solid ${T.bd}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0", flexWrap: "wrap" }}>
                 <button onClick={() => setEditId(open ? null : t.id)}
-                  style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer", color: "inherit", fontFamily: "inherit" }}>
+                  style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer", color: "inherit" }}>
                   <ChevronRight size={16} style={{ color: T.mut, flexShrink: 0, transform: open ? "rotate(90deg)" : "none", transition: "transform .12s" }} />
                   <span style={{ minWidth: 0 }}>
                     <div style={{ color: T.txt, fontWeight: 600 }}>{t.nome}</div>
-                    <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.nome} · {t.cols}×{t.rows} = {t.cols * t.rows} gab · {watts(t).toLocaleString()} W</div>
+                    <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{g.nome} · {t.cols}×{t.rows} · {watts(t)}W</div>
                   </span>
                 </button>
-                <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
-                <button style={dangerIconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end", flexWrap: "wrap" }}>
+                  <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
+                  <button style={dangerIconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
+                </div>
               </div>
               {open && (
-                <div style={{ display: "grid", gap: 12, padding: "2px 0 14px 24px" }}>
+                <div style={{ display: "grid", gap: 12, padding: "2px 0 14px 0", minWidth: 0 }}>
                   <Field lbl="Nome da tela" value={t.nome} onChange={(v) => patchTela(t.id, { nome: v })} />
                   <div>
                     <label style={label}>Gabinete</label>
                     <select value={t.cabId ?? ""} onChange={(e) => {
                       const c = cabs.find((x) => String(x.id) === e.target.value);
-                      patchTela(t.id, { cabId: c?.id ?? null, gabinete: c ? { nome: c.nome, resX: c.resX, resY: c.resY, dimW: c.dimW, dimH: c.dimH, peso: c.peso, pwrMax: c.pwrMax, pwrMed: c.pwrMed, pwrBlack: c.pwrBlack, fp: c.fp, ip: c.ip, conector: c.conector } : t.gabinete });
+                      patchTela(t.id, { cabId: c?.id ?? null, gabinete: c ? { nome: c.nome, resX: c.resX, resY: c.resY, dimW: c.dimW, dimH: c.dimH, peso: c.peso, pwrMax: c.pwrMax, pwrMed: c.pwrMed, fp: c.fp, conector: c.conector } : {} });
                     }} style={input()}>
                       {cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                   </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {[["gab", "Gabinetes"], ["m", "Metros"]].map(([k, l]) => (
-                      <button key={k} onClick={() => (dW || k === "gab") && setDimMode(k)}
-                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: dW || k === "gab" ? "pointer" : "not-allowed", border: `1px solid ${(usaM ? "m" : "gab") === k ? T.acc : T.bd}`, background: (usaM ? "m" : "gab") === k ? T.acc : "transparent", color: (usaM ? "m" : "gab") === k ? "#fff" : T.mut, opacity: k === "m" && !dW ? 0.5 : 1 }}>{l}</button>
-                    ))}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {["gab", "m"].map((k) => {
+                      const l = k === "gab" ? "Gabinetes" : "Metros";
+                      const active = dimMode === k;
+                      const disabled = k === "m" && !dW;
+                      return (
+                        <button key={k} onClick={() => !disabled && setDimMode(k)}
+                          style={{ flex: 1, minWidth: 120, padding: "8px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : T.card2, color: active ? "#fff" : T.mut, opacity: disabled ? 0.55 : 1 }}>
+                          {l}
+                        </button>
+                      );
+                    })}
                   </div>
                   {usaM ? (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                       <Field lbl="Largura (m)" type="number" value={larguraM ? larguraM.toFixed(2) : ""} onChange={(v) => setCols(Math.round((parseFloat(v) || 0) * 1000 / dW))} />
                       <Field lbl="Altura (m)" type="number" value={alturaM ? alturaM.toFixed(2) : ""} onChange={(v) => setRows(Math.round((parseFloat(v) || 0) * 1000 / dH))} />
                     </div>
                   ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                       <Field lbl="Colunas" type="number" value={t.cols} onChange={(v) => setCols(parseInt(v) || 0)} />
                       <Field lbl="Linhas" type="number" value={t.rows} onChange={(v) => setRows(parseInt(v) || 0)} />
                     </div>
                   )}
-                  <div style={{ color: T.dim, fontSize: 12, marginTop: -4 }}>
+                  <div style={{ color: T.dim, fontSize: 12, marginTop: -4, overflowWrap: "anywhere" }}>
                     {(t.cols || 0)}×{(t.rows || 0)} = {(t.cols || 0) * (t.rows || 0)} gab{dW ? ` · ${larguraM.toFixed(2)} × ${alturaM.toFixed(2)} m` : ""}
                   </div>
                 </div>
@@ -106,7 +115,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
       </div>
 
       {/* ficha */}
-      <div style={card()}>
+      <div style={card({ minWidth: 0 })}>
         <Field lbl="Nome do projeto" req value={project.name} onChange={(v) => patch({ name: v })} />
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
           <Field lbl="Cliente" value={project.cliente} onChange={(v) => patch({ cliente: v })} />
@@ -132,7 +141,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
 
 function Field({ lbl, value, onChange, type = "text", req }) {
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: 12, minWidth: 0 }}>
       <label style={label}>{lbl}{req ? <span style={{ color: T.red }}> obrigatório</span> : ""}</label>
       <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={input()} />
     </div>

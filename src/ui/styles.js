@@ -6,6 +6,7 @@ export const card = (extra = {}) => ({
   border: `1px solid ${T.bd}`,
   borderRadius: 12,
   padding: 16,
+  minWidth: 0,
   ...extra,
 });
 
@@ -28,6 +29,8 @@ export const input = (extra = {}) => ({
   fontSize: 14,
   fontFamily: FONT,
   outline: "none",
+  boxSizing: "border-box",
+  minWidth: 0,
   ...extra,
 });
 
@@ -43,6 +46,7 @@ export const btn = (variant = "ghost", extra = {}) => {
     cursor: "pointer",
     border: "1px solid transparent",
     fontFamily: FONT,
+    minWidth: 0,
   };
   const variants = {
     primary: { background: T.acc, color: "#fff" },
@@ -64,6 +68,7 @@ export const iconBtn = (extra = {}) => ({
   border: `1px solid ${T.bd}`,
   color: T.mut,
   cursor: "pointer",
+  flexShrink: 0,
   ...extra,
 });
 
