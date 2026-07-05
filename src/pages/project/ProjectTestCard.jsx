@@ -1,6 +1,6 @@
 // pages/project/ProjectTestCard.jsx — gerador de test card (canvas + export PNG).
 import { useRef, useEffect, useState } from "react";
-import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes } from "lucide-react";
+import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, ChevronDown, ChevronUp } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt } from "../../store/UIContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
@@ -134,6 +134,8 @@ function draw(canvas, tela, o, mapPorts) {
 export default function ProjectTestCard({ project }) {
   const { tcPresets, setTcPresets, prefs } = useLedLabContext();
   const isMobile = useIsMobile();
+  const [controlsOpen, setControlsOpen] = useState(!isMobile); // no mobile começa fechado
+  useEffect(() => setControlsOpen(!isMobile), [isMobile]);
   const toast = useToast();
   const prompt = usePrompt();
   const numbering = prefs.cableNumbering || "row-tb-lr";
@@ -202,7 +204,13 @@ export default function ProjectTestCard({ project }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
         <div style={card({ padding: isMobile ? "4px 14px 10px" : "4px 16px" })}>
-          {isMobile ? (
+          {isMobile && (
+            <button onClick={() => setControlsOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "6px 2px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
+              Controles
+              {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          )}
+          {(!isMobile || controlsOpen) && (isMobile ? (
             /* MOBILE: controles pareados em linhas compactas (rótulo em cima, controle embaixo) */
             <>
               <GroupRow top>
@@ -320,7 +328,7 @@ export default function ProjectTestCard({ project }) {
                 </>
               )}
             </>
-          )}
+          ))}
         </div>
 
         <div style={card()}>

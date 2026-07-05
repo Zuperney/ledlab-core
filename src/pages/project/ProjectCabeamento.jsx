@@ -9,7 +9,7 @@
 // ativo, clica p/ atribuir/reatribuir gabinetes e cria novo cabo quando quiser.
 // Pode IMPORTAR o cabeamento automático (Linha/Coluna/Área) e editar só o necessário.
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight } from "lucide-react";
+import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 import { paletteColor, T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
@@ -32,6 +32,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const stageRef = useRef(null);
   const drag = useRef(null);
   const isMobile = useIsMobile();
+  const [controlsOpen, setControlsOpen] = useState(!isMobile); // no mobile começa fechado
+  useEffect(() => setControlsOpen(!isMobile), [isMobile]);
 
   const tela = telas.find((t) => t.id === telaId) || telas[0];
   const cols = tela?.cols || 1, rows = tela?.rows || 1;
@@ -130,15 +132,25 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   return (
     <div>
-      <div style={card({ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: livreEdit ? 8 : 16 })} className="m-controlbar">
-        <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
-          {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-        </select>
-        <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
-        <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />
-        {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
-        {mode === "sinal" && <Drop label="Freq" options={[[60, "60 Hz"], [50, "50 Hz"], [30, "30 Hz"]]} value={hz} onChange={setHz} />}
-        <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
+      <div style={card({ marginBottom: livreEdit ? 8 : 16 })}>
+        {isMobile && (
+          <button onClick={() => setControlsOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "4px 2px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>Controles <span style={{ background: status.c + "22", color: status.c, padding: "2px 10px", borderRadius: 999, fontSize: 11 }}>{status.l}</span></span>
+            {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        )}
+        {(!isMobile || controlsOpen) && (
+          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }} className="m-controlbar">
+            <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
+              {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+            </select>
+            <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
+            <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />
+            {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
+            {mode === "sinal" && <Drop label="Freq" options={[[60, "60 Hz"], [50, "50 Hz"], [30, "30 Hz"]]} value={hz} onChange={setHz} />}
+            {!isMobile && <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>}
+          </div>
+        )}
       </div>
 
       {/* barra do modo livre */}
