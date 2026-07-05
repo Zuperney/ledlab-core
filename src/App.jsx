@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLocation } from "wouter";
-import logo from "./assets/logo.svg";
+import logo from "./assets/logo.png";
 import { NAV, SECTIONS, LABELS, VERSION } from "./nav.js";
 import { T, FONT } from "./ui/tokens.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
@@ -70,7 +70,7 @@ export default function App() {
       <div className="app-mobile-shell" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
         <header className="app-mobile-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <img src={logo} alt="" style={{ width: 24, height: 24, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
+            <img src={logo} alt="" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }} />
             <h1 style={{ margin: 0, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{LABELS[page] || "LedLab Core"}</h1>
           </div>
           <span style={{ flexShrink: 0, background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
@@ -98,12 +98,9 @@ export default function App() {
       {/* sidebar */}
       <aside style={{ width: collapsed ? 60 : 220, flexShrink: 0, background: T.sb, borderRight: `1px solid ${T.bd}`, display: "flex", flexDirection: "column", padding: 12, transition: "width 0.15s" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: "8px 4px 16px" }}>
-          <img src={logo} alt="LedLab Core" style={{ width: 34, height: 34, filter: "brightness(0) invert(1)" }} />
+          <img src={logo} alt="LedLab Core" style={{ width: 38, height: 38, borderRadius: 8 }} />
           {!collapsed && (
-            <span style={{ marginLeft: 10, lineHeight: 1.05 }}>
-              <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.mut, letterSpacing: "0.02em" }}>Led Lab</span>
-              <span style={{ display: "block", fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "0.14em" }}>CORE</span>
-            </span>
+            <span style={{ marginLeft: 10, fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "0.14em" }}>CORE</span>
           )}
         </div>
 
