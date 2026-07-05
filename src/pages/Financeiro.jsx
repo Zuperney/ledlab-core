@@ -101,13 +101,13 @@ export default function Financeiro() {
   };
   const abrirWhats = () => window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
 
-  const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em" };
+  const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: isMobile ? 12 : 11, textTransform: "uppercase", letterSpacing: "0.04em" };
   const td = { padding: "6px 8px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink, fontSize: 12.5 };
   const footRow = { display: "flex", justifyContent: "space-between", color: PRINT.mut, fontSize: 13, padding: "3px 0" };
   // larguras de coluna iguais em todo dia; no mobile omite Duração (horário já indica)
   const COLW = isMobile ? ["40%", "22%", "23%", "15%"] : ["38%", "16%", "11%", "20%", "15%"];
   const stat = (l, v, c = PRINT.ink) => (
-    <div><div style={{ fontSize: 10, textTransform: "uppercase", color: PRINT.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v}</div></div>
+    <div><div style={{ fontSize: isMobile ? 12 : 11, textTransform: "uppercase", color: PRINT.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v}</div></div>
   );
 
   return (

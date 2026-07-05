@@ -161,7 +161,7 @@ export default function DiariasView() {
           <button style={navBtn} onClick={() => go(1)}><ChevronRight size={16} /></button>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 10, textTransform: "uppercase", color: T.mut }}>Total do mês</div>
+          <div style={{ fontSize: isMobile ? 12 : 11, textTransform: "uppercase", color: T.mut }}>Total do mês</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: T.grn }}>{brl(mesTotal)}</div>
         </div>
       </div>
@@ -401,4 +401,4 @@ function DayList({ data, onAdd, onEdit }) {
   );
 }
 
-const navBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };
+const navBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };

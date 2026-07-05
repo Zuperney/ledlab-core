@@ -34,7 +34,7 @@ export default function BottomNav({ page, onNavigate }) {
             <button key={t.id} onClick={() => (t.sheet ? setSheet(t.sheet) : go(t.id))}
               style={{ flex: 1, minHeight: TOUCH_MIN + 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, background: "none", border: "none", cursor: "pointer", color: t.active ? T.acM : T.mut, padding: "8px 2px" }}>
               <Icon size={20} />
-              <span style={{ fontSize: 10, fontWeight: 600 }}>{t.label}</span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>{t.label}</span>
             </button>
           );
         })}
