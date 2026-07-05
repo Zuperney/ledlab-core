@@ -15,11 +15,11 @@ import ProjectTestCard from "./project/ProjectTestCard.jsx";
 import ProjectRelatorio from "./project/ProjectRelatorio.jsx";
 
 const TABS = [
-  { id: "dados", label: "Dados", Icon: Folder, Comp: ProjectDados },
-  { id: "energia", label: "Energia (AC)", Icon: Zap, Comp: ProjectEnergia },
-  { id: "cabeamento", label: "Cabeamento", Icon: GitBranch, Comp: ProjectCabeamento },
-  { id: "testcard", label: "Test Card", Icon: Monitor, Comp: ProjectTestCard },
-  { id: "relatorio", label: "Relatório", Icon: FileText, Comp: ProjectRelatorio },
+  { id: "dados", label: "Dados", mobileLabel: "Dados", Icon: Folder, Comp: ProjectDados },
+  { id: "energia", label: "Energia (AC)", mobileLabel: "Energia", Icon: Zap, Comp: ProjectEnergia },
+  { id: "cabeamento", label: "Cabeamento", mobileLabel: "Cabos", Icon: GitBranch, Comp: ProjectCabeamento },
+  { id: "testcard", label: "Test Card", mobileLabel: "Test", Icon: Monitor, Comp: ProjectTestCard },
+  { id: "relatorio", label: "Relatório", mobileLabel: "Relat.", Icon: FileText, Comp: ProjectRelatorio },
 ];
 
 export default function ProjectDetail({ project, onBack }) {
@@ -59,12 +59,14 @@ export default function ProjectDetail({ project, onBack }) {
       <div className="no-scrollbar" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: 20, overflowX: "auto", flexWrap: "nowrap" }}>
         {TABS.map((t, idx) => {
           const active = tab === t.id;
-          const showLabel = !isMobile || active || Math.abs(idx - activeTabIndex) <= 1;
+          const nearActive = Math.abs(idx - activeTabIndex) <= 1;
+          const showLabel = true;
+          const label = isMobile && !nearActive ? (t.mobileLabel || t.label) : t.label;
           const Icon = t.Icon;
           return (
-            <button key={t.id} onClick={() => setTab(t.id)} title={t.label}
+            <button key={t.id} onClick={() => setTab(t.id)} title={t.label} aria-current={active ? "page" : undefined}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", flexShrink: 0 }}>
-              <Icon size={16} />{showLabel && <span>{t.label}</span>}
+              <Icon size={16} />{showLabel && <span>{label}</span>}
             </button>
           );
         })}
