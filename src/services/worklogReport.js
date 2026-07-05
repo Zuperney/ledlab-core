@@ -72,14 +72,19 @@ export function reciboWhatsApp({ grupos = [], titulo = "RECIBO DE MÃO DE OBRA",
   }
 
   for (const g of grupos) {
-    L.push(`*${diaLabelBR(g.dataRef)}*`);
+    // evento(s) do dia (localLivre) — a Mega Led distribui custos por evento
+    const locais = [...new Set(g.itens.map((it) => it.entry.localLivre).filter(Boolean))];
+    const evento = locais.length ? ` · ${locais.join(", ")}` : "";
+    const mistura = locais.length > 1; // dia com +1 evento → repete o local por lançamento
+    L.push(`*${diaLabelBR(g.dataRef)}${evento}*`);
     for (const it of g.itens) {
       const h = horarioLabel(it.entry);
       const dur = it.breakdown?.duracaoH != null ? ` (${it.breakdown.duracaoH.toFixed(1)}h)` : "";
       const val = it.cobrado ? brl(it.breakdown.total) : "não cobra";
       const cli = showCliente && it.entry.clienteLivre ? ` · ${it.entry.clienteLivre}` : "";
+      const loc = mistura && it.entry.localLivre ? ` · ${it.entry.localLivre}` : "";
       const meio = [`${it.tipo?.nome || "?"}${h ? " " + h : ""}${dur}`, descBreakdown(it.breakdown), val].filter(Boolean).join(" — ");
-      L.push(`• ${meio}${cli}`);
+      L.push(`• ${meio}${cli}${loc}`);
     }
     if (g.itens.length > 1) L.push(`Subtotal: ${brl(g.total)}`);
     L.push("");

@@ -197,11 +197,15 @@ export default function Financeiro() {
         {!temConteudo ? (
           <div style={{ color: PRINT.mut, padding: "24px 0", textAlign: "center" }}>Nenhum lançamento no período selecionado.</div>
         ) : (
-          grupos.map((g) => (
+          grupos.map((g) => {
+            // evento(s) do dia (localLivre) — pra Mega Led distribuir custos por evento
+            const locais = [...new Set(g.itens.map((it) => it.entry.localLivre).filter(Boolean))];
+            const mistura = locais.length > 1; // dia com +1 evento → local por lançamento
+            return (
             <div key={g.dataRef} style={{ marginBottom: 18, breakInside: "avoid" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: PRINT.ink }}>{diaLabelBR(g.dataRef)}</div>
-                {g.itens.length > 1 && <div style={{ color: PRINT.mut, fontSize: 12 }}>subtotal <b style={{ color: PRINT.ink }}>{brl(g.total)}</b></div>}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, gap: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: PRINT.ink }}>{diaLabelBR(g.dataRef)}{locais.length ? <span style={{ color: PRINT.acc, fontWeight: 600 }}> · {locais.join(", ")}</span> : ""}</div>
+                {g.itens.length > 1 && <div style={{ color: PRINT.mut, fontSize: 12, whiteSpace: "nowrap" }}>subtotal <b style={{ color: PRINT.ink }}>{brl(g.total)}</b></div>}
               </div>
               <div className="tbl-scroll" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
@@ -210,7 +214,7 @@ export default function Financeiro() {
                   <tbody>
                     {g.itens.map((it, i) => (
                       <tr key={i}>
-                        <td style={td}>{it.tipo?.nome || "?"}{it.entry.clienteLivre && cliente === "" ? <span style={{ color: PRINT.dim }}> · {it.entry.clienteLivre}</span> : ""}{it.entry.lateCheckout ? <span style={{ color: PRINT.amb, fontSize: 11 }}> · saída tardia</span> : ""}</td>
+                        <td style={td}>{it.tipo?.nome || "?"}{it.entry.clienteLivre && cliente === "" ? <span style={{ color: PRINT.dim }}> · {it.entry.clienteLivre}</span> : ""}{mistura && it.entry.localLivre ? <span style={{ color: PRINT.acc }}> · {it.entry.localLivre}</span> : ""}{it.entry.lateCheckout ? <span style={{ color: PRINT.amb, fontSize: 11 }}> · saída tardia</span> : ""}</td>
                         <td style={td}>{horarioLabel(it.entry) || "—"}</td>
                         {!isMobile && <td style={td}>{it.breakdown.duracaoH != null ? `${it.breakdown.duracaoH.toFixed(1)}h` : "—"}</td>}
                         <td style={{ ...td, color: PRINT.mut }}>{descBreakdown(it.breakdown)}</td>
@@ -221,7 +225,8 @@ export default function Financeiro() {
                 </table>
               </div>
             </div>
-          ))
+            );
+          })
         )}
 
         {temConteudo && (
