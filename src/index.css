@@ -24,6 +24,22 @@ body {
   background: #0d0d1a;
 }
 
+.app-mobile-header {
+  padding-top: 12px;
+}
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  .app-mobile-header {
+    padding-top: calc(12px + env(safe-area-inset-top));
+  }
+}
+
+@supports (padding-top: constant(safe-area-inset-top)) {
+  .app-mobile-header {
+    padding-top: calc(12px + constant(safe-area-inset-top));
+  }
+}
+
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;

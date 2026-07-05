@@ -44,8 +44,8 @@ export default function App() {
   // ── Shell mobile: topbar compacta + conteúdo + bottom navigation ──
   if (isMobile) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
-        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, flexShrink: 0 }}>
+      <div className="app-mobile-shell" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
+        <header className="app-mobile-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <img src={logo} alt="" style={{ width: 24, height: 24, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
             <h1 style={{ margin: 0, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{LABELS[page] || "LedLab Core"}</h1>
