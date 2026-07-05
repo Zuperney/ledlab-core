@@ -63,11 +63,11 @@ export default function Dashboard({ nav }) {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 16 }}>
+      <div className="dash-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 16 }}>
         {stats.map((s) => (
           <div key={s.l} style={card()}>
             <div style={{ textTransform: "uppercase", fontSize: 11, letterSpacing: "0.06em", color: T.mut }}>{s.l}</div>
-            <div style={{ fontSize: 34, fontWeight: 800, color: s.c, marginTop: 8 }}>{s.v}</div>
+            <div className="dash-stat-value" style={{ fontSize: 34, fontWeight: 800, color: s.c, marginTop: 8 }}>{s.v}</div>
           </div>
         ))}
       </div>
