@@ -33,6 +33,7 @@ export default function ProjectDetail({ project, onBack }) {
 
   const roll = projectRollup(project);
   const Active = TABS.find((t) => t.id === tab)?.Comp || ProjectDados;
+  const activeTabIndex = TABS.findIndex((t) => t.id === tab);
 
   return (
     <div>
@@ -56,13 +57,14 @@ export default function ProjectDetail({ project, onBack }) {
       </div>
 
       <div className="no-scrollbar" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: 20, overflowX: "auto", flexWrap: "nowrap" }}>
-        {TABS.map((t) => {
+        {TABS.map((t, idx) => {
           const active = tab === t.id;
+          const showLabel = !isMobile || active || Math.abs(idx - activeTabIndex) <= 1;
           const Icon = t.Icon;
           return (
             <button key={t.id} onClick={() => setTab(t.id)} title={t.label}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", flexShrink: 0 }}>
-              <Icon size={16} />{(!isMobile || active) && <span>{t.label}</span>}
+              <Icon size={16} />{showLabel && <span>{t.label}</span>}
             </button>
           );
         })}

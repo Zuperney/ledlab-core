@@ -1,6 +1,6 @@
 // pages/project/ProjectTestCard.jsx — gerador de test card (canvas + export PNG).
 import { useRef, useEffect, useState } from "react";
-import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes } from "lucide-react";
+import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, ChevronDown, ChevronUp } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt } from "../../store/UIContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
@@ -142,11 +142,13 @@ export default function ProjectTestCard({ project }) {
   const [o, setO] = useState({ ...DEFAULTS });
   const [zoom, setZoom] = useState(1);
   const [presetSel, setPresetSel] = useState("");
+  const [controlsOpen, setControlsOpen] = useState(!isMobile);
   const canvasRef = useRef(null);
   const tela = telas.find((t) => t.id === telaId) || telas[0];
 
   const mapPorts = tela && o.cableMap !== "off" ? cablePorts(tela, o.cableMap, numbering) : null;
   useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts); });
+  useEffect(() => { setControlsOpen(!isMobile); }, [isMobile]);
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o test card." />;
 
@@ -180,165 +182,194 @@ export default function ProjectTestCard({ project }) {
   };
 
   const zbtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 7, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };
-
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: "2 1 130px", minWidth: 0 }}>
-          {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-        </select>
-        <select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: "2 1 150px", minWidth: 0 }}>
-          <option value="">Predefinição…</option>
-          <option value="map">Mapa de gabinetes</option>
-          <option value="align">Alinhamento / geometria</option>
-          <option value="solid">Cor sólida</option>
-          <option value="bars">Barras de cor</option>
-          <option value="cabsig">Mapa de cabos (sinal)</option>
-          {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-        <button style={tbBtn} title="Salvar predefinição" onClick={savePreset}><Save size={16} /></button>
-        <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} />{!isMobile && " PNG"}</button>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
-        <div style={card({ padding: isMobile ? "4px 14px 10px" : "4px 16px" })}>
-          {isMobile ? (
-            /* MOBILE: controles pareados em linhas compactas (rótulo em cima, controle embaixo) */
+  const controlsPanel = (
+    <div style={card({ padding: isMobile ? "4px 14px 10px" : "4px 16px" })}>
+      {isMobile ? (
+        /* MOBILE: controles pareados em linhas compactas (rótulo em cima, controle embaixo) */
+        <>
+          <GroupRow top>
+            <Cell label="Esquema de cor" flex="1 1 130px">
+              <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={cellSel}>
+                <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
+              </select>
+            </Cell>
+            {o.scheme === "arcoiris" && (
+              <Cell label="Direção" flex="1 1 110px">
+                <select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={cellSel}>
+                  <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
+                </select>
+              </Cell>
+            )}
+            {o.scheme === "solida" && (
+              <>
+                <Cell label="Cor sólida" flex="0 0 auto"><input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 48, height: 34, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer", padding: 0 }} /></Cell>
+                <Cell label="Transparente" flex="0 0 auto"><Switch on={o.solidAlpha} onClick={() => toggle("solidAlpha")} /></Cell>
+              </>
+            )}
+          </GroupRow>
+          {locked ? (
+            <div style={{ margin: "10px 0", color: T.dim, fontSize: 12, background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 10 }}>
+              Predefinição de calibração (preto→branco por coluna). Sem edições.
+            </div>
+          ) : (
             <>
-              <GroupRow top>
-                <Cell label="Esquema de cor" flex="1 1 130px">
-                  <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={cellSel}>
-                    <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
+              <GroupRow>
+                <Cell label="Elementos" flex="1 1 130px">
+                  <DropdownMenu triggerLabel={`${elCount} ativo${elCount === 1 ? "" : "s"}`} Icon={Shapes} align="left"
+                    items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
+                </Cell>
+                <Cell label="Tamanho do nº" flex="1 1 150px"><NumScaleInline value={o.numScale} onChange={(n) => set({ numScale: n })} /></Cell>
+              </GroupRow>
+              <GroupRow>
+                <Cell label="Color bar" flex="1 1 140px">
+                  <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={cellSel}>
+                    <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
                   </select>
                 </Cell>
-                {o.scheme === "arcoiris" && (
-                  <Cell label="Direção" flex="1 1 110px">
-                    <select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={cellSel}>
-                      <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
+                <Cell label="Mapa de cabos" flex="1 1 140px">
+                  <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={cellSel}>
+                    <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
+                  </select>
+                </Cell>
+              </GroupRow>
+              <GroupRow>
+                <Cell label="Caixa de info" flex="0 0 auto"><Switch on={o.info} onClick={() => toggle("info")} /></Cell>
+                {o.info && <Cell label="Info em linha" flex="0 0 auto"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Cell>}
+                {o.info && (
+                  <Cell label="Posição" flex="1 1 130px">
+                    <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={cellSel}>
+                      <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
                     </select>
                   </Cell>
                 )}
-                {o.scheme === "solida" && (
-                  <>
-                    <Cell label="Cor sólida" flex="0 0 auto"><input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 48, height: 34, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer", padding: 0 }} /></Cell>
-                    <Cell label="Transparente" flex="0 0 auto"><Switch on={o.solidAlpha} onClick={() => toggle("solidAlpha")} /></Cell>
-                  </>
-                )}
               </GroupRow>
-              {locked ? (
-                <div style={{ margin: "10px 0", color: T.dim, fontSize: 12, background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 10 }}>
-                  Predefinição de calibração (preto→branco por coluna). Sem edições.
-                </div>
-              ) : (
-                <>
-                  <GroupRow>
-                    <Cell label="Elementos" flex="1 1 130px">
-                      <DropdownMenu triggerLabel={`${elCount} ativo${elCount === 1 ? "" : "s"}`} Icon={Shapes} align="left"
-                        items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
-                    </Cell>
-                    <Cell label="Tamanho do nº" flex="1 1 150px"><NumScaleInline value={o.numScale} onChange={(n) => set({ numScale: n })} /></Cell>
-                  </GroupRow>
-                  <GroupRow>
-                    <Cell label="Color bar" flex="1 1 140px">
-                      <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={cellSel}>
-                        <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
-                      </select>
-                    </Cell>
-                    <Cell label="Mapa de cabos" flex="1 1 140px">
-                      <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={cellSel}>
-                        <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
-                      </select>
-                    </Cell>
-                  </GroupRow>
-                  <GroupRow>
-                    <Cell label="Caixa de info" flex="0 0 auto"><Switch on={o.info} onClick={() => toggle("info")} /></Cell>
-                    {o.info && <Cell label="Info em linha" flex="0 0 auto"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Cell>}
-                    {o.info && (
-                      <Cell label="Posição" flex="1 1 130px">
-                        <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={cellSel}>
-                          <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
-                        </select>
-                      </Cell>
-                    )}
-                  </GroupRow>
-                </>
-              )}
             </>
-          ) : (
-            /* DESKTOP: lista linear (rótulo à esquerda, controle à direita) */
+          )}
+        </>
+      ) : (
+        /* DESKTOP: lista linear (rótulo à esquerda, controle à direita) */
+        <>
+          <Row label="Esquema de cor" top>
+            <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={rsel}>
+              <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
+            </select>
+          </Row>
+          {o.scheme === "arcoiris" && (
+            <Row label="Direção">
+              <select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={rsel}>
+                <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
+              </select>
+            </Row>
+          )}
+          {o.scheme === "solida" && (
             <>
-              <Row label="Esquema de cor" top>
-                <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={rsel}>
-                  <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
+              <Row label="Cor sólida"><input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 44, height: 30, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer", padding: 0 }} /></Row>
+              <Row label="Fundo transparente"><Switch on={o.solidAlpha} onClick={() => toggle("solidAlpha")} /></Row>
+            </>
+          )}
+          {locked ? (
+            <div style={{ margin: "10px 0", color: T.dim, fontSize: 12, background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 10 }}>
+              Predefinição de calibração (preto→branco por coluna). Sem edições.
+            </div>
+          ) : (
+            <>
+              <Row label="Elementos">
+                <DropdownMenu triggerLabel={`${elCount} ativo${elCount === 1 ? "" : "s"}`} Icon={Shapes} align="right"
+                  items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
+              </Row>
+              <NumScaleRow value={o.numScale} onChange={(n) => set({ numScale: n })} />
+              <Row label="Color bar">
+                <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={rsel}>
+                  <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
                 </select>
               </Row>
-              {o.scheme === "arcoiris" && (
-                <Row label="Direção">
-                  <select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={rsel}>
-                    <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
-                  </select>
-                </Row>
-              )}
-              {o.scheme === "solida" && (
+              <Row label="Mapa de cabos">
+                <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={rsel}>
+                  <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
+                </select>
+              </Row>
+              <Row label="Caixa de info"><Switch on={o.info} onClick={() => toggle("info")} /></Row>
+              {o.info && (
                 <>
-                  <Row label="Cor sólida"><input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 44, height: 30, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer", padding: 0 }} /></Row>
-                  <Row label="Fundo transparente"><Switch on={o.solidAlpha} onClick={() => toggle("solidAlpha")} /></Row>
-                </>
-              )}
-              {locked ? (
-                <div style={{ margin: "10px 0", color: T.dim, fontSize: 12, background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 10 }}>
-                  Predefinição de calibração (preto→branco por coluna). Sem edições.
-                </div>
-              ) : (
-                <>
-                  <Row label="Elementos">
-                    <DropdownMenu triggerLabel={`${elCount} ativo${elCount === 1 ? "" : "s"}`} Icon={Shapes} align="right"
-                      items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
-                  </Row>
-                  <NumScaleRow value={o.numScale} onChange={(n) => set({ numScale: n })} />
-                  <Row label="Color bar">
-                    <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={rsel}>
-                      <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
+                  <Row label="Info em linha"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Row>
+                  <Row label="Posição">
+                    <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={rsel}>
+                      <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
                     </select>
                   </Row>
-                  <Row label="Mapa de cabos">
-                    <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={rsel}>
-                      <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
-                    </select>
-                  </Row>
-                  <Row label="Caixa de info"><Switch on={o.info} onClick={() => toggle("info")} /></Row>
-                  {o.info && (
-                    <>
-                      <Row label="Info em linha"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Row>
-                      <Row label="Posição">
-                        <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={rsel}>
-                          <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
-                        </select>
-                      </Row>
-                    </>
-                  )}
                 </>
               )}
             </>
           )}
-        </div>
+        </>
+      )}
+    </div>
+  );
+  const previewPanel = (
+    <div style={card()}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: T.dim, fontSize: 12, marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+        <b style={{ color: T.acM }}>{tela.nome}</b>
+        <span>{W}×{H} px · {tela.cols * tela.rows} gab · pitch {(parseFloat(g.dimW) / (parseFloat(g.resX) || 1)).toFixed(2)} mm</span>
+        <span style={{ display: "inline-flex", gap: 6 }}>
+          <button style={zbtn} title="Diminuir" onClick={() => setZoom((z) => Math.max(0.25, z * 0.8))}><ZoomOut size={15} /></button>
+          <button style={zbtn} title="Enquadrar" onClick={() => setZoom(1)}><Maximize size={15} /></button>
+          <button style={zbtn} title="Aumentar" onClick={() => setZoom((z) => Math.min(4, z * 1.25))}><ZoomIn size={15} /></button>
+        </span>
+      </div>
+      <div style={{ overflow: "auto", background: "repeating-conic-gradient(#1a1a2e 0% 25%, #12122a 0% 50%) 50% / 24px 24px", borderRadius: 6, maxHeight: "70vh" }} className="tbl-scroll">
+        <canvas ref={canvasRef} style={{ width: `${zoom * 100}%`, height: "auto", display: "block", imageRendering: "pixelated" }} />
+      </div>
+      <div style={{ color: T.dim, fontSize: 11, marginTop: 8 }}>O preview é escalado; o PNG sai na resolução nativa ({W}×{H} px). Fundo xadrez = área transparente (alpha).</div>
+    </div>
+  );
 
-        <div style={card()}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: T.dim, fontSize: 12, marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
-            <b style={{ color: T.acM }}>{tela.nome}</b>
-            <span>{W}×{H} px · {tela.cols * tela.rows} gab · pitch {(parseFloat(g.dimW) / (parseFloat(g.resX) || 1)).toFixed(2)} mm</span>
-            <span style={{ display: "inline-flex", gap: 6 }}>
-              <button style={zbtn} title="Diminuir" onClick={() => setZoom((z) => Math.max(0.25, z * 0.8))}><ZoomOut size={15} /></button>
-              <button style={zbtn} title="Enquadrar" onClick={() => setZoom(1)}><Maximize size={15} /></button>
-              <button style={zbtn} title="Aumentar" onClick={() => setZoom((z) => Math.min(4, z * 1.25))}><ZoomIn size={15} /></button>
-            </span>
+  return (
+    <div>
+      <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: "1 1 280px", minWidth: 0 }}>
+            <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: "1 1 130px", minWidth: 0 }}>
+              {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+            </select>
+            <select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: "1 1 150px", minWidth: 0 }}>
+              <option value="">Predefinição…</option>
+              <option value="map">Mapa de gabinetes</option>
+              <option value="align">Alinhamento / geometria</option>
+              <option value="solid">Cor sólida</option>
+              <option value="bars">Barras de cor</option>
+              <option value="cabsig">Mapa de cabos (sinal)</option>
+              {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
           </div>
-          <div style={{ overflow: "auto", background: "repeating-conic-gradient(#1a1a2e 0% 25%, #12122a 0% 50%) 50% / 24px 24px", borderRadius: 6, maxHeight: "70vh" }} className="tbl-scroll">
-            <canvas ref={canvasRef} style={{ width: `${zoom * 100}%`, height: "auto", display: "block", imageRendering: "pixelated" }} />
-          </div>
-          <div style={{ color: T.dim, fontSize: 11, marginTop: 8 }}>O preview é escalado; o PNG sai na resolução nativa ({W}×{H} px). Fundo xadrez = área transparente (alpha).</div>
+          <button style={{ ...tbBtn, width: isMobile ? "100%" : "auto", justifyContent: "center" }} title="Salvar predefinição" onClick={savePreset}><Save size={16} /> Salvar preset</button>
+          <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff", width: isMobile ? "100%" : "auto", justifyContent: "center" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} /> Exportar PNG</button>
         </div>
       </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
+        {isMobile ? (
+          <>
+            {previewPanel}
+            <div>
+              <button onClick={() => setControlsOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 2px 8px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
+                Controles avançados
+                {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              {controlsOpen && controlsPanel}
+            </div>
+          </>
+        ) : (
+          <>
+            {controlsPanel}
+            {previewPanel}
+          </>
+        )}
+      </div>
+      {isMobile && (
+        <div style={{ color: T.dim, fontSize: 11, marginTop: 10 }}>
+          Dica: no mobile, use o preview primeiro e abra os controles só para ajustes finos.
+        </div>
+      )}
     </div>
   );
 }

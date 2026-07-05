@@ -48,6 +48,11 @@ body {
   display: none;
 }
 
+.report-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Responsivo (mobile) */
 @media (width <= 768px) {
   .m-grid1 { grid-template-columns: 1fr !important; }
@@ -76,5 +81,6 @@ body {
     box-shadow: none !important;
   }
   .tbl-scroll { overflow: visible !important; }
+  .report-table-wrap { overflow: visible !important; }
   @page { margin: 14mm; }
 }
