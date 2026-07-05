@@ -1,38 +1,104 @@
 // sw.js — service worker do LedLab Core (PWA offline).
-// Estratégia: stale-while-revalidate para GETs do mesmo domínio (o app é 100%
-// client-side, então cachear o shell + assets basta para rodar offline). Fallback
-// de navegação para o app shell quando offline.
-const CACHE = "ledlab-core-v1";
+// Estratégia:
+// - Precache do app shell (HTML + CSS/JS principais descobertos via index.html)
+// - Runtime cache stale-while-revalidate para requests GET do mesmo domínio
+// - Network-first para navegação com fallback explícito para index.html do precache
+const CACHE_PREFIX = "ledlab-core";
+const CACHE_VERSION = "v2";
+const PRECACHE = `${CACHE_PREFIX}-precache-${CACHE_VERSION}`;
+const RUNTIME = `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;
+const APP_SHELL = ["./", "./index.html"];
 
-self.addEventListener("install", () => self.skipWaiting());
+function toAbsoluteUrl(path) {
+  return new URL(path, self.registration.scope).toString();
+}
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil((async () => {
+async function getPrecacheUrls() {
+  const urls = new Set(APP_SHELL.map(toAbsoluteUrl));
+
+  try {
+    const indexResponse = await fetch(toAbsoluteUrl("./index.html"), { cache: "no-cache" });
+    if (indexResponse.ok) {
+      const html = await indexResponse.text();
+      const assetRegex = /\b(?:src|href)=["']([^"']+\.(?:css|js))["']/gi;
+      let match = assetRegex.exec(html);
+      while (match) {
+        urls.add(toAbsoluteUrl(match[1]));
+        match = assetRegex.exec(html);
+      }
+    }
+  } catch {
+    // Se não conseguir ler o index durante install, mantém apenas o shell mínimo.
+  }
+
+  return [...urls];
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(PRECACHE);
+    const precacheUrls = await getPrecacheUrls();
+    await cache.addAll(precacheUrls);
+    await self.skipWaiting();
+  })());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const validCaches = new Set([PRECACHE, RUNTIME]);
     const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+    await Promise.all(
+      keys
+        .filter((key) => key.startsWith(CACHE_PREFIX) && !validCaches.has(key))
+        .map((key) => caches.delete(key)),
+    );
     await self.clients.claim();
   })());
 });
 
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  if (req.method !== "GET") return;
-  if (new URL(req.url).origin !== self.location.origin) return; // só mesmo domínio
-
-  e.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    const cached = await cache.match(req);
-    const network = fetch(req)
-      .then((res) => { if (res && res.ok && res.type === "basic") cache.put(req, res.clone()); return res; })
-      .catch(() => null);
-
-    if (cached) { e.waitUntil(network); return cached; } // serve do cache, atualiza em 2º plano
-    const res = await network;
-    if (res) return res;
-    if (req.mode === "navigate") { // offline: cai no shell do app
-      const shell = (await cache.match("./")) || (await cache.match("index.html"));
-      if (shell) return shell;
+async function networkFirstNavigate(request) {
+  try {
+    const response = await fetch(request);
+    if (response && response.ok && response.type === "basic") {
+      const runtimeCache = await caches.open(RUNTIME);
+      runtimeCache.put(request, response.clone());
     }
+    return response;
+  } catch {
+    const fallback = await caches.match(toAbsoluteUrl("./index.html"));
+    if (fallback) return fallback;
     return new Response("", { status: 504, statusText: "Offline" });
-  })());
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cached = await caches.match(request);
+
+  const networkPromise = fetch(request)
+    .then(async (response) => {
+      if (response && response.ok && response.type === "basic") {
+        const runtimeCache = await caches.open(RUNTIME);
+        await runtimeCache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => null);
+
+  if (cached) return cached;
+  const network = await networkPromise;
+  if (network) return network;
+  return new Response("", { status: 504, statusText: "Offline" });
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  if (new URL(request.url).origin !== self.location.origin) return; // só mesmo domínio
+
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirstNavigate(request));
+    return;
+  }
+
+  event.respondWith(staleWhileRevalidate(request));
 });
