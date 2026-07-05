@@ -12,6 +12,7 @@ import { reciboWhatsApp, descBreakdown, diaLabelBR, horarioLabel, extenso } from
 import { T, PRINT } from "../ui/tokens.js";
 import { card, btn, input, label as lbl } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
+import { DateField } from "../components/PickerField.jsx";
 
 const pad = (n) => String(n).padStart(2, "0");
 const isoOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -138,8 +139,8 @@ export default function Financeiro() {
           ))}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
-          <div><div style={lbl}>De</div><input type="date" value={range.from} onChange={(e) => setFrom(e.target.value)} style={input()} /></div>
-          <div><div style={lbl}>Até</div><input type="date" value={range.to} onChange={(e) => setTo(e.target.value)} style={input()} /></div>
+          <div><div style={lbl}>De</div><DateField value={range.from} onChange={setFrom} /></div>
+          <div><div style={lbl}>Até</div><DateField value={range.to} onChange={setTo} /></div>
           <div>
             <div style={lbl}>Cliente</div>
             <select value={cliente} onChange={(e) => setCliente(e.target.value)} style={input()}>

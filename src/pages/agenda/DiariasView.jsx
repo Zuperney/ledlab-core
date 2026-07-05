@@ -12,6 +12,7 @@ import { getPosition, mapsUrl } from "../../services/geo.js";
 import { T } from "../../ui/tokens.js";
 import { card, input, btn, label as lbl } from "../../ui/styles.js";
 import BottomSheet from "../../components/BottomSheet.jsx";
+import { DateField, TimeField } from "../../components/PickerField.jsx";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const pad = (n) => String(n).padStart(2, "0");
@@ -262,9 +263,9 @@ export default function DiariasView() {
                 </select>
               </div>
               <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div><div style={lbl}>Data</div><input type="date" value={form.dataRef} onChange={(e) => setForm({ ...form, dataRef: e.target.value })} style={input()} /></div>
-                <div><div style={lbl}>Início</div><input type="time" value={form.inicio} onChange={(e) => setForm({ ...form, inicio: e.target.value })} style={input()} /></div>
-                <div><div style={lbl}>Fim</div><input type="time" value={form.fim} onChange={(e) => setForm({ ...form, fim: e.target.value })} style={input()} /></div>
+                <div><div style={lbl}>Data</div><DateField value={form.dataRef} onChange={(v) => setForm({ ...form, dataRef: v })} /></div>
+                <div><div style={lbl}>Início</div><TimeField value={form.inicio} onChange={(v) => setForm({ ...form, inicio: v })} /></div>
+                <div><div style={lbl}>Fim</div><TimeField value={form.fim} onChange={(v) => setForm({ ...form, fim: v })} /></div>
               </div>
               <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div><div style={lbl}>Valor (opcional)</div><input type="number" placeholder={`Padrão ${brl(preview?.total ?? 0)}`} value={form.valorOverride} onChange={(e) => setForm({ ...form, valorOverride: e.target.value })} style={input()} /></div>
@@ -325,8 +326,8 @@ export default function DiariasView() {
               Turno de <b style={{ color: T.txt }}>{typesById[lateForm.entry.tipoId]?.nome || "?"}</b>, check-in em {diaCurto(lateForm.entry.dataRef)} às {hhmm(lateForm.entry.checkin)}. Informe quando você saiu.
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div><div style={lbl}>Data da saída</div><input type="date" value={lateForm.data} onChange={(e) => setLateForm({ ...lateForm, data: e.target.value })} style={input()} /></div>
-              <div><div style={lbl}>Hora da saída</div><input type="time" value={lateForm.hora} onChange={(e) => setLateForm({ ...lateForm, hora: e.target.value })} style={input()} /></div>
+              <div><div style={lbl}>Data da saída</div><DateField value={lateForm.data} onChange={(v) => setLateForm({ ...lateForm, data: v })} /></div>
+              <div><div style={lbl}>Hora da saída</div><TimeField value={lateForm.hora} onChange={(v) => setLateForm({ ...lateForm, hora: v })} /></div>
             </div>
             {(() => {
               const out = toISO(lateForm.data, lateForm.hora);

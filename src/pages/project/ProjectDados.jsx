@@ -9,6 +9,7 @@ import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { T } from "../../ui/tokens.js";
 import { card, input, label, btn, iconBtn, dangerIconBtn } from "../../ui/styles.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
+import { DateField } from "../../components/PickerField.jsx";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, favCab } = useCabinets();
@@ -143,7 +144,9 @@ function Field({ lbl, value, onChange, type = "text", req }) {
   return (
     <div style={{ marginBottom: 12, minWidth: 0 }}>
       <label style={label}>{lbl}{req ? <span style={{ color: T.red }}> obrigatório</span> : ""}</label>
-      <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={input()} />
+      {type === "date"
+        ? <DateField value={value} onChange={onChange} />
+        : <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={input()} />}
     </div>
   );
 }

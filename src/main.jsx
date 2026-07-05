@@ -6,6 +6,7 @@ import { useHashLocation } from "wouter/use-hash-location";
 import { AppProvider } from "./store/AppContext.jsx";
 import { UIProvider } from "./store/UIContext.jsx";
 import App from "./App.jsx";
+import "react-datepicker/dist/react-datepicker.css";
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
