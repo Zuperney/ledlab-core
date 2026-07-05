@@ -11,7 +11,8 @@ import { cableMeta, cablePorts, bboxArea } from "../../services/cabling.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
-import { paletteColor, T, PRINT } from "../../ui/tokens.js";
+import { T, PRINT } from "../../ui/tokens.js";
+import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
 
 const TYPES = ["Completo", "Resumido", "Elétrico", "Estrutural", "Design", "Gabinetes"];
@@ -29,6 +30,7 @@ const videoOf = (t) => {
 
 export default function ProjectRelatorio({ project }) {
   const { prefs } = useLedLabContext();
+  const { colorOf } = useCablePalette();
   const isMobile = useIsMobile();
   const [type, setType] = useState("Completo");
   const numbering = prefs.cableNumbering || "row-tb-lr";
@@ -46,7 +48,7 @@ export default function ProjectRelatorio({ project }) {
   const th = { textAlign: "left", padding: "8px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase" };
   const td = { padding: "8px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
-  const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: paletteColor(i), flexShrink: 0 });
+  const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: colorOf(i), flexShrink: 0 });
   const h3 = { color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 };
   const telaBlock = { marginBottom: 18, breakInside: "avoid" };
   const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };

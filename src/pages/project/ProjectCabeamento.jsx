@@ -10,7 +10,8 @@
 // Pode IMPORTAR o cabeamento automático (Linha/Coluna/Área) e editar só o necessário.
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
-import { paletteColor, T } from "../../ui/tokens.js";
+import { T } from "../../ui/tokens.js";
+import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
@@ -32,6 +33,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const stageRef = useRef(null);
   const drag = useRef(null);
   const isMobile = useIsMobile();
+  const { colorOf } = useCablePalette();
   const [controlsOpen, setControlsOpen] = useState(!isMobile); // no mobile começa fechado
   useEffect(() => setControlsOpen(!isMobile), [isMobile]);
 
@@ -169,7 +171,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
           <button onClick={undo} disabled={!history.length} style={ibtn({ opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" })} title="Desfazer"><Undo2 size={15} /></button>
           <button onClick={limparCabos} style={ibtn()} title="Limpar cabos"><Eraser size={15} /></button>
           <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
-            {active != null ? <>Editando <b style={{ color: paletteColor(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda" : "Importe ou clique “Novo cabo”"}
+            {active != null ? <>Editando <b style={{ color: colorOf(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda" : "Importe ou clique “Novo cabo”"}
           </span>
         </div>
       )}
@@ -195,7 +197,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
               {range(rows).map((r) => range(cols).map((c) => {
                 const pi = portOf[key(c, r)];
                 const isActive = strategy === "livre" && pi === active;
-                const col = pi === undefined ? T.dim2 : paletteColor(pi);
+                const col = pi === undefined ? T.dim2 : colorOf(pi);
                 return <rect key={key(c, r)} x={c * CELL + 3} y={r * CELL + 3} width={CELL - 6} height={CELL - 6} rx={6}
                   fill={pi === undefined ? "transparent" : col + (isActive ? "45" : "26")} stroke={col} strokeWidth={isActive ? 3 : 1.5} strokeDasharray={pi === undefined ? "5 5" : undefined}
                   onClick={() => clickCell(c, r)} style={{ cursor: livreEdit ? "pointer" : "inherit" }} />;
@@ -207,7 +209,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
                 return (
                   <g key={pi} style={{ pointerEvents: "none" }}>
                     <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={strategy === "livre" && active != null && pi !== active ? 0.55 : 0.95} />
-                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={paletteColor(pi)} stroke="#fff" strokeWidth={2} />
+                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={colorOf(pi)} stroke="#fff" strokeWidth={2} />
                     <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
                   </g>
                 );
@@ -233,7 +235,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
             return (
               <div key={i} onClick={livreEdit ? () => setActive(active === i ? null : i) : undefined}
                 style={{ display: "flex", alignItems: "center", gap: 8, background: isActive ? T.sel : T.card2, border: `1px solid ${over ? T.red : isActive ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: livreEdit ? "pointer" : "default" }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: paletteColor(i), flexShrink: 0 }} />
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(i), flexShrink: 0 }} />
                 <span style={{ color: T.txt, fontWeight: 600 }}>{mode === "sinal" ? "Porta" : "Cabo"} {i + 1}</span>
                 <span style={{ color: over ? T.red : T.mut }}>{pct}%</span>
                 <span style={{ color: T.dim }}>· {port.length} gab</span>

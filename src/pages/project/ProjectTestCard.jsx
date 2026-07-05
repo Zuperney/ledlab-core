@@ -6,6 +6,7 @@ import { useToast, usePrompt } from "../../store/UIContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
+import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { PALETTE, T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
@@ -39,7 +40,7 @@ function cellColor(o, c, r, cols, rows) {
   return PALETTE[(r * cols + c) % PALETTE.length];
 }
 
-function draw(canvas, tela, o, mapPorts) {
+function draw(canvas, tela, o, mapPorts, cablePal) {
   const cols = tela.cols || 1, rows = tela.rows || 1;
   const g = tela.gabinete || {};
   const resX = parseFloat(g.resX) || 128, resY = parseFloat(g.resY) || 128;
@@ -95,7 +96,7 @@ function draw(canvas, tela, o, mapPorts) {
     ctx.lineWidth = Math.max(3, resX * 0.06);
     mapPorts.forEach((port, pi) => {
       if (!port.length) return;
-      const col = PALETTE[pi % PALETTE.length];
+      const col = cablePal[pi % cablePal.length];
       ctx.strokeStyle = "#fff"; ctx.beginPath();
       port.forEach((cell, i) => { const x = cx(cell.c), y = cy(cell.r); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       ctx.stroke();
@@ -134,6 +135,7 @@ function draw(canvas, tela, o, mapPorts) {
 export default function ProjectTestCard({ project }) {
   const { tcPresets, setTcPresets, prefs } = useLedLabContext();
   const isMobile = useIsMobile();
+  const { palette } = useCablePalette();
   const [controlsOpen, setControlsOpen] = useState(!isMobile); // no mobile começa fechado
   useEffect(() => setControlsOpen(!isMobile), [isMobile]);
   const toast = useToast();
@@ -148,7 +150,7 @@ export default function ProjectTestCard({ project }) {
   const tela = telas.find((t) => t.id === telaId) || telas[0];
 
   const mapPorts = tela && o.cableMap !== "off" ? cablePorts(tela, o.cableMap, numbering) : null;
-  useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts); });
+  useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts, palette); });
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o test card." />;
 

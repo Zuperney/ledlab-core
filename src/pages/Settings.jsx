@@ -2,7 +2,7 @@
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
 import { useRef, useState } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
 import { VOLT } from "../services/electricalCalc.js";
@@ -11,7 +11,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
-import { T } from "../ui/tokens.js";
+import { T, PALETTE } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DiariasConfig from "./settings/DiariasConfig.jsx";
@@ -123,6 +123,14 @@ export default function Settings() {
     toast("Dados restaurados de fábrica");
   };
 
+  // ── Cores dos cabos (paleta configurável; cai na PALETTE padrão quando não customizada) ──
+  const palette = Array.isArray(prefs.cablePalette) && prefs.cablePalette.length ? prefs.cablePalette : PALETTE;
+  const setPalette = (arr) => setPrefs({ ...prefs, cablePalette: arr });
+  const setColor = (i, c) => setPalette(palette.map((x, j) => (j === i ? c : x)));
+  const addColor = () => setPalette([...palette, "#7c3aed"]);
+  const removeColor = (i) => { if (palette.length > 2) setPalette(palette.filter((_, j) => j !== i)); };
+  const resetPalette = () => setPrefs({ ...prefs, cablePalette: undefined });
+
   const open = !isMobile; // no mobile as categorias começam fechadas (minimalista); no desktop, abertas
 
   return (
@@ -146,6 +154,28 @@ export default function Settings() {
           <option value="row-tb-lr">Linha · de cima p/ baixo · esquerda→direita</option>
           <option value="row-bt-rl">Linha · de baixo p/ cima · direita→esquerda</option>
         </select>
+      </Section>
+
+      <Section icon={Palette} title="Cores dos cabos" subtitle="Paleta dos cabos e portas" defaultOpen={open}>
+        <div style={subDesc}>Cores atribuídas aos cabos/portas na ordem (cabo 1, 2, 3…). Aparecem no Cabeamento, Diagramação, mapa de cabos do Test Card e no Relatório. Toque num quadrado pra trocar a cor.</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, margin: "12px 0 14px" }}>
+          {palette.map((c, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <div style={{ position: "relative" }}>
+                <input type="color" value={c} onChange={(e) => setColor(i, e.target.value)} title={`Cabo ${i + 1}`}
+                  style={{ width: 42, height: 42, border: `1px solid ${T.bd}`, borderRadius: 8, background: "none", cursor: "pointer", padding: 2 }} />
+                {palette.length > 2 && (
+                  <button onClick={() => removeColor(i)} title="Remover cor"
+                    style={{ position: "absolute", top: -7, right: -7, width: 20, height: 20, borderRadius: "50%", background: T.card, border: `1px solid ${T.bd}`, color: T.mut, cursor: "pointer", fontSize: 13, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>×</button>
+                )}
+              </div>
+              <span style={{ color: T.dim, fontSize: 10 }}>{i + 1}</span>
+            </div>
+          ))}
+          <button onClick={addColor} title="Adicionar cor"
+            style={{ width: 42, height: 42, marginTop: 1, borderRadius: 8, border: `1px dashed ${T.bd}`, background: "transparent", color: T.mut, cursor: "pointer", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+        </div>
+        <button style={btn("subtle")} onClick={resetPalette}><RotateCcw size={14} /> Restaurar padrão</button>
       </Section>
 
       <Section icon={Receipt} title="Cachês (Diárias)" subtitle="Cálculo, fixo mensal, recibo e tipos" defaultOpen={open}>

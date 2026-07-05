@@ -7,7 +7,8 @@
 // gabinete e uma grade, sem precisar de projeto (não persiste).
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ZoomIn, ZoomOut, Maximize, ChevronDown, ChevronUp } from "lucide-react";
-import { paletteColor, T } from "../ui/tokens.js";
+import { T } from "../ui/tokens.js";
+import { useCablePalette } from "../hooks/useCablePalette.js";
 import { card } from "../ui/styles.js";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { key, bboxArea, cableMeta, cablePorts } from "../services/cabling.js";
@@ -18,6 +19,7 @@ const CELL = 64; // tamanho da célula no canvas (o zoom escala)
 
 export default function Diagrams() {
   const isMobile = useIsMobile();
+  const { colorOf } = useCablePalette();
   const { cabs, prefs } = useLedLabContext();
   const numbering = prefs.cableNumbering || "row-tb-lr"; // ordem global de numeração
   const [cabId, setCabId] = useState(cabs[0]?.id);
@@ -114,7 +116,7 @@ export default function Diagrams() {
               <rect x={-8} y={-8} width={panelW + 16} height={panelH + 16} rx={10} fill="#0d0d1a" stroke={T.bd} strokeWidth={1.5} />
               {Array.from({ length: rows }).map((_, r) => Array.from({ length: cols }).map((_, c) => {
                 const pi = portOf[key(c, r)];
-                const col = pi === undefined ? T.dim2 : paletteColor(pi);
+                const col = pi === undefined ? T.dim2 : colorOf(pi);
                 return <rect key={key(c, r)} x={c * CELL + 3} y={r * CELL + 3} width={CELL - 6} height={CELL - 6} rx={6}
                   fill={pi === undefined ? "transparent" : col + "26"} stroke={col} strokeWidth={1.5} strokeDasharray={pi === undefined ? "5 5" : undefined} />;
               }))}
@@ -125,7 +127,7 @@ export default function Diagrams() {
                 return (
                   <g key={pi} style={{ pointerEvents: "none" }}>
                     <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={0.95} />
-                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={paletteColor(pi)} stroke="#fff" strokeWidth={2} />
+                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={colorOf(pi)} stroke="#fff" strokeWidth={2} />
                     <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
                   </g>
                 );
@@ -149,7 +151,7 @@ export default function Diagrams() {
             const over = pct > 100;
             return (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: T.card2, border: `1px solid ${over ? T.red : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: paletteColor(i), flexShrink: 0 }} />
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(i), flexShrink: 0 }} />
                 <span style={{ color: T.txt, fontWeight: 600 }}>Porta {i + 1}</span>
                 <span style={{ color: over ? T.red : T.mut }}>{pct}%</span>
                 <span style={{ color: T.dim }}>· {port.length} gab</span>
