@@ -2,11 +2,11 @@
 // (delega ao motor puro services/worklog.js, injetando tipos e config do usuário).
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { genId } from "../services/ids.js";
-import { DEFAULT_WORKLOG_CFG, breakdownEvento, valorDia, agruparPorDia, totalPeriodo } from "../services/worklog.js";
+import { DEFAULT_WORKLOG_CFG, normalizeCfg, breakdownEvento, valorDia, agruparPorDia, totalPeriodo } from "../services/worklog.js";
 
 export function useWorklog() {
   const { worklog, setWorklog, activityTypes, prefs } = useLedLabContext();
-  const cfg = { ...DEFAULT_WORKLOG_CFG, ...(prefs.worklog || {}) };
+  const cfg = normalizeCfg({ ...DEFAULT_WORKLOG_CFG, ...(prefs.worklog || {}) });
   const typesById = Object.fromEntries(activityTypes.map((t) => [t.id, t]));
 
   const addEntry = (data) => { const e = { id: genId("wl"), ...data }; setWorklog([...worklog, e]); return e; };

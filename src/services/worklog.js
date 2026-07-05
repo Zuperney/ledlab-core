@@ -11,6 +11,24 @@ export const DEFAULT_WORKLOG_CFG = { jornadaH: 12, janelaExtraH: 4, toleranciaEx
 
 // arredonda pra cima ao inteiro (com epsilon p/ não estourar em valores já inteiros)
 export const ceilInt = (x) => Math.ceil(x - 1e-9);
+const toNum = (v, fallback) => {
+  if (v == null || v === "") return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+// normaliza config (defensivo p/ prefs corrompidas e divisões inválidas)
+export function normalizeCfg(cfg = DEFAULT_WORKLOG_CFG) {
+  const base = { ...DEFAULT_WORKLOG_CFG, ...(cfg || {}) };
+  const jornadaH = Math.trunc(toNum(base.jornadaH, DEFAULT_WORKLOG_CFG.jornadaH));
+  const janelaExtraH = Math.trunc(toNum(base.janelaExtraH, DEFAULT_WORKLOG_CFG.janelaExtraH));
+  const toleranciaExtraMin = Math.trunc(toNum(base.toleranciaExtraMin, DEFAULT_WORKLOG_CFG.toleranciaExtraMin));
+  return {
+    jornadaH: jornadaH > 0 ? jornadaH : DEFAULT_WORKLOG_CFG.jornadaH,
+    janelaExtraH: janelaExtraH >= 0 ? janelaExtraH : DEFAULT_WORKLOG_CFG.janelaExtraH,
+    toleranciaExtraMin: toleranciaExtraMin >= 0 && toleranciaExtraMin <= 59 ? toleranciaExtraMin : DEFAULT_WORKLOG_CFG.toleranciaExtraMin,
+  };
+}
 
 // duração em MINUTOS inteiros entre dois instantes ISO (com offset). TZ-safe.
 export function durationMin(checkin, checkout) {
@@ -33,8 +51,9 @@ export function empilha(entry, tipo) {
 
 // Detalhamento do valor de UM evento. Retorna { cachês, horasExtras, base, extra, total, duracaoH, flat }.
 export function breakdownEvento(entry, tipo, cfg = DEFAULT_WORKLOG_CFG) {
-  const C = Number(entry?.valorOverride ?? tipo?.valorBase ?? 0);
-  const Jm = cfg.jornadaH * 60, Wm = cfg.janelaExtraH * 60, TOL = cfg.toleranciaExtraMin;
+  const C = Math.max(0, toNum(entry?.valorOverride ?? tipo?.valorBase, 0));
+  const safe = normalizeCfg(cfg);
+  const Jm = safe.jornadaH * 60, Wm = safe.janelaExtraH * 60, TOL = safe.toleranciaExtraMin;
   const m = durationMin(entry?.checkin, entry?.checkout);
 
   // flat (tipo sem hora extra) OU sem horários → 1 cachê base
@@ -43,7 +62,7 @@ export function breakdownEvento(entry, tipo, cfg = DEFAULT_WORKLOG_CFG) {
     return { cachês: 1, horasExtras: 0, base: total, extra: 0, total, duracaoH: m == null ? null : m / 60, flat: true };
   }
 
-  const r = valorHora(C, cfg.jornadaH);
+  const r = valorHora(C, safe.jornadaH);
   let cachês, horasExtras = 0, extra = 0, total;
 
   if (m <= Jm) {

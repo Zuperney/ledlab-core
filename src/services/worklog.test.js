@@ -1,7 +1,7 @@
 // worklog.test.js — testes do motor de Diárias contra a tabela da spec (§5.3).
 // Roda com: npm test   (vitest, ambiente node — funções puras, sem DOM)
 import { describe, it, expect } from "vitest";
-import { breakdownEvento, valorDia, DEFAULT_WORKLOG_CFG } from "./worklog.js";
+import { breakdownEvento, valorDia, normalizeCfg, DEFAULT_WORKLOG_CFG } from "./worklog.js";
 
 const cfg = DEFAULT_WORKLOG_CFG; // J=12h, W=4h, TOL=50min
 const M = { id: "m", nome: "Montagem", geraHoraExtra: true, podeSegundoCache: true, valorBase: 350 };
@@ -52,5 +52,18 @@ describe("valorDia — agregação do dia (regra do deslocamento §5.5)", () => 
   });
   it("diária de viagem + montagem (ambos empilham) => 550", () => {
     expect(valorDia([ev(600, { tipoId: "v" }), ev(600, { tipoId: "m" })], tiposById, cfg).total).toBe(550);
+  });
+  it("override cobrarSeparado=false cancela empilhamento do evento", () => {
+    expect(valorDia([ev(120, { tipoId: "m" }), ev(120, { tipoId: "m", cobrarSeparado: false })], tiposById, cfg).total).toBe(350);
+  });
+});
+
+describe("normalizeCfg — hardening de configuração", () => {
+  it("normaliza números inválidos para defaults seguros", () => {
+    expect(normalizeCfg({ jornadaH: 0, janelaExtraH: -1, toleranciaExtraMin: 99 })).toEqual(cfg);
+    expect(normalizeCfg({ jornadaH: "x", janelaExtraH: null, toleranciaExtraMin: undefined })).toEqual(cfg);
+  });
+  it("não quebra cálculo mesmo com cfg inválida", () => {
+    expect(breakdownEvento(ev(780), M, { jornadaH: 0, janelaExtraH: -2, toleranciaExtraMin: 999 }).total).toBe(380);
   });
 });
