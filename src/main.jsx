@@ -1,6 +1,8 @@
 // main.jsx — ponto de entrada do renderer.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Router } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import { AppProvider } from "./store/AppContext.jsx";
 import { UIProvider } from "./store/UIContext.jsx";
 import App from "./App.jsx";
@@ -10,7 +12,9 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AppProvider>
       <UIProvider>
-        <App />
+        <Router hook={useHashLocation}>
+          <App />
+        </Router>
       </UIProvider>
     </AppProvider>
   </StrictMode>
