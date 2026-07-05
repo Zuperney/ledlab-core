@@ -258,12 +258,12 @@ export default function DiariasView() {
                   {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
                 </select>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 <div><div style={lbl}>Data</div><input type="date" value={form.dataRef} onChange={(e) => setForm({ ...form, dataRef: e.target.value })} style={input()} /></div>
                 <div><div style={lbl}>Início</div><input type="time" value={form.inicio} onChange={(e) => setForm({ ...form, inicio: e.target.value })} style={input()} /></div>
                 <div><div style={lbl}>Fim</div><input type="time" value={form.fim} onChange={(e) => setForm({ ...form, fim: e.target.value })} style={input()} /></div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div><div style={lbl}>Valor (opcional)</div><input type="number" placeholder={`Padrão ${brl(preview?.total ?? 0)}`} value={form.valorOverride} onChange={(e) => setForm({ ...form, valorOverride: e.target.value })} style={input()} /></div>
                 <div><div style={lbl}>Cliente</div><input list="clientes-dl" value={form.cliente} onChange={(e) => { const cliente = e.target.value; setForm((f) => { const next = { ...f, cliente }; if (!f.valorOverride) { const v = lembraValor(cliente, f.tipoId); if (v != null) next.valorOverride = String(v); } return next; }); }} style={input()} /></div>
               </div>

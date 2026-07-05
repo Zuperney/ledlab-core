@@ -134,7 +134,7 @@ export default function Financeiro() {
           </div>
           <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: Ney" style={input()} /></div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginTop: 12 }}>
+        <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginTop: 12 }}>
           <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} placeholder="Nome / razão social do cliente" style={input()} /></div>
           <div><div style={lbl}>CPF / CNPJ do pagador</div><input value={pagDoc} onChange={(e) => savePagador(pagNome, e.target.value)} placeholder="Opcional" style={input()} /></div>
         </div>

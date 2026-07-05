@@ -61,7 +61,7 @@ export default function DiariasConfig() {
       <div style={card({ maxWidth: 640, marginBottom: 16 })}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Fixo mensal (opcional)</div>
         <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além dos cachês. Deixe 0 se não usa.</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><div style={lbl}>Valor por mês (R$)</div><input type="number" value={fixo.valor} onChange={(e) => setFixo({ valor: Math.max(0, parseInt(e.target.value) || 0) })} placeholder="Ex.: 6000" style={input()} /></div>
           <div><div style={lbl}>Cliente do fixo</div><input value={fixo.cliente} onChange={(e) => setFixo({ cliente: e.target.value })} placeholder="Ex.: Mega Led" style={input()} /></div>
         </div>
@@ -113,7 +113,7 @@ export default function DiariasConfig() {
         {edit && (
           <div style={{ display: "grid", gap: 14 }}>
             <div><div style={lbl}>Nome</div><input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder="Ex.: Montagem" style={input()} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "end" }}>
+            <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "end" }}>
               <div><div style={lbl}>Cor</div><input type="color" value={edit.cor} onChange={(e) => setEdit({ ...edit, cor: e.target.value })} style={{ width: 48, height: 40, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer" }} /></div>
               <div><div style={lbl}>Cachê base (R$)</div><input type="number" value={edit.valorBase} onChange={(e) => setEdit({ ...edit, valorBase: e.target.value })} placeholder="Ex.: 350" style={input()} /></div>
             </div>
