@@ -1,6 +1,6 @@
 // pages/Inventory.jsx — Biblioteca de gabinetes (CRUD, salvo no navegador).
 import { useState, useMemo, useRef } from "react";
-import { Plus, Pencil, Trash2, Star, Columns3, ChevronDown, ChevronUp, Settings, Download, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Star, Columns3, ChevronDown, ChevronUp, Settings, Download, Upload, SlidersHorizontal } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { pitch } from "../services/electricalCalc.js";
 import { genNumericId } from "../services/ids.js";
@@ -12,6 +12,7 @@ import { useConfirm, useToast } from "../store/UIContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DropdownMenu from "../components/DropdownMenu.jsx";
 import Drawer from "../components/Drawer.jsx";
+import BottomSheet from "../components/BottomSheet.jsx";
 
 const EMPTY = { nome: "", marca: "", resX: "", resY: "", dimW: "", dimH: "", peso: "", pwrMax: "", pwrMed: "", pwrBlack: "", fp: "0.9", ip: "Indoor", brilho: "", receivingCard: "", conector: "PowerCON Azul/Branco", conectorCustom: "" };
 const firstWord = (s) => (s || "").trim().split(/\s+/)[0] || "";
@@ -44,6 +45,7 @@ export default function Inventory() {
   const [marcaFilter, setMarcaFilter] = useState("Todas");
   const [drawer, setDrawer] = useState(null); // null | {mode, data}
   const [advOpen, setAdvOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [marcaAuto, setMarcaAuto] = useState(true); // sugerir marca pelo nome até o usuário editar
   const fileRef = useRef(null);
 
@@ -133,23 +135,72 @@ export default function Inventory() {
 
       <div style={card({ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" })} className="m-controlbar">
         <input placeholder="Buscar por nome / modelo…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ maxWidth: 280 })} />
-        <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Ordenar</span>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input({ width: "auto" })}>
-          <option value="nome">Nome</option>
-          <option value="marca">Marca</option>
-          <option value="pitch">Pixel pitch</option>
-          <option value="pwrMax">Potência</option>
-        </select>
-        <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Marca</span>
-        <select value={marcaFilter} onChange={(e) => setMarcaFilter(e.target.value)} style={input({ width: "auto" })}>
-          {brands.map((b) => <option key={b}>{b}</option>)}
-        </select>
-        <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>IP</span>
-        <select value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={input({ width: "auto" })}>
-          <option>Todos</option><option>Indoor</option><option>Outdoor</option>
-        </select>
-        {!isMobile && <DropdownMenu label="Colunas" triggerLabel="Colunas" Icon={Columns3} items={COLS.map((c) => ({ label: c.label, active: !!cols[c.key], onClick: () => toggleCol(c.key) }))} />}
+        {isMobile ? (
+          <button style={btn("ghost", { marginLeft: "auto", position: "relative" })} onClick={() => setFiltersOpen(true)}>
+            <SlidersHorizontal size={16} /> Filtros/Colunas
+            {(sortBy !== "nome" || marcaFilter !== "Todas" || ipFilter !== "Todos") && <span style={{ position: "absolute", top: 5, right: 6, width: 8, height: 8, borderRadius: "50%", background: T.acc, border: `1px solid ${T.card}` }} />}
+          </button>
+        ) : (
+          <>
+            <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Ordenar</span>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input({ width: "auto" })}>
+              <option value="nome">Nome</option>
+              <option value="marca">Marca</option>
+              <option value="pitch">Pixel pitch</option>
+              <option value="pwrMax">Potência</option>
+            </select>
+            <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Marca</span>
+            <select value={marcaFilter} onChange={(e) => setMarcaFilter(e.target.value)} style={input({ width: "auto" })}>
+              {brands.map((b) => <option key={b}>{b}</option>)}
+            </select>
+            <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>IP</span>
+            <select value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={input({ width: "auto" })}>
+              <option>Todos</option><option>Indoor</option><option>Outdoor</option>
+            </select>
+            <DropdownMenu label="Colunas" triggerLabel="Colunas" Icon={Columns3} items={COLS.map((c) => ({ label: c.label, active: !!cols[c.key], onClick: () => toggleCol(c.key) }))} />
+          </>
+        )}
       </div>
+
+      {isMobile && filtersOpen && (
+        <BottomSheet title="Filtros e colunas" onClose={() => setFiltersOpen(false)}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div>
+              <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>Ordenar</div>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input()}>
+                <option value="nome">Nome</option>
+                <option value="marca">Marca</option>
+                <option value="pitch">Pixel pitch</option>
+                <option value="pwrMax">Potência</option>
+              </select>
+            </div>
+            <div>
+              <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>Marca</div>
+              <select value={marcaFilter} onChange={(e) => setMarcaFilter(e.target.value)} style={input()}>
+                {brands.map((b) => <option key={b}>{b}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>IP</div>
+              <select value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={input()}>
+                <option>Todos</option><option>Indoor</option><option>Outdoor</option>
+              </select>
+            </div>
+            <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 10 }}>
+              <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 8 }}>Colunas (tabela desktop)</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {COLS.map((c) => (
+                  <label key={c.key} style={{ display: "flex", alignItems: "center", gap: 8, color: T.txt, fontSize: 13 }}>
+                    <input type="checkbox" checked={!!cols[c.key]} onChange={() => toggleCol(c.key)} style={{ accentColor: T.acc }} />
+                    {c.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <button style={btn("primary", { justifyContent: "center" })} onClick={() => setFiltersOpen(false)}>Aplicar</button>
+          </div>
+        </BottomSheet>
+      )}
 
       {!isMobile && (
       <div style={card({ padding: 0, overflow: "hidden" })}>

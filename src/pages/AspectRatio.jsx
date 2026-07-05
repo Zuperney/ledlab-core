@@ -1,12 +1,13 @@
 // pages/AspectRatio.jsx — Calculadora de Aspect Ratio (proporção de tela) com
 // visualização e comparação com resoluções padrão de vídeo. Ferramenta avulsa:
 // parte de pixels manuais OU de um gabinete + grade (resolução total do painel).
-import { useState } from "react";
-import { ArrowLeftRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
@@ -43,11 +44,18 @@ const STD = [
 
 export default function AspectRatio() {
   const { cabs } = useLedLabContext();
+  const isMobile = useIsMobile();
   const [w, setW] = useState(1920);
   const [h, setH] = useState(1080);
   const [cabId, setCabId] = useState(cabs[0]?.id);
   const [cols, setCols] = useState(8);
   const [rows, setRows] = useState(6);
+  const [inputsOpen, setInputsOpen] = useState(true);
+  const [previewOpen, setPreviewOpen] = useState(!isMobile);
+  const [stdOpen, setStdOpen] = useState(!isMobile);
+  useEffect(() => {
+    if (!isMobile) { setInputsOpen(true); setPreviewOpen(true); setStdOpen(true); }
+  }, [isMobile]);
 
   const W = Math.max(1, Math.round(w) || 1), H = Math.max(1, Math.round(h) || 1);
   const dec = W / H;
@@ -96,16 +104,18 @@ export default function AspectRatio() {
 
       {/* ENTRADAS + RESULTADO */}
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-end", flexWrap: "wrap" }}>
-          <div><label style={lbl}>Largura (px)</label><input type="number" value={w} onChange={(e) => setW(parseInt(e.target.value) || 0)} style={inp} /></div>
-          <button onClick={swap} title="Trocar largura/altura" style={{ width: 38, height: 38, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 1 }}><ArrowLeftRight size={16} /></button>
-          <div><label style={lbl}>Altura (px)</label><input type="number" value={h} onChange={(e) => setH(parseInt(e.target.value) || 0)} style={inp} /></div>
-          <div style={{ width: 1, height: 44, background: T.bd, margin: "0 6px" }} />
-          <div><label style={lbl}>Gabinete</label><select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={{ ...inp, width: 180 }}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
-          <div><label style={lbl}>Colunas</label><input type="number" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 78 }} /></div>
-          <div><label style={lbl}>Linhas</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 78 }} /></div>
-          <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
-        </div>
+        {isMobile && <SectionToggle title="Entradas" open={inputsOpen} onToggle={() => setInputsOpen((v) => !v)} />}
+        {(!isMobile || inputsOpen) && (
+          <div style={{ display: "grid", gap: 12, gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(130px, max-content))", alignItems: "end" }}>
+            <div><label style={lbl}>Largura (px)</label><input type="number" value={w} onChange={(e) => setW(parseInt(e.target.value) || 0)} style={isMobile ? { ...inp, width: "100%" } : inp} /></div>
+            <div><label style={lbl}>Altura (px)</label><input type="number" value={h} onChange={(e) => setH(parseInt(e.target.value) || 0)} style={isMobile ? { ...inp, width: "100%" } : inp} /></div>
+            <button onClick={swap} title="Trocar largura/altura" style={{ width: isMobile ? "100%" : 38, height: 38, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 1 }}><ArrowLeftRight size={16} /></button>
+            <div><label style={lbl}>Gabinete</label><select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={{ ...inp, width: isMobile ? "100%" : 180 }}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+            <div><label style={lbl}>Colunas</label><input type="number" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: isMobile ? "100%" : 78 }} /></div>
+            <div><label style={lbl}>Linhas</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: isMobile ? "100%" : 78 }} /></div>
+            <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1, width: isMobile ? "100%" : "auto" }}>Usar painel</button>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>
           {stat("Proporção", friendly(W, H), T.acM)}
           {stat("Decimal", `${dec.toFixed(3)}:1`)}
@@ -118,8 +128,8 @@ export default function AspectRatio() {
 
       {/* VISUALIZAÇÃO */}
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Visualização</div>
-        <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "center" }}>
+        {isMobile ? <SectionToggle title="Visualização" open={previewOpen} onToggle={() => setPreviewOpen((v) => !v)} /> : <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Visualização</div>}
+        {(!isMobile || previewOpen) && <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "center" }}>
           <svg width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, flexShrink: 0, maxWidth: "100%" }}>
             <rect x={cx - rr.w / 2} y={cy - rr.h / 2} width={rr.w} height={rr.h} fill="none" stroke={T.dim2} strokeWidth={1.5} strokeDasharray="5 4" />
             <rect x={cx - pr.w / 2} y={cy - pr.h / 2} width={pr.w} height={pr.h} rx={3} fill={T.acc + "33"} stroke={T.acc} strokeWidth={2} />
@@ -130,13 +140,15 @@ export default function AspectRatio() {
             <div style={{ color: T.dim, fontSize: 12, marginBottom: 10 }}>Formatos <span style={{ color: T.dim2 }}>(tracejado no preview = {dec >= 1 ? "16:9" : "9:16"})</span></div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{TILES.map(tile)}</div>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* COMPARAÇÃO COM RESOLUÇÕES PADRÃO */}
       <div style={card()}>
-        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Resoluções padrão</div>
+        {isMobile ? <SectionToggle title="Resoluções padrão" open={stdOpen} onToggle={() => setStdOpen((v) => !v)} /> : <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Resoluções padrão</div>}
+        {(!isMobile || stdOpen) && <>
         <div style={{ color: T.dim, fontSize: 12, marginBottom: 12 }}>Destacadas = mesmo aspecto do seu painel. Mais próxima em nº de pixels: <b style={{ color: T.acM }}>{nearestRes.name} ({nearestRes.w}×{nearestRes.h})</b>.</div>
+        <div style={{ overflowX: "auto" }} className="tbl-scroll">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead><tr>{["Nome", "Resolução", "Aspecto", "Pixels", ""].map((x, i) => <th key={i} style={{ textAlign: "left", padding: "8px 10px", borderBottom: `1px solid ${T.bd}`, color: T.mut, fontSize: 11, textTransform: "uppercase" }}>{x}</th>)}</tr></thead>
           <tbody>
@@ -154,7 +166,18 @@ export default function AspectRatio() {
             })}
           </tbody>
         </table>
+        </div>
+        </>}
       </div>
     </div>
+  );
+}
+
+function SectionToggle({ title, open, onToggle }) {
+  return (
+    <button onClick={onToggle} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 2px 10px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
+      {title}
+      {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+    </button>
   );
 }

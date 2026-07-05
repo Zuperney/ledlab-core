@@ -3,7 +3,7 @@
 // export via PDF (window.print sobre .report-doc) + texto puro pra WhatsApp.
 // Sem CSV (decisão do usuário). Ver docs/diarias-spec.md §8.
 import { useEffect, useMemo, useState } from "react";
-import { Printer, Copy, MessageCircle } from "lucide-react";
+import { Printer, Copy, MessageCircle, SlidersHorizontal } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { useToast } from "../store/UIContext.jsx";
 import { useWorklog } from "../hooks/useWorklog.js";
@@ -12,6 +12,8 @@ import { reciboWhatsApp, descBreakdown, diaLabelBR, horarioLabel, extenso } from
 import { T, PRINT } from "../ui/tokens.js";
 import { card, btn, input, label as lbl } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
+import BottomSheet from "../components/BottomSheet.jsx";
+import DropdownMenu from "../components/DropdownMenu.jsx";
 
 const pad = (n) => String(n).padStart(2, "0");
 const isoOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -39,6 +41,7 @@ export default function Financeiro() {
   const [cliente, setCliente] = useState("");
   const [incluirFixo, setIncluirFixo] = useState(true);
   const [docTipo, setDocTipo] = useState("planilha"); // "planilha" (p/ aprovar) | "recibo" (validado)
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const applyPreset = (p) => {
     setPreset(p);
@@ -115,6 +118,7 @@ export default function Financeiro() {
       <SectionHeader title="Financeiro" subtitle="Fechamento dos cachês por período — recibo pra mandar pro contratante (PDF ou WhatsApp)." />
 
       {/* filtros */}
+      {!isMobile && (
       <div style={card({ maxWidth: 860, marginBottom: 16 })}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {PRESETS.map((p) => (
@@ -145,22 +149,90 @@ export default function Financeiro() {
           </label>
         )}
       </div>
+      )}
+
+      {isMobile && (
+        <div style={card({ maxWidth: 860, marginBottom: 12 })}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+            <div>
+              <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Período</div>
+              <div style={{ color: T.txt, fontSize: 13, fontWeight: 600 }}>{periodoLabel}</div>
+            </div>
+            <button style={btn("ghost")} onClick={() => setFilterOpen(true)}><SlidersHorizontal size={15} /> Filtros</button>
+          </div>
+          <div style={{ color: T.dim, fontSize: 12 }}>
+            Cliente: <b style={{ color: T.txt }}>{cliente || "Todos os clientes"}</b> · Documento: <b style={{ color: T.txt }}>{docTipo === "planilha" ? "Planilha" : "Recibo"}</b>
+          </div>
+        </div>
+      )}
 
       {/* tipo de documento */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+      {!isMobile && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
         {[["planilha", "Planilha (p/ aprovar)"], ["recibo", "Recibo (validado)"]].map(([k, l]) => (
           <button key={k} onClick={() => setDocTipo(k)}
             style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${docTipo === k ? T.acc : T.bd}`, background: docTipo === k ? T.acc : "transparent", color: docTipo === k ? "#fff" : T.mut }}>{l}</button>
         ))}
         <span style={{ color: T.dim, fontSize: 12 }}>{docTipo === "planilha" ? "lista pra o cliente conferir e aprovar" : "recibo com quitação, após validado"}</span>
-      </div>
+      </div>}
 
       {/* ações */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button style={btn("primary")} onClick={() => window.print()} disabled={!temConteudo}><Printer size={15} /> Imprimir / Salvar PDF</button>
-        <button style={btn("ghost")} onClick={copiar} disabled={!temConteudo}><Copy size={15} /> Copiar texto</button>
-        <button style={btn("ghost")} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
+        {isMobile ? (
+          <DropdownMenu
+            triggerLabel="Mais opções"
+            items={[
+              { label: "Copiar texto", Icon: Copy, onClick: copiar },
+              { label: "WhatsApp", Icon: MessageCircle, onClick: abrirWhats },
+              { label: docTipo === "planilha" ? "Mudar para Recibo" : "Mudar para Planilha", onClick: () => setDocTipo(docTipo === "planilha" ? "recibo" : "planilha") },
+            ]}
+          />
+        ) : (
+          <>
+            <button style={btn("ghost")} onClick={copiar} disabled={!temConteudo}><Copy size={15} /> Copiar texto</button>
+            <button style={btn("ghost")} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
+          </>
+        )}
       </div>
+
+      {isMobile && filterOpen && (
+        <BottomSheet title="Filtros e dados do recibo" onClose={() => setFilterOpen(false)}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {PRESETS.map((p) => (
+                <button key={p.id} onClick={() => applyPreset(p.id)}
+                  style={{ padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${preset === p.id ? T.acc : T.bd}`, background: preset === p.id ? T.acc : "transparent", color: preset === p.id ? "#fff" : T.mut }}>{p.label}</button>
+              ))}
+            </div>
+            <div><div style={lbl}>De</div><input type="date" value={range.from} onChange={(e) => setFrom(e.target.value)} style={input()} /></div>
+            <div><div style={lbl}>Até</div><input type="date" value={range.to} onChange={(e) => setTo(e.target.value)} style={input()} /></div>
+            <div>
+              <div style={lbl}>Cliente</div>
+              <select value={cliente} onChange={(e) => setCliente(e.target.value)} style={input()}>
+                <option value="">Todos os clientes</option>
+                {clientes.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={lbl}>Tipo de documento</div>
+              <select value={docTipo} onChange={(e) => setDocTipo(e.target.value)} style={input()}>
+                <option value="planilha">Planilha (p/ aprovar)</option>
+                <option value="recibo">Recibo (validado)</option>
+              </select>
+            </div>
+            <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: Ney" style={input()} /></div>
+            <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} placeholder="Nome / razão social do cliente" style={input()} /></div>
+            <div><div style={lbl}>CPF / CNPJ do pagador</div><input value={pagDoc} onChange={(e) => savePagador(pagNome, e.target.value)} placeholder="Opcional" style={input()} /></div>
+            {fixoAtivo && (
+              <label style={{ display: "flex", alignItems: "center", gap: 8, color: T.txt, fontSize: 14, cursor: "pointer" }}>
+                <input type="checkbox" checked={incluirFixo} onChange={(e) => setIncluirFixo(e.target.checked)} style={{ width: 16, height: 16, accentColor: T.acc, cursor: "pointer" }} />
+                Incluir fixo mensal{fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} — <b>{brl(fixoCfg.valor)}</b>
+              </label>
+            )}
+            <button style={btn("primary", { justifyContent: "center" })} onClick={() => setFilterOpen(false)}>Aplicar</button>
+          </div>
+        </BottomSheet>
+      )}
 
       {/* recibo imprimível */}
       <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: isMobile ? 18 : 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>

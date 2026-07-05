@@ -10,9 +10,11 @@ import { T } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DiariasConfig from "./settings/DiariasConfig.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 export default function Settings() {
   const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, worklog, setWorklog, activityTypes, setActivityTypes } = useLedLabContext();
+  const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
   const fileRef = useRef(null);
@@ -107,33 +109,53 @@ export default function Settings() {
           <div style={{ color: T.txt, fontWeight: 600 }}>Predefinições de Test Card</div>
           <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 6px" }}>Predefinições salvas no gerador de test card.</div>
           {tcPresets.map((p) => (
-            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderTop: `1px solid ${T.bd}` }}>
+            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row", gap: 12, padding: "10px 0", borderTop: `1px solid ${T.bd}` }}>
               <span style={{ color: T.txt, fontSize: 14 }}>{p.name}</span>
-              <button style={btn("danger")} onClick={async () => { if (await confirm({ title: "Excluir predefinição?", message: `"${p.name}" será removida.` })) { setTcPresets(tcPresets.filter((x) => x.id !== p.id)); toast("Predefinição excluída"); } }}><Trash2 size={14} /> Excluir</button>
+              <button style={btn("danger", isMobile ? { width: "100%", justifyContent: "center" } : {})} onClick={async () => { if (await confirm({ title: "Excluir predefinição?", message: `"${p.name}" será removida.` })) { setTcPresets(tcPresets.filter((x) => x.id !== p.id)); toast("Predefinição excluída"); } }}><Trash2 size={14} /> Excluir</button>
             </div>
           ))}
         </div>
       )}
 
-      <div style={card({ maxWidth: 640 })}>
-        <div style={{ ...row, borderTop: "none" }}>
-          <div><div style={{ color: T.txt, fontWeight: 600 }}>Backup completo</div><div style={{ color: T.dim, fontSize: 13 }}>Gabinetes, projetos, cachês (lançamentos + tipos) e preferências em um arquivo.</div></div>
-          <button style={btn("ghost")} onClick={exportBackup}><Download size={15} /> Exportar</button>
+      {!isMobile ? (
+        <div style={card({ maxWidth: 640 })}>
+          <div style={{ ...row, borderTop: "none" }}>
+            <div><div style={{ color: T.txt, fontWeight: 600 }}>Backup completo</div><div style={{ color: T.dim, fontSize: 13 }}>Gabinetes, projetos, cachês (lançamentos + tipos) e preferências em um arquivo.</div></div>
+            <button style={btn("ghost")} onClick={exportBackup}><Download size={15} /> Exportar</button>
+          </div>
+          <div style={row}>
+            <div><div style={{ color: T.txt, fontWeight: 600 }}>Importar backup</div><div style={{ color: T.dim, fontSize: 13 }}>Substitui os dados atuais pelos do arquivo.</div></div>
+            <button style={btn("ghost")} onClick={() => fileRef.current?.click()}><Upload size={15} /> Importar</button>
+            <input ref={fileRef} type="file" accept="application/json" onChange={importBackup} style={{ display: "none" }} />
+          </div>
+          <div style={row}>
+            <div><div style={{ color: T.txt, fontWeight: 600 }}>Limpar projetos</div><div style={{ color: T.dim, fontSize: 13 }}>Remove todos os projetos, mantém a biblioteca.</div></div>
+            <button style={btn("danger")} onClick={clearProjects}><Eraser size={15} /> Limpar</button>
+          </div>
+          <div style={row}>
+            <div><div style={{ color: T.txt, fontWeight: 600 }}>Restaurar de fábrica</div><div style={{ color: T.dim, fontSize: 13 }}>Apaga tudo e recarrega os dados de exemplo.</div></div>
+            <button style={btn("danger")} onClick={factoryReset}><RotateCcw size={15} /> Restaurar</button>
+          </div>
         </div>
-        <div style={row}>
-          <div><div style={{ color: T.txt, fontWeight: 600 }}>Importar backup</div><div style={{ color: T.dim, fontSize: 13 }}>Substitui os dados atuais pelos do arquivo.</div></div>
-          <button style={btn("ghost")} onClick={() => fileRef.current?.click()}><Upload size={15} /> Importar</button>
+      ) : (
+        <div style={{ maxWidth: 640 }}>
+          <ActionCard title="Backup completo" description="Gabinetes, projetos, cachês (lançamentos + tipos) e preferências em um arquivo." buttonLabel="Exportar" icon={Download} variant="ghost" onClick={exportBackup} />
+          <ActionCard title="Importar backup" description="Substitui os dados atuais pelos do arquivo." buttonLabel="Importar" icon={Upload} variant="ghost" onClick={() => fileRef.current?.click()} />
+          <ActionCard title="Limpar projetos" description="Remove todos os projetos, mantém a biblioteca." buttonLabel="Limpar" icon={Eraser} variant="danger" onClick={clearProjects} />
+          <ActionCard title="Restaurar de fábrica" description="Apaga tudo e recarrega os dados de exemplo." buttonLabel="Restaurar" icon={RotateCcw} variant="danger" onClick={factoryReset} />
           <input ref={fileRef} type="file" accept="application/json" onChange={importBackup} style={{ display: "none" }} />
         </div>
-        <div style={row}>
-          <div><div style={{ color: T.txt, fontWeight: 600 }}>Limpar projetos</div><div style={{ color: T.dim, fontSize: 13 }}>Remove todos os projetos, mantém a biblioteca.</div></div>
-          <button style={btn("danger")} onClick={clearProjects}><Eraser size={15} /> Limpar</button>
-        </div>
-        <div style={row}>
-          <div><div style={{ color: T.txt, fontWeight: 600 }}>Restaurar de fábrica</div><div style={{ color: T.dim, fontSize: 13 }}>Apaga tudo e recarrega os dados de exemplo.</div></div>
-          <button style={btn("danger")} onClick={factoryReset}><RotateCcw size={15} /> Restaurar</button>
-        </div>
-      </div>
+      )}
+    </div>
+  );
+}
+
+function ActionCard({ title, description, buttonLabel, icon: Icon, variant, onClick }) {
+  return (
+    <div style={card({ maxWidth: 640, marginBottom: 12 })}>
+      <div style={{ color: T.txt, fontWeight: 600 }}>{title}</div>
+      <div style={{ color: T.dim, fontSize: 13, marginTop: 2 }}>{description}</div>
+      <button style={btn(variant, { width: "100%", justifyContent: "center", marginTop: 12 })} onClick={onClick}><Icon size={15} /> {buttonLabel}</button>
     </div>
   );
 }

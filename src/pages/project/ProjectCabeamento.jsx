@@ -9,7 +9,7 @@
 // ativo, clica p/ atribuir/reatribuir gabinetes e cria novo cabo quando quiser.
 // Pode IMPORTAR o cabeamento automático (Linha/Coluna/Área) e editar só o necessário.
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight } from "lucide-react";
+import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight, SlidersHorizontal } from "lucide-react";
 import { paletteColor, T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
@@ -19,6 +19,7 @@ import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { FLAGS } from "../../config/featureFlags.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
+import BottomSheet from "../../components/BottomSheet.jsx";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
 
@@ -29,6 +30,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const [history, setHistory] = useState([]); // undo do modo livre
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [configOpen, setConfigOpen] = useState(false);
   const stageRef = useRef(null);
   const drag = useRef(null);
   const isMobile = useIsMobile();
@@ -130,16 +132,57 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   return (
     <div>
-      <div style={card({ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: livreEdit ? 8 : 16 })} className="m-controlbar">
-        <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
-          {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-        </select>
-        <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
-        <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />
-        {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
-        {mode === "sinal" && <Drop label="Freq" options={[[60, "60 Hz"], [50, "50 Hz"], [30, "30 Hz"]]} value={hz} onChange={setHz} />}
-        <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
-      </div>
+      {!isMobile ? (
+        <div style={card({ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: livreEdit ? 8 : 16 })} className="m-controlbar">
+          <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
+            {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+          </select>
+          <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
+          <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />
+          {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
+          {mode === "sinal" && <Drop label="Freq" options={[[60, "60 Hz"], [50, "50 Hz"], [30, "30 Hz"]]} value={hz} onChange={setHz} />}
+          <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
+        </div>
+      ) : (
+        <div style={card({ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: livreEdit ? 8 : 16 })}>
+          <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...dropSel, minWidth: 140, flex: "1 1 140px" }}>
+            {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+          </select>
+          <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
+          <button onClick={() => setConfigOpen(true)} style={ibtn({ width: "auto", padding: "0 12px", gap: 6 })}><SlidersHorizontal size={15} /> Configurar</button>
+        </div>
+      )}
+
+      {isMobile && configOpen && (
+        <BottomSheet title="Configurar cabeamento" onClose={() => setConfigOpen(false)}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
+            <div style={{ display: "grid", gap: 6 }}>
+              <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Disposição</span>
+              <select value={String(strategy)} onChange={(e) => setStrategy(e.target.value)} style={dropSel}>
+                {[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])].map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
+              </select>
+            </div>
+            {["linha", "coluna", "area"].includes(strategy) && (
+              <div style={{ display: "grid", gap: 6 }}>
+                <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Sentido</span>
+                <select value={String(routing)} onChange={(e) => setRouting(e.target.value)} style={dropSel}>
+                  {[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]].map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
+                </select>
+              </div>
+            )}
+            {mode === "sinal" && (
+              <div style={{ display: "grid", gap: 6 }}>
+                <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Frequência</span>
+                <select value={String(hz)} onChange={(e) => setHz(Number(e.target.value))} style={dropSel}>
+                  {[[60, "60 Hz"], [50, "50 Hz"], [30, "30 Hz"]].map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
+                </select>
+              </div>
+            )}
+            <button style={{ ...dropSel, background: T.acc, borderColor: T.acc, color: "#fff", justifyContent: "center" }} onClick={() => setConfigOpen(false)}>Aplicar</button>
+          </div>
+        </BottomSheet>
+      )}
 
       {/* barra do modo livre */}
       {livreEdit && (
