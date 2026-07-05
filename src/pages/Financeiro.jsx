@@ -2,7 +2,7 @@
 // cliente, recibo por evento AGRUPADO POR DIA (subtotal quando há +1 no dia) e
 // export via PDF (window.print sobre .report-doc) + texto puro pra WhatsApp.
 // Sem CSV (decisão do usuário). Ver docs/diarias-spec.md §8.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Printer, Copy, MessageCircle } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { useToast } from "../store/UIContext.jsx";
@@ -27,11 +27,26 @@ const PRESETS = [
   { id: "30d", label: "Últimos 30 dias" },
 ];
 
+// largura fixa "de impressão": no mobile o recibo é montado nessa largura (layout igual
+// ao do desktop/PDF) e escalado com zoom p/ caber na tela — mini-preview fiel, não reflow.
+const DOC_W = 800;
+
 export default function Financeiro() {
   const { prefs, setPrefs } = useLedLabContext();
   const { worklog, porDia } = useWorklog();
   const toast = useToast();
   const isMobile = useIsMobile();
+
+  // no mobile, mede a largura disponível e calcula o zoom p/ o recibo (DOC_W) caber
+  const docWrapRef = useRef(null);
+  const [docZoom, setDocZoom] = useState(1);
+  useEffect(() => {
+    if (!isMobile) { setDocZoom(1); return; }
+    const measure = () => { const w = docWrapRef.current?.clientWidth || 0; if (w) setDocZoom(Math.min(1, w / DOC_W)); };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [isMobile]);
 
   const now = new Date();
   const [preset, setPreset] = useState("mes");
@@ -101,13 +116,13 @@ export default function Financeiro() {
   };
   const abrirWhats = () => window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
 
-  const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: isMobile ? 12 : 11, textTransform: "uppercase", letterSpacing: "0.04em" };
+  const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" };
   const td = { padding: "6px 8px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink, fontSize: 12.5 };
   const footRow = { display: "flex", justifyContent: "space-between", color: PRINT.mut, fontSize: 13, padding: "3px 0" };
-  // larguras de coluna iguais em todo dia; no mobile omite Duração (horário já indica)
-  const COLW = isMobile ? ["40%", "22%", "23%", "15%"] : ["38%", "16%", "11%", "20%", "15%"];
+  // larguras de coluna (5) iguais em todo dia — layout de impressão, idêntico no mobile (com zoom)
+  const COLW = ["38%", "16%", "11%", "20%", "15%"];
   const stat = (l, v, c = PRINT.ink) => (
-    <div><div style={{ fontSize: isMobile ? 12 : 11, textTransform: "uppercase", color: PRINT.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v}</div></div>
+    <div><div style={{ fontSize: 11, textTransform: "uppercase", color: PRINT.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v}</div></div>
   );
 
   return (
@@ -162,8 +177,10 @@ export default function Financeiro() {
         <button style={btn("ghost")} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
       </div>
 
-      {/* recibo imprimível */}
-      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: isMobile ? 18 : 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
+      {/* recibo imprimível — no mobile, montado em DOC_W e escalado (zoom) p/ caber, virando
+          um mini-preview fiel do PDF em vez de reflow. O zoom é resetado no @media print. */}
+      <div ref={docWrapRef} style={{ overflow: "hidden" }}>
+      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: 40, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
         {/* emitente (prestador) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 12 }}>
           <div>
@@ -210,13 +227,13 @@ export default function Financeiro() {
               <div className="tbl-scroll" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                   <colgroup>{COLW.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
-                  <thead><tr><th style={th}>Atividade</th><th style={th}>Horário</th>{!isMobile && <th style={th}>Duração</th>}<th style={th}>Cálculo</th><th style={{ ...th, textAlign: "right" }}>Valor</th></tr></thead>
+                  <thead><tr><th style={th}>Atividade</th><th style={th}>Horário</th><th style={th}>Duração</th><th style={th}>Cálculo</th><th style={{ ...th, textAlign: "right" }}>Valor</th></tr></thead>
                   <tbody>
                     {g.itens.map((it, i) => (
                       <tr key={i}>
                         <td style={td}>{it.tipo?.nome || "?"}{it.entry.clienteLivre && cliente === "" ? <span style={{ color: PRINT.dim }}> · {it.entry.clienteLivre}</span> : ""}{mistura && it.entry.localLivre ? <span style={{ color: PRINT.acc }}> · {it.entry.localLivre}</span> : ""}{it.entry.lateCheckout ? <span style={{ color: PRINT.amb, fontSize: 11 }}> · saída tardia</span> : ""}</td>
                         <td style={td}>{horarioLabel(it.entry) || "—"}</td>
-                        {!isMobile && <td style={td}>{it.breakdown.duracaoH != null ? `${it.breakdown.duracaoH.toFixed(1)}h` : "—"}</td>}
+                        <td style={td}>{it.breakdown.duracaoH != null ? `${it.breakdown.duracaoH.toFixed(1)}h` : "—"}</td>
                         <td style={{ ...td, color: PRINT.mut }}>{descBreakdown(it.breakdown)}</td>
                         <td style={{ ...td, textAlign: "right", fontWeight: 700, color: it.cobrado ? PRINT.ink : PRINT.dim }}>{it.cobrado ? brl(it.breakdown.total) : "não cobra"}</td>
                       </tr>
@@ -279,6 +296,7 @@ export default function Financeiro() {
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

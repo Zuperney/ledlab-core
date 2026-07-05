@@ -109,8 +109,10 @@ export default function DiariasView() {
     fazerCheckout(lateForm.entry, out, true);
   };
 
-  // autocomplete de clientes já usados + valor recorrente por (cliente, tipo)
+  // autocomplete de clientes e locais já usados + valor recorrente por (cliente, tipo).
+  // Locais tendem a ter mais variedade que clientes (o técnico roda vários eventos p/ o mesmo cliente).
   const clientesHist = [...new Set(worklog.map((e) => e.clienteLivre).filter(Boolean))].sort();
+  const locaisHist = [...new Set(worklog.map((e) => e.localLivre).filter(Boolean))].sort();
   const lembraValor = (cliente, tipoId) => {
     if (!cliente || !tipoId) return null;
     const m = worklog.filter((e) => e.clienteLivre === cliente && e.tipoId === tipoId && e.valorOverride != null);
@@ -153,6 +155,7 @@ export default function DiariasView() {
   return (
     <div>
       {clientesHist.length > 0 && <datalist id="clientes-dl">{clientesHist.map((c) => <option key={c} value={c} />)}</datalist>}
+      {locaisHist.length > 0 && <datalist id="locais-dl">{locaisHist.map((l) => <option key={l} value={l} />)}</datalist>}
       {/* cabeçalho do mês */}
       <div style={card({ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 })}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -267,7 +270,7 @@ export default function DiariasView() {
                 <div><div style={lbl}>Valor (opcional)</div><input type="number" placeholder={`Padrão ${brl(preview?.total ?? 0)}`} value={form.valorOverride} onChange={(e) => setForm({ ...form, valorOverride: e.target.value })} style={input()} /></div>
                 <div><div style={lbl}>Cliente</div><input list="clientes-dl" value={form.cliente} onChange={(e) => { const cliente = e.target.value; setForm((f) => { const next = { ...f, cliente }; if (!f.valorOverride) { const v = lembraValor(cliente, f.tipoId); if (v != null) next.valorOverride = String(v); } return next; }); }} style={input()} /></div>
               </div>
-              <div><div style={lbl}>Local</div><input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} style={input()} /></div>
+              <div><div style={lbl}>Local</div><input list="locais-dl" value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} style={input()} /></div>
               <div><div style={lbl}>Observações</div><input value={form.obs} onChange={(e) => setForm({ ...form, obs: e.target.value })} style={input()} /></div>
 
               {preview && (
@@ -302,7 +305,7 @@ export default function DiariasView() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div><div style={lbl}>Cliente (opcional)</div><input list="clientes-dl" value={checkinForm.cliente} onChange={(e) => setCheckinForm({ ...checkinForm, cliente: e.target.value })} style={input()} /></div>
-              <div><div style={lbl}>Local (opcional)</div><input value={checkinForm.local} onChange={(e) => setCheckinForm({ ...checkinForm, local: e.target.value })} style={input()} /></div>
+              <div><div style={lbl}>Local (opcional)</div><input list="locais-dl" value={checkinForm.local} onChange={(e) => setCheckinForm({ ...checkinForm, local: e.target.value })} style={input()} /></div>
             </div>
             <div style={{ color: T.dim, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
               <MapPin size={12} /> Se você permitir, salvo o GPS junto — é opcional.

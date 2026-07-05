@@ -63,7 +63,9 @@ body {
   body * { visibility: hidden; }
   .report-doc, .report-doc * { visibility: visible; }
   .report-doc {
-    width: 100%;
+    width: 100% !important;
+    max-width: none !important;
+    zoom: 1 !important; /* anula o zoom do mini-preview mobile na hora de imprimir */
     position: absolute;
     top: 0;
     left: 0;
