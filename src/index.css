@@ -54,13 +54,7 @@ body {
   .m-stack { flex-direction: column !important; align-items: stretch !important; }
   .m-hide { display: none !important; }
   .m-controlbar { column-gap: 14px; }
-  .dash-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-  .dash-stat-value { font-size: 28px !important; }
-}
-
-@media (width <= 390px) {
-  .dash-stats-grid { grid-template-columns: 1fr !important; }
-  .dash-stat-value { font-size: 24px !important; }
+  /* stats do dashboard: 1 linha (3 colunas) sempre; tamanhos vêm do JSX (isMobile) */
 }
 
 /* Impressão do Relatório */

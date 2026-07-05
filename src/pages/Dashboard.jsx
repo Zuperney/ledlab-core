@@ -36,9 +36,9 @@ export default function Dashboard({ nav }) {
   const upcoming = planned.slice(0, limit);
 
   const stats = [
-    { l: "Em andamento", v: active.length, c: T.acM },
-    { l: "Próximos eventos", v: planned.length, c: T.amb },
-    { l: "Concluídos", v: done.length, c: T.grn },
+    { l: "Em andamento", s: "Andamento", v: active.length, c: T.acM },
+    { l: "Próximos eventos", s: "Próximos", v: planned.length, c: T.amb },
+    { l: "Concluídos", s: "Concluídos", v: done.length, c: T.grn },
   ];
 
   // diárias do mês corrente (módulo Diárias)
@@ -63,11 +63,11 @@ export default function Dashboard({ nav }) {
         </div>
       )}
 
-      <div className="dash-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 16 }}>
+      <div className="dash-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: isMobile ? 8 : 16, marginBottom: 16 }}>
         {stats.map((s) => (
-          <div key={s.l} style={card()}>
-            <div style={{ textTransform: "uppercase", fontSize: 11, letterSpacing: "0.06em", color: T.mut }}>{s.l}</div>
-            <div className="dash-stat-value" style={{ fontSize: 34, fontWeight: 800, color: s.c, marginTop: 8 }}>{s.v}</div>
+          <div key={s.l} style={card(isMobile ? { padding: "9px 6px" } : {})}>
+            <div style={{ textTransform: "uppercase", fontSize: isMobile ? 9.5 : 11, letterSpacing: "0.04em", color: T.mut, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{isMobile ? s.s : s.l}</div>
+            <div className="dash-stat-value" style={{ fontSize: isMobile ? 24 : 34, fontWeight: 800, color: s.c, marginTop: isMobile ? 2 : 8 }}>{s.v}</div>
           </div>
         ))}
       </div>

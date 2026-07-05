@@ -1,12 +1,13 @@
 // pages/AspectRatio.jsx — Calculadora de Aspect Ratio (proporção de tela) com
 // visualização e comparação com resoluções padrão de vídeo. Ferramenta avulsa:
 // parte de pixels manuais OU de um gabinete + grade (resolução total do painel).
-import { useState } from "react";
-import { ArrowLeftRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
@@ -43,6 +44,9 @@ const STD = [
 
 export default function AspectRatio() {
   const { cabs } = useLedLabContext();
+  const isMobile = useIsMobile();
+  const [controlsOpen, setControlsOpen] = useState(!isMobile);
+  useEffect(() => { setControlsOpen(!isMobile); }, [isMobile]);
   const [w, setW] = useState(1920);
   const [h, setH] = useState(1080);
   const [cabId, setCabId] = useState(cabs[0]?.id);
@@ -96,6 +100,13 @@ export default function AspectRatio() {
 
       {/* ENTRADAS + RESULTADO */}
       <div style={card({ marginBottom: 16 })}>
+        {isMobile && (
+          <button onClick={() => setControlsOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 2px 8px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
+            Controles
+            {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        )}
+        {(!isMobile || controlsOpen) && (
         <div style={{ display: "flex", gap: 14, alignItems: "flex-end", flexWrap: "wrap" }}>
           <div><label style={lbl}>Largura (px)</label><input type="number" value={w} onChange={(e) => setW(parseInt(e.target.value) || 0)} style={inp} /></div>
           <button onClick={swap} title="Trocar largura/altura" style={{ width: 38, height: 38, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 1 }}><ArrowLeftRight size={16} /></button>
@@ -106,6 +117,7 @@ export default function AspectRatio() {
           <div><label style={lbl}>Linhas</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 78 }} /></div>
           <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
         </div>
+        )}
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>
           {stat("Proporção", friendly(W, H), T.acM)}
           {stat("Decimal", `${dec.toFixed(3)}:1`)}
