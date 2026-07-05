@@ -24,6 +24,22 @@ body {
   background: #0d0d1a;
 }
 
+.app-mobile-header {
+  padding-top: 12px;
+}
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  .app-mobile-header {
+    padding-top: calc(12px + env(safe-area-inset-top));
+  }
+}
+
+@supports (padding-top: constant(safe-area-inset-top)) {
+  .app-mobile-header {
+    padding-top: calc(12px + constant(safe-area-inset-top));
+  }
+}
+
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -38,6 +54,13 @@ body {
   .m-stack { flex-direction: column !important; align-items: stretch !important; }
   .m-hide { display: none !important; }
   .m-controlbar { column-gap: 14px; }
+  .dash-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .dash-stat-value { font-size: 28px !important; }
+}
+
+@media (width <= 390px) {
+  .dash-stats-grid { grid-template-columns: 1fr !important; }
+  .dash-stat-value { font-size: 24px !important; }
 }
 
 /* Impressão do Relatório */

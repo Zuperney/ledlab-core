@@ -1,6 +1,7 @@
-// App.jsx — shell: sidebar, topbar e roteamento simples por estado.
-import { useState } from "react";
+// App.jsx — shell: sidebar, topbar e navegação principal orientada por rota.
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
+import { useLocation } from "wouter";
 import logo from "./assets/logo.svg";
 import { NAV, SECTIONS, LABELS, VERSION } from "./nav.js";
 import { T, FONT } from "./ui/tokens.js";
@@ -26,26 +27,48 @@ const PAGES = {
   diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio,
   knowledge: Knowledge, settings: Settings,
 };
+const DEFAULT_PAGE = "dashboard";
+const PAGE_TO_PATH = Object.fromEntries(Object.keys(PAGES).map((id) => [id, `/${id}`]));
+const PATH_TO_PAGE = Object.fromEntries(Object.entries(PAGE_TO_PATH).map(([id, path]) => [path, id]));
 
 export default function App() {
-  const [page, setPage] = useState("dashboard");
+  const [location, setLocation] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [openProjectId, setOpenProjectId] = useState(null);
+  const page = PATH_TO_PAGE[location] || DEFAULT_PAGE;
   const Page = PAGES[page] || Dashboard;
   const isMobile = useIsMobile();
   const { storageOk } = useLedLabContext();
 
-  // navegação pela sidebar limpa um projeto aberto
-  const navigate = (id) => { setOpenProjectId(null); setPage(id); };
+  useEffect(() => {
+    if (location === "/") {
+      setLocation(PAGE_TO_PATH[DEFAULT_PAGE], { replace: true });
+      return;
+    }
+    if (!PATH_TO_PAGE[location]) setLocation(PAGE_TO_PATH[DEFAULT_PAGE], { replace: true });
+  }, [location, setLocation]);
+
+  useEffect(() => {
+    if (page !== "projects" && openProjectId) setOpenProjectId(null);
+  }, [page, openProjectId]);
+
+  // navegação principal limpa projeto aberto e atualiza a URL (deep-link + back button)
+  const navigate = (id) => {
+    setOpenProjectId(null);
+    setLocation(PAGE_TO_PATH[id] || PAGE_TO_PATH[DEFAULT_PAGE]);
+  };
   // abrir um projeto específico (ex.: a partir da Agenda)
-  const openProject = (id) => { setOpenProjectId(id); setPage("projects"); };
+  const openProject = (id) => {
+    setOpenProjectId(id);
+    setLocation(PAGE_TO_PATH.projects);
+  };
   const nav = { page, setPage: navigate, openProject, openProjectId, clearProject: () => setOpenProjectId(null) };
 
   // ── Shell mobile: topbar compacta + conteúdo + bottom navigation ──
   if (isMobile) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
-        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, flexShrink: 0 }}>
+      <div className="app-mobile-shell" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
+        <header className="app-mobile-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <img src={logo} alt="" style={{ width: 24, height: 24, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
             <h1 style={{ margin: 0, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{LABELS[page] || "LedLab Core"}</h1>

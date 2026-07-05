@@ -161,7 +161,7 @@ export default function DiariasView() {
           <button style={navBtn} onClick={() => go(1)}><ChevronRight size={16} /></button>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 10, textTransform: "uppercase", color: T.mut }}>Total do mês</div>
+          <div style={{ fontSize: isMobile ? 12 : 11, textTransform: "uppercase", color: T.mut }}>Total do mês</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: T.grn }}>{brl(mesTotal)}</div>
         </div>
       </div>
@@ -258,12 +258,12 @@ export default function DiariasView() {
                   {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
                 </select>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 <div><div style={lbl}>Data</div><input type="date" value={form.dataRef} onChange={(e) => setForm({ ...form, dataRef: e.target.value })} style={input()} /></div>
                 <div><div style={lbl}>Início</div><input type="time" value={form.inicio} onChange={(e) => setForm({ ...form, inicio: e.target.value })} style={input()} /></div>
                 <div><div style={lbl}>Fim</div><input type="time" value={form.fim} onChange={(e) => setForm({ ...form, fim: e.target.value })} style={input()} /></div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div><div style={lbl}>Valor (opcional)</div><input type="number" placeholder={`Padrão ${brl(preview?.total ?? 0)}`} value={form.valorOverride} onChange={(e) => setForm({ ...form, valorOverride: e.target.value })} style={input()} /></div>
                 <div><div style={lbl}>Cliente</div><input list="clientes-dl" value={form.cliente} onChange={(e) => { const cliente = e.target.value; setForm((f) => { const next = { ...f, cliente }; if (!f.valorOverride) { const v = lembraValor(cliente, f.tipoId); if (v != null) next.valorOverride = String(v); } return next; }); }} style={input()} /></div>
               </div>
@@ -401,4 +401,4 @@ function DayList({ data, onAdd, onEdit }) {
   );
 }
 
-const navBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };
+const navBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };

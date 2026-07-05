@@ -11,7 +11,7 @@ import { card, input, btn, iconBtn, dangerIconBtn, label as lbl } from "../../ui
 import Drawer from "../../components/Drawer.jsx";
 
 export default function DiariasConfig() {
-  const { prefs, setPrefs } = useLedLabContext();
+  const { prefs, setPrefs, worklog } = useLedLabContext();
   const { activityTypes, addType, updateType, removeType } = useActivityTypes();
   const confirm = useConfirm();
   const toast = useToast();
@@ -33,7 +33,17 @@ export default function DiariasConfig() {
     if (edit.id) updateType({ ...data, id: edit.id }); else addType(data);
     setEdit(null);
   };
-  const del = async (t) => { if (await confirm({ title: "Excluir tipo?", message: `"${t.nome}" será removido.` })) { removeType(t.id); toast("Tipo excluído"); } };
+  const del = async (t) => {
+    if (!(await confirm({ title: "Excluir tipo?", message: `"${t.nome}" será removido.` }))) return;
+    const emUso = worklog.some((e) => e.tipoId === t.id);
+    if (emUso) {
+      updateType({ ...t, ativo: false });
+      toast("Tipo em uso: marcado como inativo");
+      return;
+    }
+    removeType(t.id);
+    toast("Tipo excluído");
+  };
 
   return (
     <>
@@ -51,7 +61,7 @@ export default function DiariasConfig() {
       <div style={card({ maxWidth: 640, marginBottom: 16 })}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Fixo mensal (opcional)</div>
         <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além dos cachês. Deixe 0 se não usa.</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><div style={lbl}>Valor por mês (R$)</div><input type="number" value={fixo.valor} onChange={(e) => setFixo({ valor: Math.max(0, parseInt(e.target.value) || 0) })} placeholder="Ex.: 6000" style={input()} /></div>
           <div><div style={lbl}>Cliente do fixo</div><input value={fixo.cliente} onChange={(e) => setFixo({ cliente: e.target.value })} placeholder="Ex.: Mega Led" style={input()} /></div>
         </div>
@@ -103,7 +113,7 @@ export default function DiariasConfig() {
         {edit && (
           <div style={{ display: "grid", gap: 14 }}>
             <div><div style={lbl}>Nome</div><input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder="Ex.: Montagem" style={input()} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "end" }}>
+            <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "end" }}>
               <div><div style={lbl}>Cor</div><input type="color" value={edit.cor} onChange={(e) => setEdit({ ...edit, cor: e.target.value })} style={{ width: 48, height: 40, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer" }} /></div>
               <div><div style={lbl}>Cachê base (R$)</div><input type="number" value={edit.valorBase} onChange={(e) => setEdit({ ...edit, valorBase: e.target.value })} placeholder="Ex.: 350" style={input()} /></div>
             </div>

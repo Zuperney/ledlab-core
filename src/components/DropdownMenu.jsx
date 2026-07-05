@@ -15,7 +15,7 @@ export default function DropdownMenu({ items = [], label = "Mais ações", Icon 
   }, []);
 
   const trigger = triggerLabel
-    ? { display: "inline-flex", alignItems: "center", gap: 8, height: 32, padding: "0 12px", borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 600 }
+    ? { display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, padding: "0 12px", borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 600 }
     : iconBtn();
 
   return (

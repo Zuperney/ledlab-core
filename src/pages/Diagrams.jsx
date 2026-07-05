@@ -6,16 +6,18 @@
 // dos cabos ficam CONSISTENTES em todo o app. Ferramenta avulsa: escolhe um
 // gabinete e uma grade, sem precisar de projeto (não persiste).
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize, ChevronDown, ChevronUp } from "lucide-react";
 import { paletteColor, T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { key, bboxArea, cableMeta, cablePorts } from "../services/cabling.js";
 import SectionHeader from "../components/SectionHeader.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
 
 export default function Diagrams() {
+  const isMobile = useIsMobile();
   const { cabs, prefs } = useLedLabContext();
   const numbering = prefs.cableNumbering || "row-tb-lr"; // ordem global de numeração
   const [cabId, setCabId] = useState(cabs[0]?.id);
@@ -24,6 +26,7 @@ export default function Diagrams() {
   const [hz, setHz] = useState(60);
   const [strategy, setStrategy] = useState("linha");
   const [routing, setRouting] = useState("updown");
+  const [controlsOpen, setControlsOpen] = useState(!isMobile);
 
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -50,6 +53,7 @@ export default function Diagrams() {
     setZoom(z); setPan({ x: (el.clientWidth - panelW * z) / 2, y: (el.clientHeight - panelH * z) / 2 });
   }, [panelW, panelH]);
   useEffect(() => { fit(); }, [fit]); // re-enquadra quando a grade muda
+  useEffect(() => { setControlsOpen(!isMobile); }, [isMobile]);
 
   const onWheel = (e) => {
     e.preventDefault();
@@ -64,6 +68,7 @@ export default function Diagrams() {
   const onTouchStart = (e) => { const t = e.touches[0]; if (t) drag.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y }; };
   const onTouchMove = (e) => { const t = e.touches[0]; if (drag.current && t) setPan({ x: drag.current.px + (t.clientX - drag.current.x), y: drag.current.py + (t.clientY - drag.current.y) }); };
   const zoomBy = (f) => { const el = stageRef.current, cw = el.clientWidth / 2, ch = el.clientHeight / 2; setZoom((z) => Math.min(6, Math.max(0.1, z * f))); setPan((p) => ({ x: cw - (cw - p.x) * f, y: ch - (ch - p.y) * f })); };
+  const canvasHeight = isMobile ? 340 : 460;
 
   const inp = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" };
   const lbl = { textTransform: "uppercase", fontSize: 11, color: T.mut, display: "block", marginBottom: 4 };
@@ -72,13 +77,23 @@ export default function Diagrams() {
     <div>
       <SectionHeader title="Diagramação" subtitle="Planeje as portas de sinal por tela (regra de área Novastar), consistente com o Cabeamento." />
 
-      <div style={card({ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 })}>
-        <div><label style={lbl}>Gabinete</label><select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={inp}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
-        <div><label style={lbl}>Colunas</label><input type="number" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 80 }} /></div>
-        <div><label style={lbl}>Linhas</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 80 }} /></div>
-        <div><label style={lbl}>Refresh</label><select value={hz} onChange={(e) => setHz(parseInt(e.target.value))} style={inp}>{[60, 50, 30].map((r) => <option key={r} value={r}>{r} Hz</option>)}</select></div>
-        <Seg label="Disposição" options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]} value={strategy} onChange={setStrategy} />
-        <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />
+      <div style={card({ marginBottom: 16 })}>
+        {isMobile && (
+          <button onClick={() => setControlsOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 2px 8px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
+            Controles
+            {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        )}
+        {(!isMobile || controlsOpen) && (
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div><label style={lbl}>Gabinete</label><select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={inp}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+            <div><label style={lbl}>Colunas</label><input type="number" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 80 }} /></div>
+            <div><label style={lbl}>Linhas</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 80 }} /></div>
+            <div><label style={lbl}>Refresh</label><select value={hz} onChange={(e) => setHz(parseInt(e.target.value))} style={inp}>{[60, 50, 30].map((r) => <option key={r} value={r}>{r} Hz</option>)}</select></div>
+            <Seg label="Disposição" options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]} value={strategy} onChange={setStrategy} />
+            <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />
+          </div>
+        )}
       </div>
 
       <div style={card({ padding: 0, overflow: "hidden" })}>
@@ -93,7 +108,7 @@ export default function Diagrams() {
         {/* CANVAS */}
         <div ref={stageRef} onWheel={onWheel} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
           onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onUp}
-          style={{ position: "relative", height: 460, background: "#08080f", overflow: "hidden", cursor: drag.current ? "grabbing" : "grab", touchAction: "none" }}>
+          style={{ position: "relative", height: canvasHeight, background: "#08080f", overflow: "hidden", cursor: drag.current ? "grabbing" : "grab", touchAction: "none" }}>
           <svg width="100%" height="100%" style={{ display: "block" }}>
             <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
               <rect x={-8} y={-8} width={panelW + 16} height={panelH + 16} rx={10} fill="#0d0d1a" stroke={T.bd} strokeWidth={1.5} />
