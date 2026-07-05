@@ -11,7 +11,7 @@ import { card, input, btn, iconBtn, dangerIconBtn, label as lbl } from "../../ui
 import Drawer from "../../components/Drawer.jsx";
 
 export default function DiariasConfig() {
-  const { prefs, setPrefs } = useLedLabContext();
+  const { prefs, setPrefs, worklog } = useLedLabContext();
   const { activityTypes, addType, updateType, removeType } = useActivityTypes();
   const confirm = useConfirm();
   const toast = useToast();
@@ -33,7 +33,17 @@ export default function DiariasConfig() {
     if (edit.id) updateType({ ...data, id: edit.id }); else addType(data);
     setEdit(null);
   };
-  const del = async (t) => { if (await confirm({ title: "Excluir tipo?", message: `"${t.nome}" será removido.` })) { removeType(t.id); toast("Tipo excluído"); } };
+  const del = async (t) => {
+    if (!(await confirm({ title: "Excluir tipo?", message: `"${t.nome}" será removido.` }))) return;
+    const emUso = worklog.some((e) => e.tipoId === t.id);
+    if (emUso) {
+      updateType({ ...t, ativo: false });
+      toast("Tipo em uso: marcado como inativo");
+      return;
+    }
+    removeType(t.id);
+    toast("Tipo excluído");
+  };
 
   return (
     <>
