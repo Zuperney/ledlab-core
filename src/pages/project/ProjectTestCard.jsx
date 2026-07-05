@@ -142,13 +142,19 @@ export default function ProjectTestCard({ project }) {
   const [o, setO] = useState({ ...DEFAULTS });
   const [zoom, setZoom] = useState(1);
   const [presetSel, setPresetSel] = useState("");
+  const [toolbarOpen, setToolbarOpen] = useState(!isMobile);
   const [controlsOpen, setControlsOpen] = useState(!isMobile);
+  const [advancedOpen, setAdvancedOpen] = useState(!isMobile);
   const canvasRef = useRef(null);
   const tela = telas.find((t) => t.id === telaId) || telas[0];
 
   const mapPorts = tela && o.cableMap !== "off" ? cablePorts(tela, o.cableMap, numbering) : null;
   useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts); });
-  useEffect(() => { setControlsOpen(!isMobile); }, [isMobile]);
+  useEffect(() => {
+    setToolbarOpen(!isMobile);
+    setControlsOpen(!isMobile);
+    setAdvancedOpen(!isMobile);
+  }, [isMobile]);
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o test card." />;
 
@@ -181,7 +187,7 @@ export default function ProjectTestCard({ project }) {
     }, "image/png");
   };
 
-  const zbtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 7, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };
+  const zbtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, width: isMobile ? "auto" : 30, height: 30, borderRadius: 7, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", padding: isMobile ? "0 8px" : 0, fontSize: 12, fontWeight: 600 };
   const controlsPanel = (
     <div style={card({ padding: isMobile ? "4px 14px 10px" : "4px 16px" })}>
       {isMobile ? (
@@ -220,29 +226,37 @@ export default function ProjectTestCard({ project }) {
                 </Cell>
                 <Cell label="Tamanho do nº" flex="1 1 150px"><NumScaleInline value={o.numScale} onChange={(n) => set({ numScale: n })} /></Cell>
               </GroupRow>
-              <GroupRow>
-                <Cell label="Color bar" flex="1 1 140px">
-                  <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={cellSel}>
-                    <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
-                  </select>
-                </Cell>
-                <Cell label="Mapa de cabos" flex="1 1 140px">
-                  <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={cellSel}>
-                    <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
-                  </select>
-                </Cell>
-              </GroupRow>
-              <GroupRow>
-                <Cell label="Caixa de info" flex="0 0 auto"><Switch on={o.info} onClick={() => toggle("info")} /></Cell>
-                {o.info && <Cell label="Info em linha" flex="0 0 auto"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Cell>}
-                {o.info && (
-                  <Cell label="Posição" flex="1 1 130px">
-                    <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={cellSel}>
-                      <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
-                    </select>
-                  </Cell>
-                )}
-              </GroupRow>
+              <button onClick={() => setAdvancedOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 2px 8px", marginTop: 6, background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                Opções avançadas
+                {advancedOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              {advancedOpen && (
+                <>
+                  <GroupRow>
+                    <Cell label="Color bar" flex="1 1 140px">
+                      <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={cellSel}>
+                        <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
+                      </select>
+                    </Cell>
+                    <Cell label="Mapa de cabos" flex="1 1 140px">
+                      <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={cellSel}>
+                        <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
+                      </select>
+                    </Cell>
+                  </GroupRow>
+                  <GroupRow>
+                    <Cell label="Caixa de info" flex="0 0 auto"><Switch on={o.info} onClick={() => toggle("info")} /></Cell>
+                    {o.info && <Cell label="Info em linha" flex="0 0 auto"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Cell>}
+                    {o.info && (
+                      <Cell label="Posição" flex="1 1 130px">
+                        <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={cellSel}>
+                          <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
+                        </select>
+                      </Cell>
+                    )}
+                  </GroupRow>
+                </>
+              )}
             </>
           )}
         </>
@@ -311,9 +325,18 @@ export default function ProjectTestCard({ project }) {
         <b style={{ color: T.acM }}>{tela.nome}</b>
         <span>{W}×{H} px · {tela.cols * tela.rows} gab · pitch {(parseFloat(g.dimW) / (parseFloat(g.resX) || 1)).toFixed(2)} mm</span>
         <span style={{ display: "inline-flex", gap: 6 }}>
-          <button style={zbtn} title="Diminuir" onClick={() => setZoom((z) => Math.max(0.25, z * 0.8))}><ZoomOut size={15} /></button>
-          <button style={zbtn} title="Enquadrar" onClick={() => setZoom(1)}><Maximize size={15} /></button>
-          <button style={zbtn} title="Aumentar" onClick={() => setZoom((z) => Math.min(4, z * 1.25))}><ZoomIn size={15} /></button>
+          <button style={zbtn} title="Diminuir" onClick={() => setZoom((z) => Math.max(0.25, z * 0.8))}>
+            <ZoomOut size={15} />
+            {isMobile && "Zoom -"}
+          </button>
+          <button style={zbtn} title="Enquadrar" onClick={() => setZoom(1)}>
+            <Maximize size={15} />
+            {isMobile && "Enquadrar"}
+          </button>
+          <button style={zbtn} title="Aumentar" onClick={() => setZoom((z) => Math.min(4, z * 1.25))}>
+            <ZoomIn size={15} />
+            {isMobile && "Zoom +"}
+          </button>
         </span>
       </div>
       <div style={{ overflow: "auto", background: "repeating-conic-gradient(#1a1a2e 0% 25%, #12122a 0% 50%) 50% / 24px 24px", borderRadius: 6, maxHeight: "70vh" }} className="tbl-scroll">
@@ -325,49 +348,59 @@ export default function ProjectTestCard({ project }) {
 
   return (
     <div>
-      <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: "1 1 280px", minWidth: 0 }}>
-            <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: "1 1 130px", minWidth: 0 }}>
-              {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-            </select>
-            <select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: "1 1 150px", minWidth: 0 }}>
-              <option value="">Predefinição…</option>
-              <option value="map">Mapa de gabinetes</option>
-              <option value="align">Alinhamento / geometria</option>
-              <option value="solid">Cor sólida</option>
-              <option value="bars">Barras de cor</option>
-              <option value="cabsig">Mapa de cabos (sinal)</option>
-              {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+      <div style={card({ padding: isMobile ? "8px 12px 10px" : "10px 14px", marginBottom: 16 })}>
+        {isMobile && (
+          <button onClick={() => setToolbarOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 2px 8px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
+            Contexto e ações
+            {toolbarOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        )}
+        {(!isMobile || toolbarOpen) && (
+          <div style={{ display: "grid", gap: 10 }}>
+            <ToolbarGroup label="Contexto">
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", width: "100%" }}>
+                <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: "1 1 130px", minWidth: 0 }}>
+                  {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                </select>
+                <select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: "1 1 150px", minWidth: 0 }}>
+                  <option value="">Predefinição…</option>
+                  <option value="map">Mapa de gabinetes</option>
+                  <option value="align">Alinhamento / geometria</option>
+                  <option value="solid">Cor sólida</option>
+                  <option value="bars">Barras de cor</option>
+                  <option value="cabsig">Mapa de cabos (sinal)</option>
+                  {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            </ToolbarGroup>
+            <ToolbarGroup label="Ações de preset">
+              <button style={{ ...tbBtn, width: isMobile ? "100%" : "auto", justifyContent: "center" }} title="Salvar predefinição" onClick={savePreset}><Save size={16} /> Salvar predefinição</button>
+            </ToolbarGroup>
+            <ToolbarGroup label="Exportação principal">
+              <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff", width: isMobile ? "100%" : "auto", justifyContent: "center" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} /> Exportar PNG</button>
+            </ToolbarGroup>
           </div>
-          <button style={{ ...tbBtn, width: isMobile ? "100%" : "auto", justifyContent: "center" }} title="Salvar predefinição" onClick={savePreset}><Save size={16} /> Salvar preset</button>
-          <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff", width: isMobile ? "100%" : "auto", justifyContent: "center" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} /> Exportar PNG</button>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
-        {isMobile ? (
-          <>
-            {previewPanel}
-            <div>
-              <button onClick={() => setControlsOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 2px 8px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
-                Controles avançados
-                {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-              {controlsOpen && controlsPanel}
-            </div>
-          </>
-        ) : (
-          <>
-            {controlsPanel}
-            {previewPanel}
-          </>
         )}
       </div>
-      {isMobile && (
-        <div style={{ color: T.dim, fontSize: 11, marginTop: 10 }}>
-          Dica: no mobile, use o preview primeiro e abra os controles só para ajustes finos.
+
+      {isMobile ? (
+        <>
+          {previewPanel}
+          <div style={{ marginTop: 12 }}>
+            <button onClick={() => setControlsOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 2px 8px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
+              Controles de edição
+              {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {controlsOpen && controlsPanel}
+          </div>
+          <div style={{ color: T.dim, fontSize: 11, marginTop: 10 }}>
+            Dica: no mobile, confira o preview primeiro e abra os controles quando precisar de ajuste fino.
+          </div>
+        </>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
+          {controlsPanel}
+          {previewPanel}
         </div>
       )}
     </div>
@@ -377,6 +410,17 @@ export default function ProjectTestCard({ project }) {
 const sel = { flex: 1, background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13 };
 const tbBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 36, padding: "0 11px", borderRadius: 8, border: `1px solid ${T.bd}`, background: T.card2, color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 600, flexShrink: 0 };
 const rsel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer", maxWidth: 190 };
+
+function ToolbarGroup({ label, children }) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", letterSpacing: ".04em" }}>{label}</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 // linha de ajuste: rótulo à esquerda, controle à direita (lista consistente, com divisória)
 function Row({ label, children, top }) {
