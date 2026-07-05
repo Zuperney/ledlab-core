@@ -2,9 +2,10 @@
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
 import { useRef, useState } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, GitBranch, Receipt, Monitor, Database, TriangleAlert } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
+import { VOLT } from "../services/electricalCalc.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
@@ -128,10 +129,16 @@ export default function Settings() {
     <div style={{ maxWidth: 640 }}>
       <SectionHeader title="Configurações" subtitle="Preferências, dados e manutenção — tudo salvo neste navegador." />
 
-      <Section icon={GitBranch} title="Cabeamento" subtitle="Ordem de numeração dos cabos" defaultOpen={open}>
-        <div style={{ color: T.dim, fontSize: 13, marginBottom: 10 }}>Ordem em que os cabos são numerados (sinal e AC), conforme sua preferência de montagem em campo.</div>
-        <select value={prefs.cableNumbering || "row-tb-lr"} onChange={(e) => setPrefs({ ...prefs, cableNumbering: e.target.value })}
-          style={{ width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 14 }}>
+      <Section icon={Zap} title="Elétrica & cabeamento" subtitle="Tensão padrão e numeração dos cabos" defaultOpen={open}>
+        <div style={subLabel}>Tensão padrão</div>
+        <div style={subDesc}>Usada em projetos novos (dá pra mudar por projeto na aba Energia).</div>
+        <select value={prefs.vk || "220_tri"} onChange={(e) => setPrefs({ ...prefs, vk: e.target.value })} style={selStyle}>
+          {Object.entries(VOLT).map(([k, v]) => <option key={k} value={k}>{v.g}V · {v.label}</option>)}
+        </select>
+
+        <div style={{ ...subLabel, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>Numeração dos cabos</div>
+        <div style={subDesc}>Ordem em que os cabos são numerados (sinal e AC), conforme sua montagem em campo.</div>
+        <select value={prefs.cableNumbering || "row-tb-lr"} onChange={(e) => setPrefs({ ...prefs, cableNumbering: e.target.value })} style={selStyle}>
           <option value="col-lr-bt">Coluna · esquerda→direita · de baixo p/ cima</option>
           <option value="col-lr-tb">Coluna · esquerda→direita · de cima p/ baixo</option>
           <option value="col-rl-bt">Coluna · direita→esquerda · de baixo p/ cima</option>
@@ -215,4 +222,7 @@ function IoRow({ title, desc, onExport, onImport, first }) {
 
 const mTitle = { color: T.txt, fontWeight: 600, fontSize: 14 };
 const mDesc = { color: T.dim, fontSize: 12 };
+const selStyle = { width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 14 };
+const subLabel = { color: T.txt, fontWeight: 600, fontSize: 13.5, marginBottom: 2 };
+const subDesc = { color: T.dim, fontSize: 12.5, marginBottom: 8 };
 const rowStyle = (first) => ({ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 0", borderTop: first ? "none" : `1px solid ${T.bd}`, flexWrap: "wrap" });

@@ -2,9 +2,12 @@
 import { useLedLabContext, newProject } from "../store/AppContext.jsx";
 
 export function useProjects() {
-  const { projects, setProjects } = useLedLabContext();
+  const { projects, setProjects, prefs } = useLedLabContext();
   const createProject = (init) => {
-    const p = newProject(init || { name: "Novo Projeto" });
+    const base = init || { name: "Novo Projeto" };
+    // projeto novo herda a tensão/defaults elétricos das preferências globais (Configurações)
+    const config = base.config || { vk: prefs.vk || "220_tri", brilho: prefs.brilho ?? 0.7, conteudo: prefs.conteudo ?? 0.33 };
+    const p = newProject({ ...base, config });
     setProjects([...projects, p]);
     return p;
   };
