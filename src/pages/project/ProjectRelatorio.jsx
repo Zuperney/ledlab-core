@@ -50,7 +50,10 @@ export default function ProjectRelatorio({ project }) {
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
   const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: paletteColor(i), flexShrink: 0 });
   const h3 = { color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 };
-  const telaBlock = { marginBottom: 18, breakInside: "avoid" };
+  const section = { marginBottom: 18, scrollMarginTop: 12 };
+  const sectionIntro = { color: PRINT.mut, fontSize: 12, margin: "4px 0 10px" };
+  const sectionTail = { marginTop: 8, marginBottom: 0 };
+  const telaBlock = { marginBottom: 14, breakInside: "avoid-page", pageBreakInside: "avoid" };
   const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };
   const sectionNav = [
     showPhys && { id: "sec-overview", label: "Visão geral" },
@@ -59,6 +62,12 @@ export default function ProjectRelatorio({ project }) {
     showSignal && { id: "sec-signal", label: "Sinal" },
     showAC && { id: "sec-ac", label: "Energia AC" },
   ].filter(Boolean);
+  const sectionLinkStyle = { border: `1px solid ${PRINT.line}`, background: "#fff", color: PRINT.ink, borderRadius: 999, fontSize: 12, padding: "4px 10px", cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center" };
+  const backTop = (
+    <div className="report-backtop" style={{ marginTop: 8, marginBottom: 4 }}>
+      <a href="#report-top" style={{ color: PRINT.acc, textDecoration: "none", fontSize: 11, fontWeight: 600 }}>↑ Voltar ao topo</a>
+    </div>
+  );
   const jumpTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
@@ -84,7 +93,7 @@ export default function ProjectRelatorio({ project }) {
         </div>
       </div>
 
-      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: isMobile ? 18 : 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
+      <div id="report-top" className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: isMobile ? 18 : 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: `2px solid ${PRINT.ink}`, paddingBottom: 14, marginBottom: 16 }}>
           <div>
             <div style={{ color: PRINT.acc, fontWeight: 700, fontSize: 11, letterSpacing: "0.08em" }}>LEDLAB CORE — {type.toUpperCase()}</div>
@@ -106,12 +115,21 @@ export default function ProjectRelatorio({ project }) {
           ))}
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+        <div className="report-nav" style={{ display: "grid", gap: 8, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${PRINT.line}` }}>
+          <div style={{ color: PRINT.mut, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 700 }}>Navegação rápida</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {sectionNav.map((s) => (
+              <a key={`a-${s.id}`} href={`#${s.id}`} style={sectionLinkStyle}>{s.label}</a>
+            ))}
+          </div>
+        </div>
+
+        <div className="report-nav report-nav-mobile-hide-print" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
           {sectionNav.map((s) => (
             <button
               key={s.id}
               onClick={() => jumpTo(s.id)}
-              style={{ border: `1px solid ${PRINT.line}`, background: "#fff", color: PRINT.ink, borderRadius: 999, fontSize: 12, padding: "4px 10px", cursor: "pointer" }}
+              style={sectionLinkStyle}
             >
               {s.label}
             </button>
@@ -119,8 +137,8 @@ export default function ProjectRelatorio({ project }) {
         </div>
 
         {showPhys && (
-          <section id="sec-overview" style={{ marginBottom: 24, scrollMarginTop: 12 }}>
-            <h3 style={h3}>Visão Geral</h3>
+          <section id="sec-overview" className="report-section" style={section}>
+            <h3 className="report-heading" style={h3}>Visão Geral</h3>
             <div className="tbl-scroll report-table-wrap" style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse" }}>
                 <thead><tr><th style={th}>Tela</th><th className="m-hide" style={th}>Gabinete</th><th style={th}>Grade</th><th style={th}>Gab.</th><th className="m-hide" style={th}>Dimensão</th><th style={th}>Peso</th><th style={{ ...th, textAlign: "right" }}>{showElec ? "Carga" : "Peso/gab"}</th></tr></thead>
@@ -132,13 +150,14 @@ export default function ProjectRelatorio({ project }) {
                 </tbody>
               </table>
             </div>
+            {backTop}
           </section>
         )}
 
         {showVideo && (
-          <section id="sec-video" style={{ marginBottom: 24, scrollMarginTop: 12 }}>
-            <h3 style={h3}>Vídeo / Resolução</h3>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Resolução total por tela (para configurar processador/mídia) e proporção de tela.</p>
+          <section id="sec-video" className="report-section" style={section}>
+            <h3 className="report-heading" style={h3}>Vídeo / Resolução</h3>
+            <p className="report-intro" style={sectionIntro}>Resolução total por tela (para configurar processador/mídia) e proporção de tela.</p>
             <div className="tbl-scroll report-table-wrap" style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
                 <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th className="m-hide" style={{ ...th, textAlign: "right" }}>Total</th><th style={th}>Aspecto</th><th style={{ ...th, textAlign: "right" }}>Pitch</th></tr></thead>
@@ -149,13 +168,14 @@ export default function ProjectRelatorio({ project }) {
                 </tbody>
               </table>
             </div>
+            {backTop}
           </section>
         )}
 
         {showElec && (
-          <section id="sec-elec" style={{ marginBottom: 24, scrollMarginTop: 12 }}>
-            <h3 style={h3}>Informações Elétricas</h3>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Pico (pwrMax) dimensiona disjuntor e cabo; típico estima o gerador. {agg.vc.label}.</p>
+          <section id="sec-elec" className="report-section" style={section}>
+            <h3 className="report-heading" style={h3}>Informações Elétricas</h3>
+            <p className="report-intro" style={sectionIntro}>Pico (pwrMax) dimensiona disjuntor e cabo; típico estima o gerador. {agg.vc.label}.</p>
             <div className="tbl-scroll report-table-wrap" style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", minWidth: 820, borderCollapse: "collapse" }}>
                 <thead><tr><th style={th}>Tela</th><th className="m-hide" style={{ ...th, textAlign: "right" }}>Gab.</th><th style={{ ...th, textAlign: "right" }}>Pico kW</th><th className="m-hide" style={{ ...th, textAlign: "right" }}>Pico kVA</th><th style={{ ...th, textAlign: "right" }}>Pico A</th><th style={{ ...th, textAlign: "right" }}>Disjuntor</th><th className="m-hide" style={{ ...th, textAlign: "right" }}>Típ. kVA</th><th style={{ ...th, textAlign: "right" }}>Típ. A</th></tr></thead>
@@ -170,19 +190,20 @@ export default function ProjectRelatorio({ project }) {
                 </tbody>
               </table>
             </div>
-            <p style={{ color: PRINT.mut, fontSize: 12, marginTop: 8 }}>Gerador sugerido (típico + 25% de margem): <b style={{ color: PRINT.acc }}>~{agg.gerador} kVA</b>.</p>
+            <p className="report-intro" style={{ ...sectionIntro, ...sectionTail }}>Gerador sugerido (típico + 25% de margem): <b style={{ color: PRINT.acc }}>~{agg.gerador} kVA</b>.</p>
+            {backTop}
           </section>
         )}
 
         {showSignal && (
-          <section id="sec-signal" style={{ marginBottom: 24, scrollMarginTop: 12 }}>
-            <h3 style={h3}>Cabeamento de Sinal</h3>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela (regra de área quadrada). O selo numerado indica o início de cada cabo (canto inferior-esquerdo).</p>
+          <section id="sec-signal" className="report-section" style={section}>
+            <h3 className="report-heading" style={h3}>Cabeamento de Sinal</h3>
+            <p className="report-intro" style={sectionIntro}>Portas de dados por tela (regra de área quadrada). O selo numerado indica o início de cada cabo (canto inferior-esquerdo).</p>
             {telas.map((t) => {
               const { sinalBudget } = cableMeta(t);
               const ports = cablePorts(t, "sinal", numbering);
               return (
-                <div key={t.id} style={telaBlock}>
+                <div key={t.id} className="report-map-block" style={telaBlock}>
                   <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "porta" : "portas"} · máx {sinalBudget} gab/porta</div>
                   <CableMap tela={t} mode="sinal" numbering={numbering} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -193,18 +214,19 @@ export default function ProjectRelatorio({ project }) {
                 </div>
               );
             })}
+            {backTop}
           </section>
         )}
 
         {showAC && (
-          <section id="sec-ac" style={{ marginBottom: 24, scrollMarginTop: 12 }}>
-            <h3 style={h3}>Energia — Cabeamento AC</h3>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
+          <section id="sec-ac" className="report-section" style={section}>
+            <h3 className="report-heading" style={h3}>Energia — Cabeamento AC</h3>
+            <p className="report-intro" style={sectionIntro}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
             {telas.map((t) => {
               const { ampCab, connRating, acBudget } = cableMeta(t);
               const ports = cablePorts(t, "ac", numbering);
               return (
-                <div key={t.id} style={telaBlock}>
+                <div key={t.id} className="report-map-block" style={telaBlock}>
                   <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "cabo" : "cabos"} · {acBudget} gab/cabo · {ampCab.toFixed(2)} A/gab · conector {connRating} A</div>
                   <CableMap tela={t} mode="ac" numbering={numbering} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -215,6 +237,7 @@ export default function ProjectRelatorio({ project }) {
                 </div>
               );
             })}
+            {backTop}
           </section>
         )}
       </div>

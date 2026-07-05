@@ -80,7 +80,31 @@ body {
     left: 0;
     box-shadow: none !important;
   }
+  .report-nav,
+  .report-backtop {
+    display: none !important;
+  }
+  .report-section {
+    margin-bottom: 12px !important;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+  .report-map-block {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+    margin-bottom: 10px !important;
+  }
+  .report-heading {
+    margin: 0 0 6px !important;
+    page-break-after: avoid;
+  }
+  .report-intro {
+    margin: 4px 0 8px !important;
+    page-break-after: avoid;
+  }
   .tbl-scroll { overflow: visible !important; }
   .report-table-wrap { overflow: visible !important; }
+  .report-table-wrap table { page-break-inside: auto; }
+  .report-table-wrap tr { page-break-inside: avoid; }
   @page { margin: 14mm; }
 }
