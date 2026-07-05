@@ -7,7 +7,7 @@ import { useActivityTypes } from "../../hooks/useActivityTypes.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { DEFAULT_WORKLOG_CFG } from "../../services/worklog.js";
 import { T } from "../../ui/tokens.js";
-import { card, input, btn, iconBtn, dangerIconBtn, label as lbl } from "../../ui/styles.js";
+import { input, btn, iconBtn, dangerIconBtn, label as lbl } from "../../ui/styles.js";
 import Drawer from "../../components/Drawer.jsx";
 
 export default function DiariasConfig() {
@@ -47,8 +47,8 @@ export default function DiariasConfig() {
 
   return (
     <>
-      <div style={card({ maxWidth: 640, marginBottom: 16 })}>
-        <div style={{ color: T.txt, fontWeight: 600 }}>Cachês — parâmetros de cálculo</div>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ color: T.txt, fontWeight: 600 }}>Parâmetros de cálculo</div>
         <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Franquia de horas e tolerância que valem para todos os tipos (ver a lógica no módulo Cachês).</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div><div style={lbl}>Jornada (horas)</div><input type="number" value={cfg.jornadaH} onChange={(e) => setCfg({ jornadaH: num(e.target.value, 1) })} style={input()} /></div>
@@ -58,7 +58,7 @@ export default function DiariasConfig() {
         <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>Ex.: cachê ÷ jornada = valor da hora extra; a fração só vira 1 hora cheia passando da tolerância.</div>
       </div>
 
-      <div style={card({ maxWidth: 640, marginBottom: 16 })}>
+      <div style={{ marginBottom: 18, paddingTop: 18, borderTop: `1px solid ${T.bd}` }}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Fixo mensal (opcional)</div>
         <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além dos cachês. Deixe 0 se não usa.</div>
         <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -67,7 +67,7 @@ export default function DiariasConfig() {
         </div>
       </div>
 
-      <div style={card({ maxWidth: 640, marginBottom: 16 })}>
+      <div style={{ marginBottom: 18, paddingTop: 18, borderTop: `1px solid ${T.bd}` }}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Dados do recibo (emitente)</div>
         <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Aparecem no cabeçalho, na assinatura e no rodapé de pagamento do recibo de mão de obra. Opcional.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
@@ -86,7 +86,7 @@ export default function DiariasConfig() {
         </div>
       </div>
 
-      <div style={card({ maxWidth: 640 })}>
+      <div style={{ paddingTop: 18, borderTop: `1px solid ${T.bd}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <div><div style={{ color: T.txt, fontWeight: 600 }}>Tipos de atividade</div><div style={{ color: T.dim, fontSize: 13 }}>Nome, cor, cachê base e regras de cobrança.</div></div>
           <button style={btn("primary")} onClick={openNew}><Plus size={15} /> Novo tipo</button>

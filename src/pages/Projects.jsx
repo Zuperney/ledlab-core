@@ -1,8 +1,6 @@
 // pages/Projects.jsx — lista de projetos com filtros, ordenação e agrupamento; abre o detalhe.
-import { useState, useMemo, useEffect, useRef } from "react";
-import { Plus, Download, Upload, Trash2, SlidersHorizontal, FolderOpen } from "lucide-react";
-import { newProject } from "../store/AppContext.jsx";
-import { genId } from "../services/ids.js";
+import { useState, useMemo, useEffect } from "react";
+import { Plus, Download, Trash2, SlidersHorizontal, FolderOpen } from "lucide-react";
 import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { useProjects } from "../hooks/useProjects.js";
@@ -26,35 +24,10 @@ const FILTERS = [
 ];
 
 export default function Projects({ nav }) {
-  const { projects, setProjects, createProject, removeProject } = useProjects();
+  const { projects, createProject, removeProject } = useProjects();
   const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
-  const fileRef = useRef(null);
-
-  const importFiles = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const d = JSON.parse(reader.result);
-        const incoming = Array.isArray(d) ? d : d.project ? [d.project] : Array.isArray(d.projects) ? d.projects : [];
-        const fresh = incoming.filter((p) => p && typeof p === "object").map((p) => ({
-          ...newProject({}), ...p,
-          id: genId("proj"), updatedAt: Date.now(),
-          telas: (p.telas || []).map((t) => ({ ...t, id: genId("tela") })),
-        }));
-        if (!fresh.length) { toast("Nenhum projeto no arquivo", "info"); return; }
-        setProjects([...projects, ...fresh]);
-        toast(`${fresh.length} projeto${fresh.length > 1 ? "s" : ""} importado${fresh.length > 1 ? "s" : ""}`);
-      } catch {
-        toast("Arquivo inválido", "info");
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
   const [openId, setOpenId] = useState(nav?.openProjectId || null);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
@@ -148,11 +121,6 @@ export default function Projects({ nav }) {
             );
           })}
         </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <button style={btn("ghost")} onClick={() => fileRef.current?.click()} title="Importar projetos (.json)"><Upload size={15} />{!isMobile && " Importar"}</button>
-          <button style={btn("ghost")} onClick={() => exportAll(projects)} title="Exportar todos (.json)"><Download size={15} />{!isMobile && " Exportar"}</button>
-          <input ref={fileRef} type="file" accept=".json,application/json" onChange={importFiles} style={{ display: "none" }} />
-        </div>
       </div>
 
       {isMobile ? (
@@ -239,4 +207,3 @@ function download(name, obj) {
 }
 const slug = (s) => (s || "projeto").toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-");
 const exportOne = (p) => download(`${slug(p.name)}.ledlab.json`, { schema: "ledlab.project.v1", project: p });
-const exportAll = (ps) => download("projetos-ledlab.json", { schema: "ledlab.projects.bundle.v1", projects: ps });

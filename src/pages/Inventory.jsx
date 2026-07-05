@@ -1,6 +1,6 @@
 // pages/Inventory.jsx — Biblioteca de gabinetes (CRUD, salvo no navegador).
-import { useState, useMemo, useRef } from "react";
-import { Plus, Pencil, Trash2, Star, Columns3, ChevronDown, ChevronUp, Settings, Download, Upload } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Pencil, Trash2, Star, Columns3, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { pitch } from "../services/electricalCalc.js";
 import { genNumericId } from "../services/ids.js";
@@ -45,7 +45,6 @@ export default function Inventory() {
   const [drawer, setDrawer] = useState(null); // null | {mode, data}
   const [advOpen, setAdvOpen] = useState(false);
   const [marcaAuto, setMarcaAuto] = useState(true); // sugerir marca pelo nome até o usuário editar
-  const fileRef = useRef(null);
 
   const cols = prefs.cabCols || {};
   const toggleCol = (k) => setPrefs({ ...prefs, cabCols: { ...cols, [k]: !cols[k] } });
@@ -63,33 +62,6 @@ export default function Inventory() {
     });
     return r;
   }, [cabs, q, ipFilter, marcaFilter, sortBy]);
-
-  const importCabs = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result);
-        const incoming = Array.isArray(parsed) ? parsed : parsed.cabinets || parsed.cabs || [];
-        if (!Array.isArray(incoming) || !incoming.length) { toast("Nenhum gabinete encontrado no arquivo.", "info"); return; }
-        const byName = new Map(cabs.map((c) => [c.nome.toLowerCase(), c]));
-        let added = 0, updated = 0;
-        for (const raw of incoming) {
-          if (!raw || !raw.nome) continue;
-          const k = raw.nome.toLowerCase();
-          if (byName.has(k)) { const ex = byName.get(k); byName.set(k, { ...ex, ...raw, id: ex.id }); updated++; }
-          else { byName.set(k, { ...raw, id: genNumericId(byName.size) }); added++; }
-        }
-        setCabs(Array.from(byName.values()));
-        toast(`Importado: ${added} novo(s), ${updated} atualizado(s).`);
-      } catch {
-        toast("Arquivo inválido. Use um .json exportado do LedLab Core.", "info");
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
 
   const openNew = () => { setDrawer({ mode: "new", data: { ...EMPTY } }); setAdvOpen(false); setMarcaAuto(true); };
   const openEdit = (c) => { setDrawer({ mode: "edit", data: { ...c } }); setAdvOpen(false); setMarcaAuto(false); };
@@ -123,11 +95,6 @@ export default function Inventory() {
   return (
     <div>
       <SectionHeader title="Biblioteca de gabinetes" subtitle={`${cabs.length} cadastrados · cadastre uma vez, use em todos os projetos (salvo neste navegador).`}>
-        <DropdownMenu items={[
-          { label: "Importar biblioteca (.json)", Icon: Upload, onClick: () => fileRef.current?.click() },
-          { label: "Exportar biblioteca (.json)", Icon: Download, onClick: () => exportCabs(cabs) },
-        ]} />
-        <input ref={fileRef} type="file" accept="application/json" onChange={importCabs} style={{ display: "none" }} />
         {!isMobile && <button style={btn("primary")} onClick={openNew}><Plus size={16} /> Novo gabinete</button>}
       </SectionHeader>
 
@@ -314,12 +281,4 @@ function Field({ lbl, value, onChange, type = "text", ph, full }) {
       <input type={type} placeholder={ph} value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={input()} />
     </div>
   );
-}
-
-function exportCabs(cabs) {
-  const blob = new Blob([JSON.stringify({ schema: "ledlab.cabinets.v1", cabinets: cabs }, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "gabinetes-ledlab.json";
-  a.click();
 }
