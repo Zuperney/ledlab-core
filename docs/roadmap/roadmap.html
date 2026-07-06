@@ -178,7 +178,7 @@
     </div>
     <div class="metrics">
       <div class="metric"><div class="n num">10</div><div class="k">módulos em produção hoje</div></div>
-      <div class="metric"><div class="n num">21<small> +5</small></div><div class="k">iniciativas + ideias no backlog</div></div>
+      <div class="metric"><div class="n num">23<small> +5</small></div><div class="k">iniciativas + ideias no backlog</div></div>
       <div class="metric"><div class="n num">4</div><div class="k">fases, ordenadas por dependência</div></div>
       <div class="metric"><div class="n num">100<small>%</small></div><div class="k">offline-first, mantido</div></div>
     </div>
@@ -350,6 +350,13 @@
         <span class="ref">ref. propostas Flex / Rentman / Goodshuffle</span></div>
     </div>
     <div class="card">
+      <h3>Despesas &amp; reembolso</h3>
+      <p class="what">Lançar as despesas do evento (combustível, pedágio, alimentação, material) com <b>foto do comprovante</b> e gerar um relatório de reembolso — reaproveitando a máquina de recibo/PDF/WhatsApp dos cachês.</p>
+      <p class="why"><b>Por quê:</b> o técnico adianta do bolso e precisa ser ressarcido; é irmã do Financeiro. Fotos pedem o IndexedDB da Fase 1.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
+        <span class="ref">ref. demanda de campo</span></div>
+    </div>
+    <div class="card">
       <h3>Disponibilidade &amp; conflito</h3>
       <p class="what">A agenda cruza os eventos e avisa quando o mesmo gabinete ou tela está reservado em datas sobrepostas.</p>
       <p class="why"><b>Por quê:</b> dupla-reserva é o erro clássico de quem aluga equipamento — e o mais caro.</p>
@@ -407,6 +414,13 @@
       <p class="why"><b>Por quê:</b> é o passo natural depois do IndexedDB — hoje os dados vivem num aparelho só.</p>
       <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">G</span>
         <span class="ref">ref. sync PWA (LWW + 409 conflito)</span></div>
+    </div>
+    <div class="card">
+      <h3>Agenda universal (compartilhada)</h3>
+      <p class="what">Colega vê a agenda de eventos do outro — coordenar cobertura, repasse de trampo, evitar choque de data. Estende o Sync: é sync + compartilhamento + papéis de acesso.</p>
+      <p class="why"><b>Por quê:</b> "boss final" — vira um serviço (login, servidor, LGPD). Comece por link read-only + Supabase; nunca auth próprio. A agenda local já existe.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">G</span>
+        <span class="ref">ref. demanda de campo</span></div>
     </div>
     <div class="card">
       <h3>Compartilhar por link</h3>

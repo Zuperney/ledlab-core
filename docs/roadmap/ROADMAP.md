@@ -9,7 +9,7 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.x (hoje) → **v2.0**. São 21 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Horizonte:** v1.x (hoje) → **v2.0**. São 23 iniciativas em 4 fases + backlog, ordenadas por dependência.
 
 ---
 
@@ -75,6 +75,7 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
 | **Orçamento & proposta (PDF)** | 🟣 | G | Proposta a partir do projeto: m²/gabinetes + mão de obra (puxa das diárias) + logística, com PDF de aceite/assinatura. *Hoje o técnico projeta aqui mas orça no WhatsApp/planilha à parte.* | propostas Flex/Rentman/Goodshuffle |
+| **Despesas & reembolso** | 🟣 | M | Lançar as despesas do evento (combustível, pedágio, alimentação, material) com **foto do comprovante** e gerar um relatório de reembolso — reaproveita a máquina de recibo/PDF/WhatsApp do módulo de cachês. *O técnico adianta do bolso e precisa ser ressarcido; é irmã do Financeiro.* (fotos → melhor sobre o IndexedDB da Fase 1) | demanda de campo |
 | **Disponibilidade & conflito** | 🟣 | M | A agenda cruza eventos e avisa quando o mesmo gabinete/tela está reservado em datas sobrepostas. *Dupla-reserva é o erro clássico — e o mais caro.* | conflito Current RMS/Rentman |
 | **Escala de equipe** | 🟣 | M | Ligar as diárias a pessoas (função, custo, disponibilidade) e montar a equipe do evento. *O módulo de cachês já sabe quanto; falta saber quem.* | — |
 | **Kits & presets reutilizáveis** | ⚪ | P | Salvar telas-modelo e presets de tensão/cabeamento pra montar projeto novo em segundos. *A maioria dos eventos repete configurações.* | — |
@@ -90,9 +91,12 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 |---|:---:|:---:|---|---|
 | **Preview do painel (2D → 3D)** | 🟣 | G | Render do painel em escala real (gabinetes, conteúdo de exemplo, moldura do palco) em vista frontal e isométrica/3D. *A previsualização acelera a aprovação e reduz erro em obra.* | previz Vectorworks/disguise |
 | **Sync em nuvem opcional** | 🟣 | G | Backup e sincronização offline-first (last-write-wins + resolução manual de conflito) entre celular e desktop. *Passo natural depois do IndexedDB.* | sync PWA (LWW + 409) |
+| **Agenda universal (compartilhada)** | ⚪ | G | Colega vê a agenda de eventos do outro — coordenar cobertura, repasse de trampo, evitar choque de data. Estende o Sync: é sync + compartilhamento + papéis de acesso. *A agenda local (só você vê) já existe hoje.* | demanda de campo |
 | **Compartilhar por link** | ⚪ | M | Projeto/proposta num link read-only, pro cliente ver sem instalar nada. | — |
 | **Simulação de conteúdo** | ⚪ | M | Testar aspect/arte no painel e exportar imagem de apresentação. *Mostra na hora se a arte "cabe" no pitch e formato reais.* | — |
 | **Formas criativas** | ⚪ | G | Telas não-retangulares, curvas e recortes, além do grid regular. *Painel curvo e recorte viraram padrão em palco.* | — |
+
+> **Sobre a agenda universal — é o "boss final", sequencie com cuidado.** Não é uma feature, é virar um serviço: servidor, login, uptime e **responsabilidade legal (LGPD)** por dado pessoal de terceiros. Caminho recomendado, só quando a nuvem já existir: **(1)** começar por *publicar a agenda em link read-only* — colegas **veem** sem precisar de conta (≈10% do trabalho, ~60% do valor); **(2)** se precisar de multi-usuário, usar **Supabase/Firebase** (auth + banco + regra de acesso por linha + free tier) — **nunca** escrever o próprio login; **(3)** manter offline-first: a nuvem é camada opcional por cima, não substituta.
 
 ---
 
