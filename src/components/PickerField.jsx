@@ -1,46 +1,31 @@
-// components/PickerField.jsx — seletores de DATA e HORA (react-datepicker) adaptados aos
-// valores string do app ("YYYY-MM-DD" e "HH:mm"), evitando os pickers nativos do Android.
-// No celular abre em portal (tela cheia); no desktop, popover. Tema escuro em index.css (.ll-dp*).
-import DatePicker, { registerLocale } from "react-datepicker";
-import { ptBR } from "date-fns/locale";
-import { useIsMobile } from "../hooks/useIsMobile.js";
+// components/PickerField.jsx — seletores de DATA e HORA. A implementação (react-datepicker,
+// pesada) é carregada SOB DEMANDA (lazy) — só quando um form com esses campos abre —,
+// mantendo o carregamento inicial leve. Enquanto o chunk carrega, mostra um input simples.
+import { lazy, Suspense } from "react";
+import { input } from "../ui/styles.js";
 
-registerLocale("pt-BR", ptBR);
+const PickerImpl = lazy(() => import("./PickerFieldImpl.jsx"));
 
-const pad = (n) => String(n).padStart(2, "0");
-// "YYYY-MM-DD" -> Date (meio-dia local, à prova de fuso) | null
-const dateFromStr = (s) => { if (!s) return null; const [y, m, d] = String(s).split("-").map(Number); return y ? new Date(y, (m || 1) - 1, d || 1, 12) : null; };
-const strFromDate = (d) => (d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : "");
-// "HH:mm" -> Date (data fixa só p/ a hora) | null
-const timeFromStr = (s) => { if (!s) return null; const [h, m] = String(s).split(":").map(Number); return new Date(2000, 0, 1, h || 0, m || 0); };
-const strFromTime = (d) => (d ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : "");
+// "YYYY-MM-DD" -> "dd/mm/aaaa" só p/ exibir no fallback (sem depender do react-datepicker)
+const dispDate = (s) => { if (!s) return ""; const [y, m, d] = String(s).split("-"); return d ? `${d}/${m}/${y}` : String(s); };
 
-const common = (isMobile) => ({
-  locale: "pt-BR",
-  className: "ll-dp-input",
-  calendarClassName: "ll-dp-cal",
-  popperClassName: "ll-dp-pop",
-  wrapperClassName: "ll-dp-wrap",
-  withPortal: isMobile,       // celular: tela cheia (sem clipe dentro de sheets/cards)
-  showPopperArrow: false,
-  popperPlacement: "bottom-start",
-});
+// input estático (mesmo visual) enquanto o picker carrega
+function Fallback({ display, placeholder }) {
+  return <input value={display} placeholder={placeholder} readOnly style={input()} />;
+}
 
 export function DateField({ value, onChange, placeholder = "dd/mm/aaaa", id }) {
-  const isMobile = useIsMobile();
   return (
-    <DatePicker {...common(isMobile)} id={id}
-      selected={dateFromStr(value)} onChange={(d) => onChange(strFromDate(d))}
-      dateFormat="dd/MM/yyyy" placeholderText={placeholder} />
+    <Suspense fallback={<Fallback display={dispDate(value)} placeholder={placeholder} />}>
+      <PickerImpl kind="date" value={value} onChange={onChange} placeholder={placeholder} id={id} />
+    </Suspense>
   );
 }
 
 export function TimeField({ value, onChange, placeholder = "--:--", id }) {
-  const isMobile = useIsMobile();
   return (
-    <DatePicker {...common(isMobile)} id={id}
-      selected={timeFromStr(value)} onChange={(d) => onChange(strFromTime(d))}
-      showTimeSelect showTimeSelectOnly timeIntervals={5} timeCaption="Hora"
-      dateFormat="HH:mm" timeFormat="HH:mm" placeholderText={placeholder} />
+    <Suspense fallback={<Fallback display={value || ""} placeholder={placeholder} />}>
+      <PickerImpl kind="time" value={value} onChange={onChange} placeholder={placeholder} id={id} />
+    </Suspense>
   );
 }
