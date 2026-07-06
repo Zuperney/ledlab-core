@@ -18,6 +18,11 @@ Publicado no **GitHub Pages** — abra no celular e **instale** (menu do navegad
 
 _Aponte a câmera do celular para o QR code acima._
 
+## 🗺️ Roadmap
+
+Plano de produto da próxima versão (v1.x → v2.0), em 4 fases: **[docs/roadmap/ROADMAP.md](docs/roadmap/ROADMAP.md)**.
+Versão visual (dossiê interativo): [`docs/roadmap/roadmap.html`](docs/roadmap/roadmap.html).
+
 ## Rodar em desenvolvimento
 
 ```bash

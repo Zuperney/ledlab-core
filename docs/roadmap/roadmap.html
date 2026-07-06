@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Roadmap de produto do LedLab Core — 4 fases da v1.x à v2.0.">
+<title>Roadmap — LedLab Core v1.x → v2.0</title>
+<style>html,body{margin:0;padding:0}</style>
+</head>
+<body>
+<style>
+  :root{
+    --ground:#090913; --ground2:#0c0c1a; --panel:#14142a; --panel2:#1a1a33;
+    --line:#272746; --line2:#34345c;
+    --violet:#7c3aed; --violet-l:#a78bfa; --violet-x:#c4b5fd;
+    --amber:#f5b544; --amber-l:#fbd98a;
+    --txt:#ecebf7; --txt2:#bdbad6; --mut:#8583a1;
+    --good:#34d399; --warn:#fb923c;
+    --sans:"SF Pro Display","Segoe UI Variable","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    --mono:"SF Mono","Cascadia Mono","JetBrains Mono",ui-monospace,"Consolas",Menlo,monospace;
+    --wrap:1060px;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--txt);font-family:var(--sans);line-height:1.62;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+  #led-bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .veil{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(124,58,237,.16), transparent 55%),
+      radial-gradient(90% 60% at 50% 108%, rgba(124,58,237,.10), transparent 60%),
+      linear-gradient(180deg, rgba(9,9,19,.34), rgba(9,9,19,.78) 46%, var(--ground) 96%)}
+  .wrap{position:relative;z-index:2;max-width:var(--wrap);margin:0 auto;padding:0 22px}
+  section{position:relative;z-index:2}
+
+  /* ---- type ---- */
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;color:var(--violet-l)}
+  h1{font-size:clamp(2.3rem,6.4vw,4.2rem);line-height:1.02;letter-spacing:-.028em;font-weight:800;
+    text-wrap:balance;margin:.34em 0 0}
+  h1 .thin{font-weight:300;color:var(--txt2)}
+  .lede{font-size:clamp(1.05rem,2.2vw,1.28rem);color:var(--txt2);max-width:60ch;text-wrap:pretty}
+  h2{font-size:clamp(1.55rem,3.6vw,2.35rem);line-height:1.06;letter-spacing:-.02em;font-weight:800;
+    text-wrap:balance;margin:0}
+  h3{font-size:1.06rem;line-height:1.28;font-weight:700;letter-spacing:-.01em;margin:0}
+  p{margin:0}
+  a{color:var(--violet-l);text-decoration-color:rgba(167,139,250,.4);text-underline-offset:3px}
+  a:hover{color:var(--violet-x)}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---- hero ---- */
+  .hero{padding:clamp(72px,13vh,150px) 0 46px}
+  .leap{display:inline-flex;align-items:center;gap:14px;margin-top:30px;font-family:var(--mono);
+    font-size:.82rem;color:var(--txt2)}
+  .leap b{color:var(--txt);font-weight:600}
+  .leap .v1{opacity:.62}
+  .leap .arw{color:var(--violet-l);font-size:1.1rem}
+  .leap .v2{color:var(--amber);border:1px solid rgba(245,181,68,.4);border-radius:999px;
+    padding:3px 11px;background:rgba(245,181,68,.07)}
+  .metrics{display:flex;flex-wrap:wrap;gap:14px;margin-top:40px}
+  .metric{flex:1 1 150px;border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+    background:linear-gradient(180deg,rgba(26,26,51,.7),rgba(20,20,42,.5));backdrop-filter:blur(3px)}
+  .metric .n{font-family:var(--mono);font-size:1.9rem;font-weight:600;letter-spacing:-.02em;color:var(--txt)}
+  .metric .n small{font-size:.9rem;color:var(--violet-l);font-weight:500}
+  .metric .k{font-size:.78rem;color:var(--mut);margin-top:3px}
+
+  /* ---- section frame ---- */
+  .band{padding:52px 0}
+  .band-h{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .band-sub{color:var(--txt2);max-width:64ch;margin-top:8px;font-size:1.02rem}
+
+  /* ---- legend ---- */
+  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px 26px;
+    border:1px solid var(--line);border-radius:16px;padding:22px 24px;background:rgba(20,20,42,.55);margin-top:8px}
+  .legend h4{font-family:var(--mono);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--mut);margin:0 0 10px;font-weight:500}
+  .leg-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:.9rem;color:var(--txt2)}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .dot.need{background:var(--amber);box-shadow:0 0 10px rgba(245,181,68,.55)}
+  .dot.edge{background:var(--violet-l);box-shadow:0 0 10px rgba(167,139,250,.5)}
+  .dot.new{background:transparent;border:1.5px solid var(--mut)}
+  .eff{font-family:var(--mono);font-size:.72rem;font-weight:600;width:20px;height:20px;flex:none;
+    display:grid;place-items:center;border-radius:6px;border:1px solid var(--line2);color:var(--txt2)}
+
+  /* ---- current state ---- */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+  .col{border:1px solid var(--line);border-radius:16px;padding:24px;background:rgba(20,20,42,.5)}
+  .col.good-c{border-color:rgba(52,211,153,.26)}
+  .col.gap-c{border-color:rgba(251,146,60,.26)}
+  .col h4{display:flex;align-items:center;gap:9px;margin:0 0 14px;font-size:.96rem;letter-spacing:-.01em}
+  .col h4 .tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+    padding:3px 8px;border-radius:6px}
+  .good-c h4 .tag{color:var(--good);background:rgba(52,211,153,.12)}
+  .gap-c h4 .tag{color:var(--warn);background:rgba(251,146,60,.12)}
+  .col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+  .col li{display:flex;gap:11px;font-size:.94rem;color:var(--txt2);line-height:1.5}
+  .col li::before{content:"";width:6px;height:6px;border-radius:50%;margin-top:8px;flex:none;background:var(--line2)}
+  .good-c li::before{background:var(--good)}
+  .gap-c li::before{background:var(--warn)}
+  .col li b{color:var(--txt);font-weight:600}
+
+  /* ---- phases ---- */
+  .phase{padding:46px 0;border-top:1px solid var(--line)}
+  .phase-head{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:start}
+  .pnum{font-family:var(--mono);font-size:clamp(2.4rem,6vw,3.6rem);font-weight:700;line-height:.9;
+    letter-spacing:-.04em;color:transparent;-webkit-text-stroke:1.3px var(--violet-l);opacity:.85}
+  .ptrack{font-family:var(--mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--violet-l);display:flex;align-items:center;gap:10px}
+  .ptrack .rel{color:var(--mut);border:1px solid var(--line2);border-radius:999px;padding:2px 9px;letter-spacing:.1em}
+  .phase h2{margin-top:9px}
+  .theme{color:var(--amber-l);font-style:italic;font-size:1.02rem;margin-top:7px;opacity:.92}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(288px,1fr));gap:16px;margin-top:26px}
+  .card{border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;
+    background:linear-gradient(180deg,rgba(26,26,51,.62),rgba(18,18,38,.62));
+    display:flex;flex-direction:column;gap:10px;transition:border-color .25s,transform .25s}
+  .card:hover{border-color:var(--line2);transform:translateY(-2px)}
+  .card .what{font-size:.92rem;color:var(--txt2);line-height:1.5}
+  .card .why{font-size:.85rem;color:var(--mut);line-height:1.5;border-left:2px solid var(--line2);padding-left:11px}
+  .card .why b{color:var(--txt2);font-weight:600}
+  .card .foot{margin-top:auto;padding-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    border-top:1px solid var(--line)}
+  .prio{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.7rem;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--txt2)}
+  .badge-eff{font-family:var(--mono);font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:6px;
+    border:1px solid var(--line2);color:var(--txt2);margin-left:auto}
+  .ref{font-family:var(--mono);font-size:.66rem;color:var(--mut);letter-spacing:.02em;width:100%;margin-top:2px}
+  .ref::before{content:"▸ ";color:var(--violet-l)}
+
+  /* ---- backlog ---- */
+  .backlog{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:24px}
+  .moon{display:flex;gap:14px;border:1px dashed var(--line2);border-radius:14px;padding:18px 18px;
+    background:rgba(18,18,38,.4)}
+  .moon .ic{font-family:var(--mono);color:var(--violet-l);font-size:.9rem;flex:none;margin-top:1px}
+  .moon h3{font-size:.98rem;margin-bottom:4px}
+  .moon p{font-size:.86rem;color:var(--mut);line-height:1.48}
+
+  /* ---- principles / footer ---- */
+  .principles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:24px}
+  .princ{border-top:2px solid var(--violet);padding-top:14px}
+  .princ h4{font-size:.98rem;margin:0 0 6px}
+  .princ p{font-size:.88rem;color:var(--mut);line-height:1.5}
+  footer{border-top:1px solid var(--line);margin-top:20px;padding:40px 0 70px;color:var(--mut);font-size:.86rem}
+  .srcs{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px;font-family:var(--mono);font-size:.78rem}
+  .note{border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-top:22px;
+    background:rgba(245,181,68,.05);color:var(--txt2);font-size:.88rem;display:flex;gap:12px}
+  .note .ic{color:var(--amber);flex:none}
+
+  .reveal{opacity:0;transform:translateY(16px)}
+  .reveal.in{opacity:1;transform:none;transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+
+  @media(max-width:720px){
+    .two{grid-template-columns:1fr}
+    .phase-head{grid-template-columns:1fr;gap:6px}
+    .pnum{font-size:2.6rem}
+    .metric{flex-basis:calc(50% - 7px)}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+    .card:hover{transform:none}
+  }
+</style>
+
+<canvas id="led-bg"></canvas>
+<div class="veil"></div>
+
+<section class="hero wrap">
+  <div class="reveal">
+    <span class="eyebrow">Roadmap de produto · LedLab Core</span>
+    <h1>Do técnico&nbsp;solo<br><span class="thin">à plataforma de projeto&nbsp;LED.</span></h1>
+    <p class="lede" style="margin-top:22px">
+      Hoje o LedLab Core já calcula energia, cabeamento e cachês melhor do que qualquer planilha.
+      A próxima versão fecha o ciclo inteiro — <b style="color:var(--txt2);font-weight:600">dimensionar,
+      montar, orçar e visualizar</b> um painel — sem deixar de ser 100% offline e feito pra obra brasileira.
+    </p>
+    <div class="leap">
+      <span class="v1">agora · <b>v1.x</b> engenharia + faturamento</span>
+      <span class="arw">→</span>
+      <span class="v2">v2.0 · plataforma completa</span>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="n num">10</div><div class="k">módulos em produção hoje</div></div>
+      <div class="metric"><div class="n num">21<small> +5</small></div><div class="k">iniciativas + ideias no backlog</div></div>
+      <div class="metric"><div class="n num">4</div><div class="k">fases, ordenadas por dependência</div></div>
+      <div class="metric"><div class="n num">100<small>%</small></div><div class="k">offline-first, mantido</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="band wrap reveal">
+  <div class="band-h"><h2>Como ler este roadmap</h2></div>
+  <p class="band-sub">Cada iniciativa carrega uma <b>prioridade</b> (o quanto é preciso) e um <b>esforço</b>
+    estimado. As fases são uma sequência real — cada uma se apoia na anterior.</p>
+  <div class="legend">
+    <div>
+      <h4>Prioridade</h4>
+      <div class="leg-row"><span class="dot need"></span> <b style="color:var(--txt);font-weight:600">Necessário</b>&nbsp;— base de confiança</div>
+      <div class="leg-row"><span class="dot edge"></span> <b style="color:var(--txt);font-weight:600">Diferencial</b>&nbsp;— o que ninguém mais faz</div>
+      <div class="leg-row"><span class="dot new"></span> <b style="color:var(--txt);font-weight:600">Novidade</b>&nbsp;— valor extra, sem pressa</div>
+    </div>
+    <div>
+      <h4>Esforço</h4>
+      <div class="leg-row"><span class="eff">P</span> pequeno — dias</div>
+      <div class="leg-row"><span class="eff">M</span> médio — 1–2 semanas</div>
+      <div class="leg-row"><span class="eff">G</span> grande — projeto próprio</div>
+    </div>
+    <div>
+      <h4>Fundamentação</h4>
+      <div class="leg-row" style="color:var(--mut)">A linha <span style="font-family:var(--mono);color:var(--violet-l)">▸ ref.</span> em cada card
+        aponta a pesquisa (fabricantes, plataformas de locação, previz, offline-first) que embasa a proposta.</div>
+    </div>
+  </div>
+</section>
+
+<section class="band wrap reveal">
+  <div class="band-h"><h2>Onde o app está hoje</h2></div>
+  <p class="band-sub">Um diagnóstico honesto — o que já é forte e sustenta a evolução, e o que precisa
+    ser resolvido antes de crescer.</p>
+  <div class="two">
+    <div class="col good-c">
+      <h4><span class="tag">Forças</span> a base é sólida</h4>
+      <ul>
+        <li><b>Motor de engenharia real</b> — consumo elétrico, circuitos e mapa de cabos por porta, num app de campo.</li>
+        <li><b>Ferramentas raras juntas</b> — Test Card paramétrico, Aspect Ratio e Diagramação num só lugar.</li>
+        <li><b>Módulo de Diárias/Cachês</b> — check-in por GPS, recibo e cópia pro WhatsApp; diferencial pro técnico BR, e com motor testado.</li>
+        <li><b>PWA offline + tema escuro</b> e um passe recente de densidade mobile.</li>
+        <li><b>QA feito</b> — 5 lotes: fuso corrigido, backup seguro, código limpo, lint + testes.</li>
+      </ul>
+    </div>
+    <div class="col gap-c">
+      <h4><span class="tag">A resolver</span> antes de escalar</h4>
+      <ul>
+        <li><b>Tudo em localStorage</b> — sem backup automático, sem multi-dispositivo, sujeito a limite de cota e a modo privado.</li>
+        <li><b>Testes só no motor de cachês</b> — cálculos elétricos e de sinal sem rede de segurança.</li>
+        <li><b>Portas de sinal por "área"</b> — usa caixa delimitadora, não pixels-por-porta reais do processador.</li>
+        <li><b>Sem rigging, sem distância de visão, sem orçamento, sem preview visual</b> do painel.</li>
+        <li><b>Desktop (Electron) pouco exercitado</b> — empacotamento existe, mas sem auto-update/assinatura.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 01 -->
+<section class="phase wrap reveal">
+  <div class="phase-head">
+    <div class="pnum num">01</div>
+    <div>
+      <div class="ptrack">Fundação &amp; confiança <span class="rel">v1.1</span></div>
+      <h2>Não perca dados. Não quebre nada.</h2>
+      <p class="theme">"Antes de crescer, o app precisa ser à prova de falha."</p>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3>IndexedDB como fonte de verdade</h3>
+      <p class="what">Migrar de localStorage para IndexedDB (via Dexie): mais cota, dados estruturados, consultas — e a base necessária para o sync futuro.</p>
+      <p class="why"><b>Por quê:</b> localStorage trava em ~5&nbsp;MB e é a maior fonte de risco de perda de dados hoje.</p>
+      <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">G</span>
+        <span class="ref">ref. arquitetura offline-first / Dexie</span></div>
+    </div>
+    <div class="card">
+      <h3>Backup automático + desfazer</h3>
+      <p class="what">Snapshots versionados locais, export/import com validação de schema (já iniciado) e um "desfazer" global.</p>
+      <p class="why"><b>Por quê:</b> hoje um import errado ou uma limpeza apaga tudo, sem volta.</p>
+      <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">M</span></div>
+    </div>
+    <div class="card">
+      <h3>Cinturão de testes + CI</h3>
+      <p class="what">Estender o vitest ao motor elétrico, ao cabeamento e ao projectCalc; rodar a cada push.</p>
+      <p class="why"><b>Por quê:</b> só o worklog é testado — regressão silenciosa num cálculo custa caro em campo.</p>
+      <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">M</span></div>
+    </div>
+    <div class="card">
+      <h3>Performance &amp; PWA à prova</h3>
+      <p class="what">Estender o code-splitting (já feito nos pickers), auditar Lighthouse e blindar a instalação/cache offline.</p>
+      <p class="why"><b>Por quê:</b> o app é usado em obra, muitas vezes sem internet — a instalação precisa ser confiável.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">P</span></div>
+    </div>
+    <div class="card">
+      <h3>Desktop pronto (Electron)</h3>
+      <p class="what">Auto-update, ícones e assinatura, empacotamento Windows testado ponta a ponta.</p>
+      <p class="why"><b>Por quê:</b> muito projeto pesado (diagramação, PDF) é feito no computador do estúdio.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">M</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 02 -->
+<section class="phase wrap reveal">
+  <div class="phase-head">
+    <div class="pnum num">02</div>
+    <div>
+      <div class="ptrack">Profundidade de engenharia <span class="rel">v1.5</span></div>
+      <h2>O cálculo que nenhum app de aluguel faz.</h2>
+      <p class="theme">"Aqui mora o diferencial — engenharia de verdade, não só inventário."</p>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3>Portas de dados reais (px/porta)</h3>
+      <p class="what">Calcular o nº de portas pela capacidade real do processador — ~650k px/porta a 8-bit 60&nbsp;Hz, ~320k a 10-bit — escalando com refresh e profundidade de cor. Substitui a regra de área.</p>
+      <p class="why"><b>Por quê:</b> é assim que Novastar/Colorlight realmente distribuem sinal; a regra de área super ou subdimensiona.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
+        <span class="ref">ref. capacidade de porta Novastar</span></div>
+    </div>
+    <div class="card">
+      <h3>Recomendador pitch × distância</h3>
+      <p class="what">Dado o pitch (ou o tamanho e a distância), retorna distância mínima, ótima e máxima de visão + o VAD, e sugere o pitch ideal. Expande a aba Aspect Ratio.</p>
+      <p class="why"><b>Por quê:</b> é a primeira pergunta de todo cliente — "de longe fica bom?" — e hoje se responde no olho.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
+        <span class="ref">ref. regra 10×, VAD 3438, altura×30</span></div>
+    </div>
+    <div class="card">
+      <h3>Rigging &amp; estrutura</h3>
+      <p class="what">Peso total e por ponto, nº de pontos de içamento (4–8), fator de segurança (≈5:1), voado vs. ground support, carga de vento pra outdoor e checklist de motor/hardware.</p>
+      <p class="why"><b>Por quê:</b> é o cálculo de maior risco em obra — segurança de gente e de equipamento.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">G</span>
+        <span class="ref">ref. práticas de rigging (fator 5:1, carga de vento)</span></div>
+    </div>
+    <div class="card">
+      <h3>Biblioteca de processadores</h3>
+      <p class="what">Cadastro de modelos (Novastar, Colorlight, Brompton) com capacidade de porta e de quadro → nº de processadores e portas calculado automaticamente.</p>
+      <p class="why"><b>Por quê:</b> transforma o dimensionamento de sinal de estimativa em número exato por marca.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span></div>
+    </div>
+    <div class="card">
+      <h3>Mapa de pixels exportável</h3>
+      <p class="what">Gerar o mapeamento cabinets → portas (visual + CSV/impressão) que o operador transcreve no NovaLCT ou no Tessera.</p>
+      <p class="why"><b>Por quê:</b> fecha o ciclo do projeto até a operação — o que hoje é redesenhado do zero na régua.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
+        <span class="ref">ref. workflow de mapeamento Novastar/Brompton</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 03 -->
+<section class="phase wrap reveal">
+  <div class="phase-head">
+    <div class="pnum num">03</div>
+    <div>
+      <div class="ptrack">Fluxo &amp; negócio <span class="rel">v1.8</span></div>
+      <h2>Do projeto ao pagamento, num app só.</h2>
+      <p class="theme">"O cálculo já mora aqui — o orçamento e a logística também deveriam."</p>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3>Orçamento &amp; proposta (PDF)</h3>
+      <p class="what">Montar a proposta a partir do projeto: m²/gabinetes + mão de obra (puxada das diárias) + logística, com PDF de aceite/assinatura.</p>
+      <p class="why"><b>Por quê:</b> hoje o técnico projeta aqui mas orça no WhatsApp ou numa planilha à parte.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">G</span>
+        <span class="ref">ref. propostas Flex / Rentman / Goodshuffle</span></div>
+    </div>
+    <div class="card">
+      <h3>Disponibilidade &amp; conflito</h3>
+      <p class="what">A agenda cruza os eventos e avisa quando o mesmo gabinete ou tela está reservado em datas sobrepostas.</p>
+      <p class="why"><b>Por quê:</b> dupla-reserva é o erro clássico de quem aluga equipamento — e o mais caro.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
+        <span class="ref">ref. detecção de conflito (Current RMS / Rentman)</span></div>
+    </div>
+    <div class="card">
+      <h3>Escala de equipe</h3>
+      <p class="what">Ligar as diárias a pessoas — função, custo e disponibilidade — e montar a equipe de cada evento.</p>
+      <p class="why"><b>Por quê:</b> o módulo de cachês já sabe quanto; falta saber quem, e se está livre.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span></div>
+    </div>
+    <div class="card">
+      <h3>Kits &amp; presets reutilizáveis</h3>
+      <p class="what">Salvar telas-modelo e presets de tensão/cabeamento pra montar um projeto novo em segundos.</p>
+      <p class="why"><b>Por quê:</b> a maioria dos eventos repete configurações — recriar tudo à mão é retrabalho.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">P</span></div>
+    </div>
+    <div class="card">
+      <h3>Ordem de serviço &amp; checklists</h3>
+      <p class="what">Checklist de montagem e desmontagem e uma OS por evento, pra imprimir ou seguir no celular.</p>
+      <p class="why"><b>Por quê:</b> padroniza a obra e reduz esquecimento de cabo/peça no galpão.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">M</span></div>
+    </div>
+    <div class="card">
+      <h3>Recibo → nota (BR)</h3>
+      <p class="what">Ponte opcional do recibo para NF-e (MEI) e um controle de faturamento por evento.</p>
+      <p class="why"><b>Por quê:</b> o recibo já existe; formalizar é o passo que o cliente corporativo pede.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">M</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 04 -->
+<section class="phase wrap reveal">
+  <div class="phase-head">
+    <div class="pnum num">04</div>
+    <div>
+      <div class="ptrack">Visualização &amp; nuvem <span class="rel">v2.0</span></div>
+      <h2>Veja antes de montar. Leve pra qualquer tela.</h2>
+      <p class="theme">"O cliente aprova o que enxerga — e os dados deixam de viver num aparelho só."</p>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3>Preview do painel (2D → 3D)</h3>
+      <p class="what">Render do painel em escala real — gabinetes, conteúdo de exemplo, moldura do palco — em vista frontal e isométrica/3D.</p>
+      <p class="why"><b>Por quê:</b> a previsualização acelera a aprovação do cliente e reduz erro em obra.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">G</span>
+        <span class="ref">ref. previz Vectorworks / disguise</span></div>
+    </div>
+    <div class="card">
+      <h3>Sync em nuvem opcional</h3>
+      <p class="what">Backup e sincronização offline-first (last-write-wins + resolução manual de conflito) entre celular e desktop.</p>
+      <p class="why"><b>Por quê:</b> é o passo natural depois do IndexedDB — hoje os dados vivem num aparelho só.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">G</span>
+        <span class="ref">ref. sync PWA (LWW + 409 conflito)</span></div>
+    </div>
+    <div class="card">
+      <h3>Compartilhar por link</h3>
+      <p class="what">Projeto ou proposta num link read-only, pro cliente ver sem instalar nada.</p>
+      <p class="why"><b>Por quê:</b> aproximar cliente e obra sem exportar PDF a cada revisão.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">M</span></div>
+    </div>
+    <div class="card">
+      <h3>Simulação de conteúdo</h3>
+      <p class="what">Testar aspect e arte no painel e exportar uma imagem de apresentação pro cliente.</p>
+      <p class="why"><b>Por quê:</b> mostra na hora se a arte "cabe" no pitch e no formato reais.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">M</span></div>
+    </div>
+    <div class="card">
+      <h3>Formas criativas</h3>
+      <p class="what">Telas não-retangulares, curvas e recortes — além do grid regular.</p>
+      <p class="why"><b>Por quê:</b> painel curvo e recorte viraram padrão em palco e cenografia.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">G</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- BACKLOG -->
+<section class="band wrap reveal" style="border-top:1px solid var(--line);padding-top:52px">
+  <div class="band-h"><h2>Backlog de ideias</h2><span class="eyebrow" style="color:var(--mut)">além do horizonte v2</span></div>
+  <p class="band-sub">Apostas mais longas — algumas dependem das fases acima estarem prontas, mas valem ficar no radar.</p>
+  <div class="backlog">
+    <div class="moon"><span class="ic">AR</span><div><h3>Preview em realidade aumentada</h3><p>Apontar o celular pro espaço e ver o painel em tamanho real antes de fechar o projeto.</p></div></div>
+    <div class="moon"><span class="ic">IA</span><div><h3>Dimensionamento assistido</h3><p>Foto do local + distância → sugere pitch, tamanho e consumo estimado.</p></div></div>
+    <div class="moon"><span class="ic">DB</span><div><h3>Base de gabinetes da comunidade</h3><p>Specs de cabinets compartilhadas entre usuários — um "catálogo" que se preenche sozinho.</p></div></div>
+    <div class="moon"><span class="ic">kVA</span><div><h3>Cálculo de gerador</h3><p>Dimensionar gerador (kVA, folga, combustível) pra eventos sem rede elétrica.</p></div></div>
+    <div class="moon"><span class="ic">📷</span><div><h3>Companion de campo</h3><p>Fotos da montagem e assinatura de entrega junto do check-in GPS que já existe.</p></div></div>
+  </div>
+</section>
+
+<!-- PRINCIPLES + FOOTER -->
+<section class="band wrap reveal">
+  <div class="band-h"><h2>Princípios que não mudam</h2></div>
+  <div class="principles">
+    <div class="princ"><h4>Offline primeiro</h4><p>A obra não tem Wi-Fi. Nuvem é backup e conveniência, nunca requisito.</p></div>
+    <div class="princ"><h4>Engenharia é o diferencial</h4><p>Plataformas de aluguel fazem inventário. O LedLab faz o cálculo — é onde ele ganha.</p></div>
+    <div class="princ"><h4>Mobile minimalista</h4><p>Cada tela pensada pro técnico de pé, no celular, no meio do galpão.</p></div>
+    <div class="princ"><h4>Feito pro Brasil</h4><p>R$, recibo, MEI, WhatsApp e a linguagem de quem monta LED aqui.</p></div>
+  </div>
+
+  <div class="note">
+    <span class="ic">✦</span>
+    <div>Este é um <b style="color:var(--txt)">plano</b> — nenhum código foi alterado. Serve pra decidir a ordem
+      da próxima versão. Cada fase pode virar uma série de tarefas quando você quiser começar.</div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <div>Fundamentado em pesquisa de fabricantes (Novastar, Brompton), plataformas de locação (Rentman, Flex, Current RMS, Goodshuffle),
+    ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first — combinada à leitura completa do código do LedLab Core.</div>
+  <div class="srcs">
+    <a href="https://www.vectorworks.net/en-US/spotlight" target="_blank" rel="noopener">previz Vectorworks</a>
+    <a href="https://www.disguise.one/en/insights/blog/how-to-quickly-build-a-3d-model-of-your-led-stage" target="_blank" rel="noopener">3D disguise</a>
+    <a href="https://www.ticketfairy.com/blog/mastering-led-walls-projection-mapping-in-2026-tech-strategies-for-immersive-event-visuals" target="_blank" rel="noopener">LED walls 2026</a>
+    <a href="https://rohitraj.tech/en/notes/pwa-offline-sync" target="_blank" rel="noopener">PWA offline-sync</a>
+    <a href="https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3" target="_blank" rel="noopener">resolução de conflito</a>
+    <a href="https://www.locize.com/blog/offline-first-apps" target="_blank" rel="noopener">offline-first</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ---- ambient LED wall backdrop ----
+  var c = document.getElementById('led-bg'), x = c.getContext('2d');
+  var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var W,H,cols,rows,cell=26,pix=[],t=0;
+  function build(){
+    W=c.width=innerWidth; H=c.height=innerHeight;
+    cols=Math.ceil(W/cell)+1; rows=Math.ceil(H/cell)+1; pix=[];
+    for(var i=0;i<cols*rows;i++){
+      // a few pixels are "lit" and breathe; most are dim
+      var lit = Math.random()<0.05;
+      pix.push({ lit:lit, ph:Math.random()*6.28, sp:0.4+Math.random()*0.9, base:lit?0.5:0.05 });
+    }
+  }
+  function draw(){
+    x.clearRect(0,0,W,H);
+    for(var r=0;r<rows;r++)for(var cc=0;cc<cols;cc++){
+      var p=pix[r*cols+cc]; if(!p)continue;
+      var a=p.base;
+      if(p.lit) a=0.28+0.30*(0.5+0.5*Math.sin(t*p.sp+p.ph));
+      x.fillStyle='rgba('+(150+Math.floor(a*80))+','+(90+Math.floor(a*70))+',237,'+a+')';
+      var s=p.lit?3.4:2;
+      x.fillRect(cc*cell, r*cell, s, s);
+    }
+  }
+  function loop(){ t+=0.016; draw(); requestAnimationFrame(loop); }
+  build(); draw();
+  if(!reduce) loop();
+  var to; addEventListener('resize',function(){ clearTimeout(to); to=setTimeout(function(){build();draw();},180); });
+
+  // ---- scroll reveal ----
+  if('IntersectionObserver' in window && !reduce){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+    },{threshold:0.12, rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
+  }
+})();
+</script></body>
+</html>
