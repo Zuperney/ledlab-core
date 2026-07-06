@@ -72,7 +72,7 @@ export function reciboWhatsApp({ grupos = [], titulo = "RECIBO DE MÃO DE OBRA",
   }
 
   for (const g of grupos) {
-    // evento(s) do dia (localLivre) — a Mega Led distribui custos por evento
+    // evento(s) do dia (localLivre) — o contratante distribui custos por evento
     const locais = [...new Set(g.itens.map((it) => it.entry.localLivre).filter(Boolean))];
     const evento = locais.length ? ` · ${locais.join(", ")}` : "";
     const mistura = locais.length > 1; // dia com +1 evento → repete o local por lançamento

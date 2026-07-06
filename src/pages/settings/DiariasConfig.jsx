@@ -63,7 +63,7 @@ export default function DiariasConfig() {
         <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além dos cachês. Deixe 0 se não usa.</div>
         <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><div style={lbl}>Valor por mês (R$)</div><input type="number" value={fixo.valor} onChange={(e) => setFixo({ valor: Math.max(0, parseInt(e.target.value) || 0) })} placeholder="Ex.: 6000" style={input()} /></div>
-          <div><div style={lbl}>Cliente do fixo</div><input value={fixo.cliente} onChange={(e) => setFixo({ cliente: e.target.value })} placeholder="Ex.: Mega Led" style={input()} /></div>
+          <div><div style={lbl}>Cliente do fixo</div><input value={fixo.cliente} onChange={(e) => setFixo({ cliente: e.target.value })} placeholder="Ex.: empresa contratante" style={input()} /></div>
         </div>
       </div>
 
@@ -72,7 +72,7 @@ export default function DiariasConfig() {
         <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Aparecem no cabeçalho, na assinatura e no rodapé de pagamento do recibo de mão de obra. Opcional.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
           <div><div style={lbl}>Razão social / nome empresarial</div><input value={emit.razaoSocial} onChange={(e) => setEmit({ razaoSocial: e.target.value })} placeholder="Ex.: 00.000.000 Fulano" style={input()} /></div>
-          <div><div style={lbl}>Nome fantasia</div><input value={emit.nomeFantasia} onChange={(e) => setEmit({ nomeFantasia: e.target.value })} placeholder="Ex.: LED LAB" style={input()} /></div>
+          <div><div style={lbl}>Nome fantasia</div><input value={emit.nomeFantasia} onChange={(e) => setEmit({ nomeFantasia: e.target.value })} placeholder="Ex.: sua marca" style={input()} /></div>
           <div><div style={lbl}>CNPJ</div><input value={emit.cnpj} onChange={(e) => setEmit({ cnpj: e.target.value })} placeholder="00.000.000/0001-00" style={input()} /></div>
           <div><div style={lbl}>CPF</div><input value={emit.cpf} onChange={(e) => setEmit({ cpf: e.target.value })} placeholder="000.000.000-00" style={input()} /></div>
           <div><div style={lbl}>RG</div><input value={emit.rg} onChange={(e) => setEmit({ rg: e.target.value })} style={input()} /></div>
@@ -80,7 +80,7 @@ export default function DiariasConfig() {
           <div><div style={lbl}>E-mail</div><input value={emit.email} onChange={(e) => setEmit({ email: e.target.value })} style={input()} /></div>
           <div><div style={lbl}>Endereço</div><input value={emit.endereco} onChange={(e) => setEmit({ endereco: e.target.value })} placeholder="Rua, nº, compl." style={input()} /></div>
           <div><div style={lbl}>CEP</div><input value={emit.cep} onChange={(e) => setEmit({ cep: e.target.value })} placeholder="00000-000" style={input()} /></div>
-          <div><div style={lbl}>Cidade/UF</div><input value={emit.cidade} onChange={(e) => setEmit({ cidade: e.target.value })} placeholder="Ex.: Curitiba/PR" style={input()} /></div>
+          <div><div style={lbl}>Cidade/UF</div><input value={emit.cidade} onChange={(e) => setEmit({ cidade: e.target.value })} placeholder="Ex.: São Paulo/SP" style={input()} /></div>
           <div><div style={lbl}>PIX</div><input value={emit.pix} onChange={(e) => setEmit({ pix: e.target.value })} style={input()} /></div>
           <div><div style={lbl}>Banco / conta</div><input value={emit.banco} onChange={(e) => setEmit({ banco: e.target.value })} placeholder="Banco · Ag · C/C" style={input()} /></div>
         </div>

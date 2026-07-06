@@ -148,7 +148,7 @@ export default function Financeiro() {
               {clientes.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: Ney" style={input()} /></div>
+          <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: seu nome ou empresa" style={input()} /></div>
         </div>
         <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginTop: 12 }}>
           <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} placeholder="Nome / razão social do cliente" style={input()} /></div>
@@ -216,7 +216,7 @@ export default function Financeiro() {
           <div style={{ color: PRINT.mut, padding: "24px 0", textAlign: "center" }}>Nenhum lançamento no período selecionado.</div>
         ) : (
           grupos.map((g) => {
-            // evento(s) do dia (localLivre) — pra Mega Led distribuir custos por evento
+            // evento(s) do dia (localLivre) — para o contratante distribuir custos por evento
             const locais = [...new Set(g.itens.map((it) => it.entry.localLivre).filter(Boolean))];
             const mistura = locais.length > 1; // dia com +1 evento → local por lançamento
             return (
