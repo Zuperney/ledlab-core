@@ -2,7 +2,7 @@
 // Completo inclui: visão geral, vídeo/resolução, elétrica, cabeamento de SINAL e de
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Printer } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
@@ -16,6 +16,8 @@ import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
 
 const TYPES = ["Completo", "Resumido", "Elétrico", "Estrutural", "Design", "Gabinetes"];
+// largura fixa "de impressão": no mobile o relatório é montado nela e escalado (zoom) p/ caber
+const DOC_W = 800;
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const videoOf = (t) => {
@@ -33,6 +35,16 @@ export default function ProjectRelatorio({ project }) {
   const { colorOf } = useCablePalette();
   const isMobile = useIsMobile();
   const [type, setType] = useState("Completo");
+  // no mobile, mede a largura disponível e calcula o zoom p/ o relatório (DOC_W) caber
+  const docWrapRef = useRef(null);
+  const [docZoom, setDocZoom] = useState(1);
+  useEffect(() => {
+    if (!isMobile) { setDocZoom(1); return; }
+    const measure = () => { const w = docWrapRef.current?.clientWidth || 0; if (w) setDocZoom(Math.min(1, w / DOC_W)); };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [isMobile]);
   const numbering = prefs.cableNumbering || "row-tb-lr";
   const cfg = project.config || { vk: prefs.vk, brilho: prefs.brilho, conteudo: prefs.conteudo };
   const agg = aggregateElectrical(project, cfg);
@@ -64,7 +76,8 @@ export default function ProjectRelatorio({ project }) {
         <button style={btn("primary")} onClick={() => window.print()}><Printer size={15} /> Imprimir / Salvar PDF</button>
       </div>
 
-      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: isMobile ? 18 : 40, maxWidth: 860, margin: "0 auto", fontSize: 13 }}>
+      <div ref={docWrapRef} style={{ overflow: "hidden" }}>
+      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: 40, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: `2px solid ${PRINT.ink}`, paddingBottom: 14, marginBottom: 16 }}>
           <div>
             <div style={{ color: PRINT.acc, fontWeight: 700, fontSize: 11, letterSpacing: "0.08em" }}>LEDLAB CORE — {type.toUpperCase()}</div>
@@ -176,6 +189,7 @@ export default function ProjectRelatorio({ project }) {
             })}
           </section>
         )}
+      </div>
       </div>
     </div>
   );
