@@ -9,7 +9,7 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.x (hoje) → **v2.0**. São 23 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Horizonte:** v1.x (hoje) → **v2.0**. São 24 iniciativas em 4 fases + backlog, ordenadas por dependência.
 
 ---
 
@@ -76,6 +76,7 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 |---|:---:|:---:|---|---|
 | **Orçamento & proposta (PDF)** | 🟣 | G | Proposta a partir do projeto: m²/gabinetes + mão de obra (puxa das diárias) + logística, com PDF de aceite/assinatura. *Hoje o técnico projeta aqui mas orça no WhatsApp/planilha à parte.* | propostas Flex/Rentman/Goodshuffle |
 | **Despesas & reembolso** | 🟣 | M | Lançar as despesas do evento (combustível, pedágio, alimentação, material) com **foto do comprovante** e gerar um relatório de reembolso — reaproveita a máquina de recibo/PDF/WhatsApp do módulo de cachês. *O técnico adianta do bolso e precisa ser ressarcido; é irmã do Financeiro.* (fotos → melhor sobre o IndexedDB da Fase 1) | demanda de campo |
+| **Recibo por cadência (semana/mês)** | 🟣 | P | Presets de período no recibo — *esta semana / semana passada*, como já existe pra mês — pra fechar por semana (agenda seg→dom, pagamento na quarta). O trabalho segue lançado por dia; o recibo agrupa e fecha por semana. **A mesma estratégia de período vale pro relatório de reembolso.** *Tem freela que recebe semanalmente; hoje o recibo só pensa em dia/mês.* | demanda de campo |
 | **Disponibilidade & conflito** | 🟣 | M | A agenda cruza eventos e avisa quando o mesmo gabinete/tela está reservado em datas sobrepostas. *Dupla-reserva é o erro clássico — e o mais caro.* | conflito Current RMS/Rentman |
 | **Escala de equipe** | 🟣 | M | Ligar as diárias a pessoas (função, custo, disponibilidade) e montar a equipe do evento. *O módulo de cachês já sabe quanto; falta saber quem.* | — |
 | **Kits & presets reutilizáveis** | ⚪ | P | Salvar telas-modelo e presets de tensão/cabeamento pra montar projeto novo em segundos. *A maioria dos eventos repete configurações.* | — |
