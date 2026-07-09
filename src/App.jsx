@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLocation } from "wouter";
 import logo from "./assets/logo.png";
 import { NAV, SECTIONS, LABELS, VERSION } from "./nav.js";
+import { daysSinceBackup } from "./services/storage.js";
 import { T, FONT } from "./ui/tokens.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useLedLabContext } from "./store/AppContext.jsx";
@@ -38,7 +39,11 @@ export default function App() {
   const page = PATH_TO_PAGE[location] || DEFAULT_PAGE;
   const Page = PAGES[page] || Dashboard;
   const isMobile = useIsMobile();
-  const { storageOk } = useLedLabContext();
+  const { storageOk, projects, worklog } = useLedLabContext();
+  const [backupNagOff, setBackupNagOff] = useState(false);
+  const daysNoBackup = daysSinceBackup();
+  const hasUserData = (projects?.length || 0) > 0 || (worklog?.length || 0) > 0;
+  const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff;
 
   useEffect(() => {
     if (location === "/") {
@@ -77,6 +82,7 @@ export default function App() {
         </header>
         <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 12, paddingBottom: "calc(66px + env(safe-area-inset-bottom))" }}>
           {!storageOk && <StorageBanner />}
+          {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={() => navigate("settings")} onDismiss={() => setBackupNagOff(true)} />}
           <ErrorBoundary>
             <Page nav={nav} />
           </ErrorBoundary>
@@ -137,6 +143,7 @@ export default function App() {
         </header>
         <main style={{ flex: 1, overflowY: "auto", padding: 28 }}>
           {!storageOk && <StorageBanner />}
+          {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={() => navigate("settings")} onDismiss={() => setBackupNagOff(true)} />}
           <ErrorBoundary>
             <Page nav={nav} />
           </ErrorBoundary>
@@ -152,6 +159,19 @@ function StorageBanner() {
     <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.overloadBg, border: `1px solid ${T.red}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: T.txt }}>
       <TriangleAlert size={16} color={T.red} style={{ flexShrink: 0 }} />
       <span>Este navegador não está salvando seus dados (modo privado ou armazenamento cheio). <b>As alterações se perderão ao fechar</b> — exporte um backup em Configurações.</span>
+    </div>
+  );
+}
+
+// lembrete discreto e dispensável: passou de ~7 dias sem backup (só quando há dados)
+function BackupReminder({ days, onBackup, onDismiss }) {
+  const txt = days === Infinity ? "Você ainda não fez um backup." : `Faz ${Math.floor(days)} dias desde seu último backup.`;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.sel, border: `1px solid ${T.acc}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: T.txt }}>
+      <TriangleAlert size={16} color={T.acM} style={{ flexShrink: 0 }} />
+      <span style={{ flex: 1, minWidth: 0 }}>{txt} Seus dados vivem só neste navegador — <b>faça um backup</b> pra não perder.</span>
+      <button onClick={onBackup} style={{ flexShrink: 0, background: T.acc, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Fazer backup</button>
+      <button onClick={onDismiss} aria-label="Dispensar" style={{ flexShrink: 0, background: "none", border: "none", color: T.mut, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
     </div>
   );
 }

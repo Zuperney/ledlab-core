@@ -6,6 +6,7 @@ import { useHashLocation } from "wouter/use-hash-location";
 import { AppProvider } from "./store/AppContext.jsx";
 import { UIProvider } from "./store/UIContext.jsx";
 import App from "./App.jsx";
+import { requestPersist } from "./services/storage.js";
 import "react-datepicker/dist/react-datepicker.css";
 import "./index.css";
 
@@ -42,3 +43,8 @@ window.addEventListener("vite:preloadError", (event) => {
     location.reload();
   }
 });
+
+// Durabilidade: pede ao navegador armazenamento persistente (não descartar os
+// dados sob pressão de espaço/inatividade). Silencioso — em PWA instalado
+// costuma ser concedido na hora.
+requestPersist();

@@ -1,10 +1,11 @@
 // pages/Settings.jsx — configurações globais em categorias colapsáveis:
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
-import { useRef, useState } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
+import { markBackupNow, isPersisted, requestPersist, storageUsage } from "../services/storage.js";
 import { VOLT } from "../services/electricalCalc.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -34,7 +35,7 @@ export default function Settings() {
   const cabRef = useRef(null);
 
   // ── Backup completo ──
-  const exportBackup = () => download("ledlab-backup.json", { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes });
+  const exportBackup = () => { download("ledlab-backup.json", { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes }); markBackupNow(); toast("Backup exportado"); };
   const importBackup = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -194,6 +195,7 @@ export default function Settings() {
       )}
 
       <Section icon={Database} title="Dados & backup" subtitle="Exportar / importar arquivos (.json)" defaultOpen={open}>
+        <StorageStatus />
         <IoRow first title="Backup completo" desc="Tudo num arquivo: gabinetes, projetos, cachês e preferências." onExport={exportBackup} onImport={() => backupRef.current?.click()} />
         <input ref={backupRef} type="file" accept="application/json" onChange={importBackup} style={{ display: "none" }} />
         <IoRow title="Projetos" desc="Só os projetos/eventos — o importado é adicionado (não substitui)." onExport={exportProjects} onImport={() => projRef.current?.click()} />
@@ -246,6 +248,29 @@ function IoRow({ title, desc, onExport, onImport, first }) {
         <button style={btn("ghost")} onClick={onImport}><Upload size={14} /> Importar</button>
         <button style={btn("ghost")} onClick={onExport}><Download size={14} /> Exportar</button>
       </div>
+    </div>
+  );
+}
+
+// status do armazenamento persistente (durabilidade dos dados)
+function StorageStatus() {
+  const [persisted, setPersisted] = useState(null);
+  const [usage, setUsage] = useState(null);
+  const refresh = () => { isPersisted().then(setPersisted); storageUsage().then(setUsage); };
+  useEffect(() => { refresh(); }, []);
+  const proteger = async () => { await requestPersist(); refresh(); };
+  const ok = persisted === true;
+  const mb = usage != null ? (usage / 1048576).toFixed(usage < 1048576 ? 2 : 1) : null;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "2px 0 12px", borderBottom: `1px solid ${T.bd}`, marginBottom: 4, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        {ok ? <ShieldCheck size={18} style={{ color: "#34d399", flexShrink: 0 }} /> : <ShieldAlert size={18} style={{ color: T.red, flexShrink: 0 }} />}
+        <div style={{ minWidth: 0 }}>
+          <div style={mTitle}>{persisted === null ? "Verificando armazenamento…" : ok ? "Armazenamento protegido" : "Armazenamento não protegido"}</div>
+          <div style={mDesc}>{ok ? "O navegador foi instruído a não descartar seus dados." : "O navegador pode descartar seus dados sob pressão de espaço."}{mb != null ? ` · ${mb} MB em uso` : ""}</div>
+        </div>
+      </div>
+      {persisted === false && <button style={btn("ghost")} onClick={proteger}><ShieldCheck size={14} /> Proteger</button>}
     </div>
   );
 }
