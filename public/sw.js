@@ -4,7 +4,11 @@
 // - Runtime cache stale-while-revalidate para requests GET do mesmo domínio
 // - Network-first para navegação com fallback explícito para index.html do precache
 const CACHE_PREFIX = "ledlab-core";
-const CACHE_VERSION = "v2";
+// Carimbado no build (vite.config.js → plugin stamp-sw) com "versão-timestamp",
+// único por deploy. Assim o SW se reinstala a cada deploy, refaz o precache com
+// os assets novos e apaga os antigos — evitando servir um index.html velho cujos
+// chunks lazy já foram purgados do servidor. Em dev fica literal (SW não roda).
+const CACHE_VERSION = "__BUILD_ID__";
 const PRECACHE = `${CACHE_PREFIX}-precache-${CACHE_VERSION}`;
 const RUNTIME = `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;
 const APP_SHELL = ["./", "./index.html"];
