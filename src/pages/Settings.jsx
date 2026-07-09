@@ -2,8 +2,9 @@
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
 import { useRef, useState, useEffect } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
+import { useAuth } from "../store/AuthContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
 import { isPersisted, requestPersist, storageUsage } from "../services/storage.js";
 import { VOLT } from "../services/electricalCalc.js";
@@ -194,6 +195,10 @@ export default function Settings() {
         </Section>
       )}
 
+      <Section icon={Cloud} title="Conta & sincronização" subtitle="Acesse seus dados de qualquer aparelho (opcional)" defaultOpen={false}>
+        <AccountSection />
+      </Section>
+
       <Section icon={Database} title="Dados & backup" subtitle="Exportar / importar arquivos (.json)" defaultOpen={open}>
         <StorageStatus />
         <IoRow first title="Backup completo" desc="Tudo num arquivo: gabinetes, projetos, cachês e preferências." onExport={onExportBackup} onImport={() => backupRef.current?.click()} />
@@ -271,6 +276,51 @@ function StorageStatus() {
         </div>
       </div>
       {persisted === false && <button style={btn("ghost")} onClick={proteger}><ShieldCheck size={14} /> Proteger</button>}
+    </div>
+  );
+}
+
+// login/sync opcional na nuvem (link mágico, sem senha)
+function AccountSection() {
+  const { user, signIn, signOut } = useAuth();
+  const toast = useToast();
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const enviar = async () => {
+    const e = email.trim();
+    if (!e) { toast("Digite seu e-mail", "info"); return; }
+    setBusy(true);
+    try {
+      const { error } = await signIn(e);
+      if (error) toast(error.message || "Falha ao enviar o link", "info");
+      else setSent(true);
+    } catch {
+      toast("Falha ao enviar o link", "info");
+    }
+    setBusy(false);
+  };
+
+  if (user) {
+    return (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0 }}><div style={mTitle}>Conectado</div><div style={mDesc}>{user.email}</div></div>
+        <button style={btn("ghost")} onClick={signOut}>Sair</button>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div style={{ ...subDesc, marginBottom: 10 }}>Acesse seus dados de qualquer aparelho (opcional). Mandamos um link de acesso pro seu e-mail — sem senha.</div>
+      {sent ? (
+        <div style={{ color: T.acM, fontSize: 13 }}>Link enviado! Abra seu e-mail e clique pra entrar — pode voltar aqui depois.</div>
+      ) : (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" style={{ ...selStyle, flex: "1 1 200px" }} />
+          <button style={btn("primary")} onClick={enviar} disabled={busy}>{busy ? "Enviando…" : "Enviar link de acesso"}</button>
+        </div>
+      )}
     </div>
   );
 }

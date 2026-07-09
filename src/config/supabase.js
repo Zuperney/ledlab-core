@@ -22,7 +22,10 @@ export function getSupabase() {
   if (!clientPromise) {
     clientPromise = import("@supabase/supabase-js").then(({ createClient }) =>
       createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+        // PKCE + detectSessionInUrl: o link mágico volta com ?code=... (query, não
+        // hash) — convive bem com o hash-router do app; o supabase troca o code
+        // por sessão e limpa a URL sozinho.
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce" },
       }),
     );
   }
