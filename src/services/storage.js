@@ -33,6 +33,20 @@ export async function storageUsage() {
   }
 }
 
+// Baixa um objeto como arquivo .json (usado pelo backup).
+export function downloadJSON(name, obj) {
+  try {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 0);
+  } catch {
+    /* ambiente sem DOM/Blob — ignora */
+  }
+}
+
 // ── Marca do último backup ──
 const LAST_BACKUP_KEY = "ledlab.lastBackupAt";
 

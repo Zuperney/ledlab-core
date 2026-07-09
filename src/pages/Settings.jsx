@@ -5,7 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
-import { markBackupNow, isPersisted, requestPersist, storageUsage } from "../services/storage.js";
+import { isPersisted, requestPersist, storageUsage } from "../services/storage.js";
 import { VOLT } from "../services/electricalCalc.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -26,7 +26,7 @@ const download = (name, obj) => {
 };
 
 export default function Settings() {
-  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, worklog, setWorklog, activityTypes, setActivityTypes } = useLedLabContext();
+  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, exportBackup } = useLedLabContext();
   const confirm = useConfirm();
   const toast = useToast();
   const isMobile = useIsMobile();
@@ -35,7 +35,7 @@ export default function Settings() {
   const cabRef = useRef(null);
 
   // ── Backup completo ──
-  const exportBackup = () => { download("ledlab-backup.json", { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes }); markBackupNow(); toast("Backup exportado"); };
+  const onExportBackup = () => { exportBackup(); toast("Backup exportado"); };
   const importBackup = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -196,7 +196,7 @@ export default function Settings() {
 
       <Section icon={Database} title="Dados & backup" subtitle="Exportar / importar arquivos (.json)" defaultOpen={open}>
         <StorageStatus />
-        <IoRow first title="Backup completo" desc="Tudo num arquivo: gabinetes, projetos, cachês e preferências." onExport={exportBackup} onImport={() => backupRef.current?.click()} />
+        <IoRow first title="Backup completo" desc="Tudo num arquivo: gabinetes, projetos, cachês e preferências." onExport={onExportBackup} onImport={() => backupRef.current?.click()} />
         <input ref={backupRef} type="file" accept="application/json" onChange={importBackup} style={{ display: "none" }} />
         <IoRow title="Projetos" desc="Só os projetos/eventos — o importado é adicionado (não substitui)." onExport={exportProjects} onImport={() => projRef.current?.click()} />
         <input ref={projRef} type="file" accept=".json,application/json" onChange={importProjects} style={{ display: "none" }} />

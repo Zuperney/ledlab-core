@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLocation } from "wouter";
 import logo from "./assets/logo.png";
 import { NAV, SECTIONS, LABELS, VERSION } from "./nav.js";
-import { daysSinceBackup } from "./services/storage.js";
+import { useToast } from "./store/UIContext.jsx";
 import { T, FONT } from "./ui/tokens.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useLedLabContext } from "./store/AppContext.jsx";
@@ -39,11 +39,13 @@ export default function App() {
   const page = PATH_TO_PAGE[location] || DEFAULT_PAGE;
   const Page = PAGES[page] || Dashboard;
   const isMobile = useIsMobile();
-  const { storageOk, projects, worklog } = useLedLabContext();
+  const { storageOk, projects, worklog, lastBackupAt, exportBackup } = useLedLabContext();
+  const toast = useToast();
   const [backupNagOff, setBackupNagOff] = useState(false);
-  const daysNoBackup = daysSinceBackup();
+  const daysNoBackup = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 86400000 : Infinity;
   const hasUserData = (projects?.length || 0) > 0 || (worklog?.length || 0) > 0;
   const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff;
+  const doBackup = () => { exportBackup(); toast("Backup exportado"); };
 
   useEffect(() => {
     if (location === "/") {
@@ -82,7 +84,7 @@ export default function App() {
         </header>
         <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 12, paddingBottom: "calc(66px + env(safe-area-inset-bottom))" }}>
           {!storageOk && <StorageBanner />}
-          {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={() => navigate("settings")} onDismiss={() => setBackupNagOff(true)} />}
+          {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={doBackup} onDismiss={() => setBackupNagOff(true)} />}
           <ErrorBoundary>
             <Page nav={nav} />
           </ErrorBoundary>
@@ -143,7 +145,7 @@ export default function App() {
         </header>
         <main style={{ flex: 1, overflowY: "auto", padding: 28 }}>
           {!storageOk && <StorageBanner />}
-          {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={() => navigate("settings")} onDismiss={() => setBackupNagOff(true)} />}
+          {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={doBackup} onDismiss={() => setBackupNagOff(true)} />}
           <ErrorBoundary>
             <Page nav={nav} />
           </ErrorBoundary>

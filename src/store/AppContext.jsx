@@ -12,6 +12,7 @@ import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
 import { recomputeStatus, isoDate } from "../services/projectCalc.js";
 import { fullSnapshot } from "../services/cabinets.js";
 import { genId } from "../services/ids.js";
+import { markBackupNow, getLastBackupAt, downloadJSON } from "../services/storage.js";
 
 // Chaves de localStorage — fonte única em src/config/storageConfig.js
 import { KEYS } from "../config/storageConfig.js";
@@ -139,6 +140,7 @@ export function AppProvider({ children }) {
   // módulo Diárias
   const [worklog, setWorklog] = useState(() => loadArray(KEYS.worklog, []));
   const [activityTypes, setActivityTypes] = useState(() => loadArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES));
+  const [lastBackupAt, setLastBackupAt] = useState(() => getLastBackupAt());
 
   useEffect(() => save(KEYS.cabs, cabs), [cabs]);
   useEffect(() => save(KEYS.projects, projects), [projects]);
@@ -147,6 +149,13 @@ export function AppProvider({ children }) {
   useEffect(() => save(KEYS.worklog, worklog), [worklog]);
   useEffect(() => save(KEYS.activityTypes, activityTypes), [activityTypes]);
 
+  // backup completo (baixa .json + registra a data). lastBackupAt é reativo, então
+  // o lembrete de backup no <App> some sozinho — seja pelo banner ou pelo Settings.
+  const exportBackup = () => {
+    downloadJSON("ledlab-backup.json", { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes });
+    setLastBackupAt(markBackupNow());
+  };
+
   const value = {
     cabs, setCabs,
     projects, setProjects,
@@ -154,6 +163,7 @@ export function AppProvider({ children }) {
     tcPresets, setTcPresets,
     worklog, setWorklog,
     activityTypes, setActivityTypes,
+    lastBackupAt, exportBackup,
     storageOk: STORAGE_WRITABLE,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
