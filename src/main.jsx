@@ -5,6 +5,7 @@ import { Router } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { AuthProvider } from "./store/AuthContext.jsx";
 import { AppProvider } from "./store/AppContext.jsx";
+import { SyncProvider } from "./store/SyncContext.jsx";
 import { UIProvider } from "./store/UIContext.jsx";
 import App from "./App.jsx";
 import { requestPersist } from "./services/storage.js";
@@ -15,11 +16,13 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthProvider>
       <AppProvider>
-        <UIProvider>
-          <Router hook={useHashLocation}>
-            <App />
-          </Router>
-        </UIProvider>
+        <SyncProvider>
+          <UIProvider>
+            <Router hook={useHashLocation}>
+              <App />
+            </Router>
+          </UIProvider>
+        </SyncProvider>
       </AppProvider>
     </AuthProvider>
   </StrictMode>

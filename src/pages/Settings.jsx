@@ -5,6 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { useAuth } from "../store/AuthContext.jsx";
+import { useSync } from "../store/SyncContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
 import { isPersisted, requestPersist, storageUsage } from "../services/storage.js";
 import { VOLT } from "../services/electricalCalc.js";
@@ -283,6 +284,7 @@ function StorageStatus() {
 // login/sync opcional na nuvem — código OTP de 6 dígitos (sem senha, qualquer navegador)
 function AccountSection() {
   const { user, signIn, verifyCode, signOut } = useAuth();
+  const { status, lastSyncedAt, syncNow } = useSync();
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -317,13 +319,21 @@ function AccountSection() {
   };
 
   if (user) {
+    const label = { syncing: "Sincronizando…", synced: "Sincronizado", offline: "Offline — sincroniza ao reconectar", error: "Erro ao sincronizar" }[status] || "Pronto";
+    const color = status === "error" ? T.red : status === "synced" ? "#34d399" : T.mut;
     return (
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
-          <Cloud size={18} style={{ color: "#34d399", flexShrink: 0 }} />
-          <div style={{ minWidth: 0 }}><div style={mTitle}>Conectado</div><div style={mDesc}>{user.email}</div></div>
+      <div style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
+            <Cloud size={18} style={{ color: "#34d399", flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}><div style={mTitle}>Conectado</div><div style={mDesc}>{user.email}</div></div>
+          </div>
+          <button style={btn("ghost")} onClick={signOut}>Sair</button>
         </div>
-        <button style={btn("ghost")} onClick={signOut}>Sair</button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", borderTop: `1px solid ${T.bd}`, paddingTop: 10 }}>
+          <div style={mDesc}><span style={{ color, fontWeight: 600 }}>{label}</span>{status === "synced" && lastSyncedAt ? ` · ${fmtAgo(lastSyncedAt)}` : ""}</div>
+          <button style={btn("ghost")} onClick={syncNow} disabled={status === "syncing"}>Sincronizar agora</button>
+        </div>
       </div>
     );
   }
@@ -347,6 +357,14 @@ function AccountSection() {
       )}
     </div>
   );
+}
+
+function fmtAgo(ms) {
+  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (s < 60) return "agora";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `há ${m} min`;
+  return `há ${Math.floor(m / 60)}h`;
 }
 
 const mTitle = { color: T.txt, fontWeight: 600, fontSize: 14 };
