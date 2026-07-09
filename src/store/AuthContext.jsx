@@ -9,12 +9,10 @@ import { getSupabase, SYNC_CONFIGURED } from "../config/supabase.js";
 const AuthContext = createContext(null);
 const SYNC_FLAG = "ledlab.syncEnabled";
 
-// só vale carregar o supabase-js se o sync já foi ativado (flag) ou se estamos
-// voltando de um link mágico (code/token na URL). Quem nunca logou não paga nada.
+// só vale carregar o supabase-js se o sync já foi ativado antes (flag). Quem nunca
+// logou não paga nada. (Login é por código OTP, sem redirect — nada a ler na URL.)
 function needsSupabase() {
-  if (!SYNC_CONFIGURED) return false;
-  const returning = /[?&]code=/.test(window.location.search) || window.location.hash.includes("access_token");
-  return returning || localStorage.getItem(SYNC_FLAG) === "1";
+  return SYNC_CONFIGURED && localStorage.getItem(SYNC_FLAG) === "1";
 }
 
 export function AuthProvider({ children }) {
@@ -43,15 +41,23 @@ export function AuthProvider({ children }) {
     return () => subscription?.unsubscribe?.();
   }, []);
 
-  // envia o link mágico (OTP) pro e-mail; ao clicar, volta logado
+  // 1) envia um código de 6 dígitos pro e-mail
   const signIn = async (email) => {
     const sb = await getSupabase();
     if (!sb) throw new Error("Sincronização não configurada.");
-    localStorage.setItem(SYNC_FLAG, "1"); // marca a intenção p/ restaurar a sessão no retorno
-    return sb.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + window.location.pathname },
-    });
+    return sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  };
+
+  // 2) confirma o código → estabelece a sessão (funciona em qualquer navegador)
+  const verifyCode = async (email, token) => {
+    const sb = await getSupabase();
+    if (!sb) throw new Error("Sincronização não configurada.");
+    const { data, error } = await sb.auth.verifyOtp({ email, token: token.trim(), type: "email" });
+    if (!error && data?.session) {
+      localStorage.setItem(SYNC_FLAG, "1");
+      setSession(data.session);
+    }
+    return { error };
   };
 
   const signOut = async () => {
@@ -62,7 +68,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user || null, ready, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user || null, ready, signIn, verifyCode, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -280,12 +280,13 @@ function StorageStatus() {
   );
 }
 
-// login/sync opcional na nuvem (link mágico, sem senha)
+// login/sync opcional na nuvem — código OTP de 6 dígitos (sem senha, qualquer navegador)
 function AccountSection() {
-  const { user, signIn, signOut } = useAuth();
+  const { user, signIn, verifyCode, signOut } = useAuth();
   const toast = useToast();
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState("email"); // "email" | "code"
   const [busy, setBusy] = useState(false);
 
   const enviar = async () => {
@@ -294,10 +295,23 @@ function AccountSection() {
     setBusy(true);
     try {
       const { error } = await signIn(e);
-      if (error) toast(error.message || "Falha ao enviar o link", "info");
-      else setSent(true);
+      if (error) toast(error.status === 429 ? "Muitos pedidos — aguarde alguns minutos." : (error.message || "Falha ao enviar"), "info");
+      else { setStep("code"); toast("Código enviado pro seu e-mail"); }
     } catch {
-      toast("Falha ao enviar o link", "info");
+      toast("Falha ao enviar o código", "info");
+    }
+    setBusy(false);
+  };
+
+  const entrar = async () => {
+    if (!code.trim()) { toast("Digite o código", "info"); return; }
+    setBusy(true);
+    try {
+      const { error } = await verifyCode(email, code);
+      if (error) toast(error.message || "Código inválido ou expirado", "info");
+      else toast("Conectado!");
+    } catch {
+      toast("Falha ao entrar", "info");
     }
     setBusy(false);
   };
@@ -305,20 +319,30 @@ function AccountSection() {
   if (user) {
     return (
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ minWidth: 0 }}><div style={mTitle}>Conectado</div><div style={mDesc}>{user.email}</div></div>
+        <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
+          <Cloud size={18} style={{ color: "#34d399", flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}><div style={mTitle}>Conectado</div><div style={mDesc}>{user.email}</div></div>
+        </div>
         <button style={btn("ghost")} onClick={signOut}>Sair</button>
       </div>
     );
   }
   return (
     <div>
-      <div style={{ ...subDesc, marginBottom: 10 }}>Acesse seus dados de qualquer aparelho (opcional). Mandamos um link de acesso pro seu e-mail — sem senha.</div>
-      {sent ? (
-        <div style={{ color: T.acM, fontSize: 13 }}>Link enviado! Abra seu e-mail e clique pra entrar — pode voltar aqui depois.</div>
+      <div style={{ ...subDesc, marginBottom: 10 }}>Acesse seus dados de qualquer aparelho (opcional). Mandamos um código de 6 dígitos pro seu e-mail — sem senha, funciona em qualquer navegador.</div>
+      {step === "code" ? (
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={mDesc}>Código enviado pra <b>{email}</b>. Digite abaixo:</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" style={{ ...selStyle, flex: "1 1 140px", letterSpacing: "0.3em", fontFamily: "ui-monospace, monospace" }} />
+            <button style={btn("primary")} onClick={entrar} disabled={busy}>{busy ? "Entrando…" : "Entrar"}</button>
+          </div>
+          <button onClick={() => { setStep("email"); setCode(""); }} style={{ background: "none", border: "none", color: T.mut, fontSize: 12.5, cursor: "pointer", textAlign: "left", padding: 0 }}>Trocar e-mail / reenviar código</button>
+        </div>
       ) : (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" style={{ ...selStyle, flex: "1 1 200px" }} />
-          <button style={btn("primary")} onClick={enviar} disabled={busy}>{busy ? "Enviando…" : "Enviar link de acesso"}</button>
+          <button style={btn("primary")} onClick={enviar} disabled={busy}>{busy ? "Enviando…" : "Enviar código"}</button>
         </div>
       )}
     </div>
