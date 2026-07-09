@@ -9,7 +9,7 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.x (hoje) → **v2.0**. São 24 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Horizonte:** v1.x (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
 
 ---
 
@@ -49,9 +49,10 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
 | **IndexedDB como fonte de verdade** | 🟡 | G | Migrar de `localStorage` → IndexedDB (Dexie): mais cota, dados estruturados, base para sync. *localStorage trava em ~5 MB e é o maior risco de perda de dados hoje.* | offline-first / Dexie |
-| **Backup automático + desfazer** | 🟡 | M | Snapshots versionados locais, export/import com validação de schema, "desfazer" global. *Hoje um import errado apaga tudo, sem volta.* | — |
+| **Backup automático + desfazer** | 🟡 | M | Snapshots versionados locais, export/import com validação de schema, **armazenamento persistente** (`navigator.storage.persist()`, pede pro navegador não despejar), lembrete periódico de backup e "desfazer" global. *Import errado apaga tudo; e o navegador pode despejar dado de PWA parado.* | — |
 | **Cinturão de testes + CI** | 🟡 | M | Estender o vitest ao motor elétrico, cabeamento e projectCalc; rodar a cada push. *Só o worklog é testado — regressão silenciosa custa caro em campo.* | — |
 | **Performance & PWA à prova** | 🟣 | P | Estender o code-splitting, auditar Lighthouse, blindar instalação/cache offline. *O app é usado em obra, muitas vezes sem internet.* | — |
+| **Aviso de nova versão (opt-in)** | 🟣 | P | Toast *"nova versão disponível — Atualizar"* em vez de trocar sozinho: o usuário decide quando atualizar e vê que atualizou. Inverte o `skipWaiting` do service worker. *Hoje troca em silêncio; a pessoa quer controle e confirmação visual.* | — |
 | **Desktop pronto (Electron)** | ⚪ | M | Auto-update, ícones/assinatura, empacotamento Windows testado. *Projeto pesado (diagramação, PDF) é feito no computador do estúdio.* | — |
 
 ---

@@ -178,7 +178,7 @@
     </div>
     <div class="metrics">
       <div class="metric"><div class="n num">10</div><div class="k">módulos em produção hoje</div></div>
-      <div class="metric"><div class="n num">24<small> +5</small></div><div class="k">iniciativas + ideias no backlog</div></div>
+      <div class="metric"><div class="n num">25<small> +5</small></div><div class="k">iniciativas + ideias no backlog</div></div>
       <div class="metric"><div class="n num">4</div><div class="k">fases, ordenadas por dependência</div></div>
       <div class="metric"><div class="n num">100<small>%</small></div><div class="k">offline-first, mantido</div></div>
     </div>
@@ -258,8 +258,8 @@
     </div>
     <div class="card">
       <h3>Backup automático + desfazer</h3>
-      <p class="what">Snapshots versionados locais, export/import com validação de schema (já iniciado) e um "desfazer" global.</p>
-      <p class="why"><b>Por quê:</b> hoje um import errado ou uma limpeza apaga tudo, sem volta.</p>
+      <p class="what">Snapshots versionados locais, export/import com validação de schema (já iniciado), <b>armazenamento persistente</b> (pede pro navegador não despejar), lembrete de backup e um "desfazer" global.</p>
+      <p class="why"><b>Por quê:</b> um import errado ou uma limpeza apaga tudo; e o navegador pode despejar dado de PWA parado.</p>
       <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">M</span></div>
     </div>
     <div class="card">
@@ -272,6 +272,12 @@
       <h3>Performance &amp; PWA à prova</h3>
       <p class="what">Estender o code-splitting (já feito nos pickers), auditar Lighthouse e blindar a instalação/cache offline.</p>
       <p class="why"><b>Por quê:</b> o app é usado em obra, muitas vezes sem internet — a instalação precisa ser confiável.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">P</span></div>
+    </div>
+    <div class="card">
+      <h3>Aviso de nova versão (opt-in)</h3>
+      <p class="what">Toast <b>"nova versão disponível — Atualizar"</b> em vez de trocar sozinho: o usuário decide quando atualizar e vê que atualizou.</p>
+      <p class="why"><b>Por quê:</b> hoje a atualização acontece em silêncio; a pessoa quer controle e a confirmação visual de que está na versão nova. Inverte o skipWaiting do service worker.</p>
       <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">P</span></div>
     </div>
     <div class="card">
