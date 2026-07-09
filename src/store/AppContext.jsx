@@ -13,6 +13,8 @@ import { recomputeStatus, isoDate } from "../services/projectCalc.js";
 import { fullSnapshot } from "../services/cabinets.js";
 import { genId } from "../services/ids.js";
 import { markBackupNow, getLastBackupAt, downloadJSON } from "../services/storage.js";
+import { idbGet, idbSet } from "../services/idb.js";
+import { T } from "../ui/tokens.js";
 
 // Chaves de localStorage — fonte única em src/config/storageConfig.js
 import { KEYS } from "../config/storageConfig.js";
@@ -61,22 +63,24 @@ const loadArray = (key, fallback) => {
   }
 };
 
+// merge de 1 nível: subcampos NOVOS de subobjetos (worklog/emitente/fixo/cabCols…)
+// retroalimentam prefs já salvas, sem sobrescrever o que o usuário tinha
+function mergeDefaults(fallback, v) {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return fallback;
+  const out = { ...fallback, ...v };
+  for (const k of Object.keys(fallback)) {
+    const fk = fallback[k], vk = v[k];
+    if (fk && typeof fk === "object" && !Array.isArray(fk) && vk && typeof vk === "object" && !Array.isArray(vk)) {
+      out[k] = { ...fk, ...vk };
+    }
+  }
+  return out;
+}
+
 const loadObject = (key, fallback) => {
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    const v = JSON.parse(raw);
-    if (!v || typeof v !== "object") return fallback;
-    const out = { ...fallback, ...v };
-    // merge de 1 nível: subcampos NOVOS de subobjetos (worklog/emitente/fixo/cabCols…)
-    // retroalimentam prefs já salvas, sem sobrescrever o que o usuário tinha
-    for (const k of Object.keys(fallback)) {
-      const fk = fallback[k], vk = v[k];
-      if (fk && typeof fk === "object" && !Array.isArray(fk) && vk && typeof vk === "object" && !Array.isArray(vk)) {
-        out[k] = { ...fk, ...vk };
-      }
-    }
-    return out;
+    return raw ? mergeDefaults(fallback, JSON.parse(raw)) : fallback;
   } catch {
     return fallback;
   }
@@ -101,6 +105,29 @@ const STORAGE_WRITABLE = (() => {
     return false;
   }
 })();
+
+// ── armazenamento: IndexedDB é primário; localStorage é o espelho (dual-write) ──
+// grava nos dois — IndexedDB (cota grande, base de fotos/sync) + localStorage
+// (rede de segurança síncrona; aposentável depois do período de teste).
+function persist(key, value) {
+  save(key, value);
+  idbSet(key, value);
+}
+// lê a fatia do IndexedDB; na 1ª vez (vazio) migra o valor atual do localStorage
+async function hydrateArray(key, fallback) {
+  const v = await idbGet(key);
+  if (Array.isArray(v)) return v;
+  const fromLs = loadArray(key, fallback);
+  idbSet(key, fromLs);
+  return fromLs;
+}
+async function hydrateObject(key, fallback) {
+  const v = await idbGet(key);
+  if (v && typeof v === "object" && !Array.isArray(v)) return mergeDefaults(fallback, v);
+  const fromLs = loadObject(key, fallback);
+  idbSet(key, fromLs);
+  return fromLs;
+}
 
 // ── factories ────────────────────────────────────────────────
 export function newProject(overrides = {}) {
@@ -131,23 +158,61 @@ export function newScreen(cab, overrides = {}) {
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [cabs, setCabs] = useState(() => loadArray(KEYS.cabs, SEED_CABINETS));
-  const [projects, setProjects] = useState(() =>
-    loadArray(KEYS.projects, SEED_PROJECTS).map((p) => ({ ...p, status: recomputeStatus(p, isoDate()) }))
-  );
-  const [prefs, setPrefs] = useState(() => loadObject(KEYS.prefs, DEFAULT_PREFS));
-  const [tcPresets, setTcPresets] = useState(() => loadArray(KEYS.tcPresets, []));
-  // módulo Diárias
-  const [worklog, setWorklog] = useState(() => loadArray(KEYS.worklog, []));
-  const [activityTypes, setActivityTypes] = useState(() => loadArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES));
+  const [hydrated, setHydrated] = useState(false);
+  // valores iniciais são placeholders — a splash cobre até hidratar do IndexedDB
+  const [cabs, setCabs] = useState(SEED_CABINETS);
+  const [projects, setProjects] = useState(SEED_PROJECTS);
+  const [prefs, setPrefs] = useState(DEFAULT_PREFS);
+  const [tcPresets, setTcPresets] = useState([]);
+  const [worklog, setWorklog] = useState([]);
+  const [activityTypes, setActivityTypes] = useState(SEED_ACTIVITY_TYPES);
   const [lastBackupAt, setLastBackupAt] = useState(() => getLastBackupAt());
 
-  useEffect(() => save(KEYS.cabs, cabs), [cabs]);
-  useEffect(() => save(KEYS.projects, projects), [projects]);
-  useEffect(() => save(KEYS.prefs, prefs), [prefs]);
-  useEffect(() => save(KEYS.tcPresets, tcPresets), [tcPresets]);
-  useEffect(() => save(KEYS.worklog, worklog), [worklog]);
-  useEffect(() => save(KEYS.activityTypes, activityTypes), [activityTypes]);
+  // hidratação: IndexedDB é a fonte primária. Na 1ª abertura (IndexedDB vazio),
+  // migra o que existir no localStorage. Se algo falhar, cai pro localStorage —
+  // o app nunca fica preso na splash.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [c, p, pr, tc, wl, at] = await Promise.all([
+          hydrateArray(KEYS.cabs, SEED_CABINETS),
+          hydrateArray(KEYS.projects, SEED_PROJECTS),
+          hydrateObject(KEYS.prefs, DEFAULT_PREFS),
+          hydrateArray(KEYS.tcPresets, []),
+          hydrateArray(KEYS.worklog, []),
+          hydrateArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES),
+        ]);
+        if (!alive) return;
+        setCabs(c);
+        setProjects(p.map((x) => ({ ...x, status: recomputeStatus(x, isoDate()) })));
+        setPrefs(pr);
+        setTcPresets(tc);
+        setWorklog(wl);
+        setActivityTypes(at);
+      } catch {
+        if (!alive) return;
+        setCabs(loadArray(KEYS.cabs, SEED_CABINETS));
+        setProjects(loadArray(KEYS.projects, SEED_PROJECTS).map((x) => ({ ...x, status: recomputeStatus(x, isoDate()) })));
+        setPrefs(loadObject(KEYS.prefs, DEFAULT_PREFS));
+        setTcPresets(loadArray(KEYS.tcPresets, []));
+        setWorklog(loadArray(KEYS.worklog, []));
+        setActivityTypes(loadArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES));
+      } finally {
+        if (alive) setHydrated(true);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  // dual-write (IndexedDB + localStorage), só depois de hidratar — evita gravar
+  // o placeholder inicial por cima do dado real.
+  useEffect(() => { if (hydrated) persist(KEYS.cabs, cabs); }, [cabs, hydrated]);
+  useEffect(() => { if (hydrated) persist(KEYS.projects, projects); }, [projects, hydrated]);
+  useEffect(() => { if (hydrated) persist(KEYS.prefs, prefs); }, [prefs, hydrated]);
+  useEffect(() => { if (hydrated) persist(KEYS.tcPresets, tcPresets); }, [tcPresets, hydrated]);
+  useEffect(() => { if (hydrated) persist(KEYS.worklog, worklog); }, [worklog, hydrated]);
+  useEffect(() => { if (hydrated) persist(KEYS.activityTypes, activityTypes); }, [activityTypes, hydrated]);
 
   // backup completo (baixa .json + registra a data). lastBackupAt é reativo, então
   // o lembrete de backup no <App> some sozinho — seja pelo banner ou pelo Settings.
@@ -166,7 +231,16 @@ export function AppProvider({ children }) {
     lastBackupAt, exportBackup,
     storageOk: STORAGE_WRITABLE,
   };
+  if (!hydrated) return <Splash />;
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+function Splash() {
+  return (
+    <div style={{ position: "fixed", inset: 0, display: "grid", placeItems: "center", background: T.bg, color: T.mut, fontSize: 13, letterSpacing: "0.02em" }}>
+      Carregando…
+    </div>
+  );
 }
 
 export function useLedLabContext() {
