@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import logo from "./assets/logo.png";
 import { NAV, SECTIONS, LABELS, VERSION } from "./nav.js";
 import { useToast } from "./store/UIContext.jsx";
+import { useAuth } from "./store/AuthContext.jsx";
 import { T, FONT } from "./ui/tokens.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useLedLabContext } from "./store/AppContext.jsx";
@@ -40,11 +41,13 @@ export default function App() {
   const Page = PAGES[page] || Dashboard;
   const isMobile = useIsMobile();
   const { storageOk, projects, worklog, lastBackupAt, exportBackup } = useLedLabContext();
+  const { user } = useAuth();
   const toast = useToast();
   const [backupNagOff, setBackupNagOff] = useState(false);
   const daysNoBackup = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 86400000 : Infinity;
   const hasUserData = (projects?.length || 0) > 0 || (worklog?.length || 0) > 0;
-  const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff;
+  // não incomoda com backup local se está logado — a nuvem já é o backup
+  const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff && !user;
   const doBackup = () => { exportBackup(); toast("Backup exportado"); };
 
   useEffect(() => {

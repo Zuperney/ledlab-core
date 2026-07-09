@@ -262,9 +262,15 @@ function IoRow({ title, desc, onExport, onImport, first }) {
 function StorageStatus() {
   const [persisted, setPersisted] = useState(null);
   const [usage, setUsage] = useState(null);
+  const toast = useToast();
   const refresh = () => { isPersisted().then(setPersisted); storageUsage().then(setUsage); };
   useEffect(() => { refresh(); }, []);
-  const proteger = async () => { await requestPersist(); refresh(); };
+  const proteger = async () => {
+    const ok = await requestPersist();
+    refresh();
+    if (ok) toast("Armazenamento protegido");
+    else toast("O navegador não concedeu agora — instale o app na tela inicial (menu do navegador → Instalar) que ele protege sozinho.", "info");
+  };
   const ok = persisted === true;
   const mb = usage != null ? (usage / 1048576).toFixed(usage < 1048576 ? 2 : 1) : null;
   return (
