@@ -177,7 +177,7 @@ export default function ProjectRelatorio({ project }) {
               const ports = cablePorts(t, "ac", numbering);
               return (
                 <div key={t.id} style={telaBlock}>
-                  <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "cabo" : "cabos"} · {acBudget} gab/cabo · {ampCab.toFixed(2)} A/gab · conector {connRating} A</div>
+                  <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "cabo" : "cabos"} · máx {acBudget} gab/cabo · {ampCab.toFixed(2)} A/gab · conector {connRating} A</div>
                   <CableMap tela={t} mode="ac" numbering={numbering} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); return (

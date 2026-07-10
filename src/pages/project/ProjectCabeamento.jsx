@@ -15,7 +15,7 @@ import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
-import { range, key, parseKey, bboxArea, chunkArr, mkBlock, buildAuto, signalRoute, cablePorts, cableMeta } from "../../services/cabling.js";
+import { range, key, parseKey, bboxArea, mkBlock, buildAuto, acRouteFromSignal, cablePorts, cableMeta } from "../../services/cabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { FLAGS } from "../../config/featureFlags.js";
 import Placeholder from "../../components/Placeholder.jsx";
@@ -114,7 +114,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
     setCables(next);
   };
   const importFrom = (strat) => {
-    const src = strat === "sinal" ? signalRoute(tela, numbering).flatMap((p) => chunkArr(p, acBudget)) : buildAuto(cols, rows, strat, budget, routing, numbering);
+    const src = strat === "sinal" ? acRouteFromSignal(tela, numbering) : buildAuto(cols, rows, strat, budget, routing, numbering);
     setCables(src.map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(null);
   };
   const novoCabo = () => { setActive(cables.length); setCables([...cables, []]); };
@@ -182,7 +182,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
           <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
             {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? "porta (área quadrada)" : "cabo"}
             {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
-            {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal"}
+            {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal · carga balanceada entre cabos"}
             {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
           </div>
         </div>

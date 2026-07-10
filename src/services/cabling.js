@@ -12,7 +12,25 @@ export const range = (n) => [...Array(Math.max(0, n)).keys()];
 export const key = (c, r) => `${r},${c}`;
 export const parseKey = (k) => { const [r, c] = k.split(",").map(Number); return { c, r }; };
 export const bboxArea = (p) => { let a = 1e9, b = -1, c = 1e9, d = -1; for (const x of p) { a = Math.min(a, x.c); b = Math.max(b, x.c); c = Math.min(c, x.r); d = Math.max(d, x.r); } return p.length ? (b - a + 1) * (d - c + 1) : 0; };
-export const chunkArr = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
+// divide arr em N segmentos CONTÍGUOS o mais iguais possível, com N = mínimo de
+// cabos pra respeitar o budget (ceil). Mantém a ordem (a rota do sinal), mas
+// equilibra a carga entre os cabos — "balanceamento de fase": em vez de 22+3
+// (guloso), faz 13+12. Nunca passa do budget nem usa mais cabos que o guloso.
+export const balancedChunks = (arr, budget) => {
+  const L = arr.length;
+  if (L === 0) return [];
+  const n = Math.max(1, Math.ceil(L / Math.max(1, budget)));
+  const base = Math.floor(L / n);
+  let extra = L - base * n; // os primeiros `extra` segmentos levam +1
+  const out = [];
+  for (let i = 0, k = 0; k < n; k++) {
+    const size = base + (extra > 0 ? 1 : 0);
+    if (extra > 0) extra--;
+    out.push(arr.slice(i, i + size));
+    i += size;
+  }
+  return out;
+};
 
 // ordem de numeração dos cabos (config global). scheme = "eixo-dir1-dir2".
 function orderPorts(ports, scheme) {
@@ -109,6 +127,15 @@ export function signalRoute(tela, numbering) {
     : buildAuto(cols, rows, s.strategy || "linha", sinalBudget, s.routing || "updown", numbering);
 }
 
+// AC "atrelado ao sinal": segue a rota de cada cabo de sinal, mas parte em
+// segmentos de AC BALANCEADOS (mesmo nº de cabos do guloso, porém equilibrados
+// — evita um cabo cheio + uma sobra minúscula). Fonte única p/ a aba Cabeamento,
+// o Test Card, o Relatório e o "importar do sinal" do modo livre.
+export function acRouteFromSignal(tela, numbering) {
+  const { acBudget } = cableMeta(tela);
+  return signalRoute(tela, numbering).flatMap((p) => balancedChunks(p, acBudget));
+}
+
 // portas/cabos de uma tela para um modo, a partir da config persistida em tela.cabling
 export function cablePorts(tela, mode, numbering = "row-tb-lr") {
   const { cols, rows, acBudget, sinalBudget } = cableMeta(tela);
@@ -117,6 +144,6 @@ export function cablePorts(tela, mode, numbering = "row-tb-lr") {
   const routing = cfg.routing || "updown";
   const budget = mode === "sinal" ? sinalBudget : acBudget;
   if (strategy === "livre") return (cfg.cables || []).map((ks) => ks.map(parseKey));
-  if (mode === "ac" && strategy === "sinal") return signalRoute(tela, numbering).flatMap((p) => chunkArr(p, acBudget));
+  if (mode === "ac" && strategy === "sinal") return acRouteFromSignal(tela, numbering);
   return buildAuto(cols, rows, strategy, budget, routing, numbering);
 }
