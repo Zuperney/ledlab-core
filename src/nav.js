@@ -19,6 +19,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.13.1";
+export const VERSION = "v0.13.2";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "AC atrelado ao sinal agora balanceia a carga entre os cabos (ex.: 13+12 em vez de 22+3).";
+export const WHATS_NEW = "Ratings de conectores AC ajustados ao padrão IEC (True1 TOP e SD20 → 16 A).";

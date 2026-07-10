@@ -10,7 +10,7 @@ export const CONN_AMP = {
   "PowerCON Azul/Branco": 20,
   "PowerCON TRUE1": 16,
   "Neutrik True1": 16,
-  "Neutrik True1 TOP": 20,
-  "HangTon SD20": 20,
+  "Neutrik True1 TOP": 16, // 16 A sob EN 60320-1/VDE (regime IEC do Brasil); os 20 A são só rating UL/EUA
+  "HangTon SD20": 16,      // sem datasheet/certificação localizável — default conservador (= "desconhecido")
   PowerCON: 20,
 };
