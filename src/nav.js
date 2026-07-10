@@ -19,4 +19,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.12.0";
+export const VERSION = "v0.13.0";
+// resumo curto do que mudou (aparece no aviso pós-atualização)
+export const WHATS_NEW = "Correções no Aspect Ratio e no cabeamento (mobile).";

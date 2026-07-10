@@ -1,9 +1,10 @@
 // App.jsx — shell: sidebar, topbar e navegação principal orientada por rota.
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
+import { ChevronLeft, ChevronRight, TriangleAlert, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
 import logo from "./assets/logo.png";
-import { NAV, SECTIONS, LABELS, VERSION } from "./nav.js";
+import { NAV, SECTIONS, LABELS, VERSION, WHATS_NEW } from "./nav.js";
+import { onUpdateAvailable, applyUpdate } from "./services/swUpdate.js";
 import { useToast } from "./store/UIContext.jsx";
 import { useAuth } from "./store/AuthContext.jsx";
 import { T, FONT } from "./ui/tokens.js";
@@ -49,6 +50,19 @@ export default function App() {
   // não incomoda com backup local se está logado — a nuvem já é o backup
   const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff && !user;
   const doBackup = () => { exportBackup(); toast("Backup exportado"); };
+  const [updateReady, setUpdateReady] = useState(false);
+
+  // avisa quando o service worker novo está pronto (banner "nova versão")
+  useEffect(() => onUpdateAvailable(setUpdateReady), []);
+
+  // logo após atualizar, mostra um toast com o que mudou (compara com a versão já vista)
+  useEffect(() => {
+    const KEY = "ledlab.lastSeenVersion";
+    let last = null;
+    try { last = localStorage.getItem(KEY); } catch { /* ok */ }
+    if (last && last !== VERSION && WHATS_NEW) toast(`Atualizado para ${VERSION} — ${WHATS_NEW}`);
+    if (last !== VERSION) { try { localStorage.setItem(KEY, VERSION); } catch { /* ok */ } }
+  }, [toast]);
 
   useEffect(() => {
     if (location === "/") {
@@ -86,6 +100,7 @@ export default function App() {
           <span style={{ flexShrink: 0, background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
         </header>
         <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 12, paddingBottom: "calc(66px + env(safe-area-inset-bottom))" }}>
+          {updateReady && <UpdateBanner onApply={applyUpdate} />}
           {!storageOk && <StorageBanner />}
           {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={doBackup} onDismiss={() => setBackupNagOff(true)} />}
           <ErrorBoundary>
@@ -147,6 +162,7 @@ export default function App() {
           </div>
         </header>
         <main style={{ flex: 1, overflowY: "auto", padding: 28 }}>
+          {updateReady && <UpdateBanner onApply={applyUpdate} />}
           {!storageOk && <StorageBanner />}
           {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={doBackup} onDismiss={() => setBackupNagOff(true)} />}
           <ErrorBoundary>
@@ -154,6 +170,17 @@ export default function App() {
           </ErrorBoundary>
         </main>
       </div>
+    </div>
+  );
+}
+
+// aviso "nova versão disponível" — o SW novo está esperando; clicar aplica e recarrega
+function UpdateBanner({ onApply }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.sel, border: `1px solid ${T.acc}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: T.txt }}>
+      <RefreshCw size={16} color={T.acM} style={{ flexShrink: 0 }} />
+      <span style={{ flex: 1, minWidth: 0 }}><b>Nova versão disponível.</b> Toque em Atualizar para aplicar — seus dados são mantidos.</span>
+      <button onClick={onApply} style={{ flexShrink: 0, background: T.acc, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Atualizar</button>
     </div>
   );
 }

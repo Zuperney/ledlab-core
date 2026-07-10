@@ -9,6 +9,7 @@ import { SyncProvider } from "./store/SyncContext.jsx";
 import { UIProvider } from "./store/UIContext.jsx";
 import App from "./App.jsx";
 import { requestPersist } from "./services/storage.js";
+import { registerSW } from "./services/swUpdate.js";
 import "react-datepicker/dist/react-datepicker.css";
 import "./index.css";
 
@@ -29,12 +30,9 @@ createRoot(document.getElementById("root")).render(
 );
 
 // PWA: registra o service worker só no build de produção (evita cache no dev).
-// "sw.js" é relativo ao documento → funciona na raiz e em subcaminho (GitHub Pages).
-if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  });
-}
+// O SW novo espera; registerSW avisa o app quando há atualização pronta (App.jsx
+// mostra o banner "nova versão" e o usuário decide quando trocar).
+if (import.meta.env.PROD) registerSW();
 
 // Auto-recuperação de "chunk órfão": se um deploy novo purgou um chunk lazy
 // (ex.: o date-picker) enquanto o app estava aberto, o import() falha com 404

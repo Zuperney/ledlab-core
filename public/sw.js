@@ -43,7 +43,8 @@ self.addEventListener("install", (event) => {
     const cache = await caches.open(PRECACHE);
     const precacheUrls = await getPrecacheUrls();
     await cache.addAll(precacheUrls);
-    await self.skipWaiting();
+    // NÃO faz skipWaiting: o SW novo ESPERA; o app avisa "nova versão" e o usuário
+    // decide quando atualizar (clique → postMessage SKIP_WAITING abaixo).
   })());
 });
 
@@ -58,6 +59,11 @@ self.addEventListener("activate", (event) => {
     );
     await self.clients.claim();
   })());
+});
+
+// o app manda isso quando o usuário clica "Atualizar"
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 async function networkFirstNavigate(request) {
