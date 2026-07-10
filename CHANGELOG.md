@@ -2,6 +2,19 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.15.0] — 2026-07-10
+
+### Adicionado
+- **Margem de segurança do cabo AC** (Configurações › Elétrica): reduz os gabinetes por cabo pensando em carga contínua — a regra dos 80% de touring. Padrão 100% (sem mudança); opções 90% e 80%.
+- **Avisos de segurança elétrica**: nota no modo AC do Cabeamento (powerCON sob carga, bitola do cabo, cálculo em 220 V) e novo artigo "Segurança elétrica (AC & campo)" na Base de Conhecimento.
+
+### Corrigido
+- Base de Conhecimento: True1 TOP corrigido para 16 A (padrão IEC, consistente com a v0.13.2); a margem de 25% do disjuntor documentada como regra NEC (a NBR pede In ≤ Iz do cabo).
+- `calcScreen`: fallback defensivo quando a tensão vier inválida/corrompida (antes quebrava).
+
+### Interno
+- Rede de testes estendida ao motor elétrico, cabeamento e cálculo de projeto (66 testes) + CI a cada push (GitHub Actions); o deploy só publica se os testes passarem.
+
 ## [0.14.0] — 2026-07-10
 
 ### Adicionado
