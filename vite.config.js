@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
@@ -17,7 +17,17 @@ function stampServiceWorker() {
     closeBundle() {
       const swPath = resolve(process.cwd(), 'dist/sw.js')
       try {
-        writeFileSync(swPath, readFileSync(swPath, 'utf-8').replace('__BUILD_ID__', BUILD_ID))
+        // lista os assets do build (main + chunks lazy) p/ precache offline completo
+        let assets = []
+        try {
+          assets = readdirSync(resolve(process.cwd(), 'dist/assets'))
+            .filter((f) => /\.(js|css)$/.test(f))
+            .map((f) => `./assets/${f}`)
+        } catch { /* sem pasta assets — ignora */ }
+        const sw = readFileSync(swPath, 'utf-8')
+          .replace('__BUILD_ID__', BUILD_ID)
+          .replace('const BUILD_ASSETS = [];', `const BUILD_ASSETS = ${JSON.stringify(assets)};`)
+        writeFileSync(swPath, sw)
       } catch {
         // dist/sw.js ausente — ignora
       }

@@ -6,7 +6,7 @@ import { useRef, useEffect, useCallback } from "react";
 export function useDebouncedCallback(fn, delay = 200) {
   const timer = useRef(null);
   const fnRef = useRef(fn);
-  fnRef.current = fn;
+  useEffect(() => { fnRef.current = fn; }); // mantém a fn mais recente sem escrever a ref durante o render
   useEffect(() => () => clearTimeout(timer.current), []);
   return useCallback((...args) => {
     clearTimeout(timer.current);

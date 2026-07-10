@@ -7,7 +7,7 @@ export function useIsMobile(bp = BREAKPOINTS.mobile) {
   const get = () => (typeof window !== "undefined" ? window.innerWidth <= bp : false);
   const [mobile, setMobile] = useState(get);
   useEffect(() => {
-    const onResize = () => setMobile(get());
+    const onResize = () => setMobile(window.innerWidth <= bp); // inline: evita depender de get() (fecha sobre bp)
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [bp]);

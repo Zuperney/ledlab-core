@@ -12,13 +12,18 @@ const CACHE_VERSION = "__BUILD_ID__";
 const PRECACHE = `${CACHE_PREFIX}-precache-${CACHE_VERSION}`;
 const RUNTIME = `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;
 const APP_SHELL = ["./", "./index.html"];
+// Assets do build (main + chunks lazy: date-picker, supabase). Injetado pelo
+// vite.config (stamp-sw) no build; fica [] em dev (o SW não roda em dev).
+// Precachear tudo = offline TOTAL após a 1ª carga, não só o app shell — assim
+// abrir uma tela com date-picker offline (sem ter visitado antes) não quebra.
+const BUILD_ASSETS = [];
 
 function toAbsoluteUrl(path) {
   return new URL(path, self.registration.scope).toString();
 }
 
 async function getPrecacheUrls() {
-  const urls = new Set(APP_SHELL.map(toAbsoluteUrl));
+  const urls = new Set([...APP_SHELL, ...BUILD_ASSETS].map(toAbsoluteUrl));
 
   try {
     const indexResponse = await fetch(toAbsoluteUrl("./index.html"), { cache: "no-cache" });
@@ -42,7 +47,9 @@ self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(PRECACHE);
     const precacheUrls = await getPrecacheUrls();
-    await cache.addAll(precacheUrls);
+    // add individual + allSettled: um asset que falhe (404/rede) não derruba o
+    // precache inteiro — cache.addAll é atômico e quebraria o offline todo.
+    await Promise.allSettled(precacheUrls.map((u) => cache.add(u)));
     // NÃO faz skipWaiting: o SW novo ESPERA; o app avisa "nova versão" e o usuário
     // decide quando atualizar (clique → postMessage SKIP_WAITING abaixo).
   })());
