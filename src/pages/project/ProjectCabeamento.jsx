@@ -9,7 +9,7 @@
 // ativo, clica p/ atribuir/reatribuir gabinetes e cria novo cabo quando quiser.
 // Pode IMPORTAR o cabeamento automático (Linha/Coluna/Área) e editar só o necessário.
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight, ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { card } from "../../ui/styles.js";
@@ -186,6 +186,13 @@ export default function ProjectCabeamento({ project, patchTela }) {
             {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
           </div>
         </div>
+
+        {mode === "ac" && (
+          <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.bd}`, color: T.dim, fontSize: 11.5, lineHeight: 1.5, display: "flex", gap: 7, alignItems: "flex-start" }}>
+            <TriangleAlert size={13} color={T.amb} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span><b style={{ color: T.mut }}>Segurança:</b> powerCON azul não pode ser (des)conectado sob carga — desligue o disjuntor antes. Cabo 1,5 mm² limita em 16 A e o cálculo assume 220 V. Mais em Base de Conhecimento › Segurança elétrica.</span>
+          </div>
+        )}
 
         {/* CANVAS */}
         <div ref={stageRef} onWheel={onWheel} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
