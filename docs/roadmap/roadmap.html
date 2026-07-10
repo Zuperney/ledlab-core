@@ -238,6 +238,19 @@
   </div>
 </section>
 
+<!-- JÁ ENTREGUE -->
+<section class="band wrap reveal">
+  <div class="band-h"><h2>Já entregue</h2><span class="eyebrow" style="color:var(--good)">v0.9 → v0.12 · no ar</span></div>
+  <p class="band-sub">A <b>rota de durabilidade</b> saiu do papel — do "dado preso num navegador" ao "dado que te segue em qualquer aparelho".</p>
+  <div style="display:grid;gap:10px;margin-top:14px">
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">IndexedDB como fonte de verdade</b> — localStorage vira espelho</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.11.0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">Armazenamento persistente + backup + lembrete</b></span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.10.0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">PWA à prova</b> — o service worker se auto-atualiza + fix de "chunk órfão"</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.9.1</span></div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.08)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">Sincronização na nuvem</b> — login por código (OTP) + motor de sync; opt-in, offline-first</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.12.0</span></div>
+  </div>
+  <p class="band-sub" style="margin-top:16px">O <b>backend (Supabase + RLS) agora existe</b> — o que também destrava a <i>agenda escalada</i> no futuro (mesma infra).</p>
+</section>
+
 <!-- PHASE 01 -->
 <section class="phase wrap reveal">
   <div class="phase-head">
@@ -250,16 +263,14 @@
   </div>
   <div class="cards">
     <div class="card">
-      <h3>IndexedDB como fonte de verdade</h3>
-      <p class="what">Migrar de localStorage para IndexedDB (via Dexie): mais cota, dados estruturados, consultas — e a base necessária para o sync futuro.</p>
-      <p class="why"><b>Por quê:</b> localStorage trava em ~5&nbsp;MB e é a maior fonte de risco de perda de dados hoje.</p>
+      <h3>✅ IndexedDB como fonte de verdade</h3>
+      <p class="what"><b style="color:var(--good)">Entregue (v0.11.0).</b> localStorage → IndexedDB (wrapper próprio, sem dependência), com o localStorage de espelho. Mais cota, base pra fotos e sync.</p>
       <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">G</span>
-        <span class="ref">ref. arquitetura offline-first / Dexie</span></div>
+        <span class="ref">ref. arquitetura offline-first</span></div>
     </div>
     <div class="card">
-      <h3>Backup automático + desfazer</h3>
-      <p class="what">Snapshots versionados locais, export/import com validação de schema (já iniciado), <b>armazenamento persistente</b> (pede pro navegador não despejar), lembrete de backup e um "desfazer" global.</p>
-      <p class="why"><b>Por quê:</b> um import errado ou uma limpeza apaga tudo; e o navegador pode despejar dado de PWA parado.</p>
+      <h3>✅ Backup + persistência</h3>
+      <p class="what"><b style="color:var(--good)">Entregue (v0.10.0 · parcial).</b> export/import com validação, armazenamento persistente (<code>storage.persist()</code>) e lembrete de backup. Falta o "desfazer" global.</p>
       <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">M</span></div>
     </div>
     <div class="card">
@@ -422,11 +433,10 @@
         <span class="ref">ref. previz Vectorworks / disguise</span></div>
     </div>
     <div class="card">
-      <h3>Sync em nuvem opcional</h3>
-      <p class="what">Backup e sincronização offline-first (last-write-wins + resolução manual de conflito) entre celular e desktop.</p>
-      <p class="why"><b>Por quê:</b> é o passo natural depois do IndexedDB — hoje os dados vivem num aparelho só.</p>
+      <h3>✅ Sync em nuvem opcional</h3>
+      <p class="what"><b style="color:var(--good)">Entregue (v0.12.0).</b> login por código (OTP, Supabase + RLS) + sync offline-first last-write-wins por fatia entre aparelhos. Opt-in, à prova de loop.</p>
       <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">G</span>
-        <span class="ref">ref. sync PWA (LWW + 409 conflito)</span></div>
+        <span class="ref">ref. sync PWA (LWW)</span></div>
     </div>
     <div class="card">
       <h3>Agenda universal (compartilhada)</h3>

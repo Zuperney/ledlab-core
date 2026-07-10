@@ -35,11 +35,26 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 - **QA feito** — 5 lotes: fuso corrigido, backup seguro, código limpo, lint + testes.
 
 ### ⚠️ A resolver — antes de escalar
-- **Tudo em `localStorage`** — sem backup automático, sem multi-dispositivo, sujeito a limite de cota e a modo privado.
+- ✅ **Persistência** — *resolvido:* saiu do `localStorage` puro para IndexedDB + backup + **sync na nuvem** (v0.10–v0.12). Ver "Já entregue" abaixo.
 - **Testes só no motor de cachês** — cálculos elétricos e de sinal sem rede de segurança.
 - **Portas de sinal por "área"** — usa caixa delimitadora, não pixels-por-porta reais do processador.
 - **Sem rigging, sem distância de visão, sem orçamento, sem preview visual** do painel.
 - **Desktop (Electron) pouco exercitado** — empacotamento existe, mas sem auto-update/assinatura.
+
+---
+
+## ✅ Já entregue (v0.9 → v0.12)
+
+A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "dado que te segue em qualquer aparelho":
+
+| Entregue | Fase | Versão |
+|---|:---:|:---:|
+| **IndexedDB como fonte de verdade** (localStorage vira espelho) | 1 | v0.11.0 |
+| **Armazenamento persistente + backup + lembrete** | 1 | v0.10.0 |
+| **PWA à prova: service worker se auto-atualiza + fix de "chunk órfão"** | 1 *(parcial)* | v0.9.1 |
+| **Sincronização na nuvem** — login por código (OTP) + motor de sync last-write-wins; opt-in, offline-first | 4 | v0.12.0 |
+
+O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
 ---
 
@@ -48,8 +63,8 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
-| **IndexedDB como fonte de verdade** | 🟡 | G | Migrar de `localStorage` → IndexedDB (Dexie): mais cota, dados estruturados, base para sync. *localStorage trava em ~5 MB e é o maior risco de perda de dados hoje.* | offline-first / Dexie |
-| **Backup automático + desfazer** | 🟡 | M | Snapshots versionados locais, export/import com validação de schema, **armazenamento persistente** (`navigator.storage.persist()`, pede pro navegador não despejar), lembrete periódico de backup e "desfazer" global. *Import errado apaga tudo; e o navegador pode despejar dado de PWA parado.* | — |
+| ✅ **IndexedDB como fonte de verdade** *(v0.11.0)* | 🟡 | G | **Feito:** `localStorage` → IndexedDB (wrapper próprio, **sem dependência**), com o localStorage de espelho. Mais cota, base pra fotos e sync. | offline-first |
+| ✅ **Backup + persistência** *(v0.10.0 · parcial)* | 🟡 | M | **Feito:** export/import com validação, **armazenamento persistente** (`storage.persist()`) e lembrete de backup. **Falta:** "desfazer" global. | — |
 | **Cinturão de testes + CI** | 🟡 | M | Estender o vitest ao motor elétrico, cabeamento e projectCalc; rodar a cada push. *Só o worklog é testado — regressão silenciosa custa caro em campo.* | — |
 | **Performance & PWA à prova** | 🟣 | P | Estender o code-splitting, auditar Lighthouse, blindar instalação/cache offline. *O app é usado em obra, muitas vezes sem internet.* | — |
 | **Aviso de nova versão (opt-in)** | 🟣 | P | Toast *"nova versão disponível — Atualizar"* em vez de trocar sozinho: o usuário decide quando atualizar e vê que atualizou. Inverte o `skipWaiting` do service worker. *Hoje troca em silêncio; a pessoa quer controle e confirmação visual.* | — |
@@ -92,7 +107,7 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
 | **Preview do painel (2D → 3D)** | 🟣 | G | Render do painel em escala real (gabinetes, conteúdo de exemplo, moldura do palco) em vista frontal e isométrica/3D. *A previsualização acelera a aprovação e reduz erro em obra.* | previz Vectorworks/disguise |
-| **Sync em nuvem opcional** | 🟣 | G | Backup e sincronização offline-first (last-write-wins + resolução manual de conflito) entre celular e desktop. *Passo natural depois do IndexedDB.* | sync PWA (LWW + 409) |
+| ✅ **Sync em nuvem opcional** *(v0.12.0)* | 🟣 | G | **Feito:** login por código (OTP, Supabase + RLS) + sync offline-first last-write-wins por fatia entre aparelhos. Opt-in, à prova de loop. | sync PWA (LWW) |
 | **Agenda universal (compartilhada)** | ⚪ | G | Colega vê a agenda de eventos do outro — coordenar cobertura, repasse de trampo, evitar choque de data. Estende o Sync: é sync + compartilhamento + papéis de acesso. *A agenda local (só você vê) já existe hoje.* | demanda de campo |
 | **Compartilhar por link** | ⚪ | M | Projeto/proposta num link read-only, pro cliente ver sem instalar nada. | — |
 | **Simulação de conteúdo** | ⚪ | M | Testar aspect/arte no painel e exportar imagem de apresentação. *Mostra na hora se a arte "cabe" no pitch e formato reais.* | — |
@@ -133,4 +148,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-06._
+_Última atualização: 2026-07-09._
