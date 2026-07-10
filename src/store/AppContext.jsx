@@ -25,6 +25,7 @@ export const DEFAULT_PREFS = {
   brilho: 0.7,
   conteudo: 0.33,
   dashUpcoming: 5,
+  dashOcultarValor: false, // esconde o total de cachês (R$) na tela inicial (privacidade)
   cabCols: { pitch: true, resolucao: true, dimensoes: false, pwrMax: true, pwrMed: false, peso: true, ip: false },
   cablingAreaCount: true,
   cableNumbering: "row-tb-lr", // ordem de numeração dos cabos (ver ProjectCabeamento)

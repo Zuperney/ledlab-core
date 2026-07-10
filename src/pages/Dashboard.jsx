@@ -1,5 +1,5 @@
 // pages/Dashboard.jsx — visão geral: evento atual, contadores e próximos.
-import { CalendarDays, MapPin, Layers, ChevronRight, Receipt } from "lucide-react";
+import { CalendarDays, MapPin, Layers, ChevronRight, Receipt, Eye, EyeOff } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
@@ -25,7 +25,7 @@ function MetaLine({ p }) {
 }
 
 export default function Dashboard({ nav }) {
-  const { projects, prefs } = useLedLabContext();
+  const { projects, prefs, setPrefs } = useLedLabContext();
   const { worklog, porDia } = useWorklog();
   const isMobile = useIsMobile();
   const active = projects.filter((p) => p.status === "active");
@@ -52,6 +52,8 @@ export default function Dashboard({ nav }) {
   const fixoVal = Number(prefs.fixo?.valor) || 0;
   const diariasTotal = diariasVar + fixoVal;
   const mostraDiarias = mesEntries.length > 0 || fixoVal > 0;
+  const ocultar = !!prefs.dashOcultarValor; // esconde o R$ dos cachês (privacidade)
+  const toggleOcultar = () => setPrefs({ ...prefs, dashOcultarValor: !ocultar });
 
   return (
     <div>
@@ -73,18 +75,24 @@ export default function Dashboard({ nav }) {
       </div>
 
       {mostraDiarias && (
-        <button onClick={() => nav?.setPage?.("financeiro")}
-          style={{ ...card({ marginBottom: 16, cursor: "pointer", background: `linear-gradient(100deg, ${T.strip}, ${T.hero} 60%)`, borderColor: T.bdA }), width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, fontFamily: "inherit" }}>
-          <div>
-            <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 6 }}><Receipt size={13} /> Cachês · {MONTHS_LONG[nowD.getMonth()]}</div>
-            <div style={{ fontSize: 30, fontWeight: 800, color: T.grn, margin: "6px 0 2px" }}>{brl(diariasTotal)}</div>
-            <div style={{ color: T.mut, fontSize: 13 }}>
-              {diariasDias} {diariasDias === 1 ? "dia" : "dias"} · {diariasCaches} cachê{diariasCaches === 1 ? "" : "s"}
-              {fixoVal > 0 ? ` · inclui fixo ${brl(fixoVal)}` : ""}
+        <div style={{ position: "relative", marginBottom: 16 }}>
+          <button onClick={() => nav?.setPage?.("financeiro")}
+            style={{ ...card({ cursor: "pointer", background: `linear-gradient(100deg, ${T.strip}, ${T.hero} 60%)`, borderColor: T.bdA }), width: "100%", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, fontFamily: "inherit" }}>
+            <div>
+              <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 6 }}><Receipt size={13} /> Cachês · {MONTHS_LONG[nowD.getMonth()]}</div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: T.grn, margin: "6px 0 2px", letterSpacing: ocultar ? "0.08em" : "normal" }}>{ocultar ? "R$ ••••" : brl(diariasTotal)}</div>
+              <div style={{ color: T.mut, fontSize: 13 }}>
+                {diariasDias} {diariasDias === 1 ? "dia" : "dias"} · {diariasCaches} cachê{diariasCaches === 1 ? "" : "s"}
+                {fixoVal > 0 && !ocultar ? ` · inclui fixo ${brl(fixoVal)}` : ""}
+              </div>
             </div>
-          </div>
-          <ChevronRight size={20} color={T.mut} />
-        </button>
+            <ChevronRight size={20} color={T.mut} style={{ flexShrink: 0 }} />
+          </button>
+          <button onClick={toggleOcultar} aria-label={ocultar ? "Mostrar valor" : "Ocultar valor"} title={ocultar ? "Mostrar valor" : "Ocultar valor"}
+            style={{ position: "absolute", top: 10, right: 12, width: 30, height: 30, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.mut, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            {ocultar ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
       )}
 
       <div style={card()}>

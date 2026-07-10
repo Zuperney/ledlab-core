@@ -2,7 +2,7 @@
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
 import { useRef, useState, useEffect } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { useAuth } from "../store/AuthContext.jsx";
 import { useSync } from "../store/SyncContext.jsx";
@@ -181,6 +181,11 @@ export default function Settings() {
         <button style={btn("subtle")} onClick={resetPalette}><RotateCcw size={14} /> Restaurar padrão</button>
       </Section>
 
+      <Section icon={LayoutDashboard} title="Dashboard" subtitle="Privacidade e exibição da tela inicial" defaultOpen={open}>
+        <PrefToggle on={!!prefs.dashOcultarValor} onClick={() => setPrefs({ ...prefs, dashOcultarValor: !prefs.dashOcultarValor })}
+          titulo="Ocultar valores em R$" desc="Esconde o total de cachês na tela inicial — útil ao mostrar o app pra outras pessoas. Também dá pra alternar rápido no ícone de olho, no próprio card." />
+      </Section>
+
       <Section icon={Receipt} title="Cachês (Diárias)" subtitle="Cálculo, fixo mensal, recibo e tipos" defaultOpen={open}>
         <DiariasConfig />
       </Section>
@@ -242,6 +247,17 @@ function Section({ icon: Icon, title, subtitle, defaultOpen, children }) {
       </button>
       {open && <div style={{ padding: "12px 16px 16px", borderTop: `1px solid ${T.bd}` }}>{children}</div>}
     </div>
+  );
+}
+
+// interruptor de preferência (liga/desliga) com título e descrição
+function PrefToggle({ on, onClick, titulo, desc }) {
+  return (
+    <button onClick={onClick} role="switch" aria-checked={on}
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%", textAlign: "left", background: T.card2, border: `1px solid ${on ? T.acc : T.bd}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+      <span><span style={{ color: T.txt, fontWeight: 600, fontSize: 14 }}>{titulo}</span><br /><span style={{ color: T.dim, fontSize: 12 }}>{desc}</span></span>
+      <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: on ? T.acM : T.mut }}>{on ? "SIM" : "NÃO"}</span>
+    </button>
   );
 }
 

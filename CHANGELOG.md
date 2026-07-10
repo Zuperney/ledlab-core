@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.14.0] — 2026-07-10
+
+### Adicionado
+- **Ocultar valores em R$ no dashboard.** Nova opção de privacidade: esconde o total de cachês na tela inicial (mostra `R$ ••••`), útil ao apresentar o app para clientes ou colegas. Alterna rápido pelo ícone de olho no próprio card, ou em Configurações › Dashboard. A escolha fica salva.
+
 ## [0.13.2] — 2026-07-10
 
 ### Corrigido
