@@ -70,8 +70,12 @@ function portsColuna(cols, rows, budget, routing) {
   return ports;
 }
 function portsArea(cols, rows, budget, routing) {
-  const bh = Math.max(1, Math.min(rows, Math.floor(Math.sqrt(budget))));
-  const bw = Math.max(1, Math.min(cols, Math.floor(budget / bh)));
+  // bloco ~quadrado de área ≤ budget; MAS se a grade limita uma dimensão (ex.:
+  // painel estreito), a outra estica pra aproveitar o budget — evita sub-dividir
+  // à toa. (bug: 3×6 c/ budget 26 dava 15+3 em vez de um bloco único de 18.)
+  let bw = Math.max(1, Math.min(cols, Math.floor(Math.sqrt(budget))));
+  let bh = Math.max(1, Math.min(rows, Math.floor(budget / bw)));
+  bw = Math.max(1, Math.min(cols, Math.floor(budget / bh)));
   const ports = [];
   for (let by = 0; by < rows; by += bh)
     for (let bx = 0; bx < cols; bx += bw) ports.push(mkBlock(bx, by, Math.min(bw, cols - bx), Math.min(bh, rows - by), routing));
