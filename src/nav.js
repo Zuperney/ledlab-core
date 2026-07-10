@@ -19,6 +19,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.15.1";
+export const VERSION = "v0.15.2";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Gabinetes-exemplo CB5 e ER5.9 corrigidos para a potência real do datasheet.";
+export const WHATS_NEW = "App fica 100% offline após a primeira carga (todos os módulos entram no cache).";

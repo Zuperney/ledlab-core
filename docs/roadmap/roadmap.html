@@ -240,7 +240,7 @@
 
 <!-- JÁ ENTREGUE -->
 <section class="band wrap reveal">
-  <div class="band-h"><h2>Já entregue</h2><span class="eyebrow" style="color:var(--good)">v0.9 → v0.12 · no ar</span></div>
+  <div class="band-h"><h2>Já entregue</h2><span class="eyebrow" style="color:var(--good)">v0.9 → v0.15 · no ar</span></div>
   <p class="band-sub">A <b>rota de durabilidade</b> saiu do papel — do "dado preso num navegador" ao "dado que te segue em qualquer aparelho".</p>
   <div style="display:grid;gap:10px;margin-top:14px">
     <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">IndexedDB como fonte de verdade</b> — localStorage vira espelho</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.11.0</span></div>
@@ -275,21 +275,21 @@
     </div>
     <div class="card">
       <h3>Cinturão de testes + CI</h3>
-      <p class="what">Estender o vitest ao motor elétrico, ao cabeamento e ao projectCalc; rodar a cada push.</p>
-      <p class="why"><b>Por quê:</b> só o worklog é testado — regressão silenciosa num cálculo custa caro em campo.</p>
-      <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">M</span></div>
+      <p class="what"><b style="color:var(--good)">Entregue (v0.15.0).</b> vitest no motor elétrico, cabeamento e projectCalc (66 testes) + CI a cada push; o deploy só publica se os testes passarem.</p>
+      <p class="why"><b>Por quê:</b> só o worklog era testado — regressão silenciosa num cálculo custa caro em campo.</p>
+      <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">✓ M</span></div>
     </div>
     <div class="card">
       <h3>Performance &amp; PWA à prova</h3>
-      <p class="what">Estender o code-splitting (já feito nos pickers), auditar Lighthouse e blindar a instalação/cache offline.</p>
+      <p class="what"><b style="color:var(--good)">Entregue (v0.15.2).</b> code-splitting (picker/supabase lazy) + precache completo = offline total após a 1ª carga. Auditoria Lighthouse formal fica p/ um passe futuro.</p>
       <p class="why"><b>Por quê:</b> o app é usado em obra, muitas vezes sem internet — a instalação precisa ser confiável.</p>
-      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">P</span></div>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">✓ P</span></div>
     </div>
     <div class="card">
       <h3>Aviso de nova versão (opt-in)</h3>
-      <p class="what">Toast <b>"nova versão disponível — Atualizar"</b> em vez de trocar sozinho: o usuário decide quando atualizar e vê que atualizou.</p>
-      <p class="why"><b>Por quê:</b> hoje a atualização acontece em silêncio; a pessoa quer controle e a confirmação visual de que está na versão nova. Inverte o skipWaiting do service worker.</p>
-      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">P</span></div>
+      <p class="what"><b style="color:var(--good)">Entregue (v0.13.0).</b> Banner "nova versão — Atualizar" + toast de novidades; o SW novo espera em vez de trocar sozinho — o usuário decide.</p>
+      <p class="why"><b>Por quê:</b> antes a atualização acontecia em silêncio; a pessoa quer controle e a confirmação visual de que está na versão nova.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">✓ P</span></div>
     </div>
     <div class="card">
       <h3>Desktop pronto (Electron)</h3>

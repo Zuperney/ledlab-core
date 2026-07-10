@@ -36,14 +36,14 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 
 ### ⚠️ A resolver — antes de escalar
 - ✅ **Persistência** — *resolvido:* saiu do `localStorage` puro para IndexedDB + backup + **sync na nuvem** (v0.10–v0.12). Ver "Já entregue" abaixo.
-- **Testes só no motor de cachês** — cálculos elétricos e de sinal sem rede de segurança.
+- ✅ **Testes** — *resolvido:* vitest estendido ao motor elétrico, cabeamento e projectCalc (66 testes) + CI a cada push (v0.15.0).
 - **Portas de sinal por "área"** — usa caixa delimitadora, não pixels-por-porta reais do processador.
 - **Sem rigging, sem distância de visão, sem orçamento, sem preview visual** do painel.
 - **Desktop (Electron) pouco exercitado** — empacotamento existe, mas sem auto-update/assinatura.
 
 ---
 
-## ✅ Já entregue (v0.9 → v0.12)
+## ✅ Já entregue (v0.9 → v0.15)
 
 A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "dado que te segue em qualquer aparelho":
 
@@ -53,6 +53,10 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **Armazenamento persistente + backup + lembrete** | 1 | v0.10.0 |
 | **PWA à prova: service worker se auto-atualiza + fix de "chunk órfão"** | 1 *(parcial)* | v0.9.1 |
 | **Sincronização na nuvem** — login por código (OTP) + motor de sync last-write-wins; opt-in, offline-first | 4 | v0.12.0 |
+| **Aviso de nova versão (opt-in)** + toast de novidades — o SW novo espera em vez de trocar sozinho | 1 | v0.13.0 |
+| **Cinturão de testes + CI** — vitest no motor elétrico/cabeamento/projeto (66 testes) + CI a cada push | 1 | v0.15.0 |
+| **Performance & PWA à prova** — precache completo: offline total após a 1ª carga | 1 | v0.15.2 |
+| **Validação elétrica vs datasheets/normas** — ratings IEC, margem de segurança AC, alertas, dados de gabinete | 1–2 | v0.13–v0.15 |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -65,10 +69,12 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 |---|:---:|:---:|---|---|
 | ✅ **IndexedDB como fonte de verdade** *(v0.11.0)* | 🟡 | G | **Feito:** `localStorage` → IndexedDB (wrapper próprio, **sem dependência**), com o localStorage de espelho. Mais cota, base pra fotos e sync. | offline-first |
 | ✅ **Backup + persistência** *(v0.10.0 · parcial)* | 🟡 | M | **Feito:** export/import com validação, **armazenamento persistente** (`storage.persist()`) e lembrete de backup. **Falta:** "desfazer" global. | — |
-| **Cinturão de testes + CI** | 🟡 | M | Estender o vitest ao motor elétrico, cabeamento e projectCalc; rodar a cada push. *Só o worklog é testado — regressão silenciosa custa caro em campo.* | — |
-| **Performance & PWA à prova** | 🟣 | P | Estender o code-splitting, auditar Lighthouse, blindar instalação/cache offline. *O app é usado em obra, muitas vezes sem internet.* | — |
-| **Aviso de nova versão (opt-in)** | 🟣 | P | Toast *"nova versão disponível — Atualizar"* em vez de trocar sozinho: o usuário decide quando atualizar e vê que atualizou. Inverte o `skipWaiting` do service worker. *Hoje troca em silêncio; a pessoa quer controle e confirmação visual.* | — |
+| ✅ **Cinturão de testes + CI** *(v0.15.0)* | 🟡 | M | **Feito:** vitest no motor elétrico, cabeamento e projectCalc (66 testes); CI a cada push + o deploy só publica se os testes passarem. | — |
+| ✅ **Performance & PWA à prova** *(v0.15.2)* | 🟣 | P | **Feito:** code-splitting (picker/supabase lazy) + **precache completo** = offline total após a 1ª carga (verificado no build de produção). Auditoria Lighthouse formal fica p/ um passe futuro. | — |
+| ✅ **Aviso de nova versão (opt-in)** *(v0.13.0)* | 🟣 | P | **Feito:** banner *"nova versão — Atualizar"* + toast de novidades; o SW novo espera em vez de trocar sozinho (usuário decide). | — |
 | **Desktop pronto (Electron)** | ⚪ | M | Auto-update, ícones/assinatura, empacotamento Windows testado. *Projeto pesado (diagramação, PDF) é feito no computador do estúdio.* | — |
+
+> **Fase 01 essencial concluída** ✅ — durabilidade (IndexedDB + backup + sync), testes + CI, aviso de versão e PWA offline total estão entregues. Só resta o Desktop/Electron (⚪ novidade, sem pressa). A fundação está à prova; o próximo salto de valor é a **Fase 02**.
 
 ---
 
@@ -148,4 +154,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-09._
+_Última atualização: 2026-07-10._

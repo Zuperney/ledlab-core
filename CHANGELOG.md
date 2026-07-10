@@ -2,6 +2,14 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.15.2] — 2026-07-10
+
+### Melhorado
+- **Offline total após a primeira carga.** O service worker agora faz precache de todos os módulos do build (inclusive os carregados sob demanda, como o seletor de datas) — antes só o núcleo ia pro cache, então abrir uma tela nova offline sem ter visitado antes podia falhar. Verificado no build de produção.
+
+### Interno
+- Corrigidos 2 avisos reais de hooks (`useDebouncedCallback` escrevia numa ref durante o render; `useIsMobile` tinha dependência incompleta). Roadmap Fase 01 concluída.
+
 ## [0.15.1] — 2026-07-10
 
 ### Corrigido
