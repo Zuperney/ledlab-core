@@ -132,7 +132,7 @@ export default function AspectRatio() {
       <div style={card({ marginBottom: 16 })}>
         <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Visualização</div>
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "center" }}>
-          <svg width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, flexShrink: 0, maxWidth: "100%" }}>
+          <svg viewBox={`0 0 ${boxW} ${boxH}`} width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, maxWidth: "100%", height: "auto" }}>
             <rect x={cx - rr.w / 2} y={cy - rr.h / 2} width={rr.w} height={rr.h} fill="none" stroke={T.dim2} strokeWidth={1.5} strokeDasharray="5 4" />
             <rect x={cx - pr.w / 2} y={cy - pr.h / 2} width={pr.w} height={pr.h} rx={3} fill={T.acc + "33"} stroke={T.acc} strokeWidth={2} />
             <text x={cx} y={cy - 5} fill={T.txt} fontSize={16} fontWeight="800" textAnchor="middle">{friendly(W, H)}</text>
@@ -149,7 +149,8 @@ export default function AspectRatio() {
       <div style={card()}>
         <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Resoluções padrão</div>
         <div style={{ color: T.dim, fontSize: 12, marginBottom: 12 }}>Destacadas = mesmo aspecto do seu painel. Mais próxima em nº de pixels: <b style={{ color: T.acM }}>{nearestRes.name} ({nearestRes.w}×{nearestRes.h})</b>.</div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", minWidth: 460, borderCollapse: "collapse", fontSize: 13 }}>
           <thead><tr>{["Nome", "Resolução", "Aspecto", "Pixels", ""].map((x, i) => <th key={i} style={{ textAlign: "left", padding: "8px 10px", borderBottom: `1px solid ${T.bd}`, color: T.mut, fontSize: 11, textTransform: "uppercase" }}>{x}</th>)}</tr></thead>
           <tbody>
             {STD.map((s) => {
@@ -166,6 +167,7 @@ export default function AspectRatio() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
