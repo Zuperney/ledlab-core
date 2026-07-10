@@ -10,6 +10,7 @@ import { SEED_CABINETS } from "../data/mockCabinets.js";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
 import { recomputeStatus, isoDate } from "../services/projectCalc.js";
+import { setAcMargin } from "../services/cabling.js";
 import { fullSnapshot } from "../services/cabinets.js";
 import { genId } from "../services/ids.js";
 import { markBackupNow, getLastBackupAt, downloadJSON } from "../services/storage.js";
@@ -29,6 +30,7 @@ export const DEFAULT_PREFS = {
   cabCols: { pitch: true, resolucao: true, dimensoes: false, pwrMax: true, pwrMed: false, peso: true, ip: false },
   cablingAreaCount: true,
   cableNumbering: "row-tb-lr", // ordem de numeração dos cabos (ver ProjectCabeamento)
+  acMargin: 1, // fator de segurança do cabo AC: 1 = sem margem; 0,8 = regra dos 80% (carga contínua)
   // módulo Diárias — parâmetros globais de cálculo (ver docs/diarias-spec.md §5.1)
   worklog: { jornadaH: 12, janelaExtraH: 4, toleranciaExtraMin: 50 },
   tecnico: "", // nome que aparece no recibo (prestador/signatário)
@@ -214,6 +216,9 @@ export function AppProvider({ children }) {
   useEffect(() => { if (hydrated) persist(KEYS.tcPresets, tcPresets); }, [tcPresets, hydrated]);
   useEffect(() => { if (hydrated) persist(KEYS.worklog, worklog); }, [worklog, hydrated]);
   useEffect(() => { if (hydrated) persist(KEYS.activityTypes, activityTypes); }, [activityTypes, hydrated]);
+
+  // sincroniza a margem de segurança do cabo AC (módulo em cabling.js) com a pref
+  useEffect(() => { setAcMargin(prefs.acMargin); }, [prefs.acMargin]);
 
   // backup completo (baixa .json + registra a data). lastBackupAt é reativo, então
   // o lembrete de backup no <App> some sozinho — seja pelo banner ou pelo Settings.

@@ -8,6 +8,16 @@
 import { PX_PER_PORT, FASE_V, CONN_AMP } from "../config/electricalConfig.js";
 export { PX_PER_PORT, FASE_V, CONN_AMP };
 
+// Fator de segurança do cabo AC (regra dos 80% p/ carga contínua de show). É uma
+// preferência GLOBAL do app (Configurações), então vive como módulo em vez de
+// prop threaded: o AppContext chama setAcMargin quando as prefs carregam/mudam.
+// 1 = sem margem (padrão histórico). Afeta só o acBudget (cabeamento AC).
+let acMargin = 1;
+export function setAcMargin(m) {
+  const n = Number(m);
+  acMargin = n >= 0.5 && n <= 1 ? n : 1;
+}
+
 export const range = (n) => [...Array(Math.max(0, n)).keys()];
 export const key = (c, r) => `${r},${c}`;
 export const parseKey = (k) => { const [r, c] = k.split(",").map(Number); return { c, r }; };
@@ -108,7 +118,7 @@ export function cableMeta(tela) {
   const fp = parseFloat(g.fp) || 0.9;
   const ampCab = (parseFloat(g.pwrMax) || 0) / (FASE_V * fp);
   const connRating = CONN_AMP[g.conector] || 16;
-  const acBudget = Math.max(1, Math.floor(connRating / (ampCab || 1)));
+  const acBudget = Math.max(1, Math.floor((connRating * acMargin) / (ampCab || 1)));
   const cabling = tela?.cabling || {};
   const sinalBudget = Math.max(1, Math.floor(Math.floor((PX_PER_PORT * 60) / ((cabling.sinal || {}).hz || 60)) / pxPerCab));
   return { cols, rows, pxPerCab, fp, ampCab, connRating, acBudget, sinalBudget };

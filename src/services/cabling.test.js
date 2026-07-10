@@ -1,7 +1,7 @@
 // services/cabling.test.js — roteamento de cabos: disposição "Área" e
 // balanceamento de fase do AC atrelado ao sinal.
 import { describe, it, expect } from "vitest";
-import { buildAuto, balancedChunks } from "./cabling.js";
+import { buildAuto, balancedChunks, cableMeta, setAcMargin } from "./cabling.js";
 
 const NB = "row-tb-lr";
 const seq = (n) => Array.from({ length: n }, (_, i) => i);
@@ -60,5 +60,27 @@ describe("cabling — AC atrelado ao sinal: balanceamento de fase", () => {
       for (const s of sizes) expect(s).toBeLessThanOrEqual(B); // nunca passa do máximo do cabo
       expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1); // equilibrado
     }
+  });
+});
+
+describe("cabling — margem de segurança do cabo AC (acBudget)", () => {
+  // ampCab = 144 / (220 × 0,9) = 0,727 A/gab; conector powerCON 20 A
+  const tela = { cols: 1, rows: 1, gabinete: { pwrMax: 144, fp: 0.9, conector: "PowerCON Azul/Branco" } };
+
+  it("sem margem (1) = padrão histórico: floor(20 / 0,727) = 27", () => {
+    setAcMargin(1);
+    expect(cableMeta(tela).acBudget).toBe(27);
+  });
+
+  it("margem 80% reduz o acBudget: floor(16 / 0,727) = 22", () => {
+    setAcMargin(0.8);
+    expect(cableMeta(tela).acBudget).toBe(22);
+    setAcMargin(1); // reset p/ não vazar entre testes
+  });
+
+  it("valor fora da faixa volta a 1 (sem margem)", () => {
+    setAcMargin(2);
+    expect(cableMeta(tela).acBudget).toBe(27);
+    setAcMargin(1);
   });
 });

@@ -140,7 +140,7 @@ export default function Settings() {
     <div style={{ maxWidth: 640 }}>
       <SectionHeader title="Configurações" subtitle="Preferências, dados e manutenção — tudo salvo neste navegador." />
 
-      <Section icon={Zap} title="Elétrica & cabeamento" subtitle="Tensão padrão e numeração dos cabos" defaultOpen={open}>
+      <Section icon={Zap} title="Elétrica & cabeamento" subtitle="Tensão, numeração e margem do cabo AC" defaultOpen={open}>
         <div style={subLabel}>Tensão padrão</div>
         <div style={subDesc}>Usada em projetos novos (dá pra mudar por projeto na aba Energia).</div>
         <select value={prefs.vk || "220_tri"} onChange={(e) => setPrefs({ ...prefs, vk: e.target.value })} style={selStyle}>
@@ -156,6 +156,14 @@ export default function Settings() {
           <option value="row-bt-lr">Linha · de baixo p/ cima · esquerda→direita</option>
           <option value="row-tb-lr">Linha · de cima p/ baixo · esquerda→direita</option>
           <option value="row-bt-rl">Linha · de baixo p/ cima · direita→esquerda</option>
+        </select>
+
+        <div style={{ ...subLabel, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>Margem de segurança do cabo AC</div>
+        <div style={subDesc}>Reduz os gabinetes por cabo pensando em carga contínua (show de horas) — a regra dos 80% de touring. 100% = sem margem (padrão histórico).</div>
+        <select value={String(prefs.acMargin ?? 1)} onChange={(e) => setPrefs({ ...prefs, acMargin: Number(e.target.value) })} style={selStyle}>
+          <option value="1">100% — sem margem (padrão)</option>
+          <option value="0.9">90% — margem leve</option>
+          <option value="0.8">80% — carga contínua</option>
         </select>
       </Section>
 
