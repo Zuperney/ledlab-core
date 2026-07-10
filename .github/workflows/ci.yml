@@ -1,0 +1,28 @@
+name: CI
+
+# Rede de segurança dos cálculos: roda os testes a cada push e em todo PR.
+# Regressão silenciosa no motor elétrico/cabeamento queima equipamento em campo.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1" # não baixa o binário do Electron no CI
+      - name: Testes (vitest)
+        run: npm test
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true # não bloqueia: há débito pré-existente de react-refresh nos contextos

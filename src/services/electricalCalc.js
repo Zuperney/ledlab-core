@@ -46,7 +46,7 @@ const clamp01 = (n) => Math.min(1, Math.max(0, Number(n)));
 //   I  = S / divisor de tensão        (corrente por fase, A)
 //   disjuntor = escada(I × 1.25)
 export function calcScreen({ tiles, pwrPerTile, pf, vk }) {
-  const vc = VOLT[vk];
+  const vc = VOLT[vk] || VOLT["220_tri"]; // fallback defensivo se vk vier inválido/corrompido
   const W = tiles * pwrPerTile;
   const S = W / pf;
   const I = parseFloat((S / vc.div).toFixed(1));

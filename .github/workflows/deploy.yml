@@ -27,6 +27,8 @@ jobs:
         run: npm ci
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1" # não baixa o binário do Electron no CI
+      - name: Testes (vitest) — não publica se algum cálculo quebrar
+        run: npm test
       - name: Build (Vite, base relativa)
         run: npm run build
       - name: Setup Pages
