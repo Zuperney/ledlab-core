@@ -19,6 +19,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.15.0";
+export const VERSION = "v0.15.1";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Margem de segurança opcional no cabo AC + avisos de segurança elétrica no cabeamento.";
+export const WHATS_NEW = "Gabinetes-exemplo CB5 e ER5.9 corrigidos para a potência real do datasheet.";

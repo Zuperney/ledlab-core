@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.15.1] — 2026-07-10
+
+### Corrigido
+- **Dados dos gabinetes-exemplo CB5 e ER5.9** ajustados ao datasheet. O "CB5" era genérico (500×500 / 300 W) e virou o tile real (600×1200 / 650 W em TRUE1); o ER5.9 passou de 420 W → 600 W (mesmo tamanho). Ambos subestimavam a potência por painel do produto nomeado — risco de subdimensionar o cabo AC de quem confiasse no exemplo. BP2 e PL3.9 Pro já estavam acima do real (conservadores) e ficaram como estão. Afeta só instalações novas / restaurar de fábrica; quem já tem sua própria biblioteca não muda nada.
+
 ## [0.15.0] — 2026-07-10
 
 ### Adicionado
