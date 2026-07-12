@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.17.0] — 2026-07-12
+
+### Adicionado
+- **Aba Reembolso (MVP).** Lance despesas do evento (data, categoria, valor, descrição, cliente) com **foto do comprovante** — a foto é comprimida no aparelho (~1200 px, JPEG) e guardada **local no IndexedDB**, sem ir pro sync/Supabase (pra não estourar a cota conforme cresce o nº de fotos/pessoas). Navegação por mês, total do mês e lista com miniatura do comprovante. Acessível no menu (sidebar no desktop, "Mais" no mobile). Próximo passo: relatório de reembolso em PDF/WhatsApp.
+
 ## [0.16.1] — 2026-07-12
 
 ### Adicionado

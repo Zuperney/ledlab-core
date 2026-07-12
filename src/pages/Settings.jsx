@@ -28,7 +28,7 @@ const download = (name, obj) => {
 };
 
 export default function Settings() {
-  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, exportBackup } = useLedLabContext();
+  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, setDespesas, exportBackup } = useLedLabContext();
   const confirm = useConfirm();
   const toast = useToast();
   const isMobile = useIsMobile();
@@ -55,6 +55,7 @@ export default function Settings() {
       if (Array.isArray(d.tcPresets)) setTcPresets(d.tcPresets);
       if (Array.isArray(d.worklog)) setWorklog(d.worklog);
       if (Array.isArray(d.activityTypes)) setActivityTypes(d.activityTypes);
+      if (Array.isArray(d.despesas)) setDespesas(d.despesas); // fotos não vêm no .json (ficam no aparelho)
       toast("Backup importado");
     };
     reader.readAsText(file);
@@ -122,7 +123,7 @@ export default function Settings() {
     if (!(await confirm({ title: "Restaurar de fábrica?", message: "Isso apaga TODOS os seus dados (gabinetes e projetos) e recarrega os dados de exemplo. Não pode ser desfeito." }))) return;
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
     setCabs(SEED_CABINETS); setProjects(SEED_PROJECTS); setPrefs(DEFAULT_PREFS); setTcPresets([]);
-    setWorklog([]); setActivityTypes(SEED_ACTIVITY_TYPES);
+    setWorklog([]); setActivityTypes(SEED_ACTIVITY_TYPES); setDespesas([]);
     toast("Dados restaurados de fábrica");
   };
 

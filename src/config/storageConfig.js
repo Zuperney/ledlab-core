@@ -8,4 +8,5 @@ export const KEYS = {
   tcPresets: "ledlab.testcard-presets.v1",
   worklog: "ledlab.worklog.v1",           // módulo Diárias: lançamentos (WorkEntry[])
   activityTypes: "ledlab.activitytypes.v1", // módulo Diárias: tipos de atividade
+  despesas: "ledlab.despesas.v1",         // módulo Reembolso: despesas (Despesa[]); fotos ficam em idb à parte
 };

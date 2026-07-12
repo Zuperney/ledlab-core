@@ -8,7 +8,7 @@ import { Z, TOUCH_MIN } from "../config/uiConfig.js";
 import BottomSheet from "./BottomSheet.jsx";
 
 const TOOL_IDS = ["diagrams", "testcards", "aspect"];
-const MORE_IDS = ["financeiro", "inventory", "knowledge", "settings"];
+const MORE_IDS = ["financeiro", "reembolso", "inventory", "knowledge", "settings"];
 const byId = (id) => NAV.find((n) => n.id === id);
 
 export default function BottomNav({ page, onNavigate }) {

@@ -42,7 +42,12 @@ export function idbGet(key) {
   return withStore("readonly", (s) => s.get(key)).catch(() => undefined);
 }
 
-// Grava a fatia (structured clone do IndexedDB — valores JSON-serializáveis).
+// Grava a fatia (structured clone do IndexedDB — aceita JSON e também Blob/foto).
 export function idbSet(key, value) {
   return withStore("readwrite", (s) => s.put(value, key)).catch(() => {});
+}
+
+// Apaga uma chave (ex.: foto de comprovante removida).
+export function idbDel(key) {
+  return withStore("readwrite", (s) => s.delete(key)).catch(() => {});
 }

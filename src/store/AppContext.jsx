@@ -169,6 +169,7 @@ export function AppProvider({ children }) {
   const [tcPresets, setTcPresets] = useState([]);
   const [worklog, setWorklog] = useState([]);
   const [activityTypes, setActivityTypes] = useState(SEED_ACTIVITY_TYPES);
+  const [despesas, setDespesas] = useState([]);
   const [lastBackupAt, setLastBackupAt] = useState(() => getLastBackupAt());
 
   // hidratação: IndexedDB é a fonte primária. Na 1ª abertura (IndexedDB vazio),
@@ -178,13 +179,14 @@ export function AppProvider({ children }) {
     let alive = true;
     (async () => {
       try {
-        const [c, p, pr, tc, wl, at] = await Promise.all([
+        const [c, p, pr, tc, wl, at, dp] = await Promise.all([
           hydrateArray(KEYS.cabs, SEED_CABINETS),
           hydrateArray(KEYS.projects, SEED_PROJECTS),
           hydrateObject(KEYS.prefs, DEFAULT_PREFS),
           hydrateArray(KEYS.tcPresets, []),
           hydrateArray(KEYS.worklog, []),
           hydrateArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES),
+          hydrateArray(KEYS.despesas, []),
         ]);
         if (!alive) return;
         setCabs(c);
@@ -193,6 +195,7 @@ export function AppProvider({ children }) {
         setTcPresets(tc);
         setWorklog(wl);
         setActivityTypes(at);
+        setDespesas(dp);
       } catch {
         if (!alive) return;
         setCabs(loadArray(KEYS.cabs, SEED_CABINETS));
@@ -201,6 +204,7 @@ export function AppProvider({ children }) {
         setTcPresets(loadArray(KEYS.tcPresets, []));
         setWorklog(loadArray(KEYS.worklog, []));
         setActivityTypes(loadArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES));
+        setDespesas(loadArray(KEYS.despesas, []));
       } finally {
         if (alive) setHydrated(true);
       }
@@ -216,6 +220,7 @@ export function AppProvider({ children }) {
   useEffect(() => { if (hydrated) persist(KEYS.tcPresets, tcPresets); }, [tcPresets, hydrated]);
   useEffect(() => { if (hydrated) persist(KEYS.worklog, worklog); }, [worklog, hydrated]);
   useEffect(() => { if (hydrated) persist(KEYS.activityTypes, activityTypes); }, [activityTypes, hydrated]);
+  useEffect(() => { if (hydrated) persist(KEYS.despesas, despesas); }, [despesas, hydrated]);
 
   // sincroniza a margem de segurança do cabo AC (módulo em cabling.js) com a pref
   useEffect(() => { setAcMargin(prefs.acMargin); }, [prefs.acMargin]);
@@ -223,7 +228,7 @@ export function AppProvider({ children }) {
   // backup completo (baixa .json + registra a data). lastBackupAt é reativo, então
   // o lembrete de backup no <App> some sozinho — seja pelo banner ou pelo Settings.
   const exportBackup = () => {
-    downloadJSON("ledlab-backup.json", { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes });
+    downloadJSON("ledlab-backup.json", { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes, despesas });
     setLastBackupAt(markBackupNow());
   };
 
@@ -234,6 +239,7 @@ export function AppProvider({ children }) {
     tcPresets, setTcPresets,
     worklog, setWorklog,
     activityTypes, setActivityTypes,
+    despesas, setDespesas,
     lastBackupAt, exportBackup,
     storageOk: STORAGE_WRITABLE,
   };
