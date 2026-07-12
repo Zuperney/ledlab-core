@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.16.1] — 2026-07-12
+
+### Adicionado
+- **Checkout no Dashboard.** Quando há um turno em andamento (check-in sem checkout), aparece um card no Dashboard com o turno (tipo, desde quando, há quanto tempo, local) e um botão **Checkout** — dá pra fechar o turno sem abrir a Agenda › Cachês. Mesma origem de dados das Diárias. (A notificação de checkout foi descartada — o card no Dashboard já cobre o "esqueci de fechar".)
+
 ## [0.16.0] — 2026-07-10
 
 ### Alterado

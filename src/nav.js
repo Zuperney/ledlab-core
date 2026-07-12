@@ -19,6 +19,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.16.0";
+export const VERSION = "v0.16.1";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Olho no topo esconde os valores em R$ no Dashboard e nas Diárias (pra mostrar o app sem expor o quanto ganha).";
+export const WHATS_NEW = "Checkout do turno agora aparece no Dashboard — feche o turno sem abrir a Agenda.";
