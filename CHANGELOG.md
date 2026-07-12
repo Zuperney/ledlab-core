@@ -2,6 +2,14 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.19.1] — 2026-07-12
+
+### Corrigido
+- **Telas do projeto: a cópia agora entra no topo** (aba Projetos › Dados). Ao duplicar uma tela ela ia parar no fim da lista; agora entra no topo e já abre expandida — mesmo comportamento do "Adicionar tela".
+
+### Adicionado
+- **Reordenar telas.** Cada tela ganhou setas ↑/↓ pra mudar a ordem na lista (aparecem quando há mais de uma tela; desabilitadas nos extremos). Assim dá pra decidir a ordem das telas depois de criadas, sem precisar recriar.
+
 ## [0.19.0] — 2026-07-12
 
 ### Alterado

@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.19.0";
+export const VERSION = "v0.19.1";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Menus suspensos com a cara do app: lista temática (escura, roxa) no lugar do estilo padrão do navegador/Android.";
+export const WHATS_NEW = "Telas do projeto: a cópia entra no topo (não mais no fim) e dá pra reordenar as telas com as setas ↑/↓.";

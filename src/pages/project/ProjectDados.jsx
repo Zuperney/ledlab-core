@@ -1,6 +1,6 @@
 // pages/project/ProjectDados.jsx — aba Dados: telas + ficha do projeto.
 import { useState } from "react";
-import { Plus, ChevronRight, Copy, Trash2 } from "lucide-react";
+import { Plus, ChevronRight, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react";
 import { newScreen } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
@@ -27,7 +27,19 @@ export default function ProjectDados({ project, patch, patchTela }) {
     patch({ telas: [t, ...telas] }); // nova entra no topo (já expandida, sem precisar rolar)
     setEditId(t.id);
   };
-  const dupTela = (t) => patch({ telas: [...telas, { ...t, id: genId("tela"), nome: `${t.nome} (cópia)` }] });
+  const dupTela = (t) => {
+    const copy = { ...t, id: genId("tela"), nome: `${t.nome} (cópia)` };
+    patch({ telas: [copy, ...telas] }); // a cópia entra no topo e expande — mesmo comportamento de "Adicionar"
+    setEditId(copy.id);
+  };
+  const moveTela = (t, dir) => {
+    const i = telas.findIndex((x) => x.id === t.id);
+    const j = i + dir;
+    if (j < 0 || j >= telas.length) return;
+    const next = [...telas];
+    [next[i], next[j]] = [next[j], next[i]]; // troca com o vizinho
+    patch({ telas: next });
+  };
   const delTela = async (t) => {
     if (await confirm({ title: "Excluir tela?", message: `"${t.nome || "tela"}" será removida deste projeto.` })) {
       patch({ telas: telas.filter((x) => x.id !== t.id) });
@@ -46,8 +58,9 @@ export default function ProjectDados({ project, patch, patchTela }) {
           <button style={btn("primary", isMobile ? { width: "100%", justifyContent: "center" } : {})} onClick={addTela}><Plus size={15} /> Adicionar tela</button>
         </div>
         {telas.length === 0 && <div style={{ color: T.dim, fontSize: 13 }}>Nenhuma tela ainda.</div>}
-        {telas.map((t) => {
+        {telas.map((t, i) => {
           const open = editId === t.id;
+          const isFirst = i === 0, isLast = i === telas.length - 1;
           const g = t.gabinete || {};
           const dW = parseFloat(g.dimW) || 0, dH = parseFloat(g.dimH) || 0;
           const larguraM = (t.cols || 0) * dW / 1000, alturaM = (t.rows || 0) * dH / 1000;
@@ -66,6 +79,12 @@ export default function ProjectDados({ project, patch, patchTela }) {
                   </span>
                 </button>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end", flexWrap: "wrap" }}>
+                  {telas.length > 1 && (
+                    <>
+                      <button disabled={isFirst} style={iconBtn({ ...(isMobile ? { width: 40, height: 40 } : {}), ...(isFirst ? { opacity: 0.3, cursor: "default" } : {}) })} title="Mover pra cima" onClick={() => moveTela(t, -1)}><ChevronUp size={14} /></button>
+                      <button disabled={isLast} style={iconBtn({ ...(isMobile ? { width: 40, height: 40 } : {}), ...(isLast ? { opacity: 0.3, cursor: "default" } : {}) })} title="Mover pra baixo" onClick={() => moveTela(t, 1)}><ChevronDown size={14} /></button>
+                    </>
+                  )}
                   <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
                   <button style={dangerIconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
                 </div>
