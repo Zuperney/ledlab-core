@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.18.0] — 2026-07-12
+
+### Adicionado
+- **Reembolso: relatório em PDF + WhatsApp.** Novo modo "Relatório" na aba Reembolso — documento imprimível com a tabela de despesas do período, total a reembolsar e os **comprovantes embutidos** (as fotos). Botões Imprimir / Salvar PDF, Copiar texto e WhatsApp, reaproveitando a máquina de impressão do Financeiro. Fecha o ciclo: lançar despesas em campo → gerar o relatório → mandar pro contratante.
+
 ## [0.17.2] — 2026-07-12
 
 ### Corrigido
