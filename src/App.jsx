@@ -91,7 +91,7 @@ export default function App() {
   if (isMobile) {
     return (
       <div className="app-mobile-shell" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
-        <header className="app-mobile-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 14px", borderBottom: `1px solid ${T.bd}`, flexShrink: 0 }}>
+        <header className="app-mobile-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "calc(9px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 9px calc(14px + env(safe-area-inset-left))", borderBottom: `1px solid ${T.bd}`, background: T.bg, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <img src={logo} alt="" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }} />
             <h1 style={{ margin: 0, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{LABELS[page] || "LedLab Core"}</h1>

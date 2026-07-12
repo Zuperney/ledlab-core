@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.17.1] — 2026-07-12
+
+### Corrigido
+- **iOS: topo escondido atrás da barra de status.** No iPhone (PWA), o header do app — título da aba, olho de privacidade e versão — ficava por baixo da status bar/notch. Agora o header respeita a safe-area (`env(safe-area-inset-top/left/right)`) e o conteúdo começa abaixo da barra, com o fundo do header preenchendo a área. Sem efeito em Android/desktop (inset = 0).
+
 ## [0.17.0] — 2026-07-12
 
 ### Adicionado
