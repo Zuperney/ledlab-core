@@ -14,6 +14,7 @@ import { T } from "../../ui/tokens.js";
 import { card, input, btn, label as lbl } from "../../ui/styles.js";
 import BottomSheet from "../../components/BottomSheet.jsx";
 import { DateField, TimeField } from "../../components/PickerField.jsx";
+import Select from "../../components/Select.jsx";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const pad = (n) => String(n).padStart(2, "0");
@@ -261,9 +262,9 @@ export default function DiariasView() {
               <button onClick={() => setForm(null)} style={{ ...btn("subtle"), alignSelf: "flex-start" }}><ArrowLeft size={14} /> Voltar ao dia</button>
               <div>
                 <div style={lbl}>Tipo de atividade</div>
-                <select value={form.tipoId} onChange={(e) => { const tipoId = e.target.value; setForm((f) => { const next = { ...f, tipoId }; if (!f.valorOverride) { const v = lembraValor(f.cliente, tipoId); if (v != null) next.valorOverride = String(v); } return next; }); }} style={input()}>
+                <Select value={form.tipoId} title="Tipo de atividade" onChange={(e) => { const tipoId = e.target.value; setForm((f) => { const next = { ...f, tipoId }; if (!f.valorOverride) { const v = lembraValor(f.cliente, tipoId); if (v != null) next.valorOverride = String(v); } return next; }); }} style={input()}>
                   {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-                </select>
+                </Select>
               </div>
               <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 <div><div style={lbl}>Data</div><DateField value={form.dataRef} onChange={(v) => setForm({ ...form, dataRef: v })} /></div>
@@ -303,9 +304,9 @@ export default function DiariasView() {
             <div style={{ color: T.mut, fontSize: 13 }}>Carimba a hora de agora e abre o turno. O checkout você faz ao terminar.</div>
             <div>
               <div style={lbl}>Tipo de atividade</div>
-              <select value={checkinForm.tipoId} onChange={(e) => setCheckinForm({ ...checkinForm, tipoId: e.target.value })} style={input()}>
+              <Select value={checkinForm.tipoId} title="Tipo de atividade" onChange={(e) => setCheckinForm({ ...checkinForm, tipoId: e.target.value })} style={input()}>
                 {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-              </select>
+              </Select>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div><div style={lbl}>Cliente (opcional)</div><input list="clientes-dl" value={checkinForm.cliente} onChange={(e) => setCheckinForm({ ...checkinForm, cliente: e.target.value })} style={input()} /></div>

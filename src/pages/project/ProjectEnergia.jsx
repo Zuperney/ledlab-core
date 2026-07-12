@@ -6,6 +6,7 @@ import { useElectrical } from "../../hooks/useElectrical.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
+import Select from "../../components/Select.jsx";
 
 export default function ProjectEnergia({ project, patch }) {
   const isMobile = useIsMobile();
@@ -17,10 +18,10 @@ export default function ProjectEnergia({ project, patch }) {
     <div>
       <div style={card({ marginBottom: 16 })}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <select value={cfg.vk} onChange={(e) => setCfg({ vk: e.target.value })} title="Tensão do evento"
+          <Select value={cfg.vk} onChange={(e) => setCfg({ vk: e.target.value })} title="Tensão do evento"
             style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, fontWeight: 600 }}>
             {Object.entries(VOLT).map(([k, v]) => <option key={k} value={k}>{v.g}V · {v.label}</option>)}
-          </select>
+          </Select>
           <ValueChip label="Brilho" pct={Math.round(cfg.brilho * 100)} active={open === "brilho"} onClick={() => setOpen((o) => (o === "brilho" ? null : "brilho"))} />
           <ValueChip label="Conteúdo" pct={Math.round(cfg.conteudo * 100)} active={open === "conteudo"} onClick={() => setOpen((o) => (o === "conteudo" ? null : "conteudo"))} />
         </div>

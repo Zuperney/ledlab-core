@@ -13,6 +13,7 @@ import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge, { STATUS, STATUS_ORDER } from "../components/StatusBadge.jsx";
 import Placeholder from "../components/Placeholder.jsx";
 import BottomSheet from "../components/BottomSheet.jsx";
+import Select from "../components/Select.jsx";
 import ProjectDetail from "./ProjectDetail.jsx";
 
 const FILTERS = [
@@ -135,24 +136,24 @@ export default function Projects({ nav }) {
         <div style={card({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })} className="m-controlbar">
           <input placeholder="Buscar nome, cliente, local…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ maxWidth: 260, flex: 1 })} />
           <span style={lbl}>Ano</span>
-          <select value={ano} onChange={(e) => setAno(e.target.value)} style={selStyle}>{years.map((y) => <option key={y} value={y}>{y === "all" ? "Todos" : y}</option>)}</select>
+          <Select value={ano} onChange={(e) => setAno(e.target.value)} style={selStyle}>{years.map((y) => <option key={y} value={y}>{y === "all" ? "Todos" : y}</option>)}</Select>
           <span style={lbl}>Ordenar</span>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={selStyle}>
+          <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={selStyle}>
             <option value="date">Data</option><option value="name">Nome</option><option value="status">Status</option>
-          </select>
+          </Select>
           <span style={lbl}>Agrupar</span>
-          <select value={agrupar} onChange={(e) => setAgrupar(e.target.value)} style={selStyle}>
+          <Select value={agrupar} onChange={(e) => setAgrupar(e.target.value)} style={selStyle}>
             <option value="none">Não</option><option value="month">Por mês</option><option value="status">Por status</option>
-          </select>
+          </Select>
         </div>
       )}
 
       {isMobile && filterOpen && (
         <BottomSheet title="Filtros" onClose={() => setFilterOpen(false)}>
           <div style={{ display: "grid", gap: 14 }}>
-            <div><div style={lblStyle}>Ano</div><select value={ano} onChange={(e) => setAno(e.target.value)} style={input()}>{years.map((y) => <option key={y} value={y}>{y === "all" ? "Todos" : y}</option>)}</select></div>
-            <div><div style={lblStyle}>Ordenar por</div><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input()}><option value="date">Data</option><option value="name">Nome</option><option value="status">Status</option></select></div>
-            <div><div style={lblStyle}>Agrupar</div><select value={agrupar} onChange={(e) => setAgrupar(e.target.value)} style={input()}><option value="none">Não</option><option value="month">Por mês</option><option value="status">Por status</option></select></div>
+            <div><div style={lblStyle}>Ano</div><Select value={ano} onChange={(e) => setAno(e.target.value)} style={input()}>{years.map((y) => <option key={y} value={y}>{y === "all" ? "Todos" : y}</option>)}</Select></div>
+            <div><div style={lblStyle}>Ordenar por</div><Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input()}><option value="date">Data</option><option value="name">Nome</option><option value="status">Status</option></Select></div>
+            <div><div style={lblStyle}>Agrupar</div><Select value={agrupar} onChange={(e) => setAgrupar(e.target.value)} style={input()}><option value="none">Não</option><option value="month">Por mês</option><option value="status">Por status</option></Select></div>
             <button style={btn("primary", { justifyContent: "center" })} onClick={() => setFilterOpen(false)}>Aplicar</button>
           </div>
         </BottomSheet>

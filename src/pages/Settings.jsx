@@ -12,6 +12,7 @@ import { VOLT } from "../services/electricalCalc.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
+import Select from "../components/Select.jsx";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
 import { T, PALETTE } from "../ui/tokens.js";
@@ -144,28 +145,28 @@ export default function Settings() {
       <Section icon={Zap} title="Elétrica & cabeamento" subtitle="Tensão, numeração e margem do cabo AC" defaultOpen={open}>
         <div style={subLabel}>Tensão padrão</div>
         <div style={subDesc}>Usada em projetos novos (dá pra mudar por projeto na aba Energia).</div>
-        <select value={prefs.vk || "220_tri"} onChange={(e) => setPrefs({ ...prefs, vk: e.target.value })} style={selStyle}>
+        <Select value={prefs.vk || "220_tri"} title="Tensão padrão" onChange={(e) => setPrefs({ ...prefs, vk: e.target.value })} style={selStyle}>
           {Object.entries(VOLT).map(([k, v]) => <option key={k} value={k}>{v.g}V · {v.label}</option>)}
-        </select>
+        </Select>
 
         <div style={{ ...subLabel, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>Numeração dos cabos</div>
         <div style={subDesc}>Ordem em que os cabos são numerados (sinal e AC), conforme sua montagem em campo.</div>
-        <select value={prefs.cableNumbering || "row-tb-lr"} onChange={(e) => setPrefs({ ...prefs, cableNumbering: e.target.value })} style={selStyle}>
+        <Select value={prefs.cableNumbering || "row-tb-lr"} title="Numeração dos cabos" onChange={(e) => setPrefs({ ...prefs, cableNumbering: e.target.value })} style={selStyle}>
           <option value="col-lr-bt">Coluna · esquerda→direita · de baixo p/ cima</option>
           <option value="col-lr-tb">Coluna · esquerda→direita · de cima p/ baixo</option>
           <option value="col-rl-bt">Coluna · direita→esquerda · de baixo p/ cima</option>
           <option value="row-bt-lr">Linha · de baixo p/ cima · esquerda→direita</option>
           <option value="row-tb-lr">Linha · de cima p/ baixo · esquerda→direita</option>
           <option value="row-bt-rl">Linha · de baixo p/ cima · direita→esquerda</option>
-        </select>
+        </Select>
 
         <div style={{ ...subLabel, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>Margem de segurança do cabo AC</div>
         <div style={subDesc}>Reduz os gabinetes por cabo pensando em carga contínua (show de horas) — a regra dos 80% de touring. 100% = sem margem (padrão histórico).</div>
-        <select value={String(prefs.acMargin ?? 1)} onChange={(e) => setPrefs({ ...prefs, acMargin: Number(e.target.value) })} style={selStyle}>
+        <Select value={String(prefs.acMargin ?? 1)} title="Margem do cabo AC" onChange={(e) => setPrefs({ ...prefs, acMargin: Number(e.target.value) })} style={selStyle}>
           <option value="1">100% — sem margem (padrão)</option>
           <option value="0.9">90% — margem leve</option>
           <option value="0.8">80% — carga contínua</option>
-        </select>
+        </Select>
       </Section>
 
       <Section icon={Palette} title="Cores dos cabos" subtitle="Paleta dos cabos e portas" defaultOpen={open}>

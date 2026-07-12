@@ -5,6 +5,7 @@ import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import ProjectTestCard from "./project/ProjectTestCard.jsx";
+import Select from "../components/Select.jsx";
 
 export default function TestCards() {
   const { projects, cabs } = useLedLabContext();
@@ -31,10 +32,10 @@ export default function TestCards() {
           <button key={v} onClick={() => setMode(v)} style={{ padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${mode === v ? T.acc : T.bd}`, background: mode === v ? T.acc : T.card2, color: mode === v ? "#fff" : T.mut }}>{l}</button>
         ))}
         {mode === "projeto" ? (
-          <select value={projId} onChange={(e) => setProjId(e.target.value)} style={inp}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+          <Select value={projId} onChange={(e) => setProjId(e.target.value)} style={inp}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>
         ) : (
           <>
-            <select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={inp}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select>
+            <Select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={inp}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
             <label style={{ color: T.mut, fontSize: 12 }}>Cols <input type="number" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 70, marginLeft: 6 }} /></label>
             <label style={{ color: T.mut, fontSize: 12 }}>Linhas <input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 70, marginLeft: 6 }} /></label>
           </>

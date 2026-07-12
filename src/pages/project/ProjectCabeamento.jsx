@@ -12,6 +12,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight, ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
+import Select from "../../components/Select.jsx";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
@@ -143,9 +144,9 @@ export default function ProjectCabeamento({ project, patchTela }) {
         )}
         {(!isMobile || controlsOpen) && (
           <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }} className="m-controlbar">
-            <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
+            <Select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px" }}>
               {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-            </select>
+            </Select>
             <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
             <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />
             {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
@@ -268,12 +269,12 @@ const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`
 // dropdown compacto com rótulo (economiza espaço vs. grupo de botões)
 function Drop({ label, options, value, onChange }) {
   return (
-    <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }}>
       {label}
-      <select value={String(value)} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={dropSel}>
+      <Select value={String(value)} title={label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={dropSel}>
         {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
-      </select>
-    </label>
+      </Select>
+    </span>
   );
 }
 

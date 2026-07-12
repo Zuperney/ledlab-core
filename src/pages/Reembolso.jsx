@@ -17,6 +17,7 @@ import { card, btn, input, label as lbl } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import BottomSheet from "../components/BottomSheet.jsx";
 import { DateField } from "../components/PickerField.jsx";
+import Select from "../components/Select.jsx";
 
 const pad = (n) => String(n).padStart(2, "0");
 const isoToday = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -271,9 +272,9 @@ export default function Reembolso() {
             </div>
             <div>
               <div style={lbl}>Categoria</div>
-              <select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} style={input()}>
+              <Select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} style={input()} title="Categoria">
                 {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              </Select>
             </div>
             <div><div style={lbl}>Descrição (opcional)</div><input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Ex.: gasolina ida e volta" style={input()} /></div>
             <div><div style={lbl}>Cliente / evento (opcional)</div><input value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} style={input()} /></div>

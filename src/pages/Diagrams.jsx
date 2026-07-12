@@ -10,6 +10,7 @@ import { ZoomIn, ZoomOut, Maximize, ChevronDown, ChevronUp } from "lucide-react"
 import { T } from "../ui/tokens.js";
 import { useCablePalette } from "../hooks/useCablePalette.js";
 import { card } from "../ui/styles.js";
+import Select from "../components/Select.jsx";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { key, bboxArea, cableMeta, cablePorts } from "../services/cabling.js";
 import SectionHeader from "../components/SectionHeader.jsx";
@@ -88,10 +89,10 @@ export default function Diagrams() {
         )}
         {(!isMobile || controlsOpen) && (
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
-            <div><label style={lbl}>Gabinete</label><select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={inp}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+            <div><label style={lbl}>Gabinete</label><Select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={inp}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select></div>
             <div><label style={lbl}>Colunas</label><input type="number" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 80 }} /></div>
             <div><label style={lbl}>Linhas</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 80 }} /></div>
-            <div><label style={lbl}>Refresh</label><select value={hz} onChange={(e) => setHz(parseInt(e.target.value))} style={inp}>{[60, 50, 30].map((r) => <option key={r} value={r}>{r} Hz</option>)}</select></div>
+            <div><label style={lbl}>Refresh</label><Select value={hz} onChange={(e) => setHz(parseInt(e.target.value))} style={inp}>{[60, 50, 30].map((r) => <option key={r} value={r}>{r} Hz</option>)}</Select></div>
             <Seg label="Disposição" options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]} value={strategy} onChange={setStrategy} />
             <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />
           </div>

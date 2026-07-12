@@ -11,6 +11,7 @@ import { PALETTE, T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
+import Select from "../../components/Select.jsx";
 
 const BAR_COLORS = ["#ffffff", "#ffff00", "#00ffff", "#00ff00", "#ff00ff", "#ff0000", "#0000ff"];
 const DEFAULTS = { scheme: "cores", rainbowDir: "h", solidColor: "#ffffff", solidAlpha: false, numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, numScale: 1, colorBar: "off", cableMap: "off", info: true, infoPos: "inf-esq", infoInline: false };
@@ -188,10 +189,10 @@ export default function ProjectTestCard({ project }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: "2 1 130px", minWidth: 0 }}>
+        <Select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: "2 1 130px", minWidth: 0 }}>
           {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-        </select>
-        <select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: "2 1 150px", minWidth: 0 }}>
+        </Select>
+        <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: "2 1 150px", minWidth: 0 }}>
           <option value="">Predefinição…</option>
           <option value="map">Mapa de gabinetes</option>
           <option value="align">Alinhamento / geometria</option>
@@ -199,7 +200,7 @@ export default function ProjectTestCard({ project }) {
           <option value="bars">Barras de cor</option>
           <option value="cabsig">Mapa de cabos (sinal)</option>
           {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        </Select>
         <button style={tbBtn} title="Salvar predefinição" onClick={savePreset}><Save size={16} /></button>
         <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} />{!isMobile && " PNG"}</button>
       </div>
@@ -217,15 +218,15 @@ export default function ProjectTestCard({ project }) {
             <>
               <GroupRow top>
                 <Cell label="Esquema de cor" flex="1 1 130px">
-                  <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={cellSel}>
+                  <Select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={cellSel}>
                     <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
-                  </select>
+                  </Select>
                 </Cell>
                 {o.scheme === "arcoiris" && (
                   <Cell label="Direção" flex="1 1 110px">
-                    <select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={cellSel}>
+                    <Select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={cellSel}>
                       <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
-                    </select>
+                    </Select>
                   </Cell>
                 )}
                 {o.scheme === "solida" && (
@@ -250,14 +251,14 @@ export default function ProjectTestCard({ project }) {
                   </GroupRow>
                   <GroupRow>
                     <Cell label="Color bar" flex="1 1 140px">
-                      <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={cellSel}>
+                      <Select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={cellSel}>
                         <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
-                      </select>
+                      </Select>
                     </Cell>
                     <Cell label="Mapa de cabos" flex="1 1 140px">
-                      <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={cellSel}>
+                      <Select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={cellSel}>
                         <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
-                      </select>
+                      </Select>
                     </Cell>
                   </GroupRow>
                   <GroupRow>
@@ -265,9 +266,9 @@ export default function ProjectTestCard({ project }) {
                     {o.info && <Cell label="Info em linha" flex="0 0 auto"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Cell>}
                     {o.info && (
                       <Cell label="Posição" flex="1 1 130px">
-                        <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={cellSel}>
+                        <Select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={cellSel}>
                           <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
-                        </select>
+                        </Select>
                       </Cell>
                     )}
                   </GroupRow>
@@ -278,15 +279,15 @@ export default function ProjectTestCard({ project }) {
             /* DESKTOP: lista linear (rótulo à esquerda, controle à direita) */
             <>
               <Row label="Esquema de cor" top>
-                <select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={rsel}>
+                <Select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={rsel}>
                   <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
-                </select>
+                </Select>
               </Row>
               {o.scheme === "arcoiris" && (
                 <Row label="Direção">
-                  <select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={rsel}>
+                  <Select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={rsel}>
                     <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
-                  </select>
+                  </Select>
                 </Row>
               )}
               {o.scheme === "solida" && (
@@ -307,23 +308,23 @@ export default function ProjectTestCard({ project }) {
                   </Row>
                   <NumScaleRow value={o.numScale} onChange={(n) => set({ numScale: n })} />
                   <Row label="Color bar">
-                    <select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={rsel}>
+                    <Select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={rsel}>
                       <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
-                    </select>
+                    </Select>
                   </Row>
                   <Row label="Mapa de cabos">
-                    <select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={rsel}>
+                    <Select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={rsel}>
                       <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
-                    </select>
+                    </Select>
                   </Row>
                   <Row label="Caixa de info"><Switch on={o.info} onClick={() => toggle("info")} /></Row>
                   {o.info && (
                     <>
                       <Row label="Info em linha"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Row>
                       <Row label="Posição">
-                        <select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={rsel}>
+                        <Select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={rsel}>
                           <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
-                        </select>
+                        </Select>
                       </Row>
                     </>
                   )}

@@ -10,6 +10,7 @@ import { T } from "../../ui/tokens.js";
 import { card, input, label, btn, iconBtn, dangerIconBtn } from "../../ui/styles.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { DateField } from "../../components/PickerField.jsx";
+import Select from "../../components/Select.jsx";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, favCab } = useCabinets();
@@ -74,12 +75,12 @@ export default function ProjectDados({ project, patch, patchTela }) {
                   <Field lbl="Nome da tela" value={t.nome} onChange={(v) => patchTela(t.id, { nome: v })} />
                   <div>
                     <label style={label}>Gabinete</label>
-                    <select value={t.cabId ?? ""} onChange={(e) => {
+                    <Select value={t.cabId ?? ""} title="Gabinete" onChange={(e) => {
                       const c = cabs.find((x) => String(x.id) === e.target.value);
                       patchTela(t.id, { cabId: c?.id ?? null, gabinete: c ? { nome: c.nome, resX: c.resX, resY: c.resY, dimW: c.dimW, dimH: c.dimH, peso: c.peso, pwrMax: c.pwrMax, pwrMed: c.pwrMed, fp: c.fp, conector: c.conector } : {} });
                     }} style={input()}>
                       {cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
+                    </Select>
                   </div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {["gab", "m"].map((k) => {
@@ -127,9 +128,9 @@ export default function ProjectDados({ project, patch, patchTela }) {
           <Field lbl="Fim" type="date" value={project.dataFim} onChange={(v) => patch({ dataFim: v })} />
           <div>
             <label style={label}>Status</label>
-            <select value={project.status} onChange={(e) => patch({ status: e.target.value, statusManual: true })} style={input()}>
+            <Select value={project.status} title="Status do projeto" onChange={(e) => patch({ status: e.target.value, statusManual: true })} style={input()}>
               {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.l}</option>)}
-            </select>
+            </Select>
           </div>
         </div>
         <label style={label}>Observações</label>

@@ -11,6 +11,7 @@ import { card, input, btn, iconBtn, dangerIconBtn } from "../ui/styles.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DropdownMenu from "../components/DropdownMenu.jsx";
+import Select from "../components/Select.jsx";
 import Drawer from "../components/Drawer.jsx";
 
 const EMPTY = { nome: "", marca: "", resX: "", resY: "", dimW: "", dimH: "", peso: "", pwrMax: "", pwrMed: "", pwrBlack: "", fp: "0.9", ip: "Indoor", brilho: "", receivingCard: "", conector: "PowerCON Azul/Branco", conectorCustom: "" };
@@ -101,20 +102,20 @@ export default function Inventory() {
       <div style={card({ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" })} className="m-controlbar">
         <input placeholder="Buscar por nome / modelo…" value={q} onChange={(e) => setQ(e.target.value)} style={input({ maxWidth: 280 })} />
         <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Ordenar</span>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input({ width: "auto" })}>
+        <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input({ width: "auto" })}>
           <option value="nome">Nome</option>
           <option value="marca">Marca</option>
           <option value="pitch">Pixel pitch</option>
           <option value="pwrMax">Potência</option>
-        </select>
+        </Select>
         <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Marca</span>
-        <select value={marcaFilter} onChange={(e) => setMarcaFilter(e.target.value)} style={input({ width: "auto" })}>
+        <Select value={marcaFilter} onChange={(e) => setMarcaFilter(e.target.value)} style={input({ width: "auto" })}>
           {brands.map((b) => <option key={b}>{b}</option>)}
-        </select>
+        </Select>
         <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>IP</span>
-        <select value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={input({ width: "auto" })}>
+        <Select value={ipFilter} onChange={(e) => setIpFilter(e.target.value)} style={input({ width: "auto" })}>
           <option>Todos</option><option>Indoor</option><option>Outdoor</option>
-        </select>
+        </Select>
         {!isMobile && <DropdownMenu label="Colunas" triggerLabel="Colunas" Icon={Columns3} items={COLS.map((c) => ({ label: c.label, active: !!cols[c.key], onClick: () => toggleCol(c.key) }))} />}
       </div>
 
@@ -245,7 +246,7 @@ export default function Inventory() {
                   <Field lbl="Fator de potência (FP)" type="number" value={d.fp} onChange={(v) => setField("fp", v)} />
                   <div>
                     <Label>Classe IP</Label>
-                    <select value={d.ip} onChange={(e) => setField("ip", e.target.value)} style={input()}><option>Indoor</option><option>Outdoor</option></select>
+                    <Select value={d.ip} onChange={(e) => setField("ip", e.target.value)} style={input()}><option>Indoor</option><option>Outdoor</option></Select>
                   </div>
                 </Grid2>
                 <Grid2>
@@ -254,9 +255,9 @@ export default function Inventory() {
                 </Grid2>
                 <div>
                   <Label>Conector de energia</Label>
-                  <select value={CONECTORES.includes(d.conector) ? d.conector : "Personalizado"} onChange={(e) => setField("conector", e.target.value)} style={input()}>
+                  <Select value={CONECTORES.includes(d.conector) ? d.conector : "Personalizado"} onChange={(e) => setField("conector", e.target.value)} style={input()}>
                     {CONECTORES.map((c) => <option key={c}>{c}</option>)}
-                  </select>
+                  </Select>
                 </div>
                 {d.conector === "Personalizado" && (
                   <Field lbl="Conector personalizado" ph="Descreva o conector" value={d.conectorCustom} onChange={(v) => setField("conectorCustom", v)} full />

@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.19.0] — 2026-07-12
+
+### Alterado
+- **Seletores (dropdowns) com a cara do app.** Os menus suspensos usavam o estilo padrão do navegador/sistema — no Android abriam aquela lista cinza com bolinha de rádio, destoando do resto do app. Agora todos abrem uma lista **temática** (folha deslizante no celular, popover ancorado no computador), no mesmo padrão dos seletores de data e hora: fundo escuro, cantos arredondados, opção atual em roxo com ✓. Vale pra todo o app — categoria do reembolso, tipo de diária, gabinete/status do projeto, controles de cabeamento e test card, filtros de gabinetes/projetos e as configurações. Novo componente `Select` reutilizável (`src/components/Select.jsx`); os campos fechados continuam iguais.
+
 ## [0.18.0] — 2026-07-12
 
 ### Adicionado

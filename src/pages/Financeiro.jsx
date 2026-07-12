@@ -13,6 +13,7 @@ import { T, PRINT } from "../ui/tokens.js";
 import { card, btn, input, label as lbl } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import { DateField } from "../components/PickerField.jsx";
+import Select from "../components/Select.jsx";
 
 const pad = (n) => String(n).padStart(2, "0");
 const isoOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -143,10 +144,10 @@ export default function Financeiro() {
           <div><div style={lbl}>Até</div><DateField value={range.to} onChange={setTo} /></div>
           <div>
             <div style={lbl}>Cliente</div>
-            <select value={cliente} onChange={(e) => setCliente(e.target.value)} style={input()}>
+            <Select value={cliente} title="Cliente" onChange={(e) => setCliente(e.target.value)} style={input()}>
               <option value="">Todos os clientes</option>
               {clientes.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            </Select>
           </div>
           <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: seu nome ou empresa" style={input()} /></div>
         </div>
