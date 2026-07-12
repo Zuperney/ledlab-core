@@ -1,10 +1,9 @@
 // App.jsx — shell: sidebar, topbar e navegação principal orientada por rota.
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, TriangleAlert, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, TriangleAlert, Eye, EyeOff } from "lucide-react";
 import { useLocation } from "wouter";
 import logo from "./assets/logo.png";
 import { NAV, SECTIONS, LABELS, VERSION, WHATS_NEW } from "./nav.js";
-import { onUpdateAvailable, applyUpdate } from "./services/swUpdate.js";
 import { useToast } from "./store/UIContext.jsx";
 import { useAuth } from "./store/AuthContext.jsx";
 import { T, FONT } from "./ui/tokens.js";
@@ -41,7 +40,7 @@ export default function App() {
   const page = PATH_TO_PAGE[location] || DEFAULT_PAGE;
   const Page = PAGES[page] || Dashboard;
   const isMobile = useIsMobile();
-  const { storageOk, projects, worklog, lastBackupAt, exportBackup } = useLedLabContext();
+  const { storageOk, projects, worklog, prefs, setPrefs, lastBackupAt, exportBackup } = useLedLabContext();
   const { user } = useAuth();
   const toast = useToast();
   const [backupNagOff, setBackupNagOff] = useState(false);
@@ -50,12 +49,11 @@ export default function App() {
   // não incomoda com backup local se está logado — a nuvem já é o backup
   const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff && !user;
   const doBackup = () => { exportBackup(); toast("Backup exportado"); };
-  const [updateReady, setUpdateReady] = useState(false);
+  // privacidade: esconde os valores em R$ (dashboard + diárias). Toggle no topbar (olho).
+  const ocultarValores = !!prefs.dashOcultarValor;
+  const toggleOcultar = () => setPrefs({ ...prefs, dashOcultarValor: !ocultarValores });
 
-  // avisa quando o service worker novo está pronto (banner "nova versão")
-  useEffect(() => onUpdateAvailable(setUpdateReady), []);
-
-  // logo após atualizar, mostra um toast com o que mudou (compara com a versão já vista)
+  // logo após a atualização (o SW/navegador troca sozinho), avisa só o que mudou
   useEffect(() => {
     const KEY = "ledlab.lastSeenVersion";
     let last = null;
@@ -97,10 +95,12 @@ export default function App() {
             <img src={logo} alt="" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }} />
             <h1 style={{ margin: 0, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{LABELS[page] || "LedLab Core"}</h1>
           </div>
-          <span style={{ flexShrink: 0, background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
+            <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
+          </div>
         </header>
         <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 12, paddingBottom: "calc(66px + env(safe-area-inset-bottom))" }}>
-          {updateReady && <UpdateBanner onApply={applyUpdate} />}
           {!storageOk && <StorageBanner />}
           {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={doBackup} onDismiss={() => setBackupNagOff(true)} />}
           <ErrorBoundary>
@@ -157,12 +157,12 @@ export default function App() {
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", borderBottom: `1px solid ${T.bd}` }}>
           <h1 style={{ margin: 0, fontSize: 18 }}>{LABELS[page]}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
             <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{VERSION}</span>
             <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.acc, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>D</div>
           </div>
         </header>
         <main style={{ flex: 1, overflowY: "auto", padding: 28 }}>
-          {updateReady && <UpdateBanner onApply={applyUpdate} />}
           {!storageOk && <StorageBanner />}
           {showBackupNag && <BackupReminder days={daysNoBackup} onBackup={doBackup} onDismiss={() => setBackupNagOff(true)} />}
           <ErrorBoundary>
@@ -174,14 +174,13 @@ export default function App() {
   );
 }
 
-// aviso "nova versão disponível" — o SW novo está esperando; clicar aplica e recarrega
-function UpdateBanner({ onApply }) {
+// olho de privacidade no topbar — esconde/mostra os valores em R$ (dashboard + diárias)
+function PrivacyEye({ on, onClick }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.sel, border: `1px solid ${T.acc}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: T.txt }}>
-      <RefreshCw size={16} color={T.acM} style={{ flexShrink: 0 }} />
-      <span style={{ flex: 1, minWidth: 0 }}><b>Nova versão disponível.</b> Toque em Atualizar para aplicar — seus dados são mantidos.</span>
-      <button onClick={onApply} style={{ flexShrink: 0, background: T.acc, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Atualizar</button>
-    </div>
+    <button onClick={onClick} aria-label={on ? "Mostrar valores" : "Ocultar valores"} title={on ? "Mostrar valores em R$" : "Ocultar valores em R$"}
+      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, background: on ? T.sel : "transparent", border: `1px solid ${on ? T.acc : T.bd}`, color: on ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
+      {on ? <EyeOff size={16} /> : <Eye size={16} />}
+    </button>
   );
 }
 

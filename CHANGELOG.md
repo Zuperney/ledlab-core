@@ -2,6 +2,12 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.16.0] — 2026-07-10
+
+### Alterado
+- **Ocultar valores em R$ agora esconde os cards inteiros** (em vez de mascarar com "R$ ••••"), no Dashboard e na aba de Cachês (Diárias) — pensado pra quando você mostra o app a um colega. Um **olho no topo** liga/desliga rápido (também fica em Configurações › Dashboard). Esconde o card de cachês do Dashboard e os valores do mês/dia nas Diárias.
+- **Aviso de atualização simplificado:** como o navegador/PWA já atualiza sozinho, tiramos o banner "Nova versão — Atualizar" e deixamos só o toast "Atualizado para vX — novidades" depois que atualiza.
+
 ## [0.15.2] — 2026-07-10
 
 ### Melhorado

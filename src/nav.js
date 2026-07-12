@@ -19,6 +19,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.15.2";
+export const VERSION = "v0.16.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "App fica 100% offline após a primeira carga (todos os módulos entram no cache).";
+export const WHATS_NEW = "Olho no topo esconde os valores em R$ no Dashboard e nas Diárias (pra mostrar o app sem expor o quanto ganha).";

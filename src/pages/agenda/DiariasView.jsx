@@ -8,6 +8,7 @@ import { useWorklog } from "../../hooks/useWorklog.js";
 import { useActivityTypes } from "../../hooks/useActivityTypes.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
+import { useLedLabContext } from "../../store/AppContext.jsx";
 import { getPosition, mapsUrl } from "../../services/geo.js";
 import { T } from "../../ui/tokens.js";
 import { card, input, btn, label as lbl } from "../../ui/styles.js";
@@ -37,6 +38,8 @@ export default function DiariasView() {
   const confirm = useConfirm();
   const toast = useToast();
   const isMobile = useIsMobile();
+  const { prefs } = useLedLabContext();
+  const ocultar = !!prefs.dashOcultarValor; // privacidade: esconde os R$ (toggle no topbar)
   const ativos = activityTypes.filter((t) => t.ativo);
 
   const now = new Date();
@@ -166,7 +169,7 @@ export default function DiariasView() {
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: isMobile ? 12 : 11, textTransform: "uppercase", color: T.mut }}>Total do mês</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: T.grn }}>{brl(mesTotal)}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: T.grn }}>{ocultar ? "•••" : brl(mesTotal)}</div>
         </div>
       </div>
 
@@ -217,11 +220,11 @@ export default function DiariasView() {
                 style={{ minHeight: isMobile ? 50 : 74, textAlign: "left", cursor: "pointer", background: T.card2, border: `1px solid ${isToday ? T.acc : T.bd}`, borderRadius: 8, padding: isMobile ? 4 : 5, display: "flex", flexDirection: "column", gap: isMobile ? 2 : 3, overflow: "hidden" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
                   <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 500, color: isToday ? T.acM : T.dim }}>{d}</span>
-                  {!isMobile && total > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: T.grn }}>{brl(total)}</span>}
+                  {!isMobile && total > 0 && !ocultar && <span style={{ fontSize: 9, fontWeight: 700, color: T.grn }}>{brl(total)}</span>}
                 </div>
                 {isMobile ? (
                   <>
-                    {total > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: T.grn, whiteSpace: "nowrap" }}>{brl(total)}</span>}
+                    {total > 0 && !ocultar && <span style={{ fontSize: 9, fontWeight: 700, color: T.grn, whiteSpace: "nowrap" }}>{brl(total)}</span>}
                     {itens.length > 0 && (
                       <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                         {itens.slice(0, 4).map((it, j) => (
@@ -252,7 +255,7 @@ export default function DiariasView() {
           onClose={() => { setDaySheet(null); setForm(null); }}
         >
           {!form ? (
-            <DayList dataRef={daySheet} data={totalDiaOf(daySheet)} onAdd={() => openNew(daySheet)} onEdit={openEdit} />
+            <DayList data={totalDiaOf(daySheet)} onAdd={() => openNew(daySheet)} onEdit={openEdit} ocultar={ocultar} />
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
               <button onClick={() => setForm(null)} style={{ ...btn("subtle"), alignSelf: "flex-start" }}><ArrowLeft size={14} /> Voltar ao dia</button>
@@ -354,7 +357,7 @@ export default function DiariasView() {
 const badgeAcc = { fontSize: 10, fontWeight: 700, color: T.acM, background: T.acc + "22", borderRadius: 999, padding: "1px 7px" };
 const badgeAmb = { fontSize: 10, fontWeight: 700, color: T.amb, background: T.amb + "22", borderRadius: 999, padding: "1px 7px" };
 
-function DayList({ data, onAdd, onEdit }) {
+function DayList({ data, onAdd, onEdit, ocultar }) {
   const { total, itens } = data;
   return (
     <div style={{ display: "grid", gap: 8 }}>
@@ -384,7 +387,7 @@ function DayList({ data, onAdd, onEdit }) {
                 {emAndamento
                   ? <span style={{ fontSize: 11, color: T.acM }}>em curso</span>
                   : it.cobrado
-                    ? <b style={{ color: T.grn }}>{brl(it.breakdown.total)}</b>
+                    ? <b style={{ color: T.grn }}>{ocultar ? "•••" : brl(it.breakdown.total)}</b>
                     : <span style={{ fontSize: 11, color: T.dim, border: `1px solid ${T.bd}`, borderRadius: 999, padding: "1px 8px" }}>não cobra</span>}
               </div>
             </button>
@@ -399,7 +402,7 @@ function DayList({ data, onAdd, onEdit }) {
       })}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
         <button style={btn("primary")} onClick={onAdd}><Plus size={15} /> Adicionar atividade</button>
-        {total > 0 && <span style={{ color: T.mut, fontSize: 13 }}>Total do dia: <b style={{ color: T.grn }}>{brl(total)}</b></span>}
+        {total > 0 && <span style={{ color: T.mut, fontSize: 13 }}>Total do dia: <b style={{ color: T.grn }}>{ocultar ? "•••" : brl(total)}</b></span>}
       </div>
     </div>
   );
