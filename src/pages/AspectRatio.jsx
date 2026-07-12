@@ -9,6 +9,7 @@ import { useLedLabContext } from "../store/AppContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import Select from "../components/Select.jsx";
+import NumField from "../components/NumField.jsx";
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
@@ -109,13 +110,13 @@ export default function AspectRatio() {
         )}
         {(!isMobile || controlsOpen) && (
         <div style={{ display: "flex", gap: 14, alignItems: "flex-end", flexWrap: "wrap" }}>
-          <div><label style={lbl}>Largura (px)</label><input type="number" value={w} onChange={(e) => setW(parseInt(e.target.value) || 0)} style={inp} /></div>
+          <div><label style={lbl}>Largura (px)</label><NumField value={w} onChange={(n) => setW(Math.max(0, n))} style={inp} /></div>
           <button onClick={swap} title="Trocar largura/altura" style={{ width: 38, height: 38, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 1 }}><ArrowLeftRight size={16} /></button>
-          <div><label style={lbl}>Altura (px)</label><input type="number" value={h} onChange={(e) => setH(parseInt(e.target.value) || 0)} style={inp} /></div>
+          <div><label style={lbl}>Altura (px)</label><NumField value={h} onChange={(n) => setH(Math.max(0, n))} style={inp} /></div>
           <div style={{ width: 1, height: 44, background: T.bd, margin: "0 6px" }} />
           <div><label style={lbl}>Gabinete</label><Select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={{ ...inp, width: 180 }}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select></div>
-          <div><label style={lbl}>Colunas</label><input type="number" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 78 }} /></div>
-          <div><label style={lbl}>Linhas</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 78 }} /></div>
+          <div><label style={lbl}>Colunas</label><NumField value={cols} onChange={(n) => setCols(Math.max(1, n))} style={{ ...inp, width: 78 }} /></div>
+          <div><label style={lbl}>Linhas</label><NumField value={rows} onChange={(n) => setRows(Math.max(1, n))} style={{ ...inp, width: 78 }} /></div>
           <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
         </div>
         )}

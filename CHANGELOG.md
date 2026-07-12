@@ -2,6 +2,12 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.19.2] — 2026-07-12
+
+### Corrigido
+- **Caixas de número mais fáceis de preencher.** Ao apagar o conteúdo de um campo numérico, a caixa agora fica **vazia** em vez de saltar pra "0" (era o que obrigava apagar o zero antes de digitar). O número só é gravado quando você digita algo válido; se sair da caixa vazia, aí sim vira 0. Vale pras dimensões das telas (colunas/linhas e largura/altura em metros) e pras grades do Diagramação, Test Cards e Aspect Ratio.
+- **Telas em metros não "estouram" mais os zeros.** No modo Metros, digitar no campo (ex.: sobre "3.00") embaralhava o valor — o campo se reformatava a cada tecla e chegava a virar 300.00. Agora ele respeita exatamente o que é digitado e só arredonda pro valor real (múltiplo inteiro de gabinete) quando você sai da caixa. Novo componente `NumField` reutilizável.
+
 ## [0.19.1] — 2026-07-12
 
 ### Corrigido

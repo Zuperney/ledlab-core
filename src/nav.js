@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.19.1";
+export const VERSION = "v0.19.2";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Telas do projeto: a cópia entra no topo (não mais no fim) e dá pra reordenar as telas com as setas ↑/↓.";
+export const WHATS_NEW = "Caixas de número: apagar deixa a caixa vazia (não salta pra 0), e o campo em metros das telas parou de estourar os zeros (3.00 → 300.00).";

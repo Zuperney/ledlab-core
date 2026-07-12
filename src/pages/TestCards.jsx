@@ -6,6 +6,7 @@ import { card } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import ProjectTestCard from "./project/ProjectTestCard.jsx";
 import Select from "../components/Select.jsx";
+import NumField from "../components/NumField.jsx";
 
 export default function TestCards() {
   const { projects, cabs } = useLedLabContext();
@@ -36,8 +37,8 @@ export default function TestCards() {
         ) : (
           <>
             <Select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={inp}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select>
-            <label style={{ color: T.mut, fontSize: 12 }}>Cols <input type="number" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 70, marginLeft: 6 }} /></label>
-            <label style={{ color: T.mut, fontSize: 12 }}>Linhas <input type="number" value={rows} onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, width: 70, marginLeft: 6 }} /></label>
+            <label style={{ color: T.mut, fontSize: 12 }}>Cols <NumField value={cols} onChange={(n) => setCols(Math.max(1, n))} style={{ ...inp, width: 70, marginLeft: 6 }} /></label>
+            <label style={{ color: T.mut, fontSize: 12 }}>Linhas <NumField value={rows} onChange={(n) => setRows(Math.max(1, n))} style={{ ...inp, width: 70, marginLeft: 6 }} /></label>
           </>
         )}
       </div>

@@ -11,6 +11,7 @@ import { card, input, label, btn, iconBtn, dangerIconBtn } from "../../ui/styles
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { DateField } from "../../components/PickerField.jsx";
 import Select from "../../components/Select.jsx";
+import NumField from "../../components/NumField.jsx";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, favCab } = useCabinets();
@@ -116,13 +117,13 @@ export default function ProjectDados({ project, patch, patchTela }) {
                   </div>
                   {usaM ? (
                     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                      <Field lbl="Largura (m)" type="number" value={larguraM ? larguraM.toFixed(2) : ""} onChange={(v) => setCols(Math.round((parseFloat(v) || 0) * 1000 / dW))} />
-                      <Field lbl="Altura (m)" type="number" value={alturaM ? alturaM.toFixed(2) : ""} onChange={(v) => setRows(Math.round((parseFloat(v) || 0) * 1000 / dH))} />
+                      <NumField lbl="Largura (m)" fmt="dec2" value={larguraM} onChange={(m) => setCols(Math.round(m * 1000 / dW))} />
+                      <NumField lbl="Altura (m)" fmt="dec2" value={alturaM} onChange={(m) => setRows(Math.round(m * 1000 / dH))} />
                     </div>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                      <Field lbl="Colunas" type="number" value={t.cols} onChange={(v) => setCols(parseInt(v) || 0)} />
-                      <Field lbl="Linhas" type="number" value={t.rows} onChange={(v) => setRows(parseInt(v) || 0)} />
+                      <NumField lbl="Colunas" value={t.cols} onChange={setCols} />
+                      <NumField lbl="Linhas" value={t.rows} onChange={setRows} />
                     </div>
                   )}
                   <div style={{ color: T.dim, fontSize: 12, marginTop: -4, overflowWrap: "anywhere" }}>
