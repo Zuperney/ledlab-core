@@ -26,7 +26,7 @@ export const input = (extra = {}) => ({
   border: `1px solid ${T.bd}`,
   borderRadius: 8,
   padding: "9px 12px",
-  fontSize: 14,
+  fontSize: 16, // ≥16px evita o zoom automático do Safari iOS ao focar o input
   fontFamily: FONT,
   outline: "none",
   boxSizing: "border-box",

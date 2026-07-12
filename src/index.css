@@ -75,6 +75,10 @@ body {
   @page { margin: 14mm; }
 }
 
+/* iOS: input/select/textarea com font-size < 16px dispara zoom automático ao focar
+   no Safari. Garante o mínimo globalmente (rede de segurança; os estilos inline já usam 16). */
+input, select, textarea { font-size: 16px; }
+
 /* ── react-datepicker: input igual ao app + tema escuro (ver components/PickerField.jsx) ── */
 .ll-dp-wrap { width: 100%; display: block; }
 .react-datepicker__input-container { width: 100%; }
@@ -86,7 +90,7 @@ body {
   border: 1px solid #2d2d4e;  /* T.bd */
   border-radius: 8px;
   padding: 9px 12px;
-  font-size: 14px;
+  font-size: 16px;           /* ≥16px: evita o zoom automático do iOS ao focar */
   font-family: system-ui, sans-serif;
   outline: none;
 }

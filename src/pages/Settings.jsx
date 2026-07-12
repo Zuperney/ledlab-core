@@ -400,7 +400,7 @@ function fmtAgo(ms) {
 
 const mTitle = { color: T.txt, fontWeight: 600, fontSize: 14 };
 const mDesc = { color: T.dim, fontSize: 12 };
-const selStyle = { width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 14 };
+const selStyle = { width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 16 };
 const subLabel = { color: T.txt, fontWeight: 600, fontSize: 13.5, marginBottom: 2 };
 const subDesc = { color: T.dim, fontSize: 12.5, marginBottom: 8 };
 const rowStyle = (first) => ({ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 0", borderTop: first ? "none" : `1px solid ${T.bd}`, flexWrap: "wrap" });

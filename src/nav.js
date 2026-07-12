@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.17.1";
+export const VERSION = "v0.17.2";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Corrige o topo escondido atrás da barra de status no iPhone (safe-area).";
+export const WHATS_NEW = "Corrige o zoom automático do iOS ao tocar nos campos de texto.";

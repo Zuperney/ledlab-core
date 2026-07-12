@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.17.2] — 2026-07-12
+
+### Corrigido
+- **iOS: zoom automático ao focar campos.** O Safari dava zoom toda vez que se tocava num input/select (exigindo pinça pra voltar — bem frustrante ao demonstrar o app). Padronizamos todos os campos com `font-size ≥ 16px` (input, select, date/time picker, busca, diálogos) — o iOS só dá zoom abaixo de 16px. O pinça-zoom manual continua ativo (acessibilidade preservada).
+
 ## [0.17.1] — 2026-07-12
 
 ### Corrigido

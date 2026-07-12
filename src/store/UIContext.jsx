@@ -53,7 +53,7 @@ function PromptDialog({ dialog, onClose }) {
         {dialog.message && <p style={{ margin: "0 0 12px", color: T.mut, fontSize: 13 }}>{dialog.message}</p>}
         <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder={dialog.placeholder}
           onKeyDown={(e) => { if (e.key === "Enter") onClose(val); if (e.key === "Escape") onClose(null); }}
-          style={{ width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 14, outline: "none" }} />
+          style={{ width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 16, outline: "none" }} />
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
           <button style={btn("subtle")} onClick={() => onClose(null)}>Cancelar</button>
           <button style={btn("ghost", { background: T.acc, color: "#fff", borderColor: T.acc })} onClick={() => onClose(val)}>OK</button>
