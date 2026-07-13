@@ -45,16 +45,6 @@ const STD = [
   { name: "Quadrado HD", w: 1080, h: 1080, ar: "1:1" },
 ];
 
-// resoluções de FONTE comuns p/ o cálculo de crop (media server / processador de vídeo)
-const SRC_PRESETS = [
-  { id: "fhd", name: "Full HD 1080p", w: 1920, h: 1080 },
-  { id: "uhd4k", name: "4K UHD", w: 3840, h: 2160 },
-  { id: "hd720", name: "HD 720p", w: 1280, h: 720 },
-  { id: "dci4k", name: "DCI 4K", w: 4096, h: 2160 },
-  { id: "wuxga", name: "WUXGA", w: 1920, h: 1200 },
-  { id: "uhd8k", name: "8K UHD", w: 7680, h: 4320 },
-];
-
 export default function AspectRatio() {
   const { cabs } = useLedLabContext();
   const isMobile = useIsMobile();
@@ -71,7 +61,6 @@ export default function AspectRatio() {
 
   const W = Math.max(1, Math.round(w) || 1), H = Math.max(1, Math.round(h) || 1);
   const dec = W / H;
-  const mp = (W * H) / 1e6;
   const orient = dec > 1.02 ? "Paisagem" : dec < 0.98 ? "Retrato" : "Quadrado";
   const named = NAMED.reduce((a, b) => (Math.abs(b[1] - dec) < Math.abs(a[1] - dec) ? b : a));
   const namedExact = Math.abs(named[1] - dec) < 0.005;
@@ -86,8 +75,6 @@ export default function AspectRatio() {
   const cropSlack = fc.axis === "x" ? fc.slackX : fc.axis === "y" ? fc.slackY : 0;
   const cropOff = fc.axis === "x" ? fc.x : fc.axis === "y" ? fc.y : 0;
   const setCropOff = (px) => setOffFrac(cropSlack > 0 ? Math.min(1, Math.max(0, px / cropSlack)) : 0.5);
-  const srcPresetId = SRC_PRESETS.find((p) => p.w === SW && p.h === SH)?.id || "";
-  const applySrc = (id) => { const p = SRC_PRESETS.find((x) => x.id === id); if (p) { setSw(p.w); setSh(p.h); } };
 
   const seedPanel = () => {
     const c = cabs.find((x) => x.id === cabId) || cabs[0]; if (!c) return;
@@ -100,12 +87,14 @@ export default function AspectRatio() {
   const stat = (l, v, c) => (<div><div style={{ fontSize: 10, textTransform: "uppercase", color: T.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c || T.txt }}>{v}</div></div>);
   const cellTd = { padding: "8px 10px", borderBottom: `1px solid ${T.bd}` };
 
-  // preview: painel (preenchido) vs referência 16:9/9:16 (tracejada), mesma altura
-  const boxW = 460, boxH = 240, pad = 20;
-  const ref = dec >= 1 ? 16 / 9 : 9 / 16;
-  const h0 = Math.min(boxH - pad * 2, (boxW - pad * 2) / Math.max(dec, ref));
-  const pr = { w: h0 * dec, h: h0 }, rr = { w: h0 * ref, h: h0 };
-  const cx = boxW / 2, cy = boxH / 2;
+  // visualização do crop: a FONTE (X + círculo no centro) com a janela de crop revelando a parte usada
+  const boxW = 460, boxH = 240, vpad = 18;
+  const vscale = Math.min((boxW - vpad * 2) / SW, (boxH - vpad * 2) / SH); // escala fonte → svg
+  const svW = SW * vscale, svH = SH * vscale;
+  const svX = (boxW - svW) / 2, svY = (boxH - svH) / 2;
+  const cwv = fc.cropW * vscale, chv = fc.cropH * vscale; // janela do crop em coords do svg
+  const cxv = svX + fc.x * vscale, cyv = svY + fc.y * vscale;
+  const clampSvg = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
   const tile = (name) => {
     const r = NAMED.find((n) => n[0] === name)[1];
@@ -151,7 +140,6 @@ export default function AspectRatio() {
           {stat("Decimal", `${dec.toFixed(3)}:1`)}
           {stat("Formato", `${namedExact ? "" : "≈ "}${named[0]}`, namedExact ? T.grn : T.txt)}
           {stat("Resolução", `${W} × ${H}`)}
-          {stat("Pixels", `${mp.toFixed(2)} Mpx`)}
           {stat("Orientação", orient)}
         </div>
       </div>
@@ -161,12 +149,8 @@ export default function AspectRatio() {
         <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Crop / encaixe de vídeo</div>
         <div style={{ color: T.dim, fontSize: 12, marginBottom: 14 }}>Como uma fonte de vídeo entra na sua tela <b style={{ color: T.mut }}>{W}×{H}</b> ({friendly(W, H)}): encaixando (mostra tudo, com barras) ou preenchendo (enche a tela, cortando a fonte).</div>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>
-          <div><label style={lbl}>Fonte — largura</label><NumField value={sw} onChange={(n) => setSw(Math.max(0, n))} style={{ ...inp, width: 110 }} /></div>
-          <div><label style={lbl}>Fonte — altura</label><NumField value={sh} onChange={(n) => setSh(Math.max(0, n))} style={{ ...inp, width: 110 }} /></div>
-          <div><label style={lbl}>Preset</label><Select value={srcPresetId} onChange={(e) => applySrc(e.target.value)} style={{ ...inp, width: 190 }}>
-            <option value="">Personalizado</option>
-            {SRC_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.w}×{p.h})</option>)}
-          </Select></div>
+          <div><label style={lbl}>Fonte — largura</label><NumField value={sw} onChange={(n) => setSw(Math.max(0, n))} style={{ ...inp, width: 120 }} /></div>
+          <div><label style={lbl}>Fonte — altura</label><NumField value={sh} onChange={(n) => setSh(Math.max(0, n))} style={{ ...inp, width: 120 }} /></div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
           <div style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 14 }}>
@@ -201,13 +185,29 @@ export default function AspectRatio() {
         <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Visualização</div>
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "center" }}>
           <svg viewBox={`0 0 ${boxW} ${boxH}`} width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, maxWidth: "100%", height: "auto" }}>
-            <rect x={cx - rr.w / 2} y={cy - rr.h / 2} width={rr.w} height={rr.h} fill="none" stroke={T.dim2} strokeWidth={1.5} strokeDasharray="5 4" />
-            <rect x={cx - pr.w / 2} y={cy - pr.h / 2} width={pr.w} height={pr.h} rx={3} fill={T.acc + "33"} stroke={T.acc} strokeWidth={2} />
-            <text x={cx} y={cy - 5} fill={T.txt} fontSize={16} fontWeight="800" textAnchor="middle">{friendly(W, H)}</text>
-            <text x={cx} y={cy + 15} fill={T.mut} fontSize={12} textAnchor="middle">{W} × {H}</text>
+            {/* fonte: fundo + conteúdo de referência (X nas diagonais + círculo no centro) */}
+            <rect x={svX} y={svY} width={svW} height={svH} rx={3} fill="#0d0d1a" stroke={T.dim2} strokeWidth={1} />
+            <line x1={svX} y1={svY} x2={svX + svW} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
+            <line x1={svX + svW} y1={svY} x2={svX} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
+            <circle cx={svX + svW / 2} cy={svY + svH / 2} r={Math.min(svW, svH) * 0.4} fill="none" stroke={T.dim} strokeWidth={1.2} />
+            {/* escurece o que fica FORA do crop (a parte que fica escondida) */}
+            <g fill="rgba(13,13,26,0.76)">
+              <rect x={svX} y={svY} width={Math.max(0, cxv - svX)} height={svH} />
+              <rect x={cxv + cwv} y={svY} width={Math.max(0, svX + svW - (cxv + cwv))} height={svH} />
+              <rect x={cxv} y={svY} width={cwv} height={Math.max(0, cyv - svY)} />
+              <rect x={cxv} y={cyv + chv} width={cwv} height={Math.max(0, svY + svH - (cyv + chv))} />
+            </g>
+            {/* linha tracejada na posição do deslocamento */}
+            {fc.axis === "x" && <line x1={cxv} y1={svY} x2={cxv} y2={svY + svH} stroke={T.acM} strokeWidth={1} strokeDasharray="4 3" />}
+            {fc.axis === "y" && <line x1={svX} y1={cyv} x2={svX + svW} y2={cyv} stroke={T.acM} strokeWidth={1} strokeDasharray="4 3" />}
+            {/* janela do crop (área revelada) + rótulos */}
+            <rect x={cxv} y={cyv} width={cwv} height={chv} fill="none" stroke={T.acc} strokeWidth={2} />
+            <text x={clampSvg(cxv + cwv / 2, svX + 30, svX + svW - 30)} y={cyv + chv / 2 + 4} fill="#fff" fontSize={12} fontWeight="700" textAnchor="middle">{fc.cropW}×{fc.cropH}</text>
+            {fc.axis && <text x={svX + 5} y={svY + 13} fill={T.acM} fontSize={11} fontWeight="700">desloc. {fc.axis} {fc.axis === "x" ? fc.x : fc.y}px</text>}
+            <text x={svX + svW - 5} y={svY + svH - 6} fill={T.mut} fontSize={10} textAnchor="end">fonte {SW}×{SH}</text>
           </svg>
           <div>
-            <div style={{ color: T.dim, fontSize: 12, marginBottom: 10 }}>Formatos <span style={{ color: T.dim2 }}>(tracejado no preview = {dec >= 1 ? "16:9" : "9:16"})</span></div>
+            <div style={{ color: T.dim, fontSize: 12, marginBottom: 10 }}>A janela roxa mostra o que aparece na tela; o resto da fonte fica escondido. Formatos padrão (destaca o aspecto da sua tela):</div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{TILES.map(tile)}</div>
           </div>
         </div>

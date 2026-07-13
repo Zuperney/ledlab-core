@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.9] — 2026-07-13
+
+### Alterado
+- **Aspect Ratio mais enxuto e visual.** Removido o seletor de presets de fonte (é quase sempre 1920×1080 — ficaram só os dois campos de largura/altura) e o stat de "Pixels". A **visualização agora mostra o crop de verdade**: a fonte com um X (diagonais) e um círculo no centro, a **janela de crop revelando** a parte que entra na tela (o resto escurece) e uma **linha tracejada com o valor do deslocamento** — dá pra ver na hora como a imagem fica ao deslocar em X/Y.
+
 ## [0.20.8] — 2026-07-13
 
 ### Melhorado
