@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.19.3] — 2026-07-13
+
+### Corrigido
+- **Test Card: a caixa de informações não some mais em telas pequenas nem é cortada em telas estreitas.** A fonte da caixa era proporcional só à **altura** da tela — então em telas pequenas ela virava minúscula (ilegível) e em telas estreitas e altas a caixa ficava mais larga que o canvas e era cortada na borda. Agora a fonte é proporcional à **área** (equilibrada) e **encolhe até a caixa caber inteira** no canvas, com margem — a info fica legível e dentro dos limites em qualquer formato de tela.
+
 ## [0.19.2] — 2026-07-12
 
 ### Corrigido

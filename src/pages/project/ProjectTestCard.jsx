@@ -107,28 +107,35 @@ function draw(canvas, tela, o, mapPorts, cablePal) {
     });
   }
 
-  // caixa de info
+  // caixa de info — fonte proporcional (equilibrada por área, não só pela altura) e
+  // reduzida até a caixa caber no canvas, pra a info não sumir/cortar em telas
+  // pequenas (fonte minúscula) ou estreitas e altas (caixa mais larga que o canvas).
   if (o.info) {
     const lines = [tela.nome, `${W} x ${H} px`, `${cols} × ${rows} = ${cols * rows} gab`, `pitch ${(parseFloat(g.dimW) / resX).toFixed(2)} mm`, `${(cols * parseFloat(g.dimW) / 1000).toFixed(2)} x ${(rows * parseFloat(g.dimH) / 1000).toFixed(2)} m`];
-    const fs = H * 0.03, pad = fs * 0.6;
+    const text = lines.join("   ·   ");
+    const boxAt = (size) => {
+      ctx.font = `600 ${size}px ui-monospace, monospace`;
+      const pad = size * 0.6;
+      const bw = (o.infoInline ? ctx.measureText(text).width : Math.max(...lines.map((l) => ctx.measureText(l).width))) + pad * 2;
+      const bh = o.infoInline ? size * 1.8 : lines.length * size * 1.3 + pad;
+      return { bw, bh, pad };
+    };
+    let fs = Math.pow(W * H, 0.25) * 0.8; // ≈ altura×0.03 nas telas normais; relativamente maior nas pequenas
+    let b = boxAt(fs);
+    const fit = Math.min(1, (W * 0.9) / b.bw, (H * 0.9) / b.bh); // encolhe a fonte até a caixa caber
+    if (fit < 1) { fs *= fit; b = boxAt(fs); }
     ctx.font = `600 ${fs}px ui-monospace, monospace`;
     const center = o.infoPos === "centro";
     const top = o.infoPos.startsWith("sup"), left = o.infoPos.endsWith("esq");
+    const bx = center ? (W - b.bw) / 2 : left ? b.pad : W - b.bw - b.pad;
+    const by = center ? (H - b.bh) / 2 : top ? b.pad : H - b.bh - b.pad;
+    ctx.fillStyle = "rgba(0,0,0,0.72)"; ctx.fillRect(bx, by, b.bw, b.bh);
+    ctx.fillStyle = "#fff";
     if (o.infoInline) {
-      const text = lines.join("   ·   ");
-      const bw = ctx.measureText(text).width + pad * 2, bh = fs * 1.8;
-      const bx = center ? (W - bw) / 2 : left ? pad : W - bw - pad;
-      const by = center ? (H - bh) / 2 : top ? pad : H - bh - pad;
-      ctx.fillStyle = "rgba(0,0,0,0.72)"; ctx.fillRect(bx, by, bw, bh);
-      ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(text, bx + pad, by + bh / 2);
+      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(text, bx + b.pad, by + b.bh / 2);
     } else {
-      const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + pad * 2;
-      const bh = lines.length * fs * 1.3 + pad;
-      const bx = center ? (W - bw) / 2 : left ? pad : W - bw - pad;
-      const by = center ? (H - bh) / 2 : top ? pad : H - bh - pad;
-      ctx.fillStyle = "rgba(0,0,0,0.72)"; ctx.fillRect(bx, by, bw, bh);
-      ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.textBaseline = "top";
-      lines.forEach((l, i) => ctx.fillText(l, bx + pad, by + pad / 2 + i * fs * 1.3));
+      ctx.textAlign = "left"; ctx.textBaseline = "top";
+      lines.forEach((l, i) => ctx.fillText(l, bx + b.pad, by + b.pad / 2 + i * fs * 1.3));
     }
   }
 }

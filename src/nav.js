@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.19.2";
+export const VERSION = "v0.19.3";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Caixas de número: apagar deixa a caixa vazia (não salta pra 0), e o campo em metros das telas parou de estourar os zeros (3.00 → 300.00).";
+export const WHATS_NEW = "Test Card: a caixa de informações não some mais em telas pequenas nem é cortada em telas estreitas/altas.";
