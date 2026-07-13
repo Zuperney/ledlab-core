@@ -4,7 +4,7 @@
 // automático (envolve todas as telas) e a exportação gera UM PNG com o test card de cada
 // tela na sua posição — ótimo pra telas pequenas (vê todas juntas num render só).
 import { useRef, useState, useMemo, useEffect } from "react";
-import { Download, LayoutGrid, Move } from "lucide-react";
+import { Download, LayoutGrid, Move, Copy } from "lucide-react";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useToast } from "../../store/UIContext.jsx";
@@ -167,6 +167,18 @@ export default function ProjectComposicao({ project, patch }) {
     toast("Composição exportada (PNG)");
   };
 
+  // copia as regiões de crop (canvas = fonte; cada tela é um retângulo x/y/larg/alt)
+  const copyRegions = () => {
+    const lines = [`Composição ${project.name || ""} — canvas ${Math.round(bbox.w)}×${Math.round(bbox.h)} px`.trim()];
+    for (const t of telas) {
+      const p = positions[t.id], d = dimOf(t);
+      lines.push(`${t.nome}: x ${Math.round(p.x - bbox.minX)} · y ${Math.round(p.y - bbox.minY)} · ${d.w}×${d.h}`);
+    }
+    const text = lines.join("\n");
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => toast("Regiões copiadas")).catch(() => toast("Não foi possível copiar"));
+    else toast("Copiar indisponível neste navegador");
+  };
+
   const styleBtn = (on) => ({ ...btn(on ? "primary" : "ghost", { padding: "7px 12px", fontSize: 13 }) });
 
   return (
@@ -236,9 +248,13 @@ export default function ProjectComposicao({ project, patch }) {
         </div>
       </div>
 
-      {/* posição numérica por tela */}
+      {/* posição / regiões de crop por tela */}
       <div style={card({ marginTop: 14, padding: 12 })}>
-        <div style={{ ...lbl, marginBottom: 10 }}>Posição das telas (px)</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          <div style={lbl}>Posição / crop das telas</div>
+          <button onClick={copyRegions} style={btn("ghost", { padding: "6px 11px", fontSize: 12.5 })}><Copy size={14} /> Copiar regiões</button>
+        </div>
+        <div style={{ color: T.dim, fontSize: 12, marginBottom: 10 }}>Canvas de fonte <b style={{ color: T.mut }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px</b>. Cada tela é uma região (x · y · largura × altura) pra usar no processador/media server.</div>
         <div style={{ display: "grid", gap: 8 }}>
           {telas.map((t) => {
             const p = positions[t.id], d = dimOf(t);

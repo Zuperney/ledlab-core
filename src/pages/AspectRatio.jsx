@@ -44,6 +44,16 @@ const STD = [
   { name: "Quadrado HD", w: 1080, h: 1080, ar: "1:1" },
 ];
 
+// resoluções de FONTE comuns p/ o cálculo de crop (media server / processador de vídeo)
+const SRC_PRESETS = [
+  { id: "fhd", name: "Full HD 1080p", w: 1920, h: 1080 },
+  { id: "uhd4k", name: "4K UHD", w: 3840, h: 2160 },
+  { id: "hd720", name: "HD 720p", w: 1280, h: 720 },
+  { id: "dci4k", name: "DCI 4K", w: 4096, h: 2160 },
+  { id: "wuxga", name: "WUXGA", w: 1920, h: 1200 },
+  { id: "uhd8k", name: "8K UHD", w: 7680, h: 4320 },
+];
+
 export default function AspectRatio() {
   const { cabs } = useLedLabContext();
   const isMobile = useIsMobile();
@@ -54,6 +64,8 @@ export default function AspectRatio() {
   const [cabId, setCabId] = useState(cabs[0]?.id);
   const [cols, setCols] = useState(8);
   const [rows, setRows] = useState(6);
+  const [sw, setSw] = useState(1920); // fonte de vídeo p/ o cálculo de crop
+  const [sh, setSh] = useState(1080);
 
   const W = Math.max(1, Math.round(w) || 1), H = Math.max(1, Math.round(h) || 1);
   const dec = W / H;
@@ -62,6 +74,18 @@ export default function AspectRatio() {
   const named = NAMED.reduce((a, b) => (Math.abs(b[1] - dec) < Math.abs(a[1] - dec) ? b : a));
   const namedExact = Math.abs(named[1] - dec) < 0.005;
   const nearestRes = STD.reduce((a, b) => (Math.abs(b.w * b.h - W * H) < Math.abs(a.w * a.h - W * H) ? b : a));
+
+  // crop / encaixe de vídeo: fonte (SW×SH) → tela (W×H)
+  const SW = Math.max(1, Math.round(sw) || 1), SH = Math.max(1, Math.round(sh) || 1);
+  const kFit = Math.min(W / SW, H / SH); // "encaixar" (contain): mostra tudo, cria barras
+  const fitW = Math.round(SW * kFit), fitH = Math.round(SH * kFit);
+  const barX = Math.round((W - fitW) / 2), barY = Math.round((H - fitH) / 2);
+  const kFill = Math.max(W / SW, H / SH); // "preencher" (cover): enche a tela, corta a fonte
+  const cropW = Math.round(W / kFill), cropH = Math.round(H / kFill);
+  const cropX = Math.round((SW - cropW) / 2), cropY = Math.round((SH - cropH) / 2);
+  const cutX = SW - cropW, cutY = SH - cropH;
+  const srcPresetId = SRC_PRESETS.find((p) => p.w === SW && p.h === SH)?.id || "";
+  const applySrc = (id) => { const p = SRC_PRESETS.find((x) => x.id === id); if (p) { setSw(p.w); setSh(p.h); } };
 
   const seedPanel = () => {
     const c = cabs.find((x) => x.id === cabId) || cabs[0]; if (!c) return;
@@ -127,6 +151,37 @@ export default function AspectRatio() {
           {stat("Resolução", `${W} × ${H}`)}
           {stat("Pixels", `${mp.toFixed(2)} Mpx`)}
           {stat("Orientação", orient)}
+        </div>
+      </div>
+
+      {/* CROP / ENCAIXE DE VÍDEO */}
+      <div style={card({ marginBottom: 16 })}>
+        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Crop / encaixe de vídeo</div>
+        <div style={{ color: T.dim, fontSize: 12, marginBottom: 14 }}>Como uma fonte de vídeo entra na sua tela <b style={{ color: T.mut }}>{W}×{H}</b> ({friendly(W, H)}): encaixando (mostra tudo, com barras) ou preenchendo (enche a tela, cortando a fonte).</div>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>
+          <div><label style={lbl}>Fonte — largura</label><NumField value={sw} onChange={(n) => setSw(Math.max(0, n))} style={{ ...inp, width: 110 }} /></div>
+          <div><label style={lbl}>Fonte — altura</label><NumField value={sh} onChange={(n) => setSh(Math.max(0, n))} style={{ ...inp, width: 110 }} /></div>
+          <div><label style={lbl}>Preset</label><Select value={srcPresetId} onChange={(e) => applySrc(e.target.value)} style={{ ...inp, width: 190 }}>
+            <option value="">Personalizado</option>
+            {SRC_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.w}×{p.h})</option>)}
+          </Select></div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
+          <div style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ color: T.acM, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Encaixar · mostra tudo</div>
+            <div style={{ fontSize: 13, color: T.txt, lineHeight: 1.7 }}>
+              <div>Conteúdo: <b style={{ fontFamily: "ui-monospace,monospace" }}>{fitW} × {fitH}</b> · escala {(kFit * 100).toFixed(1)}%</div>
+              <div style={{ color: T.mut }}>{barX > 0 ? `Barras: ${barX}px nas laterais (pillarbox)` : barY > 0 ? `Barras: ${barY}px topo e base (letterbox)` : "Sem barras — mesmo aspecto"}</div>
+            </div>
+          </div>
+          <div style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ color: T.acM, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Preencher · corta</div>
+            <div style={{ fontSize: 13, color: T.txt, lineHeight: 1.7 }}>
+              <div>Recorte da fonte: <b style={{ fontFamily: "ui-monospace,monospace" }}>{cropW} × {cropH}</b> · escala {(kFill * 100).toFixed(1)}%</div>
+              <div style={{ color: T.mut }}>Região centrada: <span style={{ fontFamily: "ui-monospace,monospace", color: T.txt }}>x {cropX} · y {cropY}</span></div>
+              <div style={{ color: T.mut }}>{cutX > 0 ? `Corta ${Math.round(cutX / 2)}px de cada lado` : cutY > 0 ? `Corta ${Math.round(cutY / 2)}px topo e base` : "Nada cortado — mesmo aspecto"}</div>
+            </div>
+          </div>
         </div>
       </div>
 

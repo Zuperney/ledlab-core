@@ -2,6 +2,12 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.7] — 2026-07-13
+
+### Adicionado
+- **Crop / encaixe de vídeo (Aspect Ratio).** Informe a resolução da fonte (ou escolha um preset — Full HD, 4K UHD, 720p, DCI 4K, WUXGA, 8K) e veja como ela entra na sua tela: **encaixar** (mostra tudo, com barras — pillarbox/letterbox, quantos px e a escala) ou **preencher** (enche a tela cortando a fonte — o recorte em px, a região central e quanto corta de cada lado).
+- **Regiões de crop na Composição.** A aba Composição passou a tratar o canvas como a **fonte de vídeo** e lista a região de cada tela (x · y · largura × altura), com um botão **Copiar regiões** — pronto pra colar no processador/media server (base pro export de slices do Resolume, fase 2).
+
 ## [0.20.6] — 2026-07-13
 
 ### Alterado

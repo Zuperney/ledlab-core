@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.6";
+export const VERSION = "v0.20.7";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Projetos: a aba Relatório passou pra antes do Test Card (o TC ficou junto da Composição, pra campo/quando pedirem).";
+export const WHATS_NEW = "Cálculo de crop pra vídeo: encaixe/preenchimento no Aspect Ratio + regiões de crop copiáveis na Composição.";
