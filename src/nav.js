@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.5";
+export const VERSION = "v0.20.6";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "O aviso de novidades agora é um modal que você fecha quando quiser (antes era um toast que sumia rápido).";
+export const WHATS_NEW = "Projetos: a aba Relatório passou pra antes do Test Card (o TC ficou junto da Composição, pra campo/quando pedirem).";

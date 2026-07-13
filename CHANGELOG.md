@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.6] — 2026-07-13
+
+### Alterado
+- **Ordem das abas do projeto.** "Relatório" agora vem **antes** do "Test Card" — o relatório é o entregável do dia a dia, enquanto o test card serve mais pra campo/quando pedirem (fica junto da Composição, no fim). Nova ordem: Dados › Energia (AC) › Cabeamento › Relatório › Test Card › Composição.
+
 ## [0.20.5] — 2026-07-13
 
 ### Alterado

@@ -19,9 +19,9 @@ const TABS = [
   { id: "dados", label: "Dados", Icon: Folder, Comp: ProjectDados },
   { id: "energia", label: "Energia (AC)", Icon: Zap, Comp: ProjectEnergia },
   { id: "cabeamento", label: "Cabeamento", Icon: GitBranch, Comp: ProjectCabeamento },
+  { id: "relatorio", label: "Relatório", Icon: FileText, Comp: ProjectRelatorio },
   { id: "testcard", label: "Test Card", Icon: Monitor, Comp: ProjectTestCard },
   { id: "composicao", label: "Composição", Icon: LayoutGrid, Comp: ProjectComposicao },
-  { id: "relatorio", label: "Relatório", Icon: FileText, Comp: ProjectRelatorio },
 ];
 
 export default function ProjectDetail({ project, onBack }) {
