@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.0";
+export const VERSION = "v0.20.1";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Nova aba Composição: monte várias telas num render só (arraste pra posicionar + Exportar PNG), tipo mapeamento de slices.";
+export const WHATS_NEW = "Corrigido: escolher/trocar o gabinete de uma tela voltou a funcionar (e o modo Metros junto).";

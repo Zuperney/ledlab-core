@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.1] — 2026-07-13
+
+### Corrigido
+- **Selecionar/trocar o gabinete de uma tela voltou a funcionar** (aba Projetos › Dados). Depois da migração dos dropdowns (v0.19.0), escolher um gabinete gravava "sem gabinete" — o dropdown novo entregava o id do gabinete como número e o código comparava com texto (`String(id) === valor`), então nunca encontrava e zerava a seleção. Isso também deixava o modo **Metros** inacessível (sem gabinete não há dimensão pra converter). Agora o dropdown entrega o valor sempre como texto, igual ao `<select>` nativo — vale pra todos os seletores do app.
+
 ## [0.20.0] — 2026-07-13
 
 ### Adicionado

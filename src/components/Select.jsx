@@ -72,7 +72,10 @@ export default function Select({
 
   const pick = (v) => {
     setOpen(false);
-    onChange?.({ target: { value: v } });
+    // emite SEMPRE string, como o <select> nativo (o value do DOM é string) — senão
+    // handlers tipo `cabs.find(x => String(x.id) === e.target.value)` quebram quando o
+    // value da <option> é número (ex.: id de gabinete), gravando null sem querer.
+    onChange?.({ target: { value: String(v) } });
   };
 
   // o wrapper carrega o layout (largura/flex/maxWidth) que o <select> nativo teria;
