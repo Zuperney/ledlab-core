@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.10] — 2026-07-13
+
+### Alterado
+- **Aspect Ratio mais focado.** Removidos os "tiles" de formato (que destacavam o aspecto/ratio mais próximo) e o stat de pixels já saíra antes — a visualização ficou só com o **crop** (fonte com X + círculo, janela revelando a parte usada + linha do deslocamento). A **tabela de resoluções padrão** saiu da ferramenta e virou artigo na **Base de Conhecimento** (Painéis › "Resoluções padrão de vídeo"), com um novo tipo de bloco de tabela.
+
 ## [0.20.9] — 2026-07-13
 
 ### Alterado

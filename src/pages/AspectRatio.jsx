@@ -23,27 +23,9 @@ const NAMED = [
   ["1.66:1", 5 / 3], ["16:10", 16 / 10], ["3:2", 3 / 2], ["1.43:1", 1.43],
   ["4:3", 4 / 3], ["5:4", 5 / 4], ["1:1", 1], ["4:5", 4 / 5], ["9:16", 9 / 16],
 ];
-const TILES = ["32:9", "2.39:1", "21:9", "16:9", "16:10", "4:3", "1:1", "9:16"];
 
 // nome comercial exato quando bate com um formato conhecido; senão, a razão simplificada (GCD)
 const friendly = (w, h) => { const d = w / h; const n = NAMED.find((x) => Math.abs(x[1] - d) < 0.004); return n ? n[0] : ratioStr(w, h); };
-
-// resoluções padrão de referência (ar = nome comercial do formato)
-const STD = [
-  { name: "nHD", w: 640, h: 360, ar: "16:9" },
-  { name: "HD 720p", w: 1280, h: 720, ar: "16:9" },
-  { name: "FHD 1080p", w: 1920, h: 1080, ar: "16:9" },
-  { name: "QHD 1440p", w: 2560, h: 1440, ar: "16:9" },
-  { name: "4K UHD", w: 3840, h: 2160, ar: "16:9" },
-  { name: "8K UHD", w: 7680, h: 4320, ar: "16:9" },
-  { name: "WUXGA", w: 1920, h: 1200, ar: "16:10" },
-  { name: "UW-FHD", w: 2560, h: 1080, ar: "21:9" },
-  { name: "UW-QHD", w: 3440, h: 1440, ar: "21:9" },
-  { name: "XGA", w: 1024, h: 768, ar: "4:3" },
-  { name: "SXGA", w: 1280, h: 1024, ar: "5:4" },
-  { name: "DCI 4K", w: 4096, h: 2160, ar: "1.9:1" },
-  { name: "Quadrado HD", w: 1080, h: 1080, ar: "1:1" },
-];
 
 export default function AspectRatio() {
   const { cabs } = useLedLabContext();
@@ -64,7 +46,6 @@ export default function AspectRatio() {
   const orient = dec > 1.02 ? "Paisagem" : dec < 0.98 ? "Retrato" : "Quadrado";
   const named = NAMED.reduce((a, b) => (Math.abs(b[1] - dec) < Math.abs(a[1] - dec) ? b : a));
   const namedExact = Math.abs(named[1] - dec) < 0.005;
-  const nearestRes = STD.reduce((a, b) => (Math.abs(b.w * b.h - W * H) < Math.abs(a.w * a.h - W * H) ? b : a));
 
   // crop / encaixe de vídeo: fonte (SW×SH) → tela (W×H)
   const SW = Math.max(1, Math.round(sw) || 1), SH = Math.max(1, Math.round(sh) || 1);
@@ -85,7 +66,6 @@ export default function AspectRatio() {
   const inp = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 15, width: 120 };
   const lbl = { textTransform: "uppercase", fontSize: 11, color: T.mut, display: "block", marginBottom: 4 };
   const stat = (l, v, c) => (<div><div style={{ fontSize: 10, textTransform: "uppercase", color: T.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c || T.txt }}>{v}</div></div>);
-  const cellTd = { padding: "8px 10px", borderBottom: `1px solid ${T.bd}` };
 
   // visualização do crop: a FONTE (X + círculo no centro) com a janela de crop revelando a parte usada
   const boxW = 460, boxH = 240, vpad = 18;
@@ -96,24 +76,9 @@ export default function AspectRatio() {
   const cxv = svX + fc.x * vscale, cyv = svY + fc.y * vscale;
   const clampSvg = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-  const tile = (name) => {
-    const r = NAMED.find((n) => n[0] === name)[1];
-    const bw = 64, bh = 42, ip = 6;
-    const hh = Math.min(bh - ip * 2, (bw - ip * 2) / Math.max(r, 0.001));
-    const ww = hh * r, match = Math.abs(r - dec) < 0.005;
-    return (
-      <div key={name} style={{ textAlign: "center" }}>
-        <svg width={bw} height={bh} style={{ display: "block" }}>
-          <rect x={(bw - ww) / 2} y={(bh - hh) / 2} width={ww} height={hh} rx={2} fill={match ? T.acc : "transparent"} stroke={match ? T.acc : T.dim2} strokeWidth={1.5} />
-        </svg>
-        <div style={{ fontSize: 11, color: match ? T.acM : T.mut, fontWeight: match ? 700 : 500, marginTop: 2 }}>{name}</div>
-      </div>
-    );
-  };
-
   return (
     <div>
-      <SectionHeader title="Calculadora de Aspect Ratio" subtitle="Proporção da tela, visualização e comparação com resoluções padrão de vídeo." />
+      <SectionHeader title="Calculadora de Aspect Ratio" subtitle="Proporção da tela e visualização do crop do sinal de vídeo." />
 
       {/* ENTRADAS + RESULTADO */}
       <div style={card({ marginBottom: 16 })}>
@@ -182,8 +147,8 @@ export default function AspectRatio() {
 
       {/* VISUALIZAÇÃO */}
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Visualização</div>
-        <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Visualização do crop</div>
+        <div>
           <svg viewBox={`0 0 ${boxW} ${boxH}`} width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, maxWidth: "100%", height: "auto" }}>
             {/* fonte: fundo + conteúdo de referência (X nas diagonais + círculo no centro) */}
             <rect x={svX} y={svY} width={svW} height={svH} rx={3} fill="#0d0d1a" stroke={T.dim2} strokeWidth={1} />
@@ -206,35 +171,7 @@ export default function AspectRatio() {
             {fc.axis && <text x={svX + 5} y={svY + 13} fill={T.acM} fontSize={11} fontWeight="700">desloc. {fc.axis} {fc.axis === "x" ? fc.x : fc.y}px</text>}
             <text x={svX + svW - 5} y={svY + svH - 6} fill={T.mut} fontSize={10} textAnchor="end">fonte {SW}×{SH}</text>
           </svg>
-          <div>
-            <div style={{ color: T.dim, fontSize: 12, marginBottom: 10 }}>A janela roxa mostra o que aparece na tela; o resto da fonte fica escondido. Formatos padrão (destaca o aspecto da sua tela):</div>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{TILES.map(tile)}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* COMPARAÇÃO COM RESOLUÇÕES PADRÃO */}
-      <div style={card()}>
-        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Resoluções padrão</div>
-        <div style={{ color: T.dim, fontSize: 12, marginBottom: 12 }}>Destacadas = mesmo aspecto do seu painel. Mais próxima em nº de pixels: <b style={{ color: T.acM }}>{nearestRes.name} ({nearestRes.w}×{nearestRes.h})</b>.</div>
-        <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", minWidth: 460, borderCollapse: "collapse", fontSize: 13 }}>
-          <thead><tr>{["Nome", "Resolução", "Aspecto", "Pixels", ""].map((x, i) => <th key={i} style={{ textAlign: "left", padding: "8px 10px", borderBottom: `1px solid ${T.bd}`, color: T.mut, fontSize: 11, textTransform: "uppercase" }}>{x}</th>)}</tr></thead>
-          <tbody>
-            {STD.map((s) => {
-              const sdec = s.w / s.h, match = Math.abs(sdec - dec) < 0.01;
-              return (
-                <tr key={s.name} style={{ background: match ? T.sel : "transparent" }}>
-                  <td style={{ ...cellTd, color: T.txt, fontWeight: 600 }}>{s.name}</td>
-                  <td style={{ ...cellTd, color: T.mut }}>{s.w} × {s.h}</td>
-                  <td style={{ ...cellTd, color: match ? T.acM : T.mut, fontWeight: match ? 700 : 400 }}>{s.ar}</td>
-                  <td style={{ ...cellTd, color: T.dim }}>{(s.w * s.h / 1e6).toFixed(2)} Mpx</td>
-                  <td style={cellTd}>{match && <span style={{ color: T.grn, fontSize: 12, fontWeight: 700 }}>✓ mesmo aspecto</span>}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+          <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>A janela roxa mostra o que aparece na tela; o resto da fonte fica escondido. A linha tracejada marca a posição do deslocamento.</div>
         </div>
       </div>
     </div>

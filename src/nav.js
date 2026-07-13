@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.9";
+export const VERSION = "v0.20.10";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Aspect Ratio: a visualização agora mostra o crop de verdade (fonte com X+círculo, a área que entra na tela + o deslocamento).";
+export const WHATS_NEW = "Aspect Ratio mais focado (só o crop); a tabela de resoluções padrão foi pra Base de Conhecimento.";

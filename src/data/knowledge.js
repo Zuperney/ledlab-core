@@ -26,4 +26,23 @@ export const KB_ARTICLES = [
       { h: "Energização (inrush)", blocks: [{ t: "p", text: "Fontes SMPS puxam 50–100× a corrente nominal por alguns ms no cold start (~60 A por fonte). Ligue a tela por seções e prefira disjuntor curva C (ou D em telas grandes) para não desarmar." }] },
     ] },
   { id: "pixel-pitch", category: "Painéis", title: "Pixel pitch", summary: "Relação entre resolução, dimensão e distância de visão.", sections: [{ h: "Cálculo", blocks: [{ t: "p", text: "Pitch (mm) = largura do gabinete (mm) ÷ resolução X." }] }] },
+  { id: "resolucoes-padrao", category: "Painéis", title: "Resoluções padrão de vídeo", summary: "Referência de resoluções comuns — nome, pixels e aspecto.",
+    sections: [{ h: "Tabela de referência", blocks: [
+      { t: "p", text: "Resoluções comuns pra configurar processador/mídia e comparar com a resolução do seu painel (veja a proporção na ferramenta Aspect Ratio)." },
+      { t: "table", cols: ["Nome", "Resolução", "Aspecto", "Pixels"], rows: [
+        ["nHD", "640 × 360", "16:9", "0.23 Mpx"],
+        ["HD 720p", "1280 × 720", "16:9", "0.92 Mpx"],
+        ["FHD 1080p", "1920 × 1080", "16:9", "2.07 Mpx"],
+        ["QHD 1440p", "2560 × 1440", "16:9", "3.69 Mpx"],
+        ["4K UHD", "3840 × 2160", "16:9", "8.29 Mpx"],
+        ["8K UHD", "7680 × 4320", "16:9", "33.18 Mpx"],
+        ["WUXGA", "1920 × 1200", "16:10", "2.30 Mpx"],
+        ["UW-FHD", "2560 × 1080", "21:9", "2.76 Mpx"],
+        ["UW-QHD", "3440 × 1440", "21:9", "4.95 Mpx"],
+        ["XGA", "1024 × 768", "4:3", "0.79 Mpx"],
+        ["SXGA", "1280 × 1024", "5:4", "1.31 Mpx"],
+        ["DCI 4K", "4096 × 2160", "1.9:1", "8.85 Mpx"],
+        ["Quadrado HD", "1080 × 1080", "1:1", "1.17 Mpx"],
+      ] },
+    ] }] },
 ];

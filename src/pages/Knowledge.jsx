@@ -15,6 +15,14 @@ function Block({ b }) {
       <tbody>{b.rows.map((r, k) => <tr key={k}><td style={{ padding: "6px 10px", borderBottom: `1px solid ${T.bd}`, color: T.txt }}>{r[0]}</td><td style={{ padding: "6px 10px", borderBottom: `1px solid ${T.bd}`, color: T.acM, fontFamily: "ui-monospace,monospace", textAlign: "right" }}>{r[1]}</td></tr>)}</tbody>
     </table>
   );
+  if (b.t === "table") return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 380, fontSize: 13 }}>
+        <thead><tr>{b.cols.map((c, k) => <th key={k} style={{ textAlign: "left", padding: "6px 10px", borderBottom: `1px solid ${T.bd}`, color: T.mut, fontSize: 11, textTransform: "uppercase" }}>{c}</th>)}</tr></thead>
+        <tbody>{b.rows.map((r, k) => <tr key={k}>{r.map((cell, j) => <td key={j} style={{ padding: "6px 10px", borderBottom: `1px solid ${T.bd}`, color: j === 0 ? T.txt : T.mut, fontWeight: j === 0 ? 600 : 400, fontFamily: j === 0 ? "inherit" : "ui-monospace,monospace" }}>{cell}</td>)}</tr>)}</tbody>
+      </table>
+    </div>
+  );
   return null;
 }
 
