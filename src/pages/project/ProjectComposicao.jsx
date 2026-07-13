@@ -13,7 +13,9 @@ import { card, btn, label as lbl } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
 import Select from "../../components/Select.jsx";
-import { draw, DEFAULTS } from "./ProjectTestCard.jsx";
+import { useLedLabContext } from "../../store/AppContext.jsx";
+import { cablePorts } from "../../services/cabling.js";
+import { draw, DEFAULTS, PRESETS } from "./ProjectTestCard.jsx";
 
 // resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
 const dimOf = (t) => ({
@@ -36,6 +38,8 @@ export default function ProjectComposicao({ project, patch }) {
   const style = comp.style || { scheme: "cores", numbers: true, info: true };
   const isMobile = useIsMobile();
   const { palette } = useCablePalette();
+  const { tcPresets, prefs } = useLedLabContext();
+  const numbering = prefs.cableNumbering || "row-tb-lr";
   const toast = useToast();
 
   const wrapRef = useRef(null);
@@ -43,6 +47,7 @@ export default function ProjectComposicao({ project, patch }) {
   const [wrapW, setWrapW] = useState(320);
   const [drag, setDrag] = useState(null); // { id, x, y } durante o arraste
   const [sel, setSel] = useState(null); // tela selecionada (frente + destaque)
+  const [presetSel, setPresetSel] = useState(""); // predefinição escolhida no seletor
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -79,12 +84,14 @@ export default function ProjectComposicao({ project, patch }) {
   }, [telas, positions]);
 
   // thumbnails reais (render via draw) — recomputa só quando muda conteúdo/estilo, não a posição
-  const thumbKey = telas.map((t) => `${t.id}:${t.cols}x${t.rows}:${parseFloat(t.gabinete?.resX) || 128}x${parseFloat(t.gabinete?.resY) || 128}:${t.nome}`).join("|") + JSON.stringify(style);
+  // portas de cabo por tela — só quando o estilo pede mapa de cabos e a tela tem gabinete
+  const portsOf = (t) => (style.cableMap && style.cableMap !== "off" && parseFloat(t.gabinete?.resX) > 0 ? cablePorts(t, style.cableMap, numbering) : null);
+  const thumbKey = telas.map((t) => `${t.id}:${t.cols}x${t.rows}:${parseFloat(t.gabinete?.resX) || 128}x${parseFloat(t.gabinete?.resY) || 128}:${t.nome}`).join("|") + JSON.stringify(style) + numbering;
   const thumbs = useMemo(() => {
     const map = {};
     for (const t of telas) {
       const c = document.createElement("canvas");
-      draw(c, t, { ...DEFAULTS, ...style, cableMap: "off" }, null, palette);
+      draw(c, t, { ...DEFAULTS, ...style }, portsOf(t), palette);
       map[t.id] = c.toDataURL();
     }
     return map;
@@ -98,6 +105,12 @@ export default function ProjectComposicao({ project, patch }) {
 
   const setPos = (id, x, y) => patch({ comp: { ...comp, pos: { ...positions, [id]: { x: Math.round(x), y: Math.round(y) } } } });
   const setStyle = (partial) => patch({ comp: { ...comp, style: { ...style, ...partial } } });
+  const applyPreset = (val) => {
+    setPresetSel(val);
+    if (!val) return;
+    const opts = PRESETS[val] || tcPresets.find((p) => p.id === val)?.opts;
+    if (opts) setStyle(opts);
+  };
 
   const dragAt = (c, ev) => ({
     x: snap(c.ox + (ev.clientX - c.startX) / scale, c.d.w, c.xs, c.thr),
@@ -141,7 +154,7 @@ export default function ProjectComposicao({ project, patch }) {
     for (const t of telas) {
       const p = positions[t.id];
       const oc = document.createElement("canvas");
-      draw(oc, t, { ...DEFAULTS, ...style, cableMap: "off" }, null, palette);
+      draw(oc, t, { ...DEFAULTS, ...style }, portsOf(t), palette);
       ctx.drawImage(oc, Math.round(p.x - bbox.minX), Math.round(p.y - bbox.minY));
     }
     c.toBlob((blob) => {
@@ -160,6 +173,15 @@ export default function ProjectComposicao({ project, patch }) {
       {/* controles: estilo do test card + ações */}
       <div style={card({ marginBottom: 14, padding: 12 })}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} title="Predefinição" style={{ ...selSty, flex: "1 1 160px" }}>
+            <option value="">Predefinição…</option>
+            <option value="map">Mapa de gabinetes</option>
+            <option value="align">Alinhamento / geometria</option>
+            <option value="solid">Cor sólida</option>
+            <option value="bars">Barras de cor</option>
+            <option value="cabsig">Mapa de cabos (sinal)</option>
+            {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
           <Select value={style.scheme} onChange={(e) => setStyle({ scheme: e.target.value })} title="Padrão" style={{ ...selSty, flex: "1 1 140px" }}>
             <option value="cores">Cores (blocos)</option>
             <option value="arcoiris">Arco-íris</option>

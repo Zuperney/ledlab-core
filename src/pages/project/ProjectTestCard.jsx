@@ -16,7 +16,7 @@ import Select from "../../components/Select.jsx";
 const BAR_COLORS = ["#ffffff", "#ffff00", "#00ffff", "#00ff00", "#ff00ff", "#ff0000", "#0000ff"];
 export const DEFAULTS = { scheme: "cores", rainbowDir: "h", solidColor: "#ffffff", solidAlpha: false, numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, numScale: 1, colorBar: "off", cableMap: "off", info: true, infoPos: "inf-esq", infoInline: false };
 
-const PRESETS = {
+export const PRESETS = {
   map: { scheme: "cores", numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, colorBar: "off", cableMap: "off", info: true },
   align: { scheme: "cores", numbers: false, junctions: true, circle: true, cross: true, corner: true, side: true, colorBar: "off", cableMap: "off", info: false },
   solid: { scheme: "solida", solidColor: "#ffffff", solidAlpha: false, numbers: false, junctions: false, circle: false, cross: false, corner: false, side: false, colorBar: "off", cableMap: "off", info: false },

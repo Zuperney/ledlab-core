@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.1";
+export const VERSION = "v0.20.2";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Corrigido: escolher/trocar o gabinete de uma tela voltou a funcionar (e o modo Metros junto).";
+export const WHATS_NEW = "Composição: dá pra aplicar as predefinições do Test Card (inclusive as suas salvas) no render de todas as telas de uma vez.";

@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.2] — 2026-07-13
+
+### Adicionado
+- **Composição: predefinições do Test Card.** A aba Composição ganhou o mesmo seletor de predefinições do Test Card — as embutidas (mapa de gabinetes, alinhamento/geometria, cor sólida, barras de cor, mapa de cabos) **e as que você salva no Test Card**. Aplicar uma predefinição troca o estilo de todas as telas da composição de uma vez, inclusive o **mapa de cabos** (agora renderizado por tela na composição). Os ajustes rápidos (padrão, números, info) continuam disponíveis.
+
 ## [0.20.1] — 2026-07-13
 
 ### Corrigido
