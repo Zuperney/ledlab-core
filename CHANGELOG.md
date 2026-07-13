@@ -2,6 +2,12 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.8] — 2026-07-13
+
+### Melhorado
+- **Crop com deslocamento (Aspect Ratio).** O modo "preencher" agora deixa **deslocar o recorte em X ou Y** (não só centralizado) — pra escolher qual faixa da fonte entra na tela, ex.: encaixar um sinal FHD 1920×1080 num simultâneo montado em pé. Mostra o tamanho do recorte, a escala e a região (x/y), com campo de deslocamento e botão "Centralizar".
+- **Crop de sinal por tela (Composição).** Selecione uma tela → **Marcar crop** → informe a resolução do sinal (ex.: 1920×1080): o app calcula o recorte pra aquela tela, com deslocamento ajustável, mostra um selo "✂" com o tamanho no bloco e inclui a info no "Copiar regiões". Cálculo unificado com o Aspect Ratio (`services/crop.js`).
+
 ## [0.20.7] — 2026-07-13
 
 ### Adicionado

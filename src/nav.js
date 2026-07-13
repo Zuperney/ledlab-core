@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.7";
+export const VERSION = "v0.20.8";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Cálculo de crop pra vídeo: encaixe/preenchimento no Aspect Ratio + regiões de crop copiáveis na Composição.";
+export const WHATS_NEW = "Crop com deslocamento (X/Y) no Aspect Ratio + crop de sinal por tela na Composição (ex.: encaixar FHD num simultâneo em pé).";

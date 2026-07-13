@@ -10,6 +10,7 @@ import SectionHeader from "../components/SectionHeader.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import Select from "../components/Select.jsx";
 import NumField from "../components/NumField.jsx";
+import { fillCrop } from "../services/crop.js";
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
@@ -66,6 +67,7 @@ export default function AspectRatio() {
   const [rows, setRows] = useState(6);
   const [sw, setSw] = useState(1920); // fonte de vídeo p/ o cálculo de crop
   const [sh, setSh] = useState(1080);
+  const [offFrac, setOffFrac] = useState(0.5); // deslocamento do crop (0..1) no eixo com sobra
 
   const W = Math.max(1, Math.round(w) || 1), H = Math.max(1, Math.round(h) || 1);
   const dec = W / H;
@@ -80,10 +82,10 @@ export default function AspectRatio() {
   const kFit = Math.min(W / SW, H / SH); // "encaixar" (contain): mostra tudo, cria barras
   const fitW = Math.round(SW * kFit), fitH = Math.round(SH * kFit);
   const barX = Math.round((W - fitW) / 2), barY = Math.round((H - fitH) / 2);
-  const kFill = Math.max(W / SW, H / SH); // "preencher" (cover): enche a tela, corta a fonte
-  const cropW = Math.round(W / kFill), cropH = Math.round(H / kFill);
-  const cropX = Math.round((SW - cropW) / 2), cropY = Math.round((SH - cropH) / 2);
-  const cutX = SW - cropW, cutY = SH - cropH;
+  const fc = fillCrop(SW, SH, W, H, offFrac); // "preencher" (cover): recorte da fonte + deslocamento
+  const cropSlack = fc.axis === "x" ? fc.slackX : fc.axis === "y" ? fc.slackY : 0;
+  const cropOff = fc.axis === "x" ? fc.x : fc.axis === "y" ? fc.y : 0;
+  const setCropOff = (px) => setOffFrac(cropSlack > 0 ? Math.min(1, Math.max(0, px / cropSlack)) : 0.5);
   const srcPresetId = SRC_PRESETS.find((p) => p.w === SW && p.h === SH)?.id || "";
   const applySrc = (id) => { const p = SRC_PRESETS.find((x) => x.id === id); if (p) { setSw(p.w); setSh(p.h); } };
 
@@ -175,12 +177,21 @@ export default function AspectRatio() {
             </div>
           </div>
           <div style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 14 }}>
-            <div style={{ color: T.acM, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Preencher · corta</div>
+            <div style={{ color: T.acM, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Preencher · corta (crop)</div>
             <div style={{ fontSize: 13, color: T.txt, lineHeight: 1.7 }}>
-              <div>Recorte da fonte: <b style={{ fontFamily: "ui-monospace,monospace" }}>{cropW} × {cropH}</b> · escala {(kFill * 100).toFixed(1)}%</div>
-              <div style={{ color: T.mut }}>Região centrada: <span style={{ fontFamily: "ui-monospace,monospace", color: T.txt }}>x {cropX} · y {cropY}</span></div>
-              <div style={{ color: T.mut }}>{cutX > 0 ? `Corta ${Math.round(cutX / 2)}px de cada lado` : cutY > 0 ? `Corta ${Math.round(cutY / 2)}px topo e base` : "Nada cortado — mesmo aspecto"}</div>
+              <div>Recorte da fonte: <b style={{ fontFamily: "ui-monospace,monospace" }}>{fc.cropW} × {fc.cropH}</b> · escala {(fc.scale * 100).toFixed(1)}%</div>
+              <div style={{ color: T.mut }}>Região: <span style={{ fontFamily: "ui-monospace,monospace", color: T.txt }}>x {fc.x} · y {fc.y}</span></div>
             </div>
+            {fc.axis ? (
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 11, color: T.mut, textTransform: "uppercase" }}>Deslocar {fc.axis.toUpperCase()}</span>
+                <NumField value={cropOff} onChange={setCropOff} style={{ ...inp, width: 88, fontSize: 14 }} />
+                <span style={{ fontSize: 12, color: T.dim }}>0–{cropSlack}px</span>
+                <button onClick={() => setOffFrac(0.5)} style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${T.bd}`, background: T.card, color: T.txt, cursor: "pointer", fontSize: 12 }}>Centralizar</button>
+              </div>
+            ) : (
+              <div style={{ marginTop: 8, fontSize: 12, color: T.dim }}>Sem sobra pra deslocar — mesmo aspecto.</div>
+            )}
           </div>
         </div>
       </div>

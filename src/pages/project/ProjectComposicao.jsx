@@ -4,7 +4,7 @@
 // automático (envolve todas as telas) e a exportação gera UM PNG com o test card de cada
 // tela na sua posição — ótimo pra telas pequenas (vê todas juntas num render só).
 import { useRef, useState, useMemo, useEffect } from "react";
-import { Download, LayoutGrid, Move, Copy } from "lucide-react";
+import { Download, LayoutGrid, Move, Copy, Crop } from "lucide-react";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useToast } from "../../store/UIContext.jsx";
@@ -17,6 +17,7 @@ import { useLedLabContext } from "../../store/AppContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
 import { draw, DEFAULTS, PRESETS } from "./ProjectTestCard.jsx";
 import { fileName } from "../../services/filenames.js";
+import { fillCrop } from "../../services/crop.js";
 
 // resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
 const dimOf = (t) => ({
@@ -106,6 +107,11 @@ export default function ProjectComposicao({ project, patch }) {
 
   const setPos = (id, x, y) => patch({ comp: { ...comp, pos: { ...positions, [id]: { x: Math.round(x), y: Math.round(y) } } } });
   const setStyle = (partial) => patch({ comp: { ...comp, style: { ...style, ...partial } } });
+  // crop de sinal por tela: comp.crop[telaId] = { sw, sh, off } (fonte + deslocamento 0..1)
+  const crops = comp.crop || {};
+  const setCrop = (id, partial) => patch({ comp: { ...comp, crop: { ...crops, [id]: { sw: 1920, sh: 1080, off: 0.5, ...(crops[id] || {}), ...partial } } } });
+  const clearCrop = (id) => { const next = { ...crops }; delete next[id]; patch({ comp: { ...comp, crop: next } }); };
+  const selTela = telas.find((t) => t.id === sel) || null;
   const applyPreset = (val) => {
     setPresetSel(val);
     if (!val) return;
@@ -172,7 +178,10 @@ export default function ProjectComposicao({ project, patch }) {
     const lines = [`Composição ${project.name || ""} — canvas ${Math.round(bbox.w)}×${Math.round(bbox.h)} px`.trim()];
     for (const t of telas) {
       const p = positions[t.id], d = dimOf(t);
-      lines.push(`${t.nome}: x ${Math.round(p.x - bbox.minX)} · y ${Math.round(p.y - bbox.minY)} · ${d.w}×${d.h}`);
+      const cr = crops[t.id];
+      const fcx = cr ? fillCrop(cr.sw, cr.sh, d.w, d.h, cr.off ?? 0.5) : null;
+      const cropTxt = fcx ? ` · sinal ${cr.sw}×${cr.sh} → recorte ${fcx.cropW}×${fcx.cropH} @ x${fcx.x} y${fcx.y}` : "";
+      lines.push(`${t.nome}: x ${Math.round(p.x - bbox.minX)} · y ${Math.round(p.y - bbox.minY)} · ${d.w}×${d.h}${cropTxt}`);
     }
     const text = lines.join("\n");
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => toast("Regiões copiadas")).catch(() => toast("Não foi possível copiar"));
@@ -218,6 +227,8 @@ export default function ProjectComposicao({ project, patch }) {
           {telas.map((t) => {
             const p = posOf(t), d = dimOf(t);
             const selected = sel === t.id;
+            const cr = crops[t.id];
+            const fcb = cr ? fillCrop(cr.sw, cr.sh, d.w, d.h, cr.off ?? 0.5) : null;
             return (
               <div
                 key={t.id}
@@ -242,11 +253,51 @@ export default function ProjectComposicao({ project, patch }) {
                 }}
               >
                 <span style={{ position: "absolute", top: 0, left: 0, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 10, padding: "1px 4px", borderBottomRightRadius: 4, pointerEvents: "none", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.nome}</span>
+                {fcb && <span style={{ position: "absolute", bottom: 0, left: 0, background: `${T.acc}e6`, color: "#fff", fontSize: 9, padding: "1px 4px", borderTopRightRadius: 4, pointerEvents: "none", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>✂ {fcb.cropW}×{fcb.cropH}</span>}
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* crop do sinal — tela selecionada (clique numa tela pra ajustar) */}
+      {selTela && (() => {
+        const d = dimOf(selTela);
+        const cr = crops[selTela.id];
+        const fc = cr ? fillCrop(cr.sw, cr.sh, d.w, d.h, cr.off ?? 0.5) : null;
+        const slack = fc ? (fc.axis === "x" ? fc.slackX : fc.axis === "y" ? fc.slackY : 0) : 0;
+        const off = fc ? (fc.axis === "x" ? fc.x : fc.axis === "y" ? fc.y : 0) : 0;
+        const setOff = (px) => setCrop(selTela.id, { off: slack > 0 ? Math.min(1, Math.max(0, px / slack)) : 0.5 });
+        return (
+          <div style={card({ marginTop: 14, padding: 12 })}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: cr ? 12 : 0 }}>
+              <div style={lbl}>Crop do sinal — {selTela.nome} <span style={{ color: T.dim, fontFamily: "ui-monospace,monospace", fontWeight: 400 }}>{d.w}×{d.h}</span></div>
+              {cr
+                ? <button onClick={() => clearCrop(selTela.id)} style={btn("ghost", { padding: "6px 11px", fontSize: 12.5 })}>Remover crop</button>
+                : <button onClick={() => setCrop(selTela.id, {})} style={btn("primary", { padding: "6px 11px", fontSize: 12.5 })}><Crop size={14} /> Marcar crop</button>}
+            </div>
+            {cr && (
+              <>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 12 }}>
+                  <div><div style={{ ...lbl, marginBottom: 4 }}>Sinal — largura</div><NumField value={cr.sw} onChange={(n) => setCrop(selTela.id, { sw: Math.max(0, n) })} style={{ ...numSty, width: 100 }} /></div>
+                  <div><div style={{ ...lbl, marginBottom: 4 }}>Sinal — altura</div><NumField value={cr.sh} onChange={(n) => setCrop(selTela.id, { sh: Math.max(0, n) })} style={{ ...numSty, width: 100 }} /></div>
+                </div>
+                <div style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 12, fontSize: 13, lineHeight: 1.7 }}>
+                  <div>Recorte da fonte: <b style={{ fontFamily: "ui-monospace,monospace" }}>{fc.cropW} × {fc.cropH}</b> · escala {(fc.scale * 100).toFixed(1)}% · região <span style={{ fontFamily: "ui-monospace,monospace", color: T.txt }}>x {fc.x} · y {fc.y}</span></div>
+                  {fc.axis ? (
+                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, color: T.mut, textTransform: "uppercase" }}>Deslocar {fc.axis.toUpperCase()}</span>
+                      <NumField value={off} onChange={setOff} style={{ ...numSty, width: 90 }} />
+                      <span style={{ fontSize: 12, color: T.dim }}>0–{slack}px</span>
+                      <button onClick={() => setCrop(selTela.id, { off: 0.5 })} style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${T.bd}`, background: T.card, color: T.txt, cursor: "pointer", fontSize: 12 }}>Centralizar</button>
+                    </div>
+                  ) : <div style={{ marginTop: 6, fontSize: 12, color: T.dim }}>Sem sobra pra deslocar — mesmo aspecto.</div>}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* posição / regiões de crop por tela */}
       <div style={card({ marginTop: 14, padding: 12 })}>
