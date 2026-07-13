@@ -14,7 +14,7 @@ import DropdownMenu from "../../components/DropdownMenu.jsx";
 import Select from "../../components/Select.jsx";
 
 const BAR_COLORS = ["#ffffff", "#ffff00", "#00ffff", "#00ff00", "#ff00ff", "#ff0000", "#0000ff"];
-const DEFAULTS = { scheme: "cores", rainbowDir: "h", solidColor: "#ffffff", solidAlpha: false, numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, numScale: 1, colorBar: "off", cableMap: "off", info: true, infoPos: "inf-esq", infoInline: false };
+export const DEFAULTS = { scheme: "cores", rainbowDir: "h", solidColor: "#ffffff", solidAlpha: false, numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, numScale: 1, colorBar: "off", cableMap: "off", info: true, infoPos: "inf-esq", infoInline: false };
 
 const PRESETS = {
   map: { scheme: "cores", numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, colorBar: "off", cableMap: "off", info: true },
@@ -41,7 +41,7 @@ function cellColor(o, c, r, cols, rows) {
   return PALETTE[(r * cols + c) % PALETTE.length];
 }
 
-function draw(canvas, tela, o, mapPorts, cablePal) {
+export function draw(canvas, tela, o, mapPorts, cablePal) {
   const cols = tela.cols || 1, rows = tela.rows || 1;
   const g = tela.gabinete || {};
   const resX = parseFloat(g.resX) || 128, resY = parseFloat(g.resY) || 128;
@@ -114,7 +114,9 @@ function draw(canvas, tela, o, mapPorts, cablePal) {
   // nem estoura o canvas. Resolve a info virar minúscula em telas de baixa resolução.
   if (o.info) {
     const SEP = "   ·   ";
-    const fields = [tela.nome, `${W} x ${H} px`, `${cols} × ${rows} = ${cols * rows} gab`, `pitch ${(parseFloat(g.dimW) / resX).toFixed(2)} mm`, `${(cols * parseFloat(g.dimW) / 1000).toFixed(2)} x ${(rows * parseFloat(g.dimH) / 1000).toFixed(2)} m`];
+    const fields = [tela.nome, `${W} x ${H} px`, `${cols} × ${rows} = ${cols * rows} gab`];
+    if (parseFloat(g.dimW) > 0 && parseFloat(g.dimH) > 0) // só com gabinete definido (evita "NaN")
+      fields.push(`pitch ${(parseFloat(g.dimW) / resX).toFixed(2)} mm`, `${(cols * parseFloat(g.dimW) / 1000).toFixed(2)} x ${(rows * parseFloat(g.dimH) / 1000).toFixed(2)} m`);
     // distribui os campos em k linhas equilibrando o comprimento de cada uma
     const groupInto = (k) => {
       if (k <= 1) return [fields.join(SEP)];

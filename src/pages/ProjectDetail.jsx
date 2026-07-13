@@ -1,6 +1,6 @@
 // pages/ProjectDetail.jsx — detalhe do projeto com abas.
 import { useState } from "react";
-import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, FileText } from "lucide-react";
+import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -12,6 +12,7 @@ import ProjectDados from "./project/ProjectDados.jsx";
 import ProjectEnergia from "./project/ProjectEnergia.jsx";
 import ProjectCabeamento from "./project/ProjectCabeamento.jsx";
 import ProjectTestCard from "./project/ProjectTestCard.jsx";
+import ProjectComposicao from "./project/ProjectComposicao.jsx";
 import ProjectRelatorio from "./project/ProjectRelatorio.jsx";
 
 const TABS = [
@@ -19,6 +20,7 @@ const TABS = [
   { id: "energia", label: "Energia (AC)", Icon: Zap, Comp: ProjectEnergia },
   { id: "cabeamento", label: "Cabeamento", Icon: GitBranch, Comp: ProjectCabeamento },
   { id: "testcard", label: "Test Card", Icon: Monitor, Comp: ProjectTestCard },
+  { id: "composicao", label: "Composição", Icon: LayoutGrid, Comp: ProjectComposicao },
   { id: "relatorio", label: "Relatório", Icon: FileText, Comp: ProjectRelatorio },
 ];
 

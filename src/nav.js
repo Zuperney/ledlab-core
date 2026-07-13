@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.19.4";
+export const VERSION = "v0.20.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Test Card: a caixa de info se ajusta sozinha (1–5 linhas) pra ficar legível em qualquer resolução de tela.";
+export const WHATS_NEW = "Nova aba Composição: monte várias telas num render só (arraste pra posicionar + Exportar PNG), tipo mapeamento de slices.";

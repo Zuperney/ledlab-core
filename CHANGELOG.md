@@ -2,6 +2,14 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.0] — 2026-07-13
+
+### Adicionado
+- **Composição de telas (aba nova no projeto).** Monte várias telas num único render, no espírito do mapeamento de slices do Resolume: cada tela vira um bloco no tamanho real em pixels que você posiciona **arrastando** (com encaixe automático nas bordas das outras telas) ou pelos campos **X/Y**. O canvas se ajusta sozinho pra envolver todas as telas, e **Exportar PNG** gera uma imagem única com o test card de cada tela na sua posição — ótimo pra telas pequenas (dá pra ver todas juntas). O estilo do test card (padrão, números, info) é compartilhado pela composição, e o botão "Lado a lado" reorganiza tudo numa fileira. Exportar direto pro Resolume (.xml de slices) fica pra uma fase seguinte.
+
+### Corrigido
+- **Test Card: telas sem gabinete não mostram mais "NaN".** A caixa de info omite as linhas de pitch e metros quando a tela ainda não tem um gabinete definido (antes aparecia "pitch NaN mm · NaN x NaN m").
+
 ## [0.19.4] — 2026-07-13
 
 ### Melhorado
