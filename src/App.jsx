@@ -1,12 +1,13 @@
 // App.jsx — shell: sidebar, topbar e navegação principal orientada por rota.
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, TriangleAlert, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, TriangleAlert, Eye, EyeOff, Sparkles, X } from "lucide-react";
 import { useLocation } from "wouter";
 import logo from "./assets/logo.png";
 import { NAV, SECTIONS, LABELS, VERSION, WHATS_NEW } from "./nav.js";
 import { useToast } from "./store/UIContext.jsx";
 import { useAuth } from "./store/AuthContext.jsx";
 import { T, FONT } from "./ui/tokens.js";
+import { Z } from "./config/uiConfig.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useLedLabContext } from "./store/AppContext.jsx";
 import NavBtn from "./components/NavBtn.jsx";
@@ -45,6 +46,14 @@ export default function App() {
   const { user } = useAuth();
   const toast = useToast();
   const [backupNagOff, setBackupNagOff] = useState(false);
+  // se a versão salva difere da atual (houve atualização), prepara o modal de novidades.
+  // Decide no initializer (leitura única); a marcação de "visto" fica no efeito abaixo.
+  const [updateInfo, setUpdateInfo] = useState(() => {
+    try {
+      const last = localStorage.getItem("ledlab.lastSeenVersion");
+      return last && last !== VERSION && WHATS_NEW ? { version: VERSION, whatsNew: WHATS_NEW } : null;
+    } catch { return null; }
+  });
   const daysNoBackup = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 86400000 : Infinity;
   const hasUserData = (projects?.length || 0) > 0 || (worklog?.length || 0) > 0;
   // não incomoda com backup local se está logado — a nuvem já é o backup
@@ -54,14 +63,10 @@ export default function App() {
   const ocultarValores = !!prefs.dashOcultarValor;
   const toggleOcultar = () => setPrefs({ ...prefs, dashOcultarValor: !ocultarValores });
 
-  // logo após a atualização (o SW/navegador troca sozinho), avisa só o que mudou
+  // marca a versão atual como "vista" (o modal já foi decidido no initializer acima)
   useEffect(() => {
-    const KEY = "ledlab.lastSeenVersion";
-    let last = null;
-    try { last = localStorage.getItem(KEY); } catch { /* ok */ }
-    if (last && last !== VERSION && WHATS_NEW) toast(`Atualizado para ${VERSION} — ${WHATS_NEW}`);
-    if (last !== VERSION) { try { localStorage.setItem(KEY, VERSION); } catch { /* ok */ } }
-  }, [toast]);
+    try { localStorage.setItem("ledlab.lastSeenVersion", VERSION); } catch { /* ok */ }
+  }, []);
 
   useEffect(() => {
     if (location === "/") {
@@ -109,6 +114,7 @@ export default function App() {
           </ErrorBoundary>
         </main>
         <BottomNav page={page} onNavigate={navigate} />
+        {updateInfo && <UpdateModal info={updateInfo} onClose={() => setUpdateInfo(null)} />}
       </div>
     );
   }
@@ -170,6 +176,40 @@ export default function App() {
             <Page nav={nav} />
           </ErrorBoundary>
         </main>
+      </div>
+      {updateInfo && <UpdateModal info={updateInfo} onClose={() => setUpdateInfo(null)} />}
+    </div>
+  );
+}
+
+// modal pós-atualização: aparece uma vez ao subir de versão, com o "o que mudou".
+// O usuário fecha (botão, X, clique fora ou Esc) — não some sozinho como o toast antigo.
+function UpdateModal({ info, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true"
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: Z.dialog, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))" }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 420, background: T.card, border: `1px solid ${T.bd}`, borderRadius: 16, padding: 22, boxShadow: "0 24px 64px rgba(0,0,0,0.55)" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 11, background: T.sel, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Sparkles size={22} style={{ color: T.acM }} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Aplicativo atualizado</div>
+            <div style={{ color: T.txt, fontSize: 18, fontWeight: 700 }}>Novidades da {info.version}</div>
+          </div>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: "none", border: "none", color: T.mut, cursor: "pointer", padding: 4, display: "flex", flexShrink: 0 }}><X size={18} /></button>
+        </div>
+        <div style={{ color: T.txt, fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>{info.whatsNew}</div>
+        <button onClick={onClose} autoFocus
+          style={{ width: "100%", background: T.acc, color: "#fff", border: "none", borderRadius: 10, padding: "11px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
+          Entendi
+        </button>
       </div>
     </div>
   );

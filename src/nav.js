@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.4";
+export const VERSION = "v0.20.5";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Novo relatório 'Mapa de cabos' (sinal + energia AC juntos); o relatório Elétrico ficou só com as tabelas.";
+export const WHATS_NEW = "O aviso de novidades agora é um modal que você fecha quando quiser (antes era um toast que sumia rápido).";

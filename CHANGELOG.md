@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.5] — 2026-07-13
+
+### Alterado
+- **Aviso de nova versão virou um modal.** Depois que o app atualiza, em vez de um toast que sumia rápido (dava pra não ver a tempo), aparece um modal com as novidades da versão — dá pra ler com calma e fechar quando quiser (botão "Entendi", X, clique fora ou Esc). Aparece uma vez por atualização; na primeira instalação não aparece.
+
 ## [0.20.4] — 2026-07-13
 
 ### Adicionado
