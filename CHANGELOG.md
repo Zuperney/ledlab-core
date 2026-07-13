@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.3] — 2026-07-13
+
+### Melhorado
+- **Nomes de arquivo padronizados ao salvar.** Relatórios, test cards, composições, recibos e os backups/exportações agora saem com nome automático no padrão `projeto_tipo_data-hora`, sem precisar digitar. Exemplos: `matsuri_relatorio_completo_2026-07-13_1908.pdf`, `matsuri_tela-3_testcard_2026-07-13_1908.png`, `matsuri_composicao_….png`, `matsuri_2026-07-13_1908.ledlab.json`, `ledlab-backup_….json`. Acentos e símbolos viram texto simples e a data/hora mantém os arquivos ordenados. (Para PDF, o navegador usa esse nome como sugestão ao "Salvar como PDF".)
+
 ## [0.20.2] — 2026-07-13
 
 ### Adicionado

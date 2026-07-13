@@ -19,6 +19,7 @@ import { T, PALETTE } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DiariasConfig from "./settings/DiariasConfig.jsx";
+import { fileName } from "../services/filenames.js";
 
 const download = (name, obj) => {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
@@ -64,7 +65,7 @@ export default function Settings() {
   };
 
   // ── Projetos (só a lista de projetos) ──
-  const exportProjects = () => download("projetos-ledlab.json", { schema: "ledlab.projects.bundle.v1", projects });
+  const exportProjects = () => download(fileName(["projetos-ledlab"], "json"), { schema: "ledlab.projects.bundle.v1", projects });
   const importProjects = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -87,7 +88,7 @@ export default function Settings() {
   };
 
   // ── Biblioteca de gabinetes ──
-  const exportCabs = () => download("gabinetes-ledlab.json", { schema: "ledlab.cabinets.v1", cabinets: cabs });
+  const exportCabs = () => download(fileName(["gabinetes-ledlab"], "json"), { schema: "ledlab.cabinets.v1", cabinets: cabs });
   const importCabs = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;

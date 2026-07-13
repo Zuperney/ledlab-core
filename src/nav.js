@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.2";
+export const VERSION = "v0.20.3";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Composição: dá pra aplicar as predefinições do Test Card (inclusive as suas salvas) no render de todas as telas de uma vez.";
+export const WHATS_NEW = "Ao salvar (PDF, PNG, backup…), o arquivo já vem com nome padronizado: projeto_tipo_data-hora — sem digitar.";

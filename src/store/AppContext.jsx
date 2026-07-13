@@ -14,6 +14,7 @@ import { setAcMargin } from "../services/cabling.js";
 import { fullSnapshot } from "../services/cabinets.js";
 import { genId } from "../services/ids.js";
 import { markBackupNow, getLastBackupAt, downloadJSON } from "../services/storage.js";
+import { fileName } from "../services/filenames.js";
 import { idbGet, idbSet } from "../services/idb.js";
 import { T } from "../ui/tokens.js";
 
@@ -228,7 +229,7 @@ export function AppProvider({ children }) {
   // backup completo (baixa .json + registra a data). lastBackupAt é reativo, então
   // o lembrete de backup no <App> some sozinho — seja pelo banner ou pelo Settings.
   const exportBackup = () => {
-    downloadJSON("ledlab-backup.json", { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes, despesas });
+    downloadJSON(fileName(["ledlab-backup"], "json"), { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes, despesas });
     setLastBackupAt(markBackupNow());
   };
 

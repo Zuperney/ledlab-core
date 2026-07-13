@@ -12,6 +12,7 @@ import { card } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 import Select from "../../components/Select.jsx";
+import { fileName } from "../../services/filenames.js";
 
 const BAR_COLORS = ["#ffffff", "#ffff00", "#00ffff", "#00ff00", "#ff00ff", "#ff0000", "#0000ff"];
 export const DEFAULTS = { scheme: "cores", rainbowDir: "h", solidColor: "#ffffff", solidAlpha: false, numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, numScale: 1, colorBar: "off", cableMap: "off", info: true, infoPos: "inf-esq", infoInline: false };
@@ -208,7 +209,7 @@ export default function ProjectTestCard({ project }) {
     canvasRef.current.toBlob((blob) => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `testcard-${(tela.nome || "tela").replace(/\s+/g, "-").toLowerCase()}.png`;
+      a.download = fileName([project.name, tela.nome, "testcard"], "png");
       a.click();
     }, "image/png");
   };

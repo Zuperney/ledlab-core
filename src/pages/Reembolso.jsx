@@ -18,6 +18,7 @@ import SectionHeader from "../components/SectionHeader.jsx";
 import BottomSheet from "../components/BottomSheet.jsx";
 import { DateField } from "../components/PickerField.jsx";
 import Select from "../components/Select.jsx";
+import { fileName, printAs } from "../services/filenames.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 const isoToday = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -188,7 +189,7 @@ export default function Reembolso() {
         <>
           {/* ações do relatório (fora do .report-doc → não saem na impressão) */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-            <button style={btn("primary")} onClick={() => window.print()} disabled={!mes.length}><Printer size={15} /> Imprimir / Salvar PDF</button>
+            <button style={btn("primary")} onClick={() => printAs(fileName(["reembolso", periodoLabel]))} disabled={!mes.length}><Printer size={15} /> Imprimir / Salvar PDF</button>
             <button style={btn("ghost")} onClick={copiar} disabled={!mes.length}><Copy size={15} /> Copiar texto</button>
             <button style={btn("ghost")} onClick={abrirWhats} disabled={!mes.length}><MessageCircle size={15} /> WhatsApp</button>
           </div>

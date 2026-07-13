@@ -8,6 +8,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 import { Z } from "../config/uiConfig.js";
 import { T } from "../ui/tokens.js";
 import { card, input, btn, iconBtn, dangerIconBtn, label as lblStyle } from "../ui/styles.js";
+import { fileName } from "../services/filenames.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge, { STATUS, STATUS_ORDER } from "../components/StatusBadge.jsx";
@@ -206,5 +207,4 @@ function download(name, obj) {
   a.download = name;
   a.click();
 }
-const slug = (s) => (s || "projeto").toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-");
-const exportOne = (p) => download(`${slug(p.name)}.ledlab.json`, { schema: "ledlab.project.v1", project: p });
+const exportOne = (p) => download(fileName([p.name], "ledlab.json"), { schema: "ledlab.project.v1", project: p });

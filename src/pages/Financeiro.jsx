@@ -14,6 +14,7 @@ import { card, btn, input, label as lbl } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import { DateField } from "../components/PickerField.jsx";
 import Select from "../components/Select.jsx";
+import { fileName, printAs } from "../services/filenames.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 const isoOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -174,7 +175,7 @@ export default function Financeiro() {
 
       {/* ações */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <button style={btn("primary")} onClick={() => window.print()} disabled={!temConteudo}><Printer size={15} /> Imprimir / Salvar PDF</button>
+        <button style={btn("primary")} onClick={() => printAs(fileName(["recibo", cliente]))} disabled={!temConteudo}><Printer size={15} /> Imprimir / Salvar PDF</button>
         <button style={btn("ghost")} onClick={copiar} disabled={!temConteudo}><Copy size={15} /> Copiar texto</button>
         <button style={btn("ghost")} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
       </div>

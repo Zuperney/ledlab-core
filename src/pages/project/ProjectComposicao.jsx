@@ -16,6 +16,7 @@ import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
 import { draw, DEFAULTS, PRESETS } from "./ProjectTestCard.jsx";
+import { fileName } from "../../services/filenames.js";
 
 // resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
 const dimOf = (t) => ({
@@ -160,7 +161,7 @@ export default function ProjectComposicao({ project, patch }) {
     c.toBlob((blob) => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `composicao-${(project.name || "projeto").replace(/\s+/g, "-").toLowerCase()}.png`;
+      a.download = fileName([project.name, "composicao"], "png");
       a.click();
     }, "image/png");
     toast("Composição exportada (PNG)");

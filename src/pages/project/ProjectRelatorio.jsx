@@ -14,6 +14,7 @@ import CableMap from "../../components/CableMap.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
+import { fileName, printAs } from "../../services/filenames.js";
 
 const TYPES = ["Completo", "Resumido", "Elétrico", "Estrutural", "Design", "Gabinetes"];
 // largura fixa "de impressão": no mobile o relatório é montado nela e escalado (zoom) p/ caber
@@ -73,7 +74,7 @@ export default function ProjectRelatorio({ project }) {
             <button key={t} onClick={() => setType(t)} style={{ padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${type === t ? T.acc : T.bd}`, background: type === t ? T.acc : "transparent", color: type === t ? "#fff" : T.mut }}>{t}</button>
           ))}
         </div>
-        <button style={btn("primary")} onClick={() => window.print()}><Printer size={15} /> Imprimir / Salvar PDF</button>
+        <button style={btn("primary")} onClick={() => printAs(fileName([project.name, "relatorio", type]))}><Printer size={15} /> Imprimir / Salvar PDF</button>
       </div>
 
       <div ref={docWrapRef} style={{ overflow: "hidden" }}>
