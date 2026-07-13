@@ -107,36 +107,56 @@ function draw(canvas, tela, o, mapPorts, cablePal) {
     });
   }
 
-  // caixa de info — fonte proporcional (equilibrada por área, não só pela altura) e
-  // reduzida até a caixa caber no canvas, pra a info não sumir/cortar em telas
-  // pequenas (fonte minúscula) ou estreitas e altas (caixa mais larga que o canvas).
+  // caixa de info — layout DINÂMICO: quebra automaticamente em 1–5 linhas pra MAXIMIZAR
+  // a fonte legível na resolução da tela. Telas achatadas/estreitas ganham menos linhas
+  // (fonte maior); telas normais mantêm as 5 linhas. Empate de fonte → a caixa com
+  // proporção mais parecida com a da tela. Nunca passa do teto (não domina telas grandes)
+  // nem estoura o canvas. Resolve a info virar minúscula em telas de baixa resolução.
   if (o.info) {
-    const lines = [tela.nome, `${W} x ${H} px`, `${cols} × ${rows} = ${cols * rows} gab`, `pitch ${(parseFloat(g.dimW) / resX).toFixed(2)} mm`, `${(cols * parseFloat(g.dimW) / 1000).toFixed(2)} x ${(rows * parseFloat(g.dimH) / 1000).toFixed(2)} m`];
-    const text = lines.join("   ·   ");
-    const boxAt = (size) => {
+    const SEP = "   ·   ";
+    const fields = [tela.nome, `${W} x ${H} px`, `${cols} × ${rows} = ${cols * rows} gab`, `pitch ${(parseFloat(g.dimW) / resX).toFixed(2)} mm`, `${(cols * parseFloat(g.dimW) / 1000).toFixed(2)} x ${(rows * parseFloat(g.dimH) / 1000).toFixed(2)} m`];
+    // distribui os campos em k linhas equilibrando o comprimento de cada uma
+    const groupInto = (k) => {
+      if (k <= 1) return [fields.join(SEP)];
+      if (k >= fields.length) return fields.slice();
+      const len = (f) => f.length + 3;
+      const per = fields.reduce((s, f) => s + len(f), 0) / k;
+      const out = [], cur = []; let acc = 0;
+      for (let i = 0; i < fields.length; i++) {
+        cur.push(fields[i]); acc += len(fields[i]);
+        if (out.length < k - 1 && acc >= per && fields.length - i - 1 > k - out.length - 1) { out.push(cur.join(SEP)); cur.length = 0; acc = 0; }
+      }
+      if (cur.length) out.push(cur.join(SEP));
+      return out;
+    };
+    const measure = (arr, size) => {
       ctx.font = `600 ${size}px ui-monospace, monospace`;
       const pad = size * 0.6;
-      const bw = (o.infoInline ? ctx.measureText(text).width : Math.max(...lines.map((l) => ctx.measureText(l).width))) + pad * 2;
-      const bh = o.infoInline ? size * 1.8 : lines.length * size * 1.3 + pad;
-      return { bw, bh, pad };
+      return { bw: Math.max(...arr.map((l) => ctx.measureText(l).width)) + pad * 2, bh: arr.length * size * 1.3 + pad, pad };
     };
-    let fs = Math.pow(W * H, 0.25) * 0.8; // ≈ altura×0.03 nas telas normais; relativamente maior nas pequenas
-    let b = boxAt(fs);
-    const fit = Math.min(1, (W * 0.9) / b.bw, (H * 0.9) / b.bh); // encolhe a fonte até a caixa caber
-    if (fit < 1) { fs *= fit; b = boxAt(fs); }
+    const cap = Math.pow(W * H, 0.25) * 0.85; // teto da fonte: evita a caixa dominar telas grandes
+    // maior fonte que cabe (≤ 90% do canvas) por candidato de nº de linhas, limitada ao teto
+    const cands = (o.infoInline ? [1] : [5, 4, 3, 2, 1]).map((k) => {
+      const arr = groupInto(k);
+      const m = measure(arr, 100);
+      return { arr, fs: Math.min(cap, 100 * Math.min((W * 0.9) / m.bw, (H * 0.9) / m.bh)) };
+    });
+    const maxFs = Math.max(...cands.map((c) => c.fs));
+    const aspect = H / W;
+    // entre os que empatam na maior fonte, escolhe a caixa de proporção mais parecida com a tela
+    const best = cands
+      .filter((c) => c.fs >= maxFs * 0.98)
+      .map((c) => { const m = measure(c.arr, c.fs); return { arr: c.arr, fs: c.fs, m, d: Math.abs(Math.log(m.bh / m.bw / aspect)) }; })
+      .sort((a, b) => a.d - b.d)[0];
+    const lines = best.arr, fs = best.fs, b = best.m;
     ctx.font = `600 ${fs}px ui-monospace, monospace`;
     const center = o.infoPos === "centro";
     const top = o.infoPos.startsWith("sup"), left = o.infoPos.endsWith("esq");
     const bx = center ? (W - b.bw) / 2 : left ? b.pad : W - b.bw - b.pad;
     const by = center ? (H - b.bh) / 2 : top ? b.pad : H - b.bh - b.pad;
     ctx.fillStyle = "rgba(0,0,0,0.72)"; ctx.fillRect(bx, by, b.bw, b.bh);
-    ctx.fillStyle = "#fff";
-    if (o.infoInline) {
-      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(text, bx + b.pad, by + b.bh / 2);
-    } else {
-      ctx.textAlign = "left"; ctx.textBaseline = "top";
-      lines.forEach((l, i) => ctx.fillText(l, bx + b.pad, by + b.pad / 2 + i * fs * 1.3));
-    }
+    ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    lines.forEach((l, i) => ctx.fillText(l, bx + b.pad, by + b.pad / 2 + i * fs * 1.3));
   }
 }
 

@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.19.4] — 2026-07-13
+
+### Melhorado
+- **Test Card: a caixa de informações se ajusta sozinha à resolução da tela.** Antes a info vinha sempre em 5 linhas (ou 1, no modo "em linha") — em telas achatadas ou de baixa resolução isso forçava uma fonte minúscula, difícil de ler. Agora ela **escolhe automaticamente em quantas linhas quebrar (1 a 5)** pra deixar a fonte a maior possível na tela: uma faixa 8×1, por exemplo, vira 2 linhas com fonte legível, enquanto telas normais seguem com as 5 linhas. Continua sem cortar e sem dominar telas grandes.
+
 ## [0.19.3] — 2026-07-13
 
 ### Corrigido
