@@ -16,7 +16,7 @@ import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
 import { fileName, printAs } from "../../services/filenames.js";
 
-const TYPES = ["Completo", "Resumido", "Elétrico", "Estrutural", "Design", "Gabinetes"];
+const TYPES = ["Completo", "Resumido", "Elétrico", "Mapa de cabos", "Estrutural", "Design", "Gabinetes"];
 // largura fixa "de impressão": no mobile o relatório é montado nela e escalado (zoom) p/ caber
 const DOC_W = 800;
 
@@ -55,8 +55,8 @@ export default function ProjectRelatorio({ project }) {
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
   const showPhys = ["Completo", "Resumido", "Estrutural", "Gabinetes", "Design"].includes(type);
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
-  const showSignal = type === "Completo";
-  const showAC = ["Completo", "Elétrico"].includes(type);
+  const showSignal = ["Completo", "Mapa de cabos"].includes(type);
+  const showAC = ["Completo", "Mapa de cabos"].includes(type); // AC saiu do Elétrico → foco em tabelas
 
   const th = { textAlign: "left", padding: "8px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase" };
   const td = { padding: "8px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };

@@ -2,6 +2,14 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.4] — 2026-07-13
+
+### Adicionado
+- **Relatório "Mapa de cabos".** Novo tipo de relatório dedicado ao cabeamento: reúne o mapa de cabos de **sinal** e de **energia (AC)** de todas as telas num documento só (com os selos de início de cabo e a carga por cabo/porta). Sai com nome `projeto_relatorio_mapa-de-cabos_data-hora`.
+
+### Alterado
+- **Relatório Elétrico ficou enxuto.** O mapa de cabos AC saiu do relatório Elétrico (foi pro novo "Mapa de cabos") — o Elétrico agora traz só as tabelas (kW/kVA/corrente/disjuntor/gerador). O relatório "Completo" segue com tudo.
+
 ## [0.20.3] — 2026-07-13
 
 ### Melhorado
