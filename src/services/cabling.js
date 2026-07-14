@@ -1,12 +1,17 @@
 // services/cabling.js — lógica de roteamento de cabos (sinal e AC), COMPARTILHADA
 // pela aba Cabeamento e pelo overlay "Mapa de cabos" do Test Card (mantém consistência).
 //
-// SINAL (Novastar básico): capacidade da porta pela ÁREA RETANGULAR (bounding box).
-// Cabo inicia no canto inferior-esquerdo; parte principal "reta" + sobra combinada.
+// SINAL — duas RÉGUAS de porta (config por tela em cabling.sinal.rule):
+//  • "px" (padrão p/ telas novas): pixels REAIS — é como VX/série A/Colorlight
+//    distribuem; a porta gasta a contagem de gabinetes×px, rota serpentina contínua
+//    cortada por contagem balanceada. Capacidade escala com refresh E profundidade
+//    de cor (8-bit ≈ 655k px, 10-bit ≈ 327k px @60Hz).
+//  • "area" (legado; telas antigas sem o campo): Novastar básico — a porta reserva a
+//    ÁREA RETANGULAR (bounding box); blocos retangulares ≤ budget.
 
 // Constantes elétricas/sinal — fonte única em src/config/electricalConfig.js
-import { PX_PER_PORT, FASE_V, CONN_AMP } from "../config/electricalConfig.js";
-export { PX_PER_PORT, FASE_V, CONN_AMP };
+import { PX_PER_PORT, PX_PER_PORT_BY_BITS, FASE_V, CONN_AMP } from "../config/electricalConfig.js";
+export { PX_PER_PORT, PX_PER_PORT_BY_BITS, FASE_V, CONN_AMP };
 
 // Fator de segurança do cabo AC (regra dos 80% p/ carga contínua de show). É uma
 // preferência GLOBAL do app (Configurações), então vive como módulo em vez de
@@ -97,6 +102,12 @@ function portsColuna(cols, rows, budget, routing) {
   }
   return ports;
 }
+// régua de PIXELS: rota serpentina contínua na grade inteira, cortada por CONTAGEM
+// balanceada — a porta gasta os px reais (nº de gabinetes), não o retângulo envolvente.
+function portsPx(cols, rows, budget, routing) {
+  return balancedChunks(mkBlock(0, 0, cols, rows, routing), budget);
+}
+
 function portsArea(cols, rows, budget, routing) {
   // bloco ~quadrado de área ≤ budget; MAS se a grade limita uma dimensão (ex.:
   // painel estreito), a outra estica pra aproveitar o budget — evita sub-dividir
@@ -119,22 +130,27 @@ export function cableMeta(tela) {
   const ampCab = (parseFloat(g.pwrMax) || 0) / (FASE_V * fp);
   const connRating = CONN_AMP[g.conector] || 16;
   const acBudget = Math.max(1, Math.floor((connRating * acMargin) / (ampCab || 1)));
-  const cabling = tela?.cabling || {};
-  const sinalBudget = Math.max(1, Math.floor(Math.floor((PX_PER_PORT * 60) / ((cabling.sinal || {}).hz || 60)) / pxPerCab));
-  return { cols, rows, pxPerCab, fp, ampCab, connRating, acBudget, sinalBudget };
+  const s = (tela?.cabling || {}).sinal || {};
+  const sinalBits = s.bits === 10 ? 10 : 8; // profundidade de cor (8-bit padrão)
+  const sinalRule = s.rule === "px" ? "px" : "area"; // sem o campo = legado (área) — não muda projetos existentes
+  const pxPort = Math.floor(((PX_PER_PORT_BY_BITS[sinalBits] || PX_PER_PORT) * 60) / (s.hz || 60));
+  const sinalBudget = Math.max(1, Math.floor(pxPort / pxPerCab));
+  return { cols, rows, pxPerCab, fp, ampCab, connRating, acBudget, sinalBudget, sinalRule, sinalBits, pxPort };
 }
 
-export function buildAuto(cols, rows, strat, bud, rout, numbering) {
-  const p = strat === "coluna" ? portsColuna(cols, rows, bud, rout) : strat === "area" ? portsArea(cols, rows, bud, rout) : portsLinha(cols, rows, bud, rout);
+export function buildAuto(cols, rows, strat, bud, rout, numbering, rule = "area") {
+  const p = rule === "px"
+    ? portsPx(cols, rows, bud, rout) // régua de pixels: estratégia de bandas não se aplica
+    : strat === "coluna" ? portsColuna(cols, rows, bud, rout) : strat === "area" ? portsArea(cols, rows, bud, rout) : portsLinha(cols, rows, bud, rout);
   return orderPorts(p, numbering);
 }
 
 export function signalRoute(tela, numbering) {
-  const { cols, rows, sinalBudget } = cableMeta(tela);
+  const { cols, rows, sinalBudget, sinalRule } = cableMeta(tela);
   const s = (tela?.cabling || {}).sinal || {};
   return s.strategy === "livre"
     ? (s.cables || []).map((ks) => ks.map(parseKey)).filter((p) => p.length)
-    : buildAuto(cols, rows, s.strategy || "linha", sinalBudget, s.routing || "updown", numbering);
+    : buildAuto(cols, rows, s.strategy || "linha", sinalBudget, s.routing || "updown", numbering, sinalRule);
 }
 
 // AC "atrelado ao sinal": segue a rota de cada cabo de sinal, mas parte em
@@ -148,12 +164,12 @@ export function acRouteFromSignal(tela, numbering) {
 
 // portas/cabos de uma tela para um modo, a partir da config persistida em tela.cabling
 export function cablePorts(tela, mode, numbering = "row-tb-lr") {
-  const { cols, rows, acBudget, sinalBudget } = cableMeta(tela);
+  const { cols, rows, acBudget, sinalBudget, sinalRule } = cableMeta(tela);
   const cfg = (tela?.cabling || {})[mode] || {};
   const strategy = cfg.strategy || "linha";
   const routing = cfg.routing || "updown";
   const budget = mode === "sinal" ? sinalBudget : acBudget;
   if (strategy === "livre") return (cfg.cables || []).map((ks) => ks.map(parseKey));
   if (mode === "ac" && strategy === "sinal") return acRouteFromSignal(tela, numbering);
-  return buildAuto(cols, rows, strategy, budget, routing, numbering);
+  return buildAuto(cols, rows, strategy, budget, routing, numbering, mode === "sinal" ? sinalRule : "area");
 }

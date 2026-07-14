@@ -30,6 +30,8 @@ export default function Diagrams() {
   const [cols, setCols] = useState(8);
   const [rows, setRows] = useState(6);
   const [hz, setHz] = useState(60);
+  const [bits, setBits] = useState(8); // profundidade de cor (10-bit = metade dos px/porta)
+  const [rule, setRule] = useState("px"); // régua da porta: "px" (real) | "area" (básico)
   const [strategy, setStrategy] = useState("linha");
   const [routing, setRouting] = useState("updown");
   const [controlsOpen, setControlsOpen] = useState(!isMobile);
@@ -43,13 +45,14 @@ export default function Diagrams() {
   const panelW = cols * CELL, panelH = rows * CELL;
 
   // tela sintética -> reaproveita exatamente a lógica compartilhada
-  const tela = { cols, rows, gabinete: cab, cabling: { sinal: { strategy, routing, hz } } };
-  const { sinalBudget } = cableMeta(tela);
+  const tela = { cols, rows, gabinete: cab, cabling: { sinal: { strategy, routing, hz, bits, rule } } };
+  const { sinalBudget, pxPort } = cableMeta(tela);
   const ports = cablePorts(tela, "sinal", numbering);
 
   const portOf = {};
   ports.forEach((p, i) => p.forEach((cell) => { portOf[key(cell.c, cell.r)] = i; }));
-  const usage = (port) => bboxArea(port) / sinalBudget; // regra de área (bounding box)
+  // ocupação: régua de pixels = contagem real de gabinetes; régua de área = bounding box
+  const usage = (port) => (rule === "px" ? port.length : bboxArea(port)) / sinalBudget;
   const anyOver = ports.some((p) => usage(p) > 1.001);
   const status = anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
 
@@ -99,7 +102,9 @@ export default function Diagrams() {
             <div><label style={lbl}>Colunas</label><NumField value={cols} onChange={(n) => setCols(Math.max(1, n))} style={{ ...inp, width: 80 }} /></div>
             <div><label style={lbl}>Linhas</label><NumField value={rows} onChange={(n) => setRows(Math.max(1, n))} style={{ ...inp, width: 80 }} /></div>
             <div><label style={lbl}>Refresh</label><Select value={hz} onChange={(e) => setHz(parseInt(e.target.value))} style={inp}>{[60, 50, 30].map((r) => <option key={r} value={r}>{r} Hz</option>)}</Select></div>
-            <Seg label="Disposição" options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]} value={strategy} onChange={setStrategy} />
+            <div><label style={lbl}>Cor</label><Select value={bits} title="Profundidade de cor — 10-bit dobra os dados por pixel (metade dos px por porta)" onChange={(e) => setBits(Number(e.target.value))} style={inp}><option value={8}>8-bit</option><option value={10}>10-bit</option></Select></div>
+            <div><label style={lbl}>Porta</label><Select value={rule} title="Régua da porta: pixels reais (VX/série A/Colorlight) ou área retangular (controlador básico)" onChange={(e) => setRule(e.target.value)} style={inp}><option value="px">Pixels (real)</option><option value="area">Área (básico)</option></Select></div>
+            {rule === "area" && <Seg label="Disposição" options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]} value={strategy} onChange={setStrategy} />}
             <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />
           </div>
         )}
@@ -109,7 +114,7 @@ export default function Diagrams() {
         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div>
             <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{cab?.nome || "—"} · Sinal</div>
-            <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>{cols * rows} gabinetes · máx {sinalBudget} gab/porta (área quadrada) · {ports.length} portas</div>
+            <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>{cols * rows} gabinetes · máx {sinalBudget} gab/porta {rule === "px" ? `· ${pxPort.toLocaleString("pt-BR")} px (${bits}-bit)` : "(área quadrada)"} · {ports.length} portas</div>
           </div>
           <span style={{ background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
         </div>

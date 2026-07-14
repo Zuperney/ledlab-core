@@ -96,14 +96,17 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o cabeamento." />;
 
-  const { ampCab, connRating, acBudget, sinalBudget } = cableMeta(tela);
+  const { ampCab, connRating, acBudget, sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(tela);
   const budget = mode === "sinal" ? sinalBudget : acBudget;
   const ports = cablePorts(tela, mode, numbering); // mesma lógica usada pelo Test Card
 
   const portOf = {};
   ports.forEach((p, i) => p.forEach((cell) => { portOf[key(cell.c, cell.r)] = i; }));
   const assigned = Object.keys(portOf).length;
-  const usage = (port) => mode === "sinal" ? bboxArea(port) / budget : (port.length * ampCab) / connRating;
+  // ocupação da porta: régua de pixels = contagem real; régua de área = bounding box
+  const usage = (port) => mode === "sinal"
+    ? (sinalRule === "px" ? port.length : bboxArea(port)) / budget
+    : (port.length * ampCab) / connRating;
   const anyOver = ports.some((p) => usage(p) > 1.001);
   const incomplete = strategy === "livre" && assigned < cols * rows;
   const status = incomplete ? { l: `Faltam ${cols * rows - assigned}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
@@ -123,7 +126,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
     setCables(next);
   };
   const importFrom = (strat) => {
-    const src = strat === "sinal" ? acRouteFromSignal(tela, numbering) : buildAuto(cols, rows, strat, budget, routing, numbering);
+    const rule = mode === "sinal" ? sinalRule : "area"; // importa já na régua da tela
+    const src = strat === "sinal" ? acRouteFromSignal(tela, numbering) : buildAuto(cols, rows, strat, budget, routing, numbering, rule);
     setCables(src.map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(null);
   };
   const novoCabo = () => { setActive(cables.length); setCables([...cables, []]); };
@@ -156,9 +160,13 @@ export default function ProjectCabeamento({ project, patchTela }) {
               {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </Select>
             <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
-            <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />
+            {mode === "sinal" && <Drop label="Porta" title="Régua da porta: pixels reais (VX/série A/Colorlight) ou área retangular (controlador básico)" options={[["px", "Pixels (real)"], ["area", "Área (básico)"]]} value={sinalRule} onChange={(v) => setCfg({ rule: v })} />}
+            {mode === "sinal" && sinalRule === "px"
+              ? <Drop label="Disp." options={[["linha", "Automática"], ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy === "livre" ? "livre" : "linha"} onChange={setStrategy} />
+              : <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />}
             {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
             {mode === "sinal" && <Drop label="Freq" options={[[60, "60 Hz"], [50, "50 Hz"], [30, "30 Hz"]]} value={hz} onChange={setHz} />}
+            {mode === "sinal" && <Drop label="Cor" title="Profundidade de cor do processador — 10-bit dobra os dados por pixel (metade dos px por porta)" options={[[8, "8-bit"], [10, "10-bit"]]} value={sinalBits} onChange={(v) => setCfg({ bits: Number(v) })} />}
             {!isMobile && <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>}
           </div>
         )}
@@ -189,7 +197,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}` }}>
           <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{tela.nome} · {mode === "sinal" ? "Sinal" : "Energia AC"}</div>
           <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
-            {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? "porta (área quadrada)" : "cabo"}
+            {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? (sinalRule === "px" ? `porta · ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "porta (área quadrada)") : "cabo"}
             {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
             {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal · carga balanceada entre cabos"}
             {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
@@ -276,11 +284,11 @@ const sep = { width: 1, height: 22, background: T.bd, margin: "0 2px" };
 const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 
 // dropdown compacto com rótulo (economiza espaço vs. grupo de botões)
-function Drop({ label, options, value, onChange }) {
+function Drop({ label, options, value, onChange, title }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }} title={title}>
       {label}
-      <Select value={String(value)} title={label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={dropSel}>
+      <Select value={String(value)} title={title || label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={dropSel}>
         {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
       </Select>
     </span>
