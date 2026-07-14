@@ -105,7 +105,7 @@ export default function Projects({ nav }) {
 
   return (
     <div>
-      <SectionHeader title="Projetos / Eventos" subtitle={`${projects.length} projetos · abra um para acessar energia, sinal, test card e relatório.`}>
+      <SectionHeader title="Projetos / Eventos" subtitle={`${projects.length} projetos · abra um para energia, sinal, test card e relatório.`}>
         {!isMobile && <button style={btn("primary")} onClick={create}><Plus size={16} /> Novo Projeto</button>}
       </SectionHeader>
 

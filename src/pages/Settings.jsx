@@ -141,7 +141,7 @@ export default function Settings() {
 
   return (
     <div style={{ maxWidth: 640 }}>
-      <SectionHeader title="Configurações" subtitle="Preferências, dados e manutenção — tudo salvo neste navegador." />
+      <SectionHeader title="Configurações" subtitle="Preferências, dados e manutenção." />
 
       {/* 3 sub-menus: reduz o "muro" de cards, principalmente no mobile */}
       <div style={tabsWrap}>
@@ -159,13 +159,13 @@ export default function Settings() {
       {group === "eng" && (<>
       <Section icon={Zap} title="Elétrica & cabeamento" subtitle="Tensão, numeração e margem do cabo AC" defaultOpen={open}>
         <div style={subLabel}>Tensão padrão</div>
-        <div style={subDesc}>Usada em projetos novos (dá pra mudar por projeto na aba Energia).</div>
+        <div style={subDesc}>Padrão de projetos novos (muda por projeto na aba Energia).</div>
         <Select value={prefs.vk || "220_tri"} title="Tensão padrão" onChange={(e) => setPrefs({ ...prefs, vk: e.target.value })} style={selStyle}>
           {Object.entries(VOLT).map(([k, v]) => <option key={k} value={k}>{v.g}V · {v.label}</option>)}
         </Select>
 
         <div style={{ ...subLabel, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>Numeração dos cabos</div>
-        <div style={subDesc}>Ordem em que os cabos são numerados (sinal e AC), conforme sua montagem em campo.</div>
+        <div style={subDesc}>Ordem de numeração dos cabos (sinal e AC).</div>
         <Select value={prefs.cableNumbering || "row-tb-lr"} title="Numeração dos cabos" onChange={(e) => setPrefs({ ...prefs, cableNumbering: e.target.value })} style={selStyle}>
           <option value="col-lr-bt">Coluna · esquerda→direita · de baixo p/ cima</option>
           <option value="col-lr-tb">Coluna · esquerda→direita · de cima p/ baixo</option>
@@ -176,7 +176,7 @@ export default function Settings() {
         </Select>
 
         <div style={{ ...subLabel, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>Margem de segurança do cabo AC</div>
-        <div style={subDesc}>Reduz os gabinetes por cabo pensando em carga contínua (show de horas) — a regra dos 80% de touring. 100% = sem margem (padrão histórico).</div>
+        <div style={subDesc}>Regra dos 80% pra carga contínua (show longo). 100% = sem margem.</div>
         <Select value={String(prefs.acMargin ?? 1)} title="Margem do cabo AC" onChange={(e) => setPrefs({ ...prefs, acMargin: Number(e.target.value) })} style={selStyle}>
           <option value="1">100% — sem margem (padrão)</option>
           <option value="0.9">90% — margem leve</option>
@@ -185,7 +185,7 @@ export default function Settings() {
       </Section>
 
       <Section icon={Palette} title="Cores dos cabos" subtitle="Paleta dos cabos e portas" defaultOpen={open}>
-        <div style={subDesc}>Cores atribuídas aos cabos/portas na ordem (cabo 1, 2, 3…). Aparecem no Cabeamento, Diagramação, mapa de cabos do Test Card e no Relatório. Toque num quadrado pra trocar a cor.</div>
+        <div style={subDesc}>Cor de cada cabo/porta na ordem (1, 2, 3…). Toque num quadrado pra trocar.</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, margin: "12px 0 14px" }}>
           {palette.map((c, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
@@ -210,7 +210,7 @@ export default function Settings() {
       {group === "cache" && (<>
       <Section icon={LayoutDashboard} title="Dashboard" subtitle="Privacidade e exibição da tela inicial" defaultOpen={open}>
         <PrefToggle on={!!prefs.dashOcultarValor} onClick={() => setPrefs({ ...prefs, dashOcultarValor: !prefs.dashOcultarValor })}
-          titulo="Ocultar valores em R$" desc="Esconde o total de cachês na tela inicial — útil ao mostrar o app pra outras pessoas. Também dá pra alternar rápido no ícone de olho, no próprio card." />
+          titulo="Ocultar valores em R$" desc="Esconde o total de cachês na tela inicial — também no ícone de olho do card." />
       </Section>
 
       <Section icon={Receipt} title="Cachês (Diárias)" subtitle="Cálculo, fixo mensal, recibo e tipos" defaultOpen={open}>
@@ -391,7 +391,7 @@ function AccountSection() {
   }
   return (
     <div>
-      <div style={{ ...subDesc, marginBottom: 10 }}>Acesse seus dados de qualquer aparelho (opcional). Mandamos um código de 6 dígitos pro seu e-mail — sem senha, funciona em qualquer navegador.</div>
+      <div style={{ ...subDesc, marginBottom: 10 }}>Código de 6 dígitos no seu e-mail — sem senha, funciona em qualquer navegador.</div>
       {step === "code" ? (
         <div style={{ display: "grid", gap: 8 }}>
           <div style={mDesc}>Código enviado pra <b>{email}</b>. Digite abaixo:</div>

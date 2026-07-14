@@ -136,7 +136,7 @@ export default function Reembolso() {
 
   return (
     <div style={{ maxWidth: 820 }}>
-      <SectionHeader title="Reembolso" subtitle="Lance as despesas do evento com foto do comprovante e gere o relatório pra pedir o reembolso." />
+      <SectionHeader title="Reembolso" subtitle="Despesas do evento com comprovante + relatório de reembolso." />
 
       {/* mês + total */}
       <div style={card({ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 })}>

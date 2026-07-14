@@ -64,18 +64,18 @@ export default function DiariasConfig() {
       {sub === "calc" && (<>
       <div style={{ marginBottom: 18 }}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Parâmetros de cálculo</div>
-        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Franquia de horas e tolerância que valem para todos os tipos (ver a lógica no módulo Cachês).</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valem para todos os tipos de atividade.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div><div style={lbl}>Jornada (horas)</div><input type="number" value={cfg.jornadaH} onChange={(e) => setCfg({ jornadaH: num(e.target.value, 1) })} style={input()} /></div>
           <div><div style={lbl}>Janela hora extra (h)</div><input type="number" value={cfg.janelaExtraH} onChange={(e) => setCfg({ janelaExtraH: num(e.target.value, 0) })} style={input()} /></div>
           <div><div style={lbl}>Tolerância da fração (min)</div><input type="number" value={cfg.toleranciaExtraMin} onChange={(e) => setCfg({ toleranciaExtraMin: num(e.target.value, 0) })} style={input()} /></div>
         </div>
-        <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>Ex.: cachê ÷ jornada = valor da hora extra; a fração só vira 1 hora cheia passando da tolerância.</div>
+        <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>cachê ÷ jornada = hora extra; a fração só vira 1h passando da tolerância.</div>
       </div>
 
       <div style={{ marginBottom: 18, paddingTop: 18, borderTop: `1px solid ${T.bd}` }}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Fixo mensal (opcional)</div>
-        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além dos cachês. Deixe 0 se não usa.</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo mensal de um cliente, somado no Financeiro. Deixe 0 se não usa.</div>
         <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><div style={lbl}>Valor por mês (R$)</div><input type="number" value={fixo.valor} onChange={(e) => setFixo({ valor: Math.max(0, parseInt(e.target.value) || 0) })} placeholder="Ex.: 6000" style={input()} /></div>
           <div><div style={lbl}>Cliente do fixo</div><input value={fixo.cliente} onChange={(e) => setFixo({ cliente: e.target.value })} placeholder="Ex.: empresa contratante" style={input()} /></div>
@@ -87,7 +87,7 @@ export default function DiariasConfig() {
       {sub === "recibo" && (<>
       <div style={{ marginBottom: 4 }}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Dados do recibo (emitente)</div>
-        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Aparecem no cabeçalho, na assinatura e no rodapé de pagamento do recibo de mão de obra. Opcional.</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Aparecem no recibo de mão de obra. Opcional.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
           <div><div style={lbl}>Razão social / nome empresarial</div><input value={emit.razaoSocial} onChange={(e) => setEmit({ razaoSocial: e.target.value })} placeholder="Ex.: 00.000.000 Fulano" style={input()} /></div>
           <div><div style={lbl}>Nome fantasia</div><input value={emit.nomeFantasia} onChange={(e) => setEmit({ nomeFantasia: e.target.value })} placeholder="Ex.: sua marca" style={input()} /></div>

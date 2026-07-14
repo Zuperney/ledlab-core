@@ -89,7 +89,7 @@ export default function Diagrams() {
 
   return (
     <div>
-      <SectionHeader title="Diagramação" subtitle="Planeje as portas de sinal por tela (regra de área Novastar), consistente com o Cabeamento." />
+      <SectionHeader title="Diagramação" subtitle="Portas de sinal por tela, na mesma lógica do Cabeamento." />
 
       <div style={card({ marginBottom: 16 })}>
         {isMobile && (
