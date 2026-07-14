@@ -172,7 +172,7 @@
       montar, orçar e visualizar</b> um painel — sem deixar de ser 100% offline e feito pra obra brasileira.
     </p>
     <div class="leap">
-      <span class="v1">agora · <b>v1.x</b> engenharia + faturamento</span>
+      <span class="v1">agora · <b>v1.1</b> Fase 01 ✅ · Fase 02 em curso</span>
       <span class="arw">→</span>
       <span class="v2">v2.0 · plataforma completa</span>
     </div>
@@ -228,11 +228,12 @@
     <div class="col gap-c">
       <h4><span class="tag">A resolver</span> antes de escalar</h4>
       <ul>
-        <li><b>Tudo em localStorage</b> — sem backup automático, sem multi-dispositivo, sujeito a limite de cota e a modo privado.</li>
-        <li><b>Testes só no motor de cachês</b> — cálculos elétricos e de sinal sem rede de segurança.</li>
-        <li><b>Portas de sinal por "área"</b> — usa caixa delimitadora, não pixels-por-porta reais do processador.</li>
-        <li><b>Sem rigging, sem distância de visão, sem orçamento, sem preview visual</b> do painel.</li>
-        <li><b>Desktop (Electron) pouco exercitado</b> — empacotamento existe, mas sem auto-update/assinatura.</li>
+        <li><span style="color:var(--good)">✅</span> <b>Persistência</b> — <i>resolvido:</i> IndexedDB + backup + sync na nuvem (v0.10–v0.12).</li>
+        <li><span style="color:var(--good)">✅</span> <b>Testes</b> — <i>resolvido:</i> 113 testes (elétrico, cabeamento, projeto, crop, layout, cachês) + CI com <b>lint bloqueante</b> (v1.0.0).</li>
+        <li><span style="color:var(--good)">✅</span> <b>Portas de sinal por "área"</b> — <i>resolvido (v1.1.0):</i> a régua de <b>pixels reais</b> (px/porta, 8/10-bit) virou padrão; a de área segue como opção pra controlador básico.</li>
+        <li><b>Sem rigging, sem distância de visão, sem orçamento</b> — o trio que falta pra fechar engenharia + negócio.</li>
+        <li><b>Preview do painel ainda é 2D</b> — a Composição (v0.20) já monta várias telas num render; falta a escala real e o 3D.</li>
+        <li><b>Desktop (Electron)</b> — <i>fora do escopo (jul/2026):</i> o PWA atende bem o desktop.</li>
       </ul>
     </div>
   </div>
@@ -240,13 +241,18 @@
 
 <!-- JÁ ENTREGUE -->
 <section class="band wrap reveal">
-  <div class="band-h"><h2>Já entregue</h2><span class="eyebrow" style="color:var(--good)">v0.9 → v0.15 · no ar</span></div>
-  <p class="band-sub">A <b>rota de durabilidade</b> saiu do papel — do "dado preso num navegador" ao "dado que te segue em qualquer aparelho".</p>
+  <div class="band-h"><h2>Já entregue</h2><span class="eyebrow" style="color:var(--good)">v0.9 → v1.1 · no ar</span></div>
+  <p class="band-sub">A <b>rota de durabilidade</b> saiu do papel — do "dado preso num navegador" ao "dado que te segue em qualquer aparelho" — e, na v1.1, <b>a Fase 02 começou a entregar</b>.</p>
   <div style="display:grid;gap:10px;margin-top:14px">
     <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">IndexedDB como fonte de verdade</b> — localStorage vira espelho</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.11.0</span></div>
     <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">Armazenamento persistente + backup + lembrete</b></span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.10.0</span></div>
     <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">PWA à prova</b> — o service worker se auto-atualiza + fix de "chunk órfão"</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.9.1</span></div>
     <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.08)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">Sincronização na nuvem</b> — login por código (OTP) + motor de sync; opt-in, offline-first</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.12.0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">Reembolso completo</b> — despesa + foto do comprovante (local) + relatório PDF/WhatsApp</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.18.0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.05)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">Composição de telas</b> — várias telas num render só, com aviso de sobreposição</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v0.20.0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(52,211,153,.10)"><span style="color:var(--good);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">🎉 Marco de estabilidade</b> — 84 testes, lint zerado e <b style="color:var(--txt)">bloqueante</b> no CI, Actions no Node 22</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v1.0.0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(124,58,237,.10)"><span style="color:var(--edge,#a78bfa);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">Fase 02 · Portas de dados reais (px/porta)</b> — 8/10-bit escalando com refresh + canto de início da serpentina</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v1.1.0</span></div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 15px;background:rgba(124,58,237,.10)"><span style="color:var(--edge,#a78bfa);font-weight:800;flex:none">✓</span><span style="flex:1;min-width:0;font-size:.92rem;color:var(--txt2)"><b style="color:var(--txt);font-weight:600">Fase 02 · Mapa de pixels exportável</b> — CSV (gabinete → porta → X/Y) + tabela no relatório, p/ NovaLCT/Tessera</span><span style="font-family:var(--mono);font-size:.7rem;color:var(--good);border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 9px;flex:none">v1.1.0</span></div>
   </div>
   <p class="band-sub" style="margin-top:16px">O <b>backend (Supabase + RLS) agora existe</b> — o que também destrava a <i>agenda escalada</i> no futuro (mesma infra).</p>
 </section>
@@ -256,7 +262,7 @@
   <div class="phase-head">
     <div class="pnum num">01</div>
     <div>
-      <div class="ptrack">Fundação &amp; confiança <span class="rel">v1.1</span></div>
+      <div class="ptrack">Fundação &amp; confiança <span class="rel" style="color:var(--good);border-color:rgba(52,211,153,.35)">✅ concluída · v1.0</span></div>
       <h2>Não perca dados. Não quebre nada.</h2>
       <p class="theme">"Antes de crescer, o app precisa ser à prova de falha."</p>
     </div>
@@ -274,8 +280,8 @@
       <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">M</span></div>
     </div>
     <div class="card">
-      <h3>Cinturão de testes + CI</h3>
-      <p class="what"><b style="color:var(--good)">Entregue (v0.15.0).</b> vitest no motor elétrico, cabeamento e projectCalc (66 testes) + CI a cada push; o deploy só publica se os testes passarem.</p>
+      <h3>✅ Cinturão de testes + CI</h3>
+      <p class="what"><b style="color:var(--good)">Entregue (v0.15.0 → v1.0.0).</b> vitest no motor elétrico, cabeamento, projeto, crop, layout e cachês — <b>113 testes</b> hoje — + CI a cada push, com <b>lint bloqueante</b> desde a v1.0.0; o deploy só publica se tudo passar.</p>
       <p class="why"><b>Por quê:</b> só o worklog era testado — regressão silenciosa num cálculo custa caro em campo.</p>
       <div class="foot"><span class="prio"><span class="dot need"></span>Necessário</span><span class="badge-eff">✓ M</span></div>
     </div>
@@ -292,10 +298,10 @@
       <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">✓ P</span></div>
     </div>
     <div class="card">
-      <h3>Desktop pronto (Electron)</h3>
-      <p class="what">Auto-update, ícones e assinatura, empacotamento Windows testado ponta a ponta.</p>
-      <p class="why"><b>Por quê:</b> muito projeto pesado (diagramação, PDF) é feito no computador do estúdio.</p>
-      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">M</span></div>
+      <h3 style="opacity:.65;text-decoration:line-through">Desktop pronto (Electron)</h3>
+      <p class="what"><b style="color:var(--txt2)">Fora do escopo (jul/2026).</b> O PWA atende bem o desktop — instalável e offline. O empacotamento segue no repo, sem investimento em auto-update/assinatura.</p>
+      <p class="why"><b>Por quê saiu:</b> decisão de produto — o esforço vale mais na engenharia (Fase 02) do que num segundo alvo de build.</p>
+      <div class="foot"><span class="prio"><span class="dot new"></span>Novidade</span><span class="badge-eff">—</span></div>
     </div>
   </div>
 </section>
@@ -305,21 +311,21 @@
   <div class="phase-head">
     <div class="pnum num">02</div>
     <div>
-      <div class="ptrack">Profundidade de engenharia <span class="rel">v1.5</span></div>
+      <div class="ptrack">Profundidade de engenharia <span class="rel">v1.1 → v1.5 · em curso (2 de 5)</span></div>
       <h2>O cálculo que nenhum app de aluguel faz.</h2>
       <p class="theme">"Aqui mora o diferencial — engenharia de verdade, não só inventário."</p>
     </div>
   </div>
   <div class="cards">
     <div class="card">
-      <h3>Portas de dados reais (px/porta)</h3>
-      <p class="what">Calcular o nº de portas pela capacidade real do processador — ~650k px/porta a 8-bit 60&nbsp;Hz, ~320k a 10-bit — escalando com refresh e profundidade de cor. Substitui a regra de área.</p>
+      <h3>✅ Portas de dados reais (px/porta)</h3>
+      <p class="what"><b style="color:var(--good)">Entregue (v1.1.0).</b> Nº de portas pela capacidade real do processador — 655.360 px/porta a 8-bit 60&nbsp;Hz, 327.680 a 10-bit — escalando com refresh e profundidade de cor. A régua de área virou <i>opção</i> (controlador básico). Inclui o <b>canto de início da serpentina</b> (4 cantos × 2 direções = os 8 padrões do <i>Quick Connection</i> do NovaLCT), pro mapa casar com a montagem física.</p>
       <p class="why"><b>Por quê:</b> é assim que Novastar/Colorlight realmente distribuem sinal; a regra de área super ou subdimensiona.</p>
-      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">✓ M</span>
         <span class="ref">ref. capacidade de porta Novastar</span></div>
     </div>
     <div class="card">
-      <h3>Recomendador pitch × distância</h3>
+      <h3>Recomendador pitch × distância <span style="font-size:.62rem;font-family:var(--mono);color:var(--edge,#a78bfa);border:1px solid rgba(167,139,250,.4);border-radius:999px;padding:1px 8px;vertical-align:middle">← próximo</span></h3>
       <p class="what">Dado o pitch (ou o tamanho e a distância), retorna distância mínima, ótima e máxima de visão + o VAD, e sugere o pitch ideal. Expande a aba Aspect Ratio.</p>
       <p class="why"><b>Por quê:</b> é a primeira pergunta de todo cliente — "de longe fica bom?" — e hoje se responde no olho.</p>
       <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
@@ -339,10 +345,10 @@
       <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span></div>
     </div>
     <div class="card">
-      <h3>Mapa de pixels exportável</h3>
-      <p class="what">Gerar o mapeamento cabinets → portas (visual + CSV/impressão) que o operador transcreve no NovaLCT ou no Tessera.</p>
+      <h3>✅ Mapa de pixels exportável</h3>
+      <p class="what"><b style="color:var(--good)">Entregue (v1.1.0).</b> CSV com uma linha por gabinete (porta · ordem no cabo · coluna/linha · X/Y, origem sup-esq) + tabela de início por porta no relatório "Mapa de cabos". Modelo conferido <b>contra o NovaLCT real</b> (aba <i>Screen Connection</i>): bate 1:1 com o que o operador digita. <b style="color:var(--txt2)">Gerar <code>.scr</code> binário foi descartado</b> — formato proprietário (DSCI + checksum): risco de desconfigurar parede em campo.</p>
       <p class="why"><b>Por quê:</b> fecha o ciclo do projeto até a operação — o que hoje é redesenhado do zero na régua.</p>
-      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">✓ M</span>
         <span class="ref">ref. workflow de mapeamento Novastar/Brompton</span></div>
     </div>
   </div>
@@ -367,10 +373,10 @@
         <span class="ref">ref. propostas Flex / Rentman / Goodshuffle</span></div>
     </div>
     <div class="card">
-      <h3>Despesas &amp; reembolso</h3>
-      <p class="what">Lançar as despesas do evento (combustível, pedágio, alimentação, material) com <b>foto do comprovante</b> e gerar um relatório de reembolso — reaproveitando a máquina de recibo/PDF/WhatsApp dos cachês.</p>
-      <p class="why"><b>Por quê:</b> o técnico adianta do bolso e precisa ser ressarcido; é irmã do Financeiro. Fotos pedem o IndexedDB da Fase 1.</p>
-      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">M</span>
+      <h3>✅ Despesas &amp; reembolso</h3>
+      <p class="what"><b style="color:var(--good)">Entregue (v0.17–v0.18).</b> Aba própria: despesa (data/categoria/valor/descrição/cliente) com <b>foto do comprovante</b> comprimida e <i>local no IndexedDB</i> (não sobe pra nuvem, por decisão de custo) + relatório imprimível com os comprovantes embutidos, PDF/Copiar/WhatsApp. <b style="color:var(--txt2)">Falta (se pedir):</b> vínculo despesa↔evento e período custom.</p>
+      <p class="why"><b>Por quê:</b> o técnico adianta do bolso e precisa ser ressarcido; é irmã do Financeiro.</p>
+      <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">✓ M</span>
         <span class="ref">ref. demanda de campo</span></div>
     </div>
     <div class="card">
@@ -497,6 +503,7 @@
 </section>
 
 <footer class="wrap">
+  <div style="color:var(--txt2);margin-bottom:10px"><b>Última atualização: 14/07/2026</b> — app na <b>v1.1.2</b>. Fase 01 concluída (marcada pela v1.0.0); Fase 02 em curso (2 de 5, na v1.1.0); Fase 03 iniciada (Reembolso entregue).</div>
   <div>Fundamentado em pesquisa de fabricantes (Novastar, Brompton), plataformas de locação (Rentman, Flex, Current RMS, Goodshuffle),
     ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first — combinada à leitura completa do código do LedLab Core.</div>
   <div class="srcs">

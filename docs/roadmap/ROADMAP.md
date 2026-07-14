@@ -9,7 +9,8 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.x (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Horizonte:** v1.1 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (2 de 5, na v1.1.0) · Fase 03 iniciada (Reembolso entregue).
 
 ---
 
@@ -36,16 +37,17 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 
 ### ⚠️ A resolver — antes de escalar
 - ✅ **Persistência** — *resolvido:* saiu do `localStorage` puro para IndexedDB + backup + **sync na nuvem** (v0.10–v0.12). Ver "Já entregue" abaixo.
-- ✅ **Testes** — *resolvido:* vitest estendido ao motor elétrico, cabeamento e projectCalc (66 testes) + CI a cada push (v0.15.0).
-- **Portas de sinal por "área"** — usa caixa delimitadora, não pixels-por-porta reais do processador.
-- **Sem rigging, sem distância de visão, sem orçamento, sem preview visual** do painel.
-- **Desktop (Electron) pouco exercitado** — empacotamento existe, mas sem auto-update/assinatura.
+- ✅ **Testes** — *resolvido:* vitest no motor elétrico, cabeamento, projeto, crop, layout e cachês (**113 testes**) + CI a cada push, com **lint bloqueante** desde a v1.0.0.
+- ✅ **Portas de sinal por "área"** — *resolvido (v1.1.0):* a régua de **pixels reais** (px/porta, 8/10-bit, escalando com refresh) virou o padrão; a régua de área continua como opção pra controlador básico.
+- **Sem rigging, sem distância de visão, sem orçamento** — o trio que falta pra fechar a engenharia + o negócio.
+- **Preview do painel ainda é 2D** — a Composição (v0.20) monta várias telas num render; falta o 3D/previz da Fase 04.
+- ~~Desktop (Electron)~~ — **fora do escopo** (decisão de produto, jul/2026): o PWA atende o desktop; o empacotamento segue no repo, sem investimento.
 
 ---
 
-## ✅ Já entregue (v0.9 → v0.15)
+## ✅ Já entregue (v0.9 → v1.1)
 
-A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "dado que te segue em qualquer aparelho":
+A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "dado que te segue em qualquer aparelho" — e, na v1.1, **a Fase 02 começou a entregar**:
 
 | Entregue | Fase | Versão |
 |---|:---:|:---:|
@@ -53,16 +55,25 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **Armazenamento persistente + backup + lembrete** | 1 | v0.10.0 |
 | **PWA à prova: service worker se auto-atualiza + fix de "chunk órfão"** | 1 *(parcial)* | v0.9.1 |
 | **Sincronização na nuvem** — login por código (OTP) + motor de sync last-write-wins; opt-in, offline-first | 4 | v0.12.0 |
-| **Aviso de nova versão (opt-in)** + toast de novidades — o SW novo espera em vez de trocar sozinho | 1 | v0.13.0 |
-| **Cinturão de testes + CI** — vitest no motor elétrico/cabeamento/projeto (66 testes) + CI a cada push | 1 | v0.15.0 |
+| **Aviso de nova versão** — hoje um modal pós-atualização que o usuário fecha | 1 | v0.13 → v0.20.5 |
+| **Cinturão de testes + CI** — vitest no motor elétrico/cabeamento/projeto + CI a cada push | 1 | v0.15.0 |
 | **Performance & PWA à prova** — precache completo: offline total após a 1ª carga | 1 | v0.15.2 |
 | **Validação elétrica vs datasheets/normas** — ratings IEC, margem de segurança AC, alertas, dados de gabinete | 1–2 | v0.13–v0.15 |
+| **Reembolso completo** — despesa + **foto do comprovante** (local, no IndexedDB) + relatório PDF/WhatsApp | 3 | v0.17–v0.18 |
+| **UX mobile** — `Select` temático (fim do dropdown do Android), `NumField` (campo sem "pulo pra 0"), safe-area e anti-zoom no iOS | 1 | v0.17–v0.19 |
+| **Composição de telas** — várias telas num render só (estilo *slice mapping*), com aviso de sobreposição | 4 *(parcial)* | v0.20.0 |
+| **Crop de vídeo** — Aspect Ratio com *encaixar × preencher* + deslocamento X/Y | 2 | v0.20.7 |
+| **🎉 v1.0 — marco de estabilidade** — 84 testes, lint zerado e **bloqueante** no CI, Actions no Node 22 | 1 | **v1.0.0** |
+| **🟣 Portas de dados reais (px/porta)** — 8/10-bit escalando com refresh + **canto de início da serpentina** (os 8 padrões do NovaLCT) | **2** | **v1.1.0** |
+| **🟣 Mapa de pixels exportável** — CSV (gabinete → porta → X/Y) + tabela por porta no relatório, p/ NovaLCT/Tessera | **2** | **v1.1.0** |
+| **Drag & drop pra reordenar telas** + Configurações em sub-menus + auditoria de UX (textos enxutos) | 1 | v1.1.0 |
+| **Duração em h/min** (fim da hora decimal "9.9h") + **auditoria do motor de cachês** (nenhum valor mudou) | 3 | v1.1.2 |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
 ---
 
-## Fase 01 — Fundação & confiança · `v1.1`
+## Fase 01 — Fundação & confiança · ✅ **concluída** *(v0.9 → v1.0)*
 **Não perca dados. Não quebre nada.** *Antes de crescer, o app precisa ser à prova de falha.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
@@ -72,22 +83,23 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 | ✅ **Cinturão de testes + CI** *(v0.15.0)* | 🟡 | M | **Feito:** vitest no motor elétrico, cabeamento e projectCalc (66 testes); CI a cada push + o deploy só publica se os testes passarem. | — |
 | ✅ **Performance & PWA à prova** *(v0.15.2)* | 🟣 | P | **Feito:** code-splitting (picker/supabase lazy) + **precache completo** = offline total após a 1ª carga (verificado no build de produção). Auditoria Lighthouse formal fica p/ um passe futuro. | — |
 | ✅ **Aviso de nova versão (opt-in)** *(v0.13.0)* | 🟣 | P | **Feito:** banner *"nova versão — Atualizar"* + toast de novidades; o SW novo espera em vez de trocar sozinho (usuário decide). | — |
-| **Desktop pronto (Electron)** | ⚪ | M | Auto-update, ícones/assinatura, empacotamento Windows testado. *Projeto pesado (diagramação, PDF) é feito no computador do estúdio.* | — |
+| ✅ **Cinturão de testes maduro** *(v1.0.0)* | 🟡 | M | **Feito:** 113 testes (elétrico, cabeamento, projeto, crop, layout, cachês) e **lint bloqueante** no CI — erro novo derruba o build. | — |
+| ~~**Desktop pronto (Electron)**~~ | ⚪ | M | **Fora do escopo** *(jul/2026)*: o PWA atende bem o desktop (instalável, offline). O empacotamento segue no repo, sem investimento em auto-update/assinatura. | — |
 
-> **Fase 01 essencial concluída** ✅ — durabilidade (IndexedDB + backup + sync), testes + CI, aviso de versão e PWA offline total estão entregues. Só resta o Desktop/Electron (⚪ novidade, sem pressa). A fundação está à prova; o próximo salto de valor é a **Fase 02**.
+> **Fase 01 concluída** ✅ — durabilidade (IndexedDB + backup + sync), testes + CI bloqueante, aviso de versão e PWA offline total entregues; Electron saiu do escopo. A fundação está à prova, marcada pela **v1.0.0**. O salto de valor agora é a **Fase 02**, que já começou a entregar na v1.1.
 
 ---
 
-## Fase 02 — Profundidade de engenharia · `v1.5`
+## Fase 02 — Profundidade de engenharia · `v1.1 → v1.5` · **em curso** *(2 de 5)*
 **O cálculo que nenhum app de aluguel faz.** *Aqui mora o diferencial — engenharia de verdade, não só inventário.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
-| **Portas de dados reais (px/porta)** | 🟣 | M | Nº de portas pela capacidade real do processador — ~650k px/porta a 8-bit 60 Hz, ~320k a 10-bit — escalando com refresh e bit-depth. Substitui a regra de área. *É assim que Novastar/Colorlight distribuem sinal.* | capacidade de porta Novastar |
-| **Recomendador pitch × distância** | 🟣 | M | Dado o pitch (ou tamanho + distância), retorna distância mínima/ótima/máxima + VAD e sugere o pitch ideal. Expande a aba Aspect Ratio. *É a primeira pergunta de todo cliente — "de longe fica bom?".* | regra 10×, VAD 3438, altura×30 |
+| ✅ **Portas de dados reais (px/porta)** *(v1.1.0)* | 🟣 | M | **Feito:** nº de portas pela capacidade real do processador — 655.360 px/porta a 8-bit 60 Hz, 327.680 a 10-bit — escalando com refresh e bit-depth. A régua de área virou opção (controlador básico). Inclui o **canto de início da serpentina** (4 cantos × 2 direções = os 8 padrões do *Quick Connection* do NovaLCT), pro mapa casar com a montagem física. | capacidade de porta Novastar |
+| ✅ **Mapa de pixels exportável** *(v1.1.0)* | 🟣 | M | **Feito:** CSV com uma linha por gabinete (porta · ordem no cabo · coluna/linha · X/Y, origem sup-esq) + tabela de início por porta no relatório "Mapa de cabos". Modelo conferido **contra o NovaLCT real** (aba *Screen Connection*): bate 1:1 com o que o operador digita. **Gerar `.scr` binário foi descartado** — formato proprietário (`DSCI`+checksum), risco de desconfigurar parede em campo. | workflow Novastar/Brompton |
+| **Recomendador pitch × distância** | 🟣 | M | Dado o pitch (ou tamanho + distância), retorna distância mínima/ótima/máxima + VAD e sugere o pitch ideal. Expande a aba Aspect Ratio. *É a primeira pergunta de todo cliente — "de longe fica bom?".* **← próximo** | regra 10×, VAD 3438, altura×30 |
 | **Rigging & estrutura** | 🟣 | G | Peso total e por ponto, nº de pontos de içamento (4–8), fator de segurança (≈5:1), voado vs. ground support, carga de vento (outdoor), checklist de motor/hardware. *É o cálculo de maior risco em obra.* | práticas de rigging |
-| **Biblioteca de processadores** | 🟣 | M | Cadastro de modelos (Novastar/Colorlight/Brompton) com capacidade de porta e de quadro → nº de processadores/portas automático. *Transforma estimativa em número exato por marca.* | — |
-| **Mapa de pixels exportável** | 🟣 | M | Gerar o mapeamento cabinets → portas (visual + CSV/impressão) que o operador transcreve no NovaLCT/Tessera. *Fecha o ciclo do projeto até a operação.* | workflow Novastar/Brompton |
+| **Biblioteca de processadores** | 🟣 | M | Cadastro de modelos (Novastar/Colorlight/Brompton) com capacidade de porta e de quadro → nº de processadores/portas automático. *Transforma estimativa em número exato por marca.* **Destrava também o "Sending Card + Porta" físico no mapa de pixels** (hoje o app diz "Porta 1..N", não "Card 2 / saída 1"). | — |
 
 ---
 
@@ -97,7 +109,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
 | **Orçamento & proposta (PDF)** | 🟣 | G | Proposta a partir do projeto: m²/gabinetes + mão de obra (puxa das diárias) + logística, com PDF de aceite/assinatura. *Hoje o técnico projeta aqui mas orça no WhatsApp/planilha à parte.* | propostas Flex/Rentman/Goodshuffle |
-| **Despesas & reembolso** | 🟣 | M | Lançar as despesas do evento (combustível, pedágio, alimentação, material) com **foto do comprovante** e gerar um relatório de reembolso — reaproveita a máquina de recibo/PDF/WhatsApp do módulo de cachês. *O técnico adianta do bolso e precisa ser ressarcido; é irmã do Financeiro.* (fotos → melhor sobre o IndexedDB da Fase 1) | demanda de campo |
+| ✅ **Despesas & reembolso** *(v0.17–v0.18)* | 🟣 | M | **Feito:** aba própria — despesa (data/categoria/valor/descrição/cliente) com **foto do comprovante comprimida e local no IndexedDB** (não sobe pra nuvem, por decisão de custo) + relatório imprimível com comprovantes embutidos, PDF/Copiar/WhatsApp. **Falta (se pedir):** vínculo despesa↔evento e período custom (hoje é por mês). | demanda de campo |
 | **Recibo por cadência (semana/mês)** | 🟣 | P | Presets de período no recibo — *esta semana / semana passada*, como já existe pra mês — pra fechar por semana (agenda seg→dom, pagamento na quarta). O trabalho segue lançado por dia; o recibo agrupa e fecha por semana. **A mesma estratégia de período vale pro relatório de reembolso.** *Tem freela que recebe semanalmente; hoje o recibo só pensa em dia/mês.* | demanda de campo |
 | **Disponibilidade & conflito** | 🟣 | M | A agenda cruza eventos e avisa quando o mesmo gabinete/tela está reservado em datas sobrepostas. *Dupla-reserva é o erro clássico — e o mais caro.* | conflito Current RMS/Rentman |
 | **Escala de equipe** | 🟣 | M | Ligar as diárias a pessoas (função, custo, disponibilidade) e montar a equipe do evento. *O módulo de cachês já sabe quanto; falta saber quem.* | — |
@@ -112,7 +124,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
-| **Preview do painel (2D → 3D)** | 🟣 | G | Render do painel em escala real (gabinetes, conteúdo de exemplo, moldura do palco) em vista frontal e isométrica/3D. *A previsualização acelera a aprovação e reduz erro em obra.* | previz Vectorworks/disguise |
+| **Preview do painel (2D → 3D)** *(2D parcial: v0.20.0)* | 🟣 | G | Render do painel em escala real (gabinetes, conteúdo de exemplo, moldura do palco) em vista frontal e isométrica/3D. *A previsualização acelera a aprovação e reduz erro em obra.* **Parcial:** a **Composição** já monta várias telas num render 2D (arraste + snap + aviso de sobreposição + export PNG); falta a escala real com moldura e o 3D. *Exportar o mapeamento como `.xml` de slices do Resolume ficou adiado.* | previz Vectorworks/disguise |
 | ✅ **Sync em nuvem opcional** *(v0.12.0)* | 🟣 | G | **Feito:** login por código (OTP, Supabase + RLS) + sync offline-first last-write-wins por fatia entre aparelhos. Opt-in, à prova de loop. | sync PWA (LWW) |
 | **Agenda universal (compartilhada)** | ⚪ | G | Colega vê a agenda de eventos do outro — coordenar cobertura, repasse de trampo, evitar choque de data. Estende o Sync: é sync + compartilhamento + papéis de acesso. *A agenda local (só você vê) já existe hoje.* | demanda de campo |
 | **Compartilhar por link** | ⚪ | M | Projeto/proposta num link read-only, pro cliente ver sem instalar nada. | — |
@@ -130,6 +142,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 - **Base de gabinetes da comunidade** — specs compartilhadas entre usuários (um catálogo que se preenche sozinho).
 - **Cálculo de gerador** — kVA, folga e combustível pra eventos sem rede elétrica.
 - **Companion de campo** — fotos da montagem e assinatura de entrega junto do check-in GPS.
+- **Sistema de cores / temas** — acento configurável e **modo claro**. *Avaliado em jul/2026 e adiado:* é cosmético e o diferencial é engenharia. O acento já é barato (3 tokens em `ui/tokens.js`); o modo claro é o degrau caro — só vale pelo ganho funcional de **legibilidade no sol**, se isso virar dor real em campo.
 
 ---
 
@@ -154,4 +167,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-10._
+_Última atualização: 2026-07-14 (v1.1.2 · Fase 02 em curso)._
