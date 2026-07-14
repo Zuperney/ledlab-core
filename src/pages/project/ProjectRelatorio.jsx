@@ -108,12 +108,12 @@ export default function ProjectRelatorio({ project }) {
           <section style={{ marginBottom: 24 }}>
             <h3 style={h3}>Visão Geral</h3>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Gabinete</th><th style={th}>Grade</th><th style={th}>Gab.</th><th style={th}>Dimensão</th><th style={th}>Peso</th><th style={th}>{showElec ? "Carga" : "Peso/gab"}</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Dimensão</th><th style={th}>Grade</th><th style={th}>Gabinete</th><th style={th}>Gab.</th><th style={th}>Peso</th><th style={th}>{showElec ? "Carga" : "Peso/gab"}</th></tr></thead>
               <tbody>
                 {telas.map((t) => { const r = screenRollup(t); return (
-                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={td}>{t.gabinete?.nome}</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{r.gab}</td><td style={td}>{r.dim.largura_m.toFixed(1)}×{r.dim.altura_m.toFixed(1)} m</td><td style={td}>{r.peso_kg.toFixed(1)} kg</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(r.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}>{(parseFloat(t.gabinete?.peso) || 0).toFixed(1)} kg</td>}</tr>
+                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={td}>{r.dim.largura_m.toFixed(1)}×{r.dim.altura_m.toFixed(1)} m</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.nome}</td><td style={td}>{r.gab}</td><td style={td}>{r.peso_kg.toFixed(1)} kg</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(r.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}>{(parseFloat(t.gabinete?.peso) || 0).toFixed(1)} kg</td>}</tr>
                 ); })}
-                <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}></td><td style={td}></td><td style={td}>{roll.gab}</td><td style={td}>{roll.area_m2.toFixed(1)} m²</td><td style={td}>{roll.peso_kg.toFixed(1)} kg</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(roll.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}></td>}</tr>
+                <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}>{roll.area_m2.toFixed(1)} m²</td><td style={td}></td><td style={td}></td><td style={td}>{roll.gab}</td><td style={td}>{roll.peso_kg.toFixed(1)} kg</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(roll.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}></td>}</tr>
               </tbody>
             </table>
           </section>

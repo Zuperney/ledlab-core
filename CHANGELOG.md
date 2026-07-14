@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.1.1] — 2026-07-14
+
+### Relatório
+- Tabela **Visão Geral**: colunas reordenadas para **Tela · Dimensão · Grade · Gabinete · Gab. · Peso · Carga** — a dimensão vem logo após a tela e o gabinete depois da grade (pedido de campo). Vale para todos os tipos de relatório que mostram a tabela.
+
 ## [1.1.0] — 2026-07-14
 
 **Engenharia de sinal + polimento de UX.** Primeira leva da Fase 2 (o diferencial de engenharia) somada a refinamentos de interface, entregue depois de uma semana de teste de campo positivo.
