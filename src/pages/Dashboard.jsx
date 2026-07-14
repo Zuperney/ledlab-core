@@ -5,6 +5,7 @@ import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useWorklog } from "../hooks/useWorklog.js";
+import { fmtDur } from "../services/worklog.js";
 import { useToast } from "../store/UIContext.jsx";
 import { T } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
@@ -13,7 +14,6 @@ import StatusBadge from "../components/StatusBadge.jsx";
 const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
 const pad2 = (n) => String(n).padStart(2, "0");
 const hhmm = (iso) => { if (!iso) return ""; const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toTimeString().slice(0, 5); };
-const fmtDur = (min) => { const h = Math.floor(min / 60), m = min % 60; return h ? `${h}h${m ? " " + String(m).padStart(2, "0") : ""}` : `${m}min`; };
 
 const gabCount = (p) => projectRollup(p).gab;
 

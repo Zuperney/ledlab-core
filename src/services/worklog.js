@@ -12,6 +12,17 @@ export const DEFAULT_WORKLOG_CFG = { jornadaH: 12, janelaExtraH: 4, toleranciaEx
 // arredonda pra cima ao inteiro (com epsilon p/ não estourar em valores já inteiros)
 export const ceilInt = (x) => Math.ceil(x - 1e-9);
 
+// duração humana a partir de MINUTOS: "9h55" · "4h" · "55min" · "—" (sem horários).
+// NUNCA exibir hora decimal: "9.9h" se lia como 9h e 9 décimos, quando 14:00–23:55
+// é 9h55. Fonte única de formato — Financeiro, Diárias, Dashboard e relatório usam esta.
+export function fmtDur(min) {
+  if (min == null || Number.isNaN(min)) return "—";
+  const t = Math.max(0, Math.round(min));
+  const h = Math.floor(t / 60), m = t % 60;
+  if (!h) return `${m}min`;
+  return m ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`;
+}
+
 // duração em MINUTOS inteiros entre dois instantes ISO (com offset). TZ-safe.
 export function durationMin(checkin, checkout) {
   if (!checkin || !checkout) return null;
@@ -40,7 +51,7 @@ export function breakdownEvento(entry, tipo, cfg = DEFAULT_WORKLOG_CFG) {
   // flat (tipo sem hora extra) OU sem horários → 1 cachê base
   if (!tipo?.geraHoraExtra || m == null) {
     const total = ceilInt(C);
-    return { cachês: 1, horasExtras: 0, base: total, extra: 0, total, duracaoH: m == null ? null : m / 60, flat: true };
+    return { cachês: 1, horasExtras: 0, base: total, extra: 0, total, duracaoMin: m, duracaoH: m == null ? null : m / 60, flat: true };
   }
 
   const r = valorHora(C, cfg.jornadaH);
@@ -61,7 +72,7 @@ export function breakdownEvento(entry, tipo, cfg = DEFAULT_WORKLOG_CFG) {
     }
   }
   total = ceilInt(total);
-  return { cachês, horasExtras, base: total - extra, extra, total, duracaoH: m / 60, flat: false };
+  return { cachês, horasExtras, base: total - extra, extra, total, duracaoMin: m, duracaoH: m / 60, flat: false };
 }
 
 // Agrega os eventos de UM dia (mesmo dataRef). Aplica a regra do deslocamento (§5.5):

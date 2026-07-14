@@ -2,6 +2,13 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.1.2] — 2026-07-14
+
+### Diárias / Financeiro
+- **Duração deixa de sair em hora decimal.** "9.9h" lia errado — 14:00–23:55 é **9h55**, não 9 horas e 9 décimos. Todas as durações passam a usar `9h55` / `4h` / `55min`, com um formatador **único** (`fmtDur`, no motor) usado pela planilha, pelo recibo, pelo texto do WhatsApp, pelas Diárias e pelo Dashboard — antes eram 3 formatadores duplicados e 5 pontos exibindo decimal.
+- Motor passa a expor `duracaoMin` (minutos inteiros), evitando o vai-e-volta por float.
+- **Cálculos auditados** (jornada 8h · janela 4h · tolerância 30min): hora extra, dobra de cachê, regra do deslocamento e override de valor conferidos contra dados reais — todos corretos. **Nenhum valor muda nesta versão**, só a exibição.
+
 ## [1.1.1] — 2026-07-14
 
 ### Relatório

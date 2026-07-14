@@ -1,6 +1,7 @@
 // services/worklogReport.js — recibo de Diárias: texto puro pra WhatsApp e helpers
 // de descrição do cálculo. PURO — recebe os grupos já calculados (agruparPorDia do
 // motor worklog.js). Sem CSV por decisão do usuário: só PDF (na tela) + texto.
+import { fmtDur } from "./worklog.js";
 
 const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
 const pad = (n) => String(n).padStart(2, "0");
@@ -79,7 +80,7 @@ export function reciboWhatsApp({ grupos = [], titulo = "RECIBO DE MÃO DE OBRA",
     L.push(`*${diaLabelBR(g.dataRef)}${evento}*`);
     for (const it of g.itens) {
       const h = horarioLabel(it.entry);
-      const dur = it.breakdown?.duracaoH != null ? ` (${it.breakdown.duracaoH.toFixed(1)}h)` : "";
+      const dur = it.breakdown?.duracaoMin != null ? ` (${fmtDur(it.breakdown.duracaoMin)})` : "";
       const val = it.cobrado ? brl(it.breakdown.total) : "não cobra";
       const cli = showCliente && it.entry.clienteLivre ? ` · ${it.entry.clienteLivre}` : "";
       const loc = mistura && it.entry.localLivre ? ` · ${it.entry.localLivre}` : "";

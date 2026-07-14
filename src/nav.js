@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.1.1";
+export const VERSION = "v1.1.2";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Ajuste fino no relatório: a tabela Visão Geral agora sai na ordem Tela · Dimensão · Grade · Gabinete · Gab. · Peso · Carga.";
+export const WHATS_NEW = "⏱️ Duração agora sai como 9h55 (antes “9.9h”, hora decimal que confundia) — na planilha, no recibo, nas Diárias e no Dashboard. Os valores dos cachês não mudam: os cálculos foram conferidos e estão certos.";

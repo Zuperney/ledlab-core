@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2, ArrowLeft, Play, Square, MapPin, Clock, AlertTriangle } from "lucide-react";
 import { MONTHS_LONG } from "../../services/projectCalc.js";
+import { fmtDur } from "../../services/worklog.js";
 import { useWorklog } from "../../hooks/useWorklog.js";
 import { useActivityTypes } from "../../hooks/useActivityTypes.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
@@ -23,7 +24,6 @@ const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
 const hhmm = (iso) => { if (!iso) return ""; const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toTimeString().slice(0, 5); };
 const nowISO = () => new Date().toISOString();
 const minutesSince = (iso) => Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
-const fmtDur = (min) => { const h = Math.floor(min / 60), m = min % 60; return h ? `${h}h${m ? " " + pad(m) : ""}` : `${m}min`; };
 const diaCurto = (dataRef) => { try { return new Date(dataRef + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); } catch { return dataRef; } };
 
 // monta o instante ISO a partir de "YYYY-MM-DD" + "HH:MM" (hora local do device)
@@ -283,7 +283,7 @@ export default function DiariasView() {
                 <div style={{ background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ color: T.mut, fontSize: 12 }}>
                     {`${preview.cachês} cachê${preview.cachês > 1 ? "s" : ""}${preview.horasExtras ? ` + ${preview.horasExtras}h extra` : ""}`}
-                    {preview.duracaoH != null && ` · ${preview.duracaoH.toFixed(1)}h`}
+                    {preview.duracaoMin != null && ` · ${fmtDur(preview.duracaoMin)}`}
                   </span>
                   <b style={{ color: T.grn, fontSize: 18 }}>{brl(preview.total)}</b>
                 </div>
@@ -342,7 +342,7 @@ export default function DiariasView() {
                 <div style={{ background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ color: T.mut, fontSize: 12 }}>
                     {bd.flat ? "Cachê fixo" : `${bd.cachês} cachê${bd.cachês > 1 ? "s" : ""}${bd.horasExtras ? ` + ${bd.horasExtras}h extra` : ""}`}
-                    {bd.duracaoH != null && ` · ${bd.duracaoH.toFixed(1)}h`}
+                    {bd.duracaoMin != null && ` · ${fmtDur(bd.duracaoMin)}`}
                   </span>
                   <b style={{ color: T.grn, fontSize: 18 }}>{brl(bd.total)}</b>
                 </div>
@@ -381,7 +381,7 @@ function DayList({ data, onAdd, onEdit, ocultar }) {
                 </div>
                 <div style={{ color: T.dim, fontSize: 12 }}>
                   {tempo}
-                  {it.breakdown.duracaoH != null && ` · ${it.breakdown.duracaoH.toFixed(1)}h`}
+                  {it.breakdown.duracaoMin != null && ` · ${fmtDur(it.breakdown.duracaoMin)}`}
                   {e.clienteLivre ? ` · ${e.clienteLivre}` : ""}
                 </div>
               </div>

@@ -9,6 +9,7 @@ import { useToast } from "../store/UIContext.jsx";
 import { useWorklog } from "../hooks/useWorklog.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { reciboWhatsApp, descBreakdown, diaLabelBR, horarioLabel, extenso } from "../services/worklogReport.js";
+import { fmtDur } from "../services/worklog.js";
 import { T, PRINT } from "../ui/tokens.js";
 import { card, btn, input, label as lbl } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
@@ -22,7 +23,6 @@ const monthStart = (d) => isoOf(new Date(d.getFullYear(), d.getMonth(), 1));
 const monthEnd = (d) => isoOf(new Date(d.getFullYear(), d.getMonth() + 1, 0));
 const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
 const fmtBR = (iso) => { const d = new Date(iso + "T12:00"); return isNaN(d.getTime()) ? iso : `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; };
-const fmtHoras = (min) => { const h = Math.floor(min / 60), m = min % 60; return `${h}h${m ? " " + m + "min" : ""}`; };
 
 const PRESETS = [
   { id: "mes", label: "Este mês" },
@@ -84,7 +84,7 @@ export default function Financeiro() {
   const total = grupos.reduce((s, g) => s + g.total, 0);
   const nDias = grupos.length;
   const nCaches = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.cobrado ? (it.breakdown.cachês || 0) : 0), 0), 0);
-  const totalMin = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.breakdown.duracaoH != null ? Math.round(it.breakdown.duracaoH * 60) : 0), 0), 0);
+  const totalMin = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.breakdown.duracaoMin ?? 0), 0), 0);
 
   // fixo mensal (retainer): só quando configurado e o filtro de cliente casa (ou é "Todos")
   const fixoCfg = prefs.fixo || { valor: 0, cliente: "" };
@@ -213,7 +213,7 @@ export default function Financeiro() {
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 20 }}>
           {stat("Dias", nDias)}
           {stat("Cachês", nCaches)}
-          {stat("Horas trabalhadas", fmtHoras(totalMin))}
+          {stat("Horas trabalhadas", fmtDur(totalMin))}
         </div>
 
         {!temConteudo ? (
@@ -238,7 +238,7 @@ export default function Financeiro() {
                       <tr key={i}>
                         <td style={td}>{it.tipo?.nome || "?"}{it.entry.clienteLivre && cliente === "" ? <span style={{ color: PRINT.dim }}> · {it.entry.clienteLivre}</span> : ""}{mistura && it.entry.localLivre ? <span style={{ color: PRINT.acc }}> · {it.entry.localLivre}</span> : ""}{it.entry.lateCheckout ? <span style={{ color: PRINT.amb, fontSize: 11 }}> · saída tardia</span> : ""}</td>
                         <td style={td}>{horarioLabel(it.entry) || "—"}</td>
-                        <td style={td}>{it.breakdown.duracaoH != null ? `${it.breakdown.duracaoH.toFixed(1)}h` : "—"}</td>
+                        <td style={td}>{fmtDur(it.breakdown.duracaoMin)}</td>
                         <td style={{ ...td, color: PRINT.mut }}>{descBreakdown(it.breakdown)}</td>
                         <td style={{ ...td, textAlign: "right", fontWeight: 700, color: it.cobrado ? PRINT.ink : PRINT.dim }}>{it.cobrado ? brl(it.breakdown.total) : "não cobra"}</td>
                       </tr>

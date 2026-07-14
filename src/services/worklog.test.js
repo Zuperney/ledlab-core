@@ -1,7 +1,30 @@
 // worklog.test.js — testes do motor de Diárias contra a tabela da spec (§5.3).
 // Roda com: npm test   (vitest, ambiente node — funções puras, sem DOM)
 import { describe, it, expect } from "vitest";
-import { breakdownEvento, valorDia, DEFAULT_WORKLOG_CFG } from "./worklog.js";
+import { breakdownEvento, valorDia, fmtDur, DEFAULT_WORKLOG_CFG } from "./worklog.js";
+
+// Duração NUNCA em hora decimal: "9.9h" lia errado (14:00–23:55 = 9h55, não 9h e 9 décimos).
+describe("fmtDur — duração legível", () => {
+  it("horas + minutos, com minuto zero-padded", () => {
+    expect(fmtDur(595)).toBe("9h55");  // 14:00–23:55
+    expect(fmtDur(170)).toBe("2h50");  // 11:01–13:51
+    expect(fmtDur(520)).toBe("8h40");
+    expect(fmtDur(968)).toBe("16h08"); // pad no minuto
+    expect(fmtDur(613)).toBe("10h13");
+  });
+  it("hora cheia não mostra minuto", () => expect(fmtDur(240)).toBe("4h"));
+  it("menos de 1h mostra só minutos", () => {
+    expect(fmtDur(55)).toBe("55min");
+    expect(fmtDur(0)).toBe("0min");
+  });
+  it("sem horários (null) vira travessão", () => {
+    expect(fmtDur(null)).toBe("—");
+    expect(fmtDur(undefined)).toBe("—");
+  });
+  it("nunca sai decimal", () => {
+    for (const m of [1, 59, 60, 61, 595, 968, 1440]) expect(fmtDur(m)).not.toMatch(/\./);
+  });
+});
 
 const cfg = DEFAULT_WORKLOG_CFG; // J=12h, W=4h, TOL=50min
 const M = { id: "m", nome: "Montagem", geraHoraExtra: true, podeSegundoCache: true, valorBase: 350 };
