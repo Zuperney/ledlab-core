@@ -8,6 +8,7 @@ import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
 import { cableMeta, cablePorts, bboxArea } from "../../services/cabling.js";
+import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
@@ -166,6 +167,27 @@ export default function ProjectRelatorio({ project }) {
                       <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(i)} />Porta {i + 1} · {pct}% · {p.length} gab</span>
                     ); })}
                   </div>
+                  {type === "Mapa de cabos" && (
+                    <>
+                      <div style={{ color: PRINT.mut, fontSize: 11, margin: "10px 0 4px" }}>Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) p/ transcrever no NovaLCT / Tessera. Lista completa por gabinete: botão “Mapa de pixels” na aba Cabeamento (CSV).</div>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead><tr>
+                          <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Início (col, lin)</th><th style={th}>Início X, Y (px)</th><th style={th}>Área C×L</th>
+                        </tr></thead>
+                        <tbody>
+                          {pixelMapPorts(t, numbering).map((p) => (
+                            <tr key={p.port}>
+                              <td style={td}>{p.port}</td>
+                              <td style={td}>{p.count}</td>
+                              <td style={td}>{p.startCol}, {p.startRow}</td>
+                              <td style={td}>{p.startX}, {p.startY}</td>
+                              <td style={td}>{p.bboxCols}×{p.bboxRows}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
                 </div>
               );
             })}

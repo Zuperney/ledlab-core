@@ -17,6 +17,8 @@ import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { range, key, parseKey, bboxArea, mkBlock, buildAuto, acRouteFromSignal, cablePorts, cableMeta } from "../../services/cabling.js";
+import { pixelMapCSV } from "../../services/pixelMap.js";
+import { fileName } from "../../services/filenames.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { FLAGS } from "../../config/featureFlags.js";
 import Placeholder from "../../components/Placeholder.jsx";
@@ -65,6 +67,16 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const setCfg = (partial) => patchTela?.(tela.id, { cabling: { ...cabling, [mode]: { ...cfg, ...partial } } });
   const setStrategy = (v) => setCfg({ strategy: v });
   const setRouting = (v) => setCfg({ routing: v });
+
+  // mapa de pixels em CSV (gabinete → porta → X/Y) pro operador transcrever no NovaLCT/Tessera
+  const exportPixelCSV = () => {
+    const csv = pixelMapCSV(tela, numbering);
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }); // BOM: Excel abre acentos certo
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName([project.name, tela.nome, "mapa-pixels"], "csv");
+    a.click();
+  };
 
   const fit = useCallback(() => {
     const el = stageRef.current; if (!el) return;
@@ -192,14 +204,21 @@ export default function ProjectCabeamento({ project, patchTela }) {
       )}
 
       <div style={card({ padding: 0, overflow: "hidden" })}>
-        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}` }}>
-          <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{tela.nome} · {mode === "sinal" ? "Sinal" : "Energia AC"}</div>
-          <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
-            {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? (sinalRule === "px" ? `porta · ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "porta (área quadrada)") : "cabo"}
-            {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
-            {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal · carga balanceada entre cabos"}
-            {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{tela.nome} · {mode === "sinal" ? "Sinal" : "Energia AC"}</div>
+            <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
+              {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? (sinalRule === "px" ? `porta · ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "porta (área quadrada)") : "cabo"}
+              {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
+              {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal · carga balanceada entre cabos"}
+              {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
+            </div>
           </div>
+          {mode === "sinal" && (
+            <button onClick={exportPixelCSV} title="Baixa o mapa de pixels (gabinete → porta → X/Y) em CSV pro NovaLCT / Tessera" style={csvBtn}>
+              <Download size={14} /> Mapa de pixels
+            </button>
+          )}
         </div>
 
         {mode === "ac" && (
@@ -280,6 +299,7 @@ const ibtn = (extra = {}) => ({ display: "inline-flex", alignItems: "center", ju
 const sep = { width: 1, height: 22, background: T.bd, margin: "0 2px" };
 
 const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const csvBtn = { display: "inline-flex", alignItems: "center", gap: 6, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, borderRadius: 8, padding: "7px 11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" };
 
 // dropdown compacto com rótulo (economiza espaço vs. grupo de botões)
 function Drop({ label, options, value, onChange, title }) {
