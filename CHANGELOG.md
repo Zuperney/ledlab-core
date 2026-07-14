@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.13] — 2026-07-13
+
+### Adicionado
+- **Composição: aviso de sobreposição.** Se duas telas ficarem uma sobre a outra, ambas ganham **borda vermelha** e aparece um aviso "⚠ telas sobrepostas" — segurança pra garantir que nada fica empilhado na composição. Encostar as bordas (lado a lado) não dispara o aviso; atualiza ao vivo enquanto arrasta.
+
 ## [0.20.12] — 2026-07-13
 
 ### Removido

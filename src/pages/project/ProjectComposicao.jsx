@@ -72,6 +72,20 @@ export default function ProjectComposicao({ project, patch }) {
 
   const posOf = (t) => (drag && drag.id === t.id ? drag : positions[t.id]);
 
+  // segurança: telas que se SOBREPÕEM (encostar nas bordas não conta) → borda vermelha
+  const rectOf = (t) => { const p = posOf(t), d = dimOf(t); return { x: p.x, y: p.y, w: d.w, h: d.h }; };
+  const overlapIds = (() => {
+    const set = new Set();
+    for (let i = 0; i < telas.length; i++) {
+      const a = rectOf(telas[i]);
+      for (let j = i + 1; j < telas.length; j++) {
+        const b = rectOf(telas[j]);
+        if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) { set.add(telas[i].id); set.add(telas[j].id); }
+      }
+    }
+    return set;
+  })();
+
   // caixa envolvente (canvas automático)
   const bbox = useMemo(() => {
     if (!telas.length) return { minX: 0, minY: 0, w: 0, h: 0 };
@@ -209,6 +223,7 @@ export default function ProjectComposicao({ project, patch }) {
         </div>
         <div style={{ color: T.dim, fontSize: 12, marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
           <Move size={13} /> Arraste as telas pra posicionar (encaixam nas bordas). Canvas: <b style={{ color: T.mut }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px</b>
+          {overlapIds.size > 0 && <span style={{ color: T.red, fontWeight: 700, marginLeft: 6 }}>⚠ telas sobrepostas</span>}
         </div>
       </div>
 
@@ -218,6 +233,7 @@ export default function ProjectComposicao({ project, patch }) {
           {telas.map((t) => {
             const p = posOf(t), d = dimOf(t);
             const selected = sel === t.id;
+            const over = overlapIds.has(t.id);
             return (
               <div
                 key={t.id}
@@ -233,8 +249,8 @@ export default function ProjectComposicao({ project, patch }) {
                   height: d.h * scale,
                   backgroundImage: `url(${thumbs[t.id]})`,
                   backgroundSize: "100% 100%",
-                  border: `2px solid ${selected ? T.acc : "rgba(255,255,255,0.35)"}`,
-                  boxShadow: selected ? `0 0 0 2px ${T.acc}55` : "none",
+                  border: `2px solid ${over ? T.red : selected ? T.acc : "rgba(255,255,255,0.35)"}`,
+                  boxShadow: over ? `0 0 0 2px ${T.red}66` : selected ? `0 0 0 2px ${T.acc}55` : "none",
                   cursor: "move",
                   touchAction: "none",
                   zIndex: selected ? 2 : 1,
