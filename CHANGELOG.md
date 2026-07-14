@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.11] — 2026-07-13
+
+### Adicionado
+- **Aspect Ratio: dois modos de visualização.** Um toggle deixa ver como a imagem ficaria na tela: **Preencher (corta)** — a fonte com a janela de crop revelando a parte usada + o deslocamento (o que já tínhamos) — e **Encaixar (dentro)** — a imagem inteira dentro do painel preservando a proporção, com as **barras** (letterbox/pillarbox) desenhadas e medidas. Os dois usam o X + círculo de referência no conteúdo.
+
 ## [0.20.10] — 2026-07-13
 
 ### Alterado

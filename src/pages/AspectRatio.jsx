@@ -40,6 +40,7 @@ export default function AspectRatio() {
   const [sw, setSw] = useState(1920); // fonte de vídeo p/ o cálculo de crop
   const [sh, setSh] = useState(1080);
   const [offFrac, setOffFrac] = useState(0.5); // deslocamento do crop (0..1) no eixo com sobra
+  const [vizMode, setVizMode] = useState("crop"); // "crop" (preencher) | "fit" (encaixar dentro)
 
   const W = Math.max(1, Math.round(w) || 1), H = Math.max(1, Math.round(h) || 1);
   const dec = W / H;
@@ -75,6 +76,16 @@ export default function AspectRatio() {
   const cwv = fc.cropW * vscale, chv = fc.cropH * vscale; // janela do crop em coords do svg
   const cxv = svX + fc.x * vscale, cyv = svY + fc.y * vscale;
   const clampSvg = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  // modo "encaixar" (inside): o PAINEL é a moldura; a fonte encaixa dentro preservando o ratio (barras em volta)
+  const pvS = Math.min((boxW - vpad * 2) / W, (boxH - vpad * 2) / H);
+  const pvW = W * pvS, pvH = H * pvS;
+  const pvX = (boxW - pvW) / 2, pvY = (boxH - pvH) / 2;
+  const srcAsp = SW / SH;
+  let ctW = pvW, ctH = pvW / srcAsp;
+  if (ctH > pvH) { ctH = pvH; ctW = pvH * srcAsp; }
+  const ctX = pvX + (pvW - ctW) / 2, ctY = pvY + (pvH - ctH) / 2;
+  const vizBtn = (on) => ({ padding: "5px 11px", borderRadius: 7, cursor: "pointer", fontSize: 12.5, fontWeight: 600, border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.acc : "transparent", color: on ? "#fff" : T.mut, fontFamily: "inherit" });
 
   return (
     <div>
@@ -147,31 +158,52 @@ export default function AspectRatio() {
 
       {/* VISUALIZAÇÃO */}
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Visualização do crop</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+          <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Visualização</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => setVizMode("crop")} style={vizBtn(vizMode === "crop")}>Preencher (corta)</button>
+            <button onClick={() => setVizMode("fit")} style={vizBtn(vizMode === "fit")}>Encaixar (dentro)</button>
+          </div>
+        </div>
         <div>
           <svg viewBox={`0 0 ${boxW} ${boxH}`} width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, maxWidth: "100%", height: "auto" }}>
-            {/* fonte: fundo + conteúdo de referência (X nas diagonais + círculo no centro) */}
-            <rect x={svX} y={svY} width={svW} height={svH} rx={3} fill="#0d0d1a" stroke={T.dim2} strokeWidth={1} />
-            <line x1={svX} y1={svY} x2={svX + svW} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
-            <line x1={svX + svW} y1={svY} x2={svX} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
-            <circle cx={svX + svW / 2} cy={svY + svH / 2} r={Math.min(svW, svH) * 0.4} fill="none" stroke={T.dim} strokeWidth={1.2} />
-            {/* escurece o que fica FORA do crop (a parte que fica escondida) */}
-            <g fill="rgba(13,13,26,0.76)">
-              <rect x={svX} y={svY} width={Math.max(0, cxv - svX)} height={svH} />
-              <rect x={cxv + cwv} y={svY} width={Math.max(0, svX + svW - (cxv + cwv))} height={svH} />
-              <rect x={cxv} y={svY} width={cwv} height={Math.max(0, cyv - svY)} />
-              <rect x={cxv} y={cyv + chv} width={cwv} height={Math.max(0, svY + svH - (cyv + chv))} />
-            </g>
-            {/* linha tracejada na posição do deslocamento */}
-            {fc.axis === "x" && <line x1={cxv} y1={svY} x2={cxv} y2={svY + svH} stroke={T.acM} strokeWidth={1} strokeDasharray="4 3" />}
-            {fc.axis === "y" && <line x1={svX} y1={cyv} x2={svX + svW} y2={cyv} stroke={T.acM} strokeWidth={1} strokeDasharray="4 3" />}
-            {/* janela do crop (área revelada) + rótulos */}
-            <rect x={cxv} y={cyv} width={cwv} height={chv} fill="none" stroke={T.acc} strokeWidth={2} />
-            <text x={clampSvg(cxv + cwv / 2, svX + 30, svX + svW - 30)} y={cyv + chv / 2 + 4} fill="#fff" fontSize={12} fontWeight="700" textAnchor="middle">{fc.cropW}×{fc.cropH}</text>
-            {fc.axis && <text x={svX + 5} y={svY + 13} fill={T.acM} fontSize={11} fontWeight="700">desloc. {fc.axis} {fc.axis === "x" ? fc.x : fc.y}px</text>}
-            <text x={svX + svW - 5} y={svY + svH - 6} fill={T.mut} fontSize={10} textAnchor="end">fonte {SW}×{SH}</text>
+            {vizMode === "crop" ? (
+              <>
+                {/* fonte: fundo + X (diagonais) + círculo no centro */}
+                <rect x={svX} y={svY} width={svW} height={svH} rx={3} fill="#0d0d1a" stroke={T.dim2} strokeWidth={1} />
+                <line x1={svX} y1={svY} x2={svX + svW} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
+                <line x1={svX + svW} y1={svY} x2={svX} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
+                <circle cx={svX + svW / 2} cy={svY + svH / 2} r={Math.min(svW, svH) * 0.4} fill="none" stroke={T.dim} strokeWidth={1.2} />
+                {/* escurece o que fica FORA do crop */}
+                <g fill="rgba(13,13,26,0.76)">
+                  <rect x={svX} y={svY} width={Math.max(0, cxv - svX)} height={svH} />
+                  <rect x={cxv + cwv} y={svY} width={Math.max(0, svX + svW - (cxv + cwv))} height={svH} />
+                  <rect x={cxv} y={svY} width={cwv} height={Math.max(0, cyv - svY)} />
+                  <rect x={cxv} y={cyv + chv} width={cwv} height={Math.max(0, svY + svH - (cyv + chv))} />
+                </g>
+                {fc.axis === "x" && <line x1={cxv} y1={svY} x2={cxv} y2={svY + svH} stroke={T.acM} strokeWidth={1} strokeDasharray="4 3" />}
+                {fc.axis === "y" && <line x1={svX} y1={cyv} x2={svX + svW} y2={cyv} stroke={T.acM} strokeWidth={1} strokeDasharray="4 3" />}
+                <rect x={cxv} y={cyv} width={cwv} height={chv} fill="none" stroke={T.acc} strokeWidth={2} />
+                <text x={clampSvg(cxv + cwv / 2, svX + 30, svX + svW - 30)} y={cyv + chv / 2 + 4} fill="#fff" fontSize={12} fontWeight="700" textAnchor="middle">{fc.cropW}×{fc.cropH}</text>
+                {fc.axis && <text x={svX + 5} y={svY + 13} fill={T.acM} fontSize={11} fontWeight="700">desloc. {fc.axis} {fc.axis === "x" ? fc.x : fc.y}px</text>}
+                <text x={svX + svW - 5} y={svY + svH - 6} fill={T.mut} fontSize={10} textAnchor="end">fonte {SW}×{SH}</text>
+              </>
+            ) : (
+              <>
+                {/* painel (moldura) — o preto em volta são as barras */}
+                <rect x={pvX} y={pvY} width={pvW} height={pvH} rx={3} fill="#050510" stroke={T.acc} strokeWidth={2} />
+                {/* conteúdo (fonte) encaixado preservando o ratio: X + círculo */}
+                <rect x={ctX} y={ctY} width={ctW} height={ctH} fill="#0d0d1a" stroke={T.dim2} strokeWidth={1} />
+                <line x1={ctX} y1={ctY} x2={ctX + ctW} y2={ctY + ctH} stroke={T.dim} strokeWidth={1.2} />
+                <line x1={ctX + ctW} y1={ctY} x2={ctX} y2={ctY + ctH} stroke={T.dim} strokeWidth={1.2} />
+                <circle cx={ctX + ctW / 2} cy={ctY + ctH / 2} r={Math.min(ctW, ctH) * 0.4} fill="none" stroke={T.dim} strokeWidth={1.2} />
+                <text x={ctX + ctW / 2} y={ctY + ctH / 2 + 4} fill="#fff" fontSize={12} fontWeight="700" textAnchor="middle">{fitW}×{fitH}</text>
+                {(barX > 0 || barY > 0) && <text x={pvX + pvW / 2} y={pvY + pvH - 6} fill={T.acM} fontSize={11} textAnchor="middle">barras {barX > 0 ? `${barX}px laterais` : `${barY}px topo/base`}</text>}
+                <text x={pvX + 5} y={pvY + 13} fill={T.mut} fontSize={10}>painel {W}×{H}</text>
+              </>
+            )}
           </svg>
-          <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>A janela roxa mostra o que aparece na tela; o resto da fonte fica escondido. A linha tracejada marca a posição do deslocamento.</div>
+          <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>{vizMode === "crop" ? "A janela roxa mostra o que aparece na tela; o resto da fonte fica escondido. A linha tracejada marca o deslocamento." : "A imagem inteira cabe no painel preservando a proporção; o preto em volta são as barras (letterbox/pillarbox)."}</div>
         </div>
       </div>
     </div>
