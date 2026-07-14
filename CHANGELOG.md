@@ -2,6 +2,11 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [0.20.12] — 2026-07-13
+
+### Removido
+- **Composição: crop de sinal por tela.** Tirado o "Marcar crop" por tela (e o selo no bloco) — a Composição é 100% organização de onde cada tela aparece. O cálculo de "quanto cortar" de um sinal fica no Aspect Ratio. A **posição/regiões** das telas (x/y/tamanho pro processador/media server) e o "Copiar regiões" continuam.
+
 ## [0.20.11] — 2026-07-13
 
 ### Adicionado

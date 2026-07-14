@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.11";
+export const VERSION = "v0.20.12";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Aspect Ratio: toggle de visualização — 'Preencher (corta)' ou 'Encaixar (dentro)', mostrando o crop ou o letterbox com as barras.";
+export const WHATS_NEW = "Composição: removido o crop de sinal por tela — ela é só organização das telas; o cálculo de crop fica no Aspect Ratio.";
