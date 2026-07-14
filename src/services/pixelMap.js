@@ -31,7 +31,7 @@ export function pixelMapRows(tela, numbering = "row-tb-lr") {
 
 // resumo por porta (1 linha por porta) — versão compacta pro relatório impresso,
 // que aguenta projetos grandes sem virar milhares de linhas. Início = 1º gabinete
-// do cabo (canto inferior-esquerdo da rota); bbox = retângulo que a porta cobre.
+// do cabo (canto de início configurável da rota); bbox = retângulo que a porta cobre.
 export function pixelMapPorts(tela, numbering = "row-tb-lr") {
   const g = tela?.gabinete || {};
   const resX = parseFloat(g.resX) || 0;

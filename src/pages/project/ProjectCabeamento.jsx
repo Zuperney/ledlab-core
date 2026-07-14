@@ -25,6 +25,7 @@ import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
+const CORNER_LABEL = { bl: "inferior-esquerdo", br: "inferior-direito", tl: "superior-esquerdo", tr: "superior-direito" };
 // botão de zoom do canto do canvas
 const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
 
@@ -59,6 +60,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const cfg = mode === "ac" ? acCfg : sinalCfg;
   const strategy = cfg.strategy || "linha";
   const routing = cfg.routing || "updown"; // "updown" (sobe/desce) | "zigzag"
+  const corner = cfg.corner || "bl"; // canto onde a corrente começa (bl|br|tl|tr)
   // no celular, edição avançada (modo Livre) fica oculta — foco em visualização/estatísticas
   const allowAdvanced = !isMobile || FLAGS.advancedCablingOnMobile;
   const livreEdit = strategy === "livre" && allowAdvanced;
@@ -67,6 +69,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const setCfg = (partial) => patchTela?.(tela.id, { cabling: { ...cabling, [mode]: { ...cfg, ...partial } } });
   const setStrategy = (v) => setCfg({ strategy: v });
   const setRouting = (v) => setCfg({ routing: v });
+  const setCorner = (v) => setCfg({ corner: v });
 
   // mapa de pixels em CSV (gabinete → porta → X/Y) pro operador transcrever no NovaLCT/Tessera
   const exportPixelCSV = () => {
@@ -137,7 +140,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
   };
   const importFrom = (strat) => {
     const rule = mode === "sinal" ? sinalRule : "area"; // importa já na régua da tela
-    const src = strat === "sinal" ? acRouteFromSignal(tela, numbering) : buildAuto(cols, rows, strat, budget, routing, numbering, rule);
+    const src = strat === "sinal" ? acRouteFromSignal(tela, numbering) : buildAuto(cols, rows, strat, budget, routing, numbering, rule, corner);
     setCables(src.map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(null);
   };
   const novoCabo = () => { setActive(cables.length); setCables([...cables, []]); };
@@ -175,6 +178,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
               ? <Drop label="Disp." options={[["linha", "Automática"], ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy === "livre" ? "livre" : "linha"} onChange={setStrategy} />
               : <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />}
             {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
+            {["linha", "coluna", "area"].includes(strategy) && <Drop label="Início" title="Canto onde a corrente começa — case com a montagem física / NovaLCT" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={corner} onChange={setCorner} />}
             {/* Freq removida de projetos: sistema profissional é 60 Hz de base (a régua de porta já assume 60). Refresh segue na Diagramação p/ estudo. */}
             {mode === "sinal" && <Drop label="Cor" title="Profundidade de cor do processador — 10-bit dobra os dados por pixel (metade dos px por porta)" options={[[8, "8-bit"], [10, "10-bit"]]} value={sinalBits} onChange={(v) => setCfg({ bits: Number(v) })} />}
             {!isMobile && <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>}
@@ -264,7 +268,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
             <button title="Diminuir" onClick={() => zoomBy(0.8)} style={zb}><ZoomOut size={16} /></button>
           </div>
           <div style={{ position: "absolute", left: 12, bottom: 12, color: T.dim, fontSize: 11, background: "rgba(0,0,0,0.4)", padding: "4px 8px", borderRadius: 6 }}>
-            início inferior-esquerdo · arraste p/ mover · scroll p/ zoom
+            início {CORNER_LABEL[corner]} · arraste p/ mover · scroll p/ zoom
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 // services/cabling.test.js — roteamento de cabos: réguas de porta (pixels/área),
 // disposição "Área" e balanceamento de fase do AC atrelado ao sinal.
 import { describe, it, expect } from "vitest";
-import { buildAuto, balancedChunks, cableMeta, cablePorts, bboxArea, setAcMargin } from "./cabling.js";
+import { buildAuto, balancedChunks, cableMeta, cablePorts, bboxArea, serpentine, setAcMargin } from "./cabling.js";
 
 const NB = "row-tb-lr";
 const seq = (n) => Array.from({ length: n }, (_, i) => i);
@@ -73,6 +73,40 @@ describe("cabling — régua de PIXELS (portas de dados reais)", () => {
     const area = cablePorts({ ...base, cabling: { sinal: {} } }, "sinal", NB);
     expect(px.length).toBeLessThanOrEqual(area.length);
     expect(px.length).toBe(3);
+  });
+});
+
+describe("cabling — canto de início da serpentina (Quick Connection do NovaLCT)", () => {
+  // grade 3×3: r=0 é o topo (y cresce pra baixo), então r=2 é a base
+  const start = (corner, routing = "updown") => serpentine(0, 0, 3, 3, routing, corner)[0];
+
+  it("cada canto começa no gabinete certo (vertical/updown)", () => {
+    expect(start("bl")).toEqual({ c: 0, r: 2 }); // inferior-esquerdo
+    expect(start("br")).toEqual({ c: 2, r: 2 }); // inferior-direito
+    expect(start("tl")).toEqual({ c: 0, r: 0 }); // superior-esquerdo
+    expect(start("tr")).toEqual({ c: 2, r: 0 }); // superior-direito
+  });
+
+  it("o canto de início vale também no zigzag (horizontal primeiro)", () => {
+    expect(start("tr", "zigzag")).toEqual({ c: 2, r: 0 });
+    expect(start("bl", "zigzag")).toEqual({ c: 0, r: 2 });
+  });
+
+  it("qualquer canto cobre a grade toda, sem repetir", () => {
+    for (const corner of ["bl", "br", "tl", "tr"]) {
+      const cells = serpentine(0, 0, 4, 3, "updown", corner);
+      expect(cells.length).toBe(12);
+      expect(new Set(cells.map((c) => `${c.c},${c.r}`)).size).toBe(12);
+    }
+  });
+
+  it("default 'bl' preserva o comportamento histórico (retrocompatível)", () => {
+    expect(serpentine(0, 0, 3, 3, "updown")).toEqual(serpentine(0, 0, 3, 3, "updown", "bl"));
+  });
+
+  it("buildAuto propaga o canto: 'tr' começa no topo-direito", () => {
+    const ports = buildAuto(3, 3, "area", 999, "updown", NB, "area", "tr");
+    expect(ports[0][0]).toEqual({ c: 2, r: 0 });
   });
 });
 

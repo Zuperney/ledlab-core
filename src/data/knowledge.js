@@ -39,7 +39,7 @@ export const KB_ARTICLES = [
           "Aba Cabeamento (modo Sinal) → botão “Mapa de pixels”: baixa um CSV com uma linha por gabinete (porta, ordem no cabo, coluna/linha, X/Y).",
           "Relatório → tipo “Mapa de cabos”: versão impressa com o desenho da rota + tabela do início de cada porta (coluna/linha e X/Y).",
         ] },
-        { t: "note", text: "No NovaLCT (Novastar) ou no Tessera (Brompton), monte a topologia porta por porta seguindo a ordem e as coordenadas do mapa. A ordem do cabo começa no canto inferior-esquerdo; a coordenada X/Y é do canto superior-esquerdo." },
+        { t: "note", text: "No NovaLCT (Novastar) ou no Tessera (Brompton), monte a topologia porta por porta seguindo a ordem e as coordenadas do mapa. A ordem do cabo começa no canto escolhido no seletor “Início” (aba Cabeamento); a coordenada X/Y é sempre do canto superior-esquerdo." },
       ] },
     ] },
   { id: "ac-conectores", category: "Cabeamento AC", title: "Conectores AC", summary: "PowerCON, True1 e suas correntes (padrão IEC/Brasil).", sections: [{ h: "Amperagens", blocks: [{ t: "kv", rows: [["PowerCON Azul/Branco", "20 A"], ["PowerCON TRUE1", "16 A"], ["Neutrik True1 TOP", "16 A"]] }, { t: "note", text: "Ratings sob EN 60320-1/VDE (regime do Brasil). O True1 TOP também é 16 A aqui — os 20 A que se vê por aí são o rating UL (EUA). Conectores 'aviation' genéricos (ex.: SD20) não têm certificação: trate o limite com cautela." }] }] },

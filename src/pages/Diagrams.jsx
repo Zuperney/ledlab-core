@@ -18,6 +18,7 @@ import SectionHeader from "../components/SectionHeader.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
+const CORNER_LABEL = { bl: "inferior-esquerdo", br: "inferior-direito", tl: "superior-esquerdo", tr: "superior-direito" };
 // botão de zoom do canto do canvas
 const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
 
@@ -34,6 +35,7 @@ export default function Diagrams() {
   const [rule, setRule] = useState("px"); // régua da porta: "px" (real) | "area" (básico)
   const [strategy, setStrategy] = useState("linha");
   const [routing, setRouting] = useState("updown");
+  const [corner, setCorner] = useState("bl"); // canto de início da serpentina
   const [controlsOpen, setControlsOpen] = useState(!isMobile);
 
   const [zoom, setZoom] = useState(1);
@@ -45,7 +47,7 @@ export default function Diagrams() {
   const panelW = cols * CELL, panelH = rows * CELL;
 
   // tela sintética -> reaproveita exatamente a lógica compartilhada
-  const tela = { cols, rows, gabinete: cab, cabling: { sinal: { strategy, routing, hz, bits, rule } } };
+  const tela = { cols, rows, gabinete: cab, cabling: { sinal: { strategy, routing, corner, hz, bits, rule } } };
   const { sinalBudget, pxPort } = cableMeta(tela);
   const ports = cablePorts(tela, "sinal", numbering);
 
@@ -106,6 +108,7 @@ export default function Diagrams() {
             <div><label style={lbl}>Porta</label><Select value={rule} title="Régua da porta: pixels reais (VX/série A/Colorlight) ou área retangular (controlador básico)" onChange={(e) => setRule(e.target.value)} style={inp}><option value="px">Pixels (real)</option><option value="area">Área (básico)</option></Select></div>
             {rule === "area" && <Seg label="Disposição" options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]} value={strategy} onChange={setStrategy} />}
             <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />
+            <Seg label="Início" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={corner} onChange={setCorner} />
           </div>
         )}
       </div>
@@ -153,7 +156,7 @@ export default function Diagrams() {
             <button title="Diminuir" onClick={() => zoomBy(0.8)} style={zb}><ZoomOut size={16} /></button>
           </div>
           <div style={{ position: "absolute", left: 12, bottom: 12, color: T.dim, fontSize: 11, background: "rgba(0,0,0,0.4)", padding: "4px 8px", borderRadius: 6 }}>
-            início inferior-esquerdo · arraste p/ mover · scroll p/ zoom
+            início {CORNER_LABEL[corner]} · arraste p/ mover · scroll p/ zoom
           </div>
         </div>
 

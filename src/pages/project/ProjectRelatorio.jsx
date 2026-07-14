@@ -154,7 +154,7 @@ export default function ProjectRelatorio({ project }) {
         {showSignal && (
           <section style={{ marginBottom: 24 }}>
             <h3 style={h3}>Cabeamento de Sinal</h3>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo (canto inferior-esquerdo).</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo (canto configurável por tela na aba Cabeamento).</p>
             {telas.map((t) => {
               const { sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(t);
               const ports = cablePorts(t, "sinal", numbering);
