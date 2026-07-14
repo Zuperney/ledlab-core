@@ -60,13 +60,11 @@ export default function ProjectCabeamento({ project, patchTela }) {
   // no celular, edição avançada (modo Livre) fica oculta — foco em visualização/estatísticas
   const allowAdvanced = !isMobile || FLAGS.advancedCablingOnMobile;
   const livreEdit = strategy === "livre" && allowAdvanced;
-  const hz = sinalCfg.hz || 60; // frequência é conceito do sinal
   const cables = cfg.cables || [];
   const setMode = (v) => patchTela?.(tela.id, { cabling: { ...cabling, mode: v } });
   const setCfg = (partial) => patchTela?.(tela.id, { cabling: { ...cabling, [mode]: { ...cfg, ...partial } } });
   const setStrategy = (v) => setCfg({ strategy: v });
   const setRouting = (v) => setCfg({ routing: v });
-  const setHz = (v) => patchTela?.(tela.id, { cabling: { ...cabling, sinal: { ...sinalCfg, hz: v } } });
 
   const fit = useCallback(() => {
     const el = stageRef.current; if (!el) return;
@@ -165,7 +163,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
               ? <Drop label="Disp." options={[["linha", "Automática"], ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy === "livre" ? "livre" : "linha"} onChange={setStrategy} />
               : <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />}
             {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
-            {mode === "sinal" && <Drop label="Freq" options={[[60, "60 Hz"], [50, "50 Hz"], [30, "30 Hz"]]} value={hz} onChange={setHz} />}
+            {/* Freq removida de projetos: sistema profissional é 60 Hz de base (a régua de porta já assume 60). Refresh segue na Diagramação p/ estudo. */}
             {mode === "sinal" && <Drop label="Cor" title="Profundidade de cor do processador — 10-bit dobra os dados por pixel (metade dos px por porta)" options={[[8, "8-bit"], [10, "10-bit"]]} value={sinalBits} onChange={(v) => setCfg({ bits: Number(v) })} />}
             {!isMobile && <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>}
           </div>

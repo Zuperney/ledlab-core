@@ -10,7 +10,6 @@ import { genId, genNumericId } from "../services/ids.js";
 import { isPersisted, requestPersist, storageUsage } from "../services/storage.js";
 import { VOLT } from "../services/electricalCalc.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
-import { useIsMobile } from "../hooks/useIsMobile.js";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
 import Select from "../components/Select.jsx";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
@@ -33,7 +32,6 @@ export default function Settings() {
   const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, setDespesas, exportBackup } = useLedLabContext();
   const confirm = useConfirm();
   const toast = useToast();
-  const isMobile = useIsMobile();
   const backupRef = useRef(null);
   const projRef = useRef(null);
   const cabRef = useRef(null);
@@ -137,12 +135,28 @@ export default function Settings() {
   const removeColor = (i) => { if (palette.length > 2) setPalette(palette.filter((_, j) => j !== i)); };
   const resetPalette = () => setPrefs({ ...prefs, cablePalette: undefined });
 
-  const open = !isMobile; // no mobile as categorias começam fechadas (minimalista); no desktop, abertas
+  // categorias SEMPRE recolhidas (desktop = mobile, pedido do usuário); 3 sub-menus organizam
+  const open = false;
+  const [group, setGroup] = useState("eng"); // sub-menu ativo: "eng" | "cache" | "dados"
 
   return (
     <div style={{ maxWidth: 640 }}>
       <SectionHeader title="Configurações" subtitle="Preferências, dados e manutenção — tudo salvo neste navegador." />
 
+      {/* 3 sub-menus: reduz o "muro" de cards, principalmente no mobile */}
+      <div style={tabsWrap}>
+        {GROUPS.map(({ id, label, Icon }) => {
+          const active = group === id;
+          return (
+            <button key={id} onClick={() => setGroup(id)} title={label} style={tabBtn(active)}>
+              <Icon size={15} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {group === "eng" && (<>
       <Section icon={Zap} title="Elétrica & cabeamento" subtitle="Tensão, numeração e margem do cabo AC" defaultOpen={open}>
         <div style={subLabel}>Tensão padrão</div>
         <div style={subDesc}>Usada em projetos novos (dá pra mudar por projeto na aba Energia).</div>
@@ -191,7 +205,9 @@ export default function Settings() {
         </div>
         <button style={btn("subtle")} onClick={resetPalette}><RotateCcw size={14} /> Restaurar padrão</button>
       </Section>
+      </>)}
 
+      {group === "cache" && (<>
       <Section icon={LayoutDashboard} title="Dashboard" subtitle="Privacidade e exibição da tela inicial" defaultOpen={open}>
         <PrefToggle on={!!prefs.dashOcultarValor} onClick={() => setPrefs({ ...prefs, dashOcultarValor: !prefs.dashOcultarValor })}
           titulo="Ocultar valores em R$" desc="Esconde o total de cachês na tela inicial — útil ao mostrar o app pra outras pessoas. Também dá pra alternar rápido no ícone de olho, no próprio card." />
@@ -200,7 +216,9 @@ export default function Settings() {
       <Section icon={Receipt} title="Cachês (Diárias)" subtitle="Cálculo, fixo mensal, recibo e tipos" defaultOpen={open}>
         <DiariasConfig />
       </Section>
+      </>)}
 
+      {group === "dados" && (<>
       {tcPresets.length > 0 && (
         <Section icon={Monitor} title="Test Card" subtitle={`${tcPresets.length} predefiniç${tcPresets.length === 1 ? "ão" : "ões"} salva${tcPresets.length === 1 ? "" : "s"}`} defaultOpen={open}>
           {tcPresets.map((p) => (
@@ -236,6 +254,7 @@ export default function Settings() {
           <button style={btn("danger")} onClick={factoryReset}><RotateCcw size={14} /> Restaurar</button>
         </div>
       </Section>
+      </>)}
     </div>
   );
 }
@@ -399,6 +418,15 @@ function fmtAgo(ms) {
   if (m < 60) return `há ${m} min`;
   return `há ${Math.floor(m / 60)}h`;
 }
+
+// 3 sub-menus das Configurações (segmented control no topo)
+const GROUPS = [
+  { id: "eng", label: "Engenharia", Icon: Zap },
+  { id: "cache", label: "Cachês", Icon: Receipt },
+  { id: "dados", label: "Dados", Icon: Database },
+];
+const tabsWrap = { display: "flex", gap: 6, marginBottom: 14, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 4 };
+const tabBtn = (active) => ({ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 8px", borderRadius: 7, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, border: "none", background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });
 
 const mTitle = { color: T.txt, fontWeight: 600, fontSize: 14 };
 const mDesc = { color: T.dim, fontSize: 12 };
