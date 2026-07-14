@@ -1,7 +1,7 @@
 // pages/settings/DiariasConfig.jsx — config do módulo Diárias em Configurações:
 // parâmetros globais (jornada/janela/tolerância) + CRUD dos tipos de atividade.
 import { useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Calculator, Receipt, Tags } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useActivityTypes } from "../../hooks/useActivityTypes.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
@@ -16,6 +16,7 @@ export default function DiariasConfig() {
   const confirm = useConfirm();
   const toast = useToast();
   const [edit, setEdit] = useState(null); // tipo em edição (form) ou null
+  const [sub, setSub] = useState("calc"); // sub-menu: "calc" | "recibo" | "tipos"
 
   const cfg = { ...DEFAULT_WORKLOG_CFG, ...(prefs.worklog || {}) };
   const setCfg = (partial) => setPrefs({ ...prefs, worklog: { ...cfg, ...partial } });
@@ -47,29 +48,46 @@ export default function DiariasConfig() {
 
   return (
     <>
+      {/* 3 sub-menus dentro do Cachês (espelha o padrão das Configurações) */}
+      <div style={subTabsWrap}>
+        {SUBS.map(({ id, label, Icon }) => {
+          const active = sub === id;
+          return (
+            <button key={id} onClick={() => setSub(id)} title={label} style={subTabBtn(active)}>
+              <Icon size={14} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {sub === "calc" && (<>
       <div style={{ marginBottom: 18 }}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Parâmetros de cálculo</div>
-        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Franquia de horas e tolerância que valem para todos os tipos (ver a lógica no módulo Cachês).</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valem para todos os tipos de atividade.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div><div style={lbl}>Jornada (horas)</div><input type="number" value={cfg.jornadaH} onChange={(e) => setCfg({ jornadaH: num(e.target.value, 1) })} style={input()} /></div>
           <div><div style={lbl}>Janela hora extra (h)</div><input type="number" value={cfg.janelaExtraH} onChange={(e) => setCfg({ janelaExtraH: num(e.target.value, 0) })} style={input()} /></div>
           <div><div style={lbl}>Tolerância da fração (min)</div><input type="number" value={cfg.toleranciaExtraMin} onChange={(e) => setCfg({ toleranciaExtraMin: num(e.target.value, 0) })} style={input()} /></div>
         </div>
-        <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>Ex.: cachê ÷ jornada = valor da hora extra; a fração só vira 1 hora cheia passando da tolerância.</div>
+        <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>cachê ÷ jornada = hora extra; a fração só vira 1h passando da tolerância.</div>
       </div>
 
       <div style={{ marginBottom: 18, paddingTop: 18, borderTop: `1px solid ${T.bd}` }}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Fixo mensal (opcional)</div>
-        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo por mês de um cliente prioritário (ex.: acordo de prioridade), somado no Financeiro além dos cachês. Deixe 0 se não usa.</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Valor fixo mensal de um cliente, somado no Financeiro. Deixe 0 se não usa.</div>
         <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><div style={lbl}>Valor por mês (R$)</div><input type="number" value={fixo.valor} onChange={(e) => setFixo({ valor: Math.max(0, parseInt(e.target.value) || 0) })} placeholder="Ex.: 6000" style={input()} /></div>
           <div><div style={lbl}>Cliente do fixo</div><input value={fixo.cliente} onChange={(e) => setFixo({ cliente: e.target.value })} placeholder="Ex.: empresa contratante" style={input()} /></div>
         </div>
       </div>
 
-      <div style={{ marginBottom: 18, paddingTop: 18, borderTop: `1px solid ${T.bd}` }}>
+      </>)}
+
+      {sub === "recibo" && (<>
+      <div style={{ marginBottom: 4 }}>
         <div style={{ color: T.txt, fontWeight: 600 }}>Dados do recibo (emitente)</div>
-        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Aparecem no cabeçalho, na assinatura e no rodapé de pagamento do recibo de mão de obra. Opcional.</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 12px" }}>Aparecem no recibo de mão de obra. Opcional.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
           <div><div style={lbl}>Razão social / nome empresarial</div><input value={emit.razaoSocial} onChange={(e) => setEmit({ razaoSocial: e.target.value })} placeholder="Ex.: 00.000.000 Fulano" style={input()} /></div>
           <div><div style={lbl}>Nome fantasia</div><input value={emit.nomeFantasia} onChange={(e) => setEmit({ nomeFantasia: e.target.value })} placeholder="Ex.: sua marca" style={input()} /></div>
@@ -86,7 +104,10 @@ export default function DiariasConfig() {
         </div>
       </div>
 
-      <div style={{ paddingTop: 18, borderTop: `1px solid ${T.bd}` }}>
+      </>)}
+
+      {sub === "tipos" && (<>
+      <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <div><div style={{ color: T.txt, fontWeight: 600 }}>Tipos de atividade</div><div style={{ color: T.dim, fontSize: 13 }}>Nome, cor, cachê base e regras de cobrança.</div></div>
           <button style={btn("primary")} onClick={openNew}><Plus size={15} /> Novo tipo</button>
@@ -107,6 +128,7 @@ export default function DiariasConfig() {
           </div>
         ))}
       </div>
+      </>)}
 
       <Drawer open={!!edit} title={edit?.id ? "Editar tipo" : "Novo tipo"} onClose={() => setEdit(null)}
         footer={<><button style={btn("subtle")} onClick={() => setEdit(null)}>Cancelar</button><button style={btn("primary")} onClick={save}>Salvar</button></>}>
@@ -129,6 +151,15 @@ export default function DiariasConfig() {
     </>
   );
 }
+
+// 3 sub-menus do Cachês (segmented control aninhado dentro da seção)
+const SUBS = [
+  { id: "calc", label: "Cálculo", Icon: Calculator },
+  { id: "recibo", label: "Recibo", Icon: Receipt },
+  { id: "tipos", label: "Tipos", Icon: Tags },
+];
+const subTabsWrap = { display: "flex", gap: 6, marginBottom: 16, background: T.bg, border: `1px solid ${T.bd}`, borderRadius: 9, padding: 4 };
+const subTabBtn = (active) => ({ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 6px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, border: "none", background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });
 
 function Toggle({ on, onClick, titulo, desc }) {
   return (

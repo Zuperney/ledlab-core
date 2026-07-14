@@ -2,6 +2,24 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.1.0] — 2026-07-14
+
+**Engenharia de sinal + polimento de UX.** Primeira leva da Fase 2 (o diferencial de engenharia) somada a refinamentos de interface, entregue depois de uma semana de teste de campo positivo.
+
+### Sinal / cabeamento
+- **Portas de dados reais (px/porta):** o nº de portas pode ser calculado pela capacidade real do processador (VX / série A / Colorlight) — pixels por porta escalando com refresh e profundidade de cor (8-bit ≈ 655.360 px, 10-bit ≈ 327.680 @60Hz). A régua de "área" (bounding box) continua como opção. Telas novas nascem em px; as existentes ficam em área (sem mudança silenciosa). Seletores Porta + Cor no Cabeamento e na Diagramação.
+- **Canto de início da serpentina:** escolha por onde a corrente começa (4 cantos × 2 direções = os 8 padrões do "Quick Connection" do NovaLCT), pro mapa casar com a montagem física.
+- **Mapa de pixels exportável:** botão "Mapa de pixels" (CSV: gabinete → porta → X/Y) no Cabeamento + tabela por porta no relatório "Mapa de cabos", pra transcrever no NovaLCT / Tessera.
+- Freq (Hz) saiu do cabeamento do projeto (sistema profissional é 60 Hz de base; segue na Diagramação para estudo).
+
+### Interface
+- **Reordenar telas por arraste** (drag & drop; mouse e toque) no lugar dos botões ↑/↓.
+- **Configurações em 3 sub-menus** (Engenharia · Cachês · Dados) + Cachês em 3 sub-abas (Cálculo · Recibo · Tipos); tudo recolhido por padrão. Corrigido o dropdown que ficava cortado atrás do card de baixo.
+- Textos de ajuda enxutos pelo app.
+
+### Qualidade
+- 84 → **108 testes**; lint 0; CI verde.
+
 ## [1.0.0] — 2026-07-13 🎉
 
 **Marco: primeira versão estável.** O LedLab Core cobre o ciclo completo do técnico de LED — engenharia (elétrica validada com datasheets/normas, cabeamento de sinal e AC, test cards, composição de telas, crop de vídeo), negócio (agenda com check-in/GPS, cachês, recibos, reembolso com comprovantes) e durabilidade (PWA offline total, backup, sincronização opcional na nuvem) — rodando no celular e no desktop.

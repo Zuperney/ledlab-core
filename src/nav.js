@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.0.0";
+export const VERSION = "v1.1.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Chegamos na v1.0! 🎉 Rodada de blindagem: 84 testes automáticos, código 100% limpo no lint e infra de deploy atualizada. Nada muda no uso — só ficou mais sólido.";
+export const WHATS_NEW = "v1.1! 🔌 Cabeamento com portas de dados reais (px/porta) e canto de início da serpentina · 🗺️ mapa de pixels exportável (CSV) pro NovaLCT/Tessera · ✋ arraste pra reordenar as telas · Configurações mais organizadas. Bons shows!";

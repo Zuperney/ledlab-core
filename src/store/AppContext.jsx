@@ -150,7 +150,9 @@ export function newScreen(cab, overrides = {}) {
   return {
     id: genId("tela"),
     nome: "", cenario: "",
-    cabling: { ...DEFAULT_CABLING, manual: [] }, // manual próprio (não compartilha a ref de DEFAULT_CABLING)
+    // manual próprio (não compartilha a ref); telas NOVAS nascem na régua de PIXELS
+    // (portas de dados reais) — telas antigas sem o campo continuam na régua de área.
+    cabling: { ...DEFAULT_CABLING, manual: [], sinal: { rule: "px" } },
     cabId: cab?.id ?? null,
     gabinete: fullSnapshot(cab),
     cols: 1, rows: 1,

@@ -2,7 +2,10 @@
 // Reunidas aqui para evitar valores duplicados espalhados pelas páginas/serviços.
 // NÃO altera as regras de cálculo (pwrMax, disjuntor 125%, consumo típico).
 
-export const PX_PER_PORT = 655360; // capacidade de porta de sinal (Gigabit) @60Hz
+export const PX_PER_PORT = 655360; // capacidade de porta de sinal (Gigabit) @60Hz · 8-bit
+// capacidade por profundidade de cor (px/porta @60Hz, Gigabit) — ref. Novastar/Colorlight:
+// 10-bit dobra os dados por pixel → metade dos pixels por porta.
+export const PX_PER_PORT_BY_BITS = { 8: 655360, 10: 327680 };
 export const FASE_V = 220;         // tensão de fase p/ corrente por cabo AC
 
 // amperagem nominal por tipo de conector de energia

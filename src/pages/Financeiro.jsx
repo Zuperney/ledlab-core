@@ -132,7 +132,7 @@ export default function Financeiro() {
 
   return (
     <div>
-      <SectionHeader title="Financeiro" subtitle="Fechamento dos cachês por período — recibo pra mandar pro contratante (PDF ou WhatsApp)." />
+      <SectionHeader title="Financeiro" subtitle="Cachês por período e recibo (PDF ou WhatsApp)." />
 
       {/* filtros */}
       <div style={card({ maxWidth: 860, marginBottom: 16 })}>

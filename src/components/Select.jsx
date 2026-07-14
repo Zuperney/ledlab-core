@@ -13,6 +13,22 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 import { T, FONT } from "../ui/tokens.js";
 import { Z } from "../config/uiConfig.js";
 
+// posiciona o popover do desktop a partir do retângulo do gatilho (coords de viewport,
+// pra usar com position:fixed num portal — assim escapa de qualquer overflow:hidden do
+// card que o contém, que era o que cortava/escondia a lista atrás do card de baixo).
+function popPos(r, vh) {
+  const below = vh - r.bottom;
+  const above = r.top;
+  const up = below < 220 && above > below; // perto do rodapé da viewport: abre pra cima
+  return {
+    top: up ? undefined : r.bottom + 4,
+    bottom: up ? vh - r.top + 4 : undefined,
+    left: r.left,
+    width: r.width,
+    maxH: Math.max(140, (up ? above : below) - 12),
+  };
+}
+
 // lê os <option> filhos -> [{ value, label, disabled }]
 function parseOptions(children) {
   const out = [];
@@ -41,8 +57,10 @@ export default function Select({
   title,
 }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null); // posição do popover no desktop (portal, position:fixed)
   const isMobile = useIsMobile();
   const wrapRef = useRef(null);
+  const popRef = useRef(null);
   const opts = parseOptions(children);
   const current = opts.find((o) => String(o.value) === String(value));
   // "cheio" = ocupa a largura (como input()); senão fica compacto/inline (como o dropSel nativo, auto-width)
@@ -60,7 +78,10 @@ export default function Select({
     let onDoc;
     if (!isMobile) {
       onDoc = (e) => {
-        if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+        // o popover agora vive num portal (fora do wrapRef) — checa os dois
+        const inWrap = wrapRef.current?.contains(e.target);
+        const inPop = popRef.current?.contains(e.target);
+        if (!inWrap && !inPop) setOpen(false);
       };
       document.addEventListener("mousedown", onDoc);
     }
@@ -70,12 +91,38 @@ export default function Select({
     };
   }, [open, isMobile]);
 
+  // desktop: reposiciona o popover ao rolar/redimensionar enquanto está aberto
+  useEffect(() => {
+    if (!open || isMobile) return undefined;
+    const place = () => {
+      const r = wrapRef.current?.getBoundingClientRect();
+      if (r) setPos(popPos(r, window.innerHeight));
+    };
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true); // capture: pega scroll em qualquer container
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, isMobile]);
+
   const pick = (v) => {
     setOpen(false);
     // emite SEMPRE string, como o <select> nativo (o value do DOM é string) — senão
     // handlers tipo `cabs.find(x => String(x.id) === e.target.value)` quebram quando o
     // value da <option> é número (ex.: id de gabinete), gravando null sem querer.
     onChange?.({ target: { value: String(v) } });
+  };
+
+  // abre/fecha; ao abrir no desktop mede o gatilho na hora (sem esperar o effect, evita "piscar")
+  const toggle = () => {
+    if (disabled) return;
+    const willOpen = !open;
+    if (willOpen && !isMobile) {
+      const r = wrapRef.current?.getBoundingClientRect();
+      if (r) setPos(popPos(r, window.innerHeight));
+    }
+    setOpen(willOpen);
   };
 
   // o wrapper carrega o layout (largura/flex/maxWidth) que o <select> nativo teria;
@@ -144,7 +191,7 @@ export default function Select({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setOpen((o) => !o)}
+        onClick={toggle}
         aria-haspopup="listbox"
         aria-expanded={open}
         title={title}
@@ -225,29 +272,32 @@ export default function Select({
           document.body,
         )}
 
-      {open && !isMobile && (
-        <div
-          role="listbox"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            zIndex: Z.dialog + 1,
-            minWidth: "100%",
-            width: "max-content",
-            maxWidth: "min(92vw, 360px)",
-            background: T.card,
-            border: `1px solid ${T.bd}`,
-            borderRadius: 10,
-            boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-            padding: 4,
-            maxHeight: 300,
-            overflowY: "auto",
-          }}
-        >
-          {rows}
-        </div>
-      )}
+      {open && !isMobile && pos &&
+        createPortal(
+          <div
+            ref={popRef}
+            role="listbox"
+            style={{
+              position: "fixed",
+              ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
+              left: pos.left,
+              zIndex: Z.dialog + 1,
+              minWidth: pos.width,
+              width: "max-content",
+              maxWidth: "min(92vw, 360px)",
+              background: T.card,
+              border: `1px solid ${T.bd}`,
+              borderRadius: 10,
+              boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+              padding: 4,
+              maxHeight: pos.maxH,
+              overflowY: "auto",
+            }}
+          >
+            {rows}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

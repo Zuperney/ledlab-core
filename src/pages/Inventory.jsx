@@ -95,7 +95,7 @@ export default function Inventory() {
 
   return (
     <div>
-      <SectionHeader title="Biblioteca de gabinetes" subtitle={`${cabs.length} cadastrados · cadastre uma vez, use em todos os projetos (salvo neste navegador).`}>
+      <SectionHeader title="Biblioteca de gabinetes" subtitle={`${cabs.length} cadastrados · cadastre uma vez, use em todos os projetos.`}>
         {!isMobile && <button style={btn("primary")} onClick={openNew}><Plus size={16} /> Novo gabinete</button>}
       </SectionHeader>
 

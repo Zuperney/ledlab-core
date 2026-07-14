@@ -8,6 +8,7 @@ import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
 import { cableMeta, cablePorts, bboxArea } from "../../services/cabling.js";
+import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
@@ -153,19 +154,40 @@ export default function ProjectRelatorio({ project }) {
         {showSignal && (
           <section style={{ marginBottom: 24 }}>
             <h3 style={h3}>Cabeamento de Sinal</h3>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela (regra de área quadrada). O selo numerado indica o início de cada cabo (canto inferior-esquerdo).</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo (canto configurável por tela na aba Cabeamento).</p>
             {telas.map((t) => {
-              const { sinalBudget } = cableMeta(t);
+              const { sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(t);
               const ports = cablePorts(t, "sinal", numbering);
               return (
                 <div key={t.id} style={telaBlock}>
-                  <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "porta" : "portas"} · máx {sinalBudget} gab/porta</div>
+                  <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "porta" : "portas"} · máx {sinalBudget} gab/porta · {sinalRule === "px" ? `pixels reais: ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "área quadrada"}</div>
                   <CableMap tela={t} mode="sinal" numbering={numbering} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                    {ports.map((p, i) => { const pct = Math.round((bboxArea(p) / sinalBudget) * 100); return (
+                    {ports.map((p, i) => { const pct = Math.round(((sinalRule === "px" ? p.length : bboxArea(p)) / sinalBudget) * 100); return (
                       <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(i)} />Porta {i + 1} · {pct}% · {p.length} gab</span>
                     ); })}
                   </div>
+                  {type === "Mapa de cabos" && (
+                    <>
+                      <div style={{ color: PRINT.mut, fontSize: 11, margin: "10px 0 4px" }}>Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) p/ transcrever no NovaLCT / Tessera. Lista completa por gabinete: botão “Mapa de pixels” na aba Cabeamento (CSV).</div>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead><tr>
+                          <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Início (col, lin)</th><th style={th}>Início X, Y (px)</th><th style={th}>Área C×L</th>
+                        </tr></thead>
+                        <tbody>
+                          {pixelMapPorts(t, numbering).map((p) => (
+                            <tr key={p.port}>
+                              <td style={td}>{p.port}</td>
+                              <td style={td}>{p.count}</td>
+                              <td style={td}>{p.startCol}, {p.startRow}</td>
+                              <td style={td}>{p.startX}, {p.startY}</td>
+                              <td style={td}>{p.bboxCols}×{p.bboxRows}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
                 </div>
               );
             })}

@@ -17,12 +17,15 @@ import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { range, key, parseKey, bboxArea, mkBlock, buildAuto, acRouteFromSignal, cablePorts, cableMeta } from "../../services/cabling.js";
+import { pixelMapCSV } from "../../services/pixelMap.js";
+import { fileName } from "../../services/filenames.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { FLAGS } from "../../config/featureFlags.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
+const CORNER_LABEL = { bl: "inferior-esquerdo", br: "inferior-direito", tl: "superior-esquerdo", tr: "superior-direito" };
 // botão de zoom do canto do canvas
 const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
 
@@ -57,16 +60,26 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const cfg = mode === "ac" ? acCfg : sinalCfg;
   const strategy = cfg.strategy || "linha";
   const routing = cfg.routing || "updown"; // "updown" (sobe/desce) | "zigzag"
+  const corner = cfg.corner || "bl"; // canto onde a corrente começa (bl|br|tl|tr)
   // no celular, edição avançada (modo Livre) fica oculta — foco em visualização/estatísticas
   const allowAdvanced = !isMobile || FLAGS.advancedCablingOnMobile;
   const livreEdit = strategy === "livre" && allowAdvanced;
-  const hz = sinalCfg.hz || 60; // frequência é conceito do sinal
   const cables = cfg.cables || [];
   const setMode = (v) => patchTela?.(tela.id, { cabling: { ...cabling, mode: v } });
   const setCfg = (partial) => patchTela?.(tela.id, { cabling: { ...cabling, [mode]: { ...cfg, ...partial } } });
   const setStrategy = (v) => setCfg({ strategy: v });
   const setRouting = (v) => setCfg({ routing: v });
-  const setHz = (v) => patchTela?.(tela.id, { cabling: { ...cabling, sinal: { ...sinalCfg, hz: v } } });
+  const setCorner = (v) => setCfg({ corner: v });
+
+  // mapa de pixels em CSV (gabinete → porta → X/Y) pro operador transcrever no NovaLCT/Tessera
+  const exportPixelCSV = () => {
+    const csv = pixelMapCSV(tela, numbering);
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }); // BOM: Excel abre acentos certo
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName([project.name, tela.nome, "mapa-pixels"], "csv");
+    a.click();
+  };
 
   const fit = useCallback(() => {
     const el = stageRef.current; if (!el) return;
@@ -96,14 +109,17 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o cabeamento." />;
 
-  const { ampCab, connRating, acBudget, sinalBudget } = cableMeta(tela);
+  const { ampCab, connRating, acBudget, sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(tela);
   const budget = mode === "sinal" ? sinalBudget : acBudget;
   const ports = cablePorts(tela, mode, numbering); // mesma lógica usada pelo Test Card
 
   const portOf = {};
   ports.forEach((p, i) => p.forEach((cell) => { portOf[key(cell.c, cell.r)] = i; }));
   const assigned = Object.keys(portOf).length;
-  const usage = (port) => mode === "sinal" ? bboxArea(port) / budget : (port.length * ampCab) / connRating;
+  // ocupação da porta: régua de pixels = contagem real; régua de área = bounding box
+  const usage = (port) => mode === "sinal"
+    ? (sinalRule === "px" ? port.length : bboxArea(port)) / budget
+    : (port.length * ampCab) / connRating;
   const anyOver = ports.some((p) => usage(p) > 1.001);
   const incomplete = strategy === "livre" && assigned < cols * rows;
   const status = incomplete ? { l: `Faltam ${cols * rows - assigned}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
@@ -123,7 +139,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
     setCables(next);
   };
   const importFrom = (strat) => {
-    const src = strat === "sinal" ? acRouteFromSignal(tela, numbering) : buildAuto(cols, rows, strat, budget, routing, numbering);
+    const rule = mode === "sinal" ? sinalRule : "area"; // importa já na régua da tela
+    const src = strat === "sinal" ? acRouteFromSignal(tela, numbering) : buildAuto(cols, rows, strat, budget, routing, numbering, rule, corner);
     setCables(src.map((p) => p.map((cell) => key(cell.c, cell.r)))); setActive(null);
   };
   const novoCabo = () => { setActive(cables.length); setCables([...cables, []]); };
@@ -156,9 +173,14 @@ export default function ProjectCabeamento({ project, patchTela }) {
               {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </Select>
             <Seg label="Modo" options={[["sinal", "Sinal"], ["ac", "AC"]]} value={mode} onChange={setMode} />
-            <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />
+            {mode === "sinal" && <Drop label="Porta" title="Régua da porta: pixels reais (VX/série A/Colorlight) ou área retangular (controlador básico)" options={[["px", "Pixels (real)"], ["area", "Área (básico)"]]} value={sinalRule} onChange={(v) => setCfg({ rule: v })} />}
+            {mode === "sinal" && sinalRule === "px"
+              ? <Drop label="Disp." options={[["linha", "Automática"], ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy === "livre" ? "livre" : "linha"} onChange={setStrategy} />
+              : <Drop label="Disp." options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"], ...(mode === "ac" ? [["sinal", "Atrelar sinal"]] : []), ...(allowAdvanced ? [["livre", "Livre"]] : [])]} value={strategy} onChange={setStrategy} />}
             {["linha", "coluna", "area"].includes(strategy) && <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />}
-            {mode === "sinal" && <Drop label="Freq" options={[[60, "60 Hz"], [50, "50 Hz"], [30, "30 Hz"]]} value={hz} onChange={setHz} />}
+            {["linha", "coluna", "area"].includes(strategy) && <Drop label="Início" title="Canto onde a corrente começa — case com a montagem física / NovaLCT" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={corner} onChange={setCorner} />}
+            {/* Freq removida de projetos: sistema profissional é 60 Hz de base (a régua de porta já assume 60). Refresh segue na Diagramação p/ estudo. */}
+            {mode === "sinal" && <Drop label="Cor" title="Profundidade de cor do processador — 10-bit dobra os dados por pixel (metade dos px por porta)" options={[[8, "8-bit"], [10, "10-bit"]]} value={sinalBits} onChange={(v) => setCfg({ bits: Number(v) })} />}
             {!isMobile && <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>}
           </div>
         )}
@@ -186,14 +208,21 @@ export default function ProjectCabeamento({ project, patchTela }) {
       )}
 
       <div style={card({ padding: 0, overflow: "hidden" })}>
-        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}` }}>
-          <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{tela.nome} · {mode === "sinal" ? "Sinal" : "Energia AC"}</div>
-          <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
-            {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? "porta (área quadrada)" : "cabo"}
-            {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
-            {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal · carga balanceada entre cabos"}
-            {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{tela.nome} · {mode === "sinal" ? "Sinal" : "Energia AC"}</div>
+            <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
+              {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? (sinalRule === "px" ? `porta · ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "porta (área quadrada)") : "cabo"}
+              {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
+              {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal · carga balanceada entre cabos"}
+              {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
+            </div>
           </div>
+          {mode === "sinal" && (
+            <button onClick={exportPixelCSV} title="Baixa o mapa de pixels (gabinete → porta → X/Y) em CSV pro NovaLCT / Tessera" style={csvBtn}>
+              <Download size={14} /> Mapa de pixels
+            </button>
+          )}
         </div>
 
         {mode === "ac" && (
@@ -239,7 +268,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
             <button title="Diminuir" onClick={() => zoomBy(0.8)} style={zb}><ZoomOut size={16} /></button>
           </div>
           <div style={{ position: "absolute", left: 12, bottom: 12, color: T.dim, fontSize: 11, background: "rgba(0,0,0,0.4)", padding: "4px 8px", borderRadius: 6 }}>
-            início inferior-esquerdo · arraste p/ mover · scroll p/ zoom
+            início {CORNER_LABEL[corner]} · arraste p/ mover · scroll p/ zoom
           </div>
         </div>
 
@@ -274,13 +303,14 @@ const ibtn = (extra = {}) => ({ display: "inline-flex", alignItems: "center", ju
 const sep = { width: 1, height: 22, background: T.bd, margin: "0 2px" };
 
 const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const csvBtn = { display: "inline-flex", alignItems: "center", gap: 6, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, borderRadius: 8, padding: "7px 11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" };
 
 // dropdown compacto com rótulo (economiza espaço vs. grupo de botões)
-function Drop({ label, options, value, onChange }) {
+function Drop({ label, options, value, onChange, title }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }} title={title}>
       {label}
-      <Select value={String(value)} title={label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={dropSel}>
+      <Select value={String(value)} title={title || label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={dropSel}>
         {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
       </Select>
     </span>

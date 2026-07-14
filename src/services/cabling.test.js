@@ -1,7 +1,7 @@
-// services/cabling.test.js — roteamento de cabos: disposição "Área" e
-// balanceamento de fase do AC atrelado ao sinal.
+// services/cabling.test.js — roteamento de cabos: réguas de porta (pixels/área),
+// disposição "Área" e balanceamento de fase do AC atrelado ao sinal.
 import { describe, it, expect } from "vitest";
-import { buildAuto, balancedChunks, cableMeta, setAcMargin } from "./cabling.js";
+import { buildAuto, balancedChunks, cableMeta, cablePorts, bboxArea, serpentine, setAcMargin } from "./cabling.js";
 
 const NB = "row-tb-lr";
 const seq = (n) => Array.from({ length: n }, (_, i) => i);
@@ -29,6 +29,84 @@ describe("cabling — disposição Área", () => {
       }
       expect(seen.size).toBe(cols * rows);
     }
+  });
+});
+
+describe("cabling — régua de PIXELS (portas de dados reais)", () => {
+  // gabinete 128×128 = 16.384 px → 8-bit: 655.360/16.384 = 40 gab; 10-bit: 327.680/16.384 = 20
+  const gab128 = { resX: 128, resY: 128 };
+  const telaPx = (sinal = {}) => ({ cols: 8, rows: 6, gabinete: gab128, cabling: { sinal: { rule: "px", ...sinal } } });
+
+  it("10-bit corta a capacidade pela metade", () => {
+    expect(cableMeta(telaPx()).sinalBudget).toBe(40);
+    expect(cableMeta(telaPx({ bits: 10 })).sinalBudget).toBe(20);
+  });
+
+  it("escala com o refresh também em 10-bit (30 Hz dobra)", () => {
+    expect(cableMeta(telaPx({ bits: 10, hz: 30 })).sinalBudget).toBe(40);
+    expect(cableMeta(telaPx({ hz: 120 })).sinalBudget).toBe(20); // 8-bit @120Hz = metade
+  });
+
+  it("tela SEM o campo rule continua na régua de área (legado preservado)", () => {
+    const legada = { cols: 2, rows: 2, gabinete: gab128, cabling: { sinal: { hz: 60 } } };
+    expect(cableMeta(legada).sinalRule).toBe("area");
+    expect(cableMeta(telaPx()).sinalRule).toBe("px");
+  });
+
+  it("px: corta por CONTAGEM balanceada, cobre a grade toda e ignora o bounding box", () => {
+    // gab 196×196 = 38.416 px → budget floor(655.360/38.416) = 17; 8×6 = 48 gab → 3 cabos de 16
+    const tela = { cols: 8, rows: 6, gabinete: { resX: 196, resY: 196 }, cabling: { sinal: { rule: "px" } } };
+    expect(cableMeta(tela).sinalBudget).toBe(17);
+    const ports = cablePorts(tela, "sinal", NB);
+    expect(ports.map((p) => p.length)).toEqual([16, 16, 16]); // balanceado, ≤ budget
+    const seen = new Set();
+    ports.flat().forEach((cell) => seen.add(`${cell.c},${cell.r}`));
+    expect(seen.size).toBe(48); // cobertura total, sem repetição
+    // o retângulo envolvente PODE passar do budget (16 gab em serpentina → bbox 3×6 = 18 > 17):
+    // é exatamente o que muda vs. a régua de área — a porta gasta os px reais, não o retângulo.
+    expect(ports.some((p) => bboxArea(p) > 17)).toBe(true);
+  });
+
+  it("na régua de área o mesmo painel gasta MAIS portas (bbox super-dimensiona)", () => {
+    const base = { cols: 8, rows: 6, gabinete: { resX: 196, resY: 196 } };
+    const px = cablePorts({ ...base, cabling: { sinal: { rule: "px" } } }, "sinal", NB);
+    const area = cablePorts({ ...base, cabling: { sinal: {} } }, "sinal", NB);
+    expect(px.length).toBeLessThanOrEqual(area.length);
+    expect(px.length).toBe(3);
+  });
+});
+
+describe("cabling — canto de início da serpentina (Quick Connection do NovaLCT)", () => {
+  // grade 3×3: r=0 é o topo (y cresce pra baixo), então r=2 é a base
+  const start = (corner, routing = "updown") => serpentine(0, 0, 3, 3, routing, corner)[0];
+
+  it("cada canto começa no gabinete certo (vertical/updown)", () => {
+    expect(start("bl")).toEqual({ c: 0, r: 2 }); // inferior-esquerdo
+    expect(start("br")).toEqual({ c: 2, r: 2 }); // inferior-direito
+    expect(start("tl")).toEqual({ c: 0, r: 0 }); // superior-esquerdo
+    expect(start("tr")).toEqual({ c: 2, r: 0 }); // superior-direito
+  });
+
+  it("o canto de início vale também no zigzag (horizontal primeiro)", () => {
+    expect(start("tr", "zigzag")).toEqual({ c: 2, r: 0 });
+    expect(start("bl", "zigzag")).toEqual({ c: 0, r: 2 });
+  });
+
+  it("qualquer canto cobre a grade toda, sem repetir", () => {
+    for (const corner of ["bl", "br", "tl", "tr"]) {
+      const cells = serpentine(0, 0, 4, 3, "updown", corner);
+      expect(cells.length).toBe(12);
+      expect(new Set(cells.map((c) => `${c.c},${c.r}`)).size).toBe(12);
+    }
+  });
+
+  it("default 'bl' preserva o comportamento histórico (retrocompatível)", () => {
+    expect(serpentine(0, 0, 3, 3, "updown")).toEqual(serpentine(0, 0, 3, 3, "updown", "bl"));
+  });
+
+  it("buildAuto propaga o canto: 'tr' começa no topo-direito", () => {
+    const ports = buildAuto(3, 3, "area", 999, "updown", NB, "area", "tr");
+    expect(ports[0][0]).toEqual({ c: 2, r: 0 });
   });
 });
 

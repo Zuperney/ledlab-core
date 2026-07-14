@@ -125,7 +125,7 @@ export default function AspectRatio() {
       {/* CROP / ENCAIXE DE VÍDEO */}
       <div style={card({ marginBottom: 16 })}>
         <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Crop / encaixe de vídeo</div>
-        <div style={{ color: T.dim, fontSize: 12, marginBottom: 14 }}>Como uma fonte de vídeo entra na sua tela <b style={{ color: T.mut }}>{W}×{H}</b> ({friendly(W, H)}): encaixando (mostra tudo, com barras) ou preenchendo (enche a tela, cortando a fonte).</div>
+        <div style={{ color: T.dim, fontSize: 12, marginBottom: 14 }}>Como a fonte entra na tela <b style={{ color: T.mut }}>{W}×{H}</b> ({friendly(W, H)}): encaixar (mostra tudo, com barras) ou preencher (enche, cortando).</div>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>
           <div><label style={lbl}>Fonte — largura</label><NumField value={sw} onChange={(n) => setSw(Math.max(0, n))} style={{ ...inp, width: 120 }} /></div>
           <div><label style={lbl}>Fonte — altura</label><NumField value={sh} onChange={(n) => setSh(Math.max(0, n))} style={{ ...inp, width: 120 }} /></div>

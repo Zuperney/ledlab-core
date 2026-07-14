@@ -1,6 +1,6 @@
 // pages/project/ProjectDados.jsx — aba Dados: telas + ficha do projeto.
-import { useState } from "react";
-import { Plus, ChevronRight, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, ChevronRight, GripVertical, Copy, Trash2 } from "lucide-react";
 import { newScreen } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
@@ -12,6 +12,7 @@ import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { DateField } from "../../components/PickerField.jsx";
 import Select from "../../components/Select.jsx";
 import NumField from "../../components/NumField.jsx";
+import { reorder } from "../../services/layout.js";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, favCab } = useCabinets();
@@ -20,6 +21,8 @@ export default function ProjectDados({ project, patch, patchTela }) {
   const toast = useToast();
   const [editId, setEditId] = useState(null); // id da tela expandida (edição inline) ou null
   const [dimMode, setDimMode] = useState("gab"); // entrada da dimensão: "gab" (colunas×linhas) | "m" (metros)
+  const [dragId, setDragId] = useState(null); // tela sendo arrastada (reordenação) ou null
+  const listRef = useRef(null);
 
   const telas = project.telas || [];
 
@@ -33,14 +36,21 @@ export default function ProjectDados({ project, patch, patchTela }) {
     patch({ telas: [copy, ...telas] }); // a cópia entra no topo e expande — mesmo comportamento de "Adicionar"
     setEditId(copy.id);
   };
-  const moveTela = (t, dir) => {
-    const i = telas.findIndex((x) => x.id === t.id);
-    const j = i + dir;
-    if (j < 0 || j >= telas.length) return;
-    const next = [...telas];
-    [next[i], next[j]] = [next[j], next[i]]; // troca com o vizinho
-    patch({ telas: next });
+  // reordenar telas por ARRASTE (drag & drop; mouse e toque via pointer events).
+  // Reordena a lista ao vivo conforme o cursor cruza o meio de cada linha.
+  const reorderByPointer = (clientY) => {
+    const els = [...(listRef.current?.querySelectorAll("[data-tid]") || [])];
+    if (!els.length) return;
+    const cur = telas.findIndex((x) => x.id === dragId);
+    if (cur === -1) return;
+    // índice de inserção = quantas linhas têm o MEIO acima do cursor (0..N)
+    const insertion = els.filter((el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2 < clientY; }).length;
+    const next = reorder(telas, cur, insertion);
+    if (next.some((t, i) => t.id !== telas[i].id)) patch({ telas: next }); // só grava se a ordem mudou
   };
+  const onDragDown = (e, t) => { e.preventDefault(); e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ } setDragId(t.id); };
+  const onDragMove = (e) => { if (dragId) reorderByPointer(e.clientY); };
+  const onDragUp = (e) => { if (!dragId) return; try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* noop */ } setDragId(null); };
   const delTela = async (t) => {
     if (await confirm({ title: "Excluir tela?", message: `"${t.nome || "tela"}" será removida deste projeto.` })) {
       patch({ telas: telas.filter((x) => x.id !== t.id) });
@@ -53,15 +63,14 @@ export default function ProjectDados({ project, patch, patchTela }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(320px,1fr) minmax(340px,1fr)", gap: 16, alignItems: "start" }}>
       {/* telas */}
-      <div style={card({ minWidth: 0 })}>
+      <div ref={listRef} style={card({ minWidth: 0 })}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
           <span style={{ textTransform: "uppercase", fontSize: 11, letterSpacing: "0.06em", color: T.mut }}>Telas — {telas.length}</span>
           <button style={btn("primary", isMobile ? { width: "100%", justifyContent: "center" } : {})} onClick={addTela}><Plus size={15} /> Adicionar tela</button>
         </div>
         {telas.length === 0 && <div style={{ color: T.dim, fontSize: 13 }}>Nenhuma tela ainda.</div>}
-        {telas.map((t, i) => {
+        {telas.map((t) => {
           const open = editId === t.id;
-          const isFirst = i === 0, isLast = i === telas.length - 1;
           const g = t.gabinete || {};
           const dW = parseFloat(g.dimW) || 0, dH = parseFloat(g.dimH) || 0;
           const larguraM = (t.cols || 0) * dW / 1000, alturaM = (t.rows || 0) * dH / 1000;
@@ -70,7 +79,14 @@ export default function ProjectDados({ project, patch, patchTela }) {
           const setRows = (n) => patchTela(t.id, { rows: Math.max(0, n || 0) });
           return (
             <div key={t.id} style={{ borderTop: `1px solid ${T.bd}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0", flexWrap: "wrap" }}>
+              <div data-tid={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0", flexWrap: "wrap", background: dragId === t.id ? T.sel : "transparent", borderRadius: dragId === t.id ? 8 : 0 }}>
+                {telas.length > 1 && (
+                  <button onPointerDown={(e) => onDragDown(e, t)} onPointerMove={onDragMove} onPointerUp={onDragUp} onPointerCancel={onDragUp}
+                    title="Arraste para reordenar" aria-label="Arraste para reordenar"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: isMobile ? 34 : 26, height: isMobile ? 40 : 30, border: "none", background: "transparent", color: T.mut, cursor: dragId === t.id ? "grabbing" : "grab", touchAction: "none", padding: 0 }}>
+                    <GripVertical size={16} />
+                  </button>
+                )}
                 <button onClick={() => setEditId(open ? null : t.id)}
                   style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer", color: "inherit" }}>
                   <ChevronRight size={16} style={{ color: T.mut, flexShrink: 0, transform: open ? "rotate(90deg)" : "none", transition: "transform .12s" }} />
@@ -79,13 +95,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
                     <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{g.nome} · {t.cols}×{t.rows} · {watts(t)}W</div>
                   </span>
                 </button>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end", flexWrap: "wrap" }}>
-                  {telas.length > 1 && (
-                    <>
-                      <button disabled={isFirst} style={iconBtn({ ...(isMobile ? { width: 40, height: 40 } : {}), ...(isFirst ? { opacity: 0.3, cursor: "default" } : {}) })} title="Mover pra cima" onClick={() => moveTela(t, -1)}><ChevronUp size={14} /></button>
-                      <button disabled={isLast} style={iconBtn({ ...(isMobile ? { width: 40, height: 40 } : {}), ...(isLast ? { opacity: 0.3, cursor: "default" } : {}) })} title="Mover pra baixo" onClick={() => moveTela(t, 1)}><ChevronDown size={14} /></button>
-                    </>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                   <button style={iconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Duplicar" onClick={() => dupTela(t)}><Copy size={14} /></button>
                   <button style={dangerIconBtn(isMobile ? { width: 40, height: 40 } : {})} title="Excluir" onClick={() => delTela(t)}><Trash2 size={14} /></button>
                 </div>
