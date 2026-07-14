@@ -42,14 +42,17 @@ export default function Financeiro() {
 
   // no mobile, mede a largura disponível e calcula o zoom p/ o recibo (DOC_W) caber
   const docWrapRef = useRef(null);
-  const [docZoom, setDocZoom] = useState(1);
+  // mede a largura via ResizeObserver (dispara já ao observar) e DERIVA o zoom —
+  // sem setState no corpo do effect; o callback do RO é evento de sistema externo.
+  const [docW, setDocW] = useState(0);
   useEffect(() => {
-    if (!isMobile) { setDocZoom(1); return; }
-    const measure = () => { const w = docWrapRef.current?.clientWidth || 0; if (w) setDocZoom(Math.min(1, w / DOC_W)); };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [isMobile]);
+    const el = docWrapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => setDocW(el.clientWidth || 0));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const docZoom = isMobile && docW ? Math.min(1, docW / DOC_W) : 1;
 
   const now = new Date();
   const [preset, setPreset] = useState("mes");
@@ -101,13 +104,12 @@ export default function Financeiro() {
 
   // pagador (tomador) — quem paga; lembrado por cliente do filtro
   const pagadores = prefs.pagadores || {};
-  const [pagNome, setPagNome] = useState("");
-  const [pagDoc, setPagDoc] = useState("");
-  useEffect(() => {
-    const saved = pagadores[cliente] || {};
-    setPagNome(saved.nome ?? (cliente || ""));
-    setPagDoc(saved.doc ?? "");
-  }, [cliente]); // recarrega ao trocar o cliente do filtro
+  const loadPag = (cli) => { const saved = pagadores[cli] || {}; return { nome: saved.nome ?? (cli || ""), doc: saved.doc ?? "" }; };
+  const [pagNome, setPagNome] = useState(() => loadPag(cliente).nome);
+  const [pagDoc, setPagDoc] = useState(() => loadPag(cliente).doc);
+  // trocou o cliente do filtro: recarrega o pagador salvo durante o render (sem effect)
+  const [prevCliente, setPrevCliente] = useState(cliente);
+  if (cliente !== prevCliente) { setPrevCliente(cliente); const p = loadPag(cliente); setPagNome(p.nome); setPagDoc(p.doc); }
   const savePagador = (nome, doc) => {
     setPagNome(nome); setPagDoc(doc);
     if (cliente) setPrefs({ ...prefs, pagadores: { ...pagadores, [cliente]: { nome, doc } } });

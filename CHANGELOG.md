@@ -2,6 +2,16 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.0.0] — 2026-07-13 🎉
+
+**Marco: primeira versão estável.** O LedLab Core cobre o ciclo completo do técnico de LED — engenharia (elétrica validada com datasheets/normas, cabeamento de sinal e AC, test cards, composição de telas, crop de vídeo), negócio (agenda com check-in/GPS, cachês, recibos, reembolso com comprovantes) e durabilidade (PWA offline total, backup, sincronização opcional na nuvem) — rodando no celular e no desktop.
+
+### Blindagem da v1.0
+- **Rede de testes ampliada: 66 → 84 testes.** Os módulos novos ganharam cobertura: cálculo de crop (`fillCrop`, casos validados na UI), nomes de arquivo padronizados (slug/carimbo) e a detecção de sobreposição da Composição (extraída pra `services/layout.js`, testável).
+- **Código 100% limpo no lint — e agora o CI BLOQUEIA erro de lint.** Zeramos os 38 avisos pré-existentes com correções reais: padrões modernos de estado do React (ajuste durante o render em vez de setState em effect), medição de largura via ResizeObserver (zoom do relatório/recibo no mobile), cursor dos canvas sem ler ref no render, dependências de hooks completas. O motor de desenho do test card virou serviço (`services/testcardDraw.js`).
+- **Infra de deploy atualizada.** GitHub Actions migradas do Node 20 (deprecado) pro Node 22 com checkout/setup-node v5 — sem warnings no pipeline.
+- **Test Card:** tela sem gabinete não mostra mais "0×0 px · pitch NaN" no cabeçalho.
+
 ## [0.20.13] — 2026-07-13
 
 ### Adicionado

@@ -1,7 +1,7 @@
 // pages/AspectRatio.jsx — Calculadora de Aspect Ratio (proporção de tela) com
 // visualização e comparação com resoluções padrão de vídeo. Ferramenta avulsa:
 // parte de pixels manuais OU de um gabinete + grade (resolução total do painel).
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
@@ -31,7 +31,9 @@ export default function AspectRatio() {
   const { cabs } = useLedLabContext();
   const isMobile = useIsMobile();
   const [controlsOpen, setControlsOpen] = useState(!isMobile);
-  useEffect(() => { setControlsOpen(!isMobile); }, [isMobile]);
+  // desktop↔mobile mudou: reajusta o padrão DURANTE o render (sem setState em effect)
+  const [prevMobile, setPrevMobile] = useState(isMobile);
+  if (prevMobile !== isMobile) { setPrevMobile(isMobile); setControlsOpen(!isMobile); }
   const [w, setW] = useState(1920);
   const [h, setH] = useState(1080);
   const [cabId, setCabId] = useState(cabs[0]?.id);

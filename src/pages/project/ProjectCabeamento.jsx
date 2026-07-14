@@ -23,6 +23,8 @@ import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
+// botão de zoom do canto do canvas
+const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
 
 export default function ProjectCabeamento({ project, patchTela }) {
   const telas = project.telas || [];
@@ -36,7 +38,9 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const isMobile = useIsMobile();
   const { colorOf } = useCablePalette();
   const [controlsOpen, setControlsOpen] = useState(!isMobile); // no mobile começa fechado
-  useEffect(() => setControlsOpen(!isMobile), [isMobile]);
+  // desktop↔mobile mudou: reajusta o padrão DURANTE o render (sem setState em effect)
+  const [prevMobile, setPrevMobile] = useState(isMobile);
+  if (prevMobile !== isMobile) { setPrevMobile(isMobile); setControlsOpen(!isMobile); }
 
   const tela = telas.find((t) => t.id === telaId) || telas[0];
   const cols = tela?.cols || 1, rows = tela?.rows || 1;
@@ -69,7 +73,10 @@ export default function ProjectCabeamento({ project, patchTela }) {
     const z = Math.min(el.clientWidth / panelW, el.clientHeight / panelH) * 0.9 || 1;
     setZoom(z); setPan({ x: (el.clientWidth - panelW * z) / 2, y: (el.clientHeight - panelH * z) / 2 });
   }, [panelW, panelH]);
-  useEffect(() => { fit(); setActive(null); setHistory([]); }, [fit, telaId]);
+  // trocou de tela: reseta seleção/undo durante o render; o fit (mede o DOM) fica no effect
+  const [prevTelaId, setPrevTelaId] = useState(telaId);
+  if (prevTelaId !== telaId) { setPrevTelaId(telaId); setActive(null); setHistory([]); }
+  useEffect(() => { fit(); }, [fit, telaId]);
 
   const onWheel = (e) => {
     e.preventDefault();
@@ -78,11 +85,12 @@ export default function ProjectCabeamento({ project, patchTela }) {
     setZoom((z) => Math.min(6, Math.max(0.1, z * f)));
     setPan((p) => ({ x: mx - (mx - p.x) * f, y: my - (my - p.y) * f }));
   };
-  const onDown = (e) => { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y, moved: false }; };
+  const [grabbing, setGrabbing] = useState(false); // cursor: estado (ref no render é proibido)
+  const onDown = (e) => { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y, moved: false }; setGrabbing(true); };
   const onMove = (e) => { if (drag.current) { drag.current.moved = true; setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) }); } };
-  const onUp = () => { drag.current = null; };
+  const onUp = () => { drag.current = null; setGrabbing(false); };
   // pan por toque (mobile)
-  const onTouchStart = (e) => { const t = e.touches[0]; if (t) drag.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y, moved: false }; };
+  const onTouchStart = (e) => { const t = e.touches[0]; if (t) { drag.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y, moved: false }; setGrabbing(true); } };
   const onTouchMove = (e) => { const t = e.touches[0]; if (!drag.current || !t) return; drag.current.moved = true; setPan({ x: drag.current.px + (t.clientX - drag.current.x), y: drag.current.py + (t.clientY - drag.current.y) }); };
   const zoomBy = (f) => { const el = stageRef.current, cw = el.clientWidth / 2, ch = el.clientHeight / 2; setZoom((z) => Math.min(6, Math.max(0.1, z * f))); setPan((p) => ({ x: cw - (cw - p.x) * f, y: ch - (ch - p.y) * f })); };
 
@@ -198,7 +206,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
         {/* CANVAS */}
         <div ref={stageRef} onWheel={onWheel} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
           onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onUp}
-          style={{ position: "relative", height: isMobile ? 380 : 460, background: "#08080f", overflow: "hidden", cursor: drag.current ? "grabbing" : "grab", touchAction: "none" }}>
+          style={{ position: "relative", height: isMobile ? 380 : 460, background: "#08080f", overflow: "hidden", cursor: grabbing ? "grabbing" : "grab", touchAction: "none" }}>
           <svg width="100%" height="100%" style={{ display: "block" }}>
             <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
               <rect x={-8} y={-8} width={panelW + 16} height={panelH + 16} rx={10} fill="#0d0d1a" stroke={T.bd} strokeWidth={1.5} />
@@ -224,10 +232,11 @@ export default function ProjectCabeamento({ project, patchTela }) {
               })}
             </g>
           </svg>
+          {/* botões diretos (sem array intermediário): o compilador vê fit/zoomBy como handlers */}
           <div style={{ position: "absolute", right: 12, bottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-            {[[ZoomIn, () => zoomBy(1.2), "Aumentar"], [Maximize, fit, "Enquadrar"], [ZoomOut, () => zoomBy(0.8), "Diminuir"]].map(([Ic, fn, t], i) => (
-              <button key={i} title={t} onClick={fn} style={{ width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic size={16} /></button>
-            ))}
+            <button title="Aumentar" onClick={() => zoomBy(1.2)} style={zb}><ZoomIn size={16} /></button>
+            <button title="Enquadrar" onClick={fit} style={zb}><Maximize size={16} /></button>
+            <button title="Diminuir" onClick={() => zoomBy(0.8)} style={zb}><ZoomOut size={16} /></button>
           </div>
           <div style={{ position: "absolute", left: 12, bottom: 12, color: T.dim, fontSize: 11, background: "rgba(0,0,0,0.4)", padding: "4px 8px", borderRadius: 6 }}>
             início inferior-esquerdo · arraste p/ mover · scroll p/ zoom

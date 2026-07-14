@@ -61,6 +61,7 @@ export default function Dashboard({ nav }) {
   // turno ao vivo: mesmo dado das Diárias (check-in sem checkout) — checkout rápido daqui
   const aberto = worklog.filter((e) => e.checkin && !e.checkout).sort((a, b) => (a.checkin < b.checkin ? -1 : 1))[0] || null;
   const abertoTipo = aberto ? typesById[aberto.tipoId] : null;
+  // eslint-disable-next-line react-hooks/purity -- relógio de parede só p/ exibir "há Xh Ym"; cada render mantém fresco
   const abertoMin = aberto ? Math.max(0, Math.round((Date.now() - Date.parse(aberto.checkin)) / 60000)) : 0;
   const doCheckout = () => { updateEntry({ id: aberto.id, checkout: new Date().toISOString() }); toast("Checkout feito ✓"); };
 

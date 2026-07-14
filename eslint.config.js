@@ -23,4 +23,10 @@ export default defineConfig([
     files: ['**/*.config.js'],
     languageOptions: { globals: globals.node },
   },
+  // contexts e módulos que exportam hooks/constantes junto do provider/componente —
+  // padrão deliberado do app; o fast-refresh cai pra full reload nesses arquivos e ok.
+  {
+    files: ['src/store/*.jsx', 'src/components/StatusBadge.jsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])

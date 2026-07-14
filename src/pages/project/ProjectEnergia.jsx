@@ -1,5 +1,5 @@
 // pages/project/ProjectEnergia.jsx — aba Energia (AC): pico + típico por tela e total.
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useElectrical } from "../../hooks/useElectrical.js";
@@ -86,7 +86,9 @@ function ValueChip({ label, pct, active, onClick }) {
 
 function SliderRow({ label, value, onChange }) {
   const [v, setV] = useState(value);
-  useEffect(() => setV(value), [value]);
+  // espelha o valor externo durante o render (padrão "derived state" do React)
+  const [prev, setPrev] = useState(value);
+  if (prev !== value) { setPrev(value); setV(value); }
   const commit = useDebouncedCallback(onChange, 180); // persiste/recalcula só ao parar de arrastar
   return (
     <div style={{ marginTop: 14 }}>

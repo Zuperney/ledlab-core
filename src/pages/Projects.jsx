@@ -1,5 +1,5 @@
 // pages/Projects.jsx — lista de projetos com filtros, ordenação e agrupamento; abre o detalhe.
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Download, Trash2, SlidersHorizontal, FolderOpen } from "lucide-react";
 import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
@@ -39,7 +39,10 @@ export default function Projects({ nav }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const filtersActive = ano !== "all" || sortBy !== "date" || agrupar !== "none";
 
-  useEffect(() => { if (nav?.openProjectId) setOpenId(nav.openProjectId); }, [nav?.openProjectId]);
+  // deep-link vindo de fora (ex.: Agenda) — sincroniza durante o render, sem effect
+  const extId = nav?.openProjectId;
+  const [prevExtId, setPrevExtId] = useState(extId);
+  if (extId !== prevExtId) { setPrevExtId(extId); if (extId) setOpenId(extId); }
   const closeDetail = () => { setOpenId(null); nav?.clearProject?.(); };
 
   const counts = useMemo(() => {

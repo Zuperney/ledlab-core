@@ -15,8 +15,9 @@ import NumField from "../../components/NumField.jsx";
 import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { cablePorts } from "../../services/cabling.js";
-import { draw, DEFAULTS, PRESETS } from "./ProjectTestCard.jsx";
+import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
 import { fileName } from "../../services/filenames.js";
+import { overlappingIds } from "../../services/layout.js";
 
 // resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
 const dimOf = (t) => ({
@@ -73,18 +74,7 @@ export default function ProjectComposicao({ project, patch }) {
   const posOf = (t) => (drag && drag.id === t.id ? drag : positions[t.id]);
 
   // segurança: telas que se SOBREPÕEM (encostar nas bordas não conta) → borda vermelha
-  const rectOf = (t) => { const p = posOf(t), d = dimOf(t); return { x: p.x, y: p.y, w: d.w, h: d.h }; };
-  const overlapIds = (() => {
-    const set = new Set();
-    for (let i = 0; i < telas.length; i++) {
-      const a = rectOf(telas[i]);
-      for (let j = i + 1; j < telas.length; j++) {
-        const b = rectOf(telas[j]);
-        if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) { set.add(telas[i].id); set.add(telas[j].id); }
-      }
-    }
-    return set;
-  })();
+  const overlapIds = overlappingIds(telas.map((t) => { const p = posOf(t), d = dimOf(t); return { id: t.id, x: p.x, y: p.y, w: d.w, h: d.h }; }));
 
   // caixa envolvente (canvas automático)
   const bbox = useMemo(() => {

@@ -54,6 +54,7 @@ export default function App() {
       return last && last !== VERSION && WHATS_NEW ? { version: VERSION, whatsNew: WHATS_NEW } : null;
     } catch { return null; }
   });
+  // eslint-disable-next-line react-hooks/purity -- relógio de parede só p/ exibição (granularidade de dias); cada render mantém fresco
   const daysNoBackup = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 86400000 : Infinity;
   const hasUserData = (projects?.length || 0) > 0 || (worklog?.length || 0) > 0;
   // não incomoda com backup local se está logado — a nuvem já é o backup
@@ -76,9 +77,8 @@ export default function App() {
     if (!PATH_TO_PAGE[location]) setLocation(PAGE_TO_PATH[DEFAULT_PAGE], { replace: true });
   }, [location, setLocation]);
 
-  useEffect(() => {
-    if (page !== "projects" && openProjectId) setOpenProjectId(null);
-  }, [page, openProjectId]);
+  // saiu de Projetos com um projeto aberto → limpa durante o render (ajuste convergente)
+  if (page !== "projects" && openProjectId) setOpenProjectId(null);
 
   // navegação principal limpa projeto aberto e atualiza a URL (deep-link + back button)
   const navigate = (id) => {

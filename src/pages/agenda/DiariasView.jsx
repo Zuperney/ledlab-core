@@ -77,11 +77,12 @@ export default function DiariasView() {
   const abertoMin = aberto ? minutesSince(aberto.checkin) : 0;
   const abertoSuspeito = !!aberto && abertoMin > 18 * 60;  // provável esquecimento de checkout
 
+  const abertoId = aberto?.id || null; // só o id: a identidade de `aberto` muda a cada render
   useEffect(() => {
-    if (!aberto) return;
+    if (!abertoId) return undefined;
     const id = setInterval(() => setTick((t) => t + 1), 30000); // mantém o "há Xh" fresco
     return () => clearInterval(id);
-  }, [aberto?.id]);
+  }, [abertoId]);
 
   const abrirCheckin = () => {
     if (!ativos.length) { toast("Cadastre um tipo em Configurações", "info"); return; }

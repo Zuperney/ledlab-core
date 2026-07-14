@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v0.20.13";
+export const VERSION = "v1.0.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "Composição: telas sobrepostas ganham borda vermelha + aviso, pra não empilhar nada por engano.";
+export const WHATS_NEW = "Chegamos na v1.0! 🎉 Rodada de blindagem: 84 testes automáticos, código 100% limpo no lint e infra de deploy atualizada. Nada muda no uso — só ficou mais sólido.";

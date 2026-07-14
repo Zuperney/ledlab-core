@@ -12,10 +12,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -24,5 +24,4 @@ jobs:
       - name: Testes (vitest)
         run: npm test
       - name: Lint
-        run: npm run lint
-        continue-on-error: true # não bloqueia: há débito pré-existente de react-refresh nos contextos
+        run: npm run lint # BLOQUEANTE desde a v1.0.0 — o débito foi zerado; erro novo derruba o CI
