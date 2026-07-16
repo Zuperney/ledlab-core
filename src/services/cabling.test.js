@@ -1,7 +1,7 @@
 // services/cabling.test.js — roteamento de cabos: réguas de porta (pixels/área),
 // disposição "Área" e balanceamento de fase do AC atrelado ao sinal.
 import { describe, it, expect } from "vitest";
-import { buildAuto, balancedChunks, cableMeta, cablePorts, bboxArea, serpentine, setAcMargin } from "./cabling.js";
+import { buildAuto, balancedChunks, cableMeta, cablePorts, portOffset, bboxArea, serpentine, setAcMargin } from "./cabling.js";
 
 const NB = "row-tb-lr";
 const seq = (n) => Array.from({ length: n }, (_, i) => i);
@@ -160,5 +160,49 @@ describe("cabling — margem de segurança do cabo AC (acBudget)", () => {
     setAcMargin(2);
     expect(cableMeta(tela).acBudget).toBe(27);
     setAcMargin(1);
+  });
+});
+
+// Recorte do projeto real "Colação de Grau" (7 telas, 1 VX1000): 2 IMAGs de
+// 192×192 e as tiras/Central de 128×256. Cada tela vira uma ilha que reinicia no
+// "cabo 1" — mas na vida real é UMA controladora com portas 1..N.
+describe("cabling — numeração global de portas (portOffset)", () => {
+  const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
+  const gabImag = { resX: "192", resY: "192", pwrMax: "150", fp: "0.9", conector: "PowerCON Azul/Branco" };
+  const mk = (id, gabinete, cols, rows) => ({ id, gabinete, cols, rows, cabling: { sinal: { rule: "px" } } });
+  const telas = [
+    mk("imagD", gabImag, 6, 3),   // 18 gab · budget 17 → 2 portas
+    mk("t1", gabTira, 1, 3),      //  3 gab · budget 20 → 1 porta
+    mk("t2", gabTira, 1, 3),      //                    → 1 porta
+    mk("central", gabTira, 10, 3), // 30 gab · budget 20 → 2 portas
+  ];
+
+  it("cada tela começa onde a anterior parou — sem buraco, sem repetir", () => {
+    let n = 0;
+    for (const t of telas) {
+      expect(portOffset(telas, t.id, "sinal", NB)).toBe(n);
+      n += cablePorts(t, "sinal", NB).length;
+    }
+    expect(n).toBe(6); // o projeto inteiro come 6 portas da VX1000
+  });
+
+  it("o IMAG de 18 gab não cabe em 1 porta (655.360 px ÷ 36.864 = 17)", () => {
+    expect(cableMeta(telas[0]).sinalBudget).toBe(17);
+    expect(cablePorts(telas[0], "sinal", NB).length).toBe(2);
+    expect(portOffset(telas, "t1", "sinal", NB)).toBe(2); // logo a Tira 1 é a porta 3
+  });
+
+  it("o AC tem numeração própria — circuito não é porta de dados", () => {
+    let n = 0;
+    for (const t of telas) {
+      expect(portOffset(telas, t.id, "ac", NB)).toBe(n);
+      n += cablePorts(t, "ac", NB).length;
+    }
+  });
+
+  it("tela avulsa (Diagramação/Test Card fora de projeto) volta a começar em 1", () => {
+    expect(portOffset(telas, "inexistente", "sinal", NB)).toBe(0);
+    expect(portOffset([], "t1", "sinal", NB)).toBe(0);
+    expect(portOffset(undefined, "t1", "sinal", NB)).toBe(0);
   });
 });

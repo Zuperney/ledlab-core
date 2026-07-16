@@ -3,7 +3,7 @@ import { useRef, useEffect, useState } from "react";
 import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, ChevronDown, ChevronUp } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt } from "../../store/UIContext.jsx";
-import { cablePorts } from "../../services/cabling.js";
+import { cablePorts, portOffset } from "../../services/cabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
@@ -35,7 +35,8 @@ export default function ProjectTestCard({ project }) {
   const tela = telas.find((t) => t.id === telaId) || telas[0];
 
   const mapPorts = tela && o.cableMap !== "off" ? cablePorts(tela, o.cableMap, numbering) : null;
-  useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts, palette); });
+  const mapOffset = tela && o.cableMap !== "off" ? portOffset(telas, tela.id, o.cableMap, numbering) : 0;
+  useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts, palette, mapOffset); });
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o test card." />;
 

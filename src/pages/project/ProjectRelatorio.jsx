@@ -7,7 +7,7 @@ import { Printer } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
-import { cableMeta, cablePorts, bboxArea } from "../../services/cabling.js";
+import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
@@ -66,6 +66,9 @@ export default function ProjectRelatorio({ project }) {
   const td = { padding: "8px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
   const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: colorOf(i), flexShrink: 0 });
+  // "porta 7" · "portas 7–12" · "sem portas" — a faixa que a tela ocupa na numeração
+  // global do projeto. Tela vazia tem 0 portas: sem isso sairia o intervalo "1–0".
+  const portLabel = (off, n, sing) => (n === 0 ? `sem ${sing}s` : n === 1 ? `${sing} ${off + 1}` : `${sing}s ${off + 1}–${off + n}`);
   const h3 = { color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 };
   const telaBlock = { marginBottom: 18, breakInside: "avoid" };
   const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };
@@ -158,13 +161,14 @@ export default function ProjectRelatorio({ project }) {
             {telas.map((t) => {
               const { sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(t);
               const ports = cablePorts(t, "sinal", numbering);
+              const off = portOffset(telas, t.id, "sinal", numbering); // portas 1..N do projeto
               return (
                 <div key={t.id} style={telaBlock}>
-                  <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "porta" : "portas"} · máx {sinalBudget} gab/porta · {sinalRule === "px" ? `pixels reais: ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "área quadrada"}</div>
-                  <CableMap tela={t} mode="sinal" numbering={numbering} />
+                  <div style={telaTitle}>{t.nome} — {portLabel(off, ports.length, "porta")} · máx {sinalBudget} gab/porta · {sinalRule === "px" ? `pixels reais: ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "área quadrada"}</div>
+                  <CableMap tela={t} mode="sinal" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {ports.map((p, i) => { const pct = Math.round(((sinalRule === "px" ? p.length : bboxArea(p)) / sinalBudget) * 100); return (
-                      <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(i)} />Porta {i + 1} · {pct}% · {p.length} gab</span>
+                      <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(off + i)} />Porta {off + i + 1} · {pct}% · {p.length} gab</span>
                     ); })}
                   </div>
                   {type === "Mapa de cabos" && (
@@ -175,7 +179,7 @@ export default function ProjectRelatorio({ project }) {
                           <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Início (col, lin)</th><th style={th}>Início X, Y (px)</th><th style={th}>Área C×L</th>
                         </tr></thead>
                         <tbody>
-                          {pixelMapPorts(t, numbering).map((p) => (
+                          {pixelMapPorts(t, numbering, off).map((p) => (
                             <tr key={p.port}>
                               <td style={td}>{p.port}</td>
                               <td style={td}>{p.count}</td>
@@ -201,13 +205,14 @@ export default function ProjectRelatorio({ project }) {
             {telas.map((t) => {
               const { ampCab, connRating, acBudget } = cableMeta(t);
               const ports = cablePorts(t, "ac", numbering);
+              const off = portOffset(telas, t.id, "ac", numbering); // circuitos 1..N do projeto
               return (
                 <div key={t.id} style={telaBlock}>
-                  <div style={telaTitle}>{t.nome} — {ports.length} {ports.length === 1 ? "cabo" : "cabos"} · máx {acBudget} gab/cabo · {ampCab.toFixed(2)} A/gab · conector {connRating} A</div>
-                  <CableMap tela={t} mode="ac" numbering={numbering} />
+                  <div style={telaTitle}>{t.nome} — {portLabel(off, ports.length, "cabo")} · máx {acBudget} gab/cabo · {ampCab.toFixed(2)} A/gab · conector {connRating} A</div>
+                  <CableMap tela={t} mode="ac" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); return (
-                      <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(i)} />Cabo {i + 1} · {load.toFixed(1)} A ({pct}%) · {p.length} gab</span>
+                      <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(off + i)} />Cabo {off + i + 1} · {load.toFixed(1)} A ({pct}%) · {p.length} gab</span>
                     ); })}
                   </div>
                 </div>

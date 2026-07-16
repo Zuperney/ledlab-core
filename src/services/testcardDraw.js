@@ -33,7 +33,9 @@ function cellColor(o, c, r, cols, rows) {
   return PALETTE[(r * cols + c) % PALETTE.length];
 }
 
-export function draw(canvas, tela, o, mapPorts, cablePal) {
+// portOffset = portas já consumidas pelas telas anteriores (numeração global do
+// projeto). Numa composição isso é o que faz o selo dizer "7" e não um segundo "1".
+export function draw(canvas, tela, o, mapPorts, cablePal, portOffset = 0) {
   const cols = tela.cols || 1, rows = tela.rows || 1;
   const g = tela.gabinete || {};
   const resX = parseFloat(g.resX) || 128, resY = parseFloat(g.resY) || 128;
@@ -89,13 +91,13 @@ export function draw(canvas, tela, o, mapPorts, cablePal) {
     ctx.lineWidth = Math.max(3, resX * 0.06);
     mapPorts.forEach((port, pi) => {
       if (!port.length) return;
-      const col = cablePal[pi % cablePal.length];
+      const col = cablePal[(portOffset + pi) % cablePal.length];
       ctx.strokeStyle = "#fff"; ctx.beginPath();
       port.forEach((cell, i) => { const x = cx(cell.c), y = cy(cell.r); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       ctx.stroke();
       const f = port[0]; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx(f.c), cy(f.r), resY * 0.22, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = "#fff"; ctx.lineWidth = Math.max(2, resX * 0.02); ctx.stroke();
-      ctx.fillStyle = "#fff"; ctx.font = `700 ${resY * 0.26}px system-ui`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(pi + 1), cx(f.c), cy(f.r));
+      ctx.fillStyle = "#fff"; ctx.font = `700 ${resY * 0.26}px system-ui`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(portOffset + pi + 1), cx(f.c), cy(f.r));
     });
   }
 

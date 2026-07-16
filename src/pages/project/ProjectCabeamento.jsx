@@ -16,7 +16,7 @@ import Select from "../../components/Select.jsx";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
-import { range, key, parseKey, bboxArea, mkBlock, buildAuto, acRouteFromSignal, cablePorts, cableMeta } from "../../services/cabling.js";
+import { range, key, parseKey, bboxArea, mkBlock, buildAuto, acRouteFromSignal, cablePorts, cableMeta, portOffset } from "../../services/cabling.js";
 import { pixelMapCSV } from "../../services/pixelMap.js";
 import { fileName } from "../../services/filenames.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
@@ -65,6 +65,10 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const allowAdvanced = !isMobile || FLAGS.advancedCablingOnMobile;
   const livreEdit = strategy === "livre" && allowAdvanced;
   const cables = cfg.cables || [];
+  // numeração GLOBAL: a controladora tem portas 1..N — a contagem não reinicia a
+  // cada tela. O mapa de pixels é sempre da rota de SINAL, então tem offset próprio.
+  const offset = portOffset(telas, tela?.id, mode, numbering);
+  const sinalOffset = portOffset(telas, tela?.id, "sinal", numbering);
   const setMode = (v) => patchTela?.(tela.id, { cabling: { ...cabling, mode: v } });
   const setCfg = (partial) => patchTela?.(tela.id, { cabling: { ...cabling, [mode]: { ...cfg, ...partial } } });
   const setStrategy = (v) => setCfg({ strategy: v });
@@ -73,7 +77,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   // mapa de pixels em CSV (gabinete → porta → X/Y) pro operador transcrever no NovaLCT/Tessera
   const exportPixelCSV = () => {
-    const csv = pixelMapCSV(tela, numbering);
+    const csv = pixelMapCSV(tela, numbering, sinalOffset);
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }); // BOM: Excel abre acentos certo
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -202,7 +206,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
           <button onClick={undo} disabled={!history.length} style={ibtn({ opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" })} title="Desfazer"><Undo2 size={15} /></button>
           <button onClick={limparCabos} style={ibtn()} title="Limpar cabos"><Eraser size={15} /></button>
           <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
-            {active != null ? <>Editando <b style={{ color: colorOf(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda" : "Importe ou clique “Novo cabo”"}
+            {active != null ? <>Editando <b style={{ color: colorOf(offset + active) }}>Cabo {offset + active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda" : "Importe ou clique “Novo cabo”"}
           </span>
         </div>
       )}
@@ -242,7 +246,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
               {range(rows).map((r) => range(cols).map((c) => {
                 const pi = portOf[key(c, r)];
                 const isActive = strategy === "livre" && pi === active;
-                const col = pi === undefined ? T.dim2 : colorOf(pi);
+                const col = pi === undefined ? T.dim2 : colorOf(offset + pi);
                 return <rect key={key(c, r)} x={c * CELL + 3} y={r * CELL + 3} width={CELL - 6} height={CELL - 6} rx={6}
                   fill={pi === undefined ? "transparent" : col + (isActive ? "45" : "26")} stroke={col} strokeWidth={isActive ? 3 : 1.5} strokeDasharray={pi === undefined ? "5 5" : undefined}
                   onClick={() => clickCell(c, r)} style={{ cursor: livreEdit ? "pointer" : "inherit" }} />;
@@ -254,8 +258,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
                 return (
                   <g key={pi} style={{ pointerEvents: "none" }}>
                     <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={strategy === "livre" && active != null && pi !== active ? 0.55 : 0.95} />
-                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={colorOf(pi)} stroke="#fff" strokeWidth={2} />
-                    <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
+                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={colorOf(offset + pi)} stroke="#fff" strokeWidth={2} />
+                    <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{offset + pi + 1}</text>
                   </g>
                 );
               })}
@@ -281,8 +285,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
             return (
               <div key={i} onClick={livreEdit ? () => setActive(active === i ? null : i) : undefined}
                 style={{ display: "flex", alignItems: "center", gap: 8, background: isActive ? T.sel : T.card2, border: `1px solid ${over ? T.red : isActive ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: livreEdit ? "pointer" : "default" }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(i), flexShrink: 0 }} />
-                <span style={{ color: T.txt, fontWeight: 600 }}>{mode === "sinal" ? "Porta" : "Cabo"} {i + 1}</span>
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(offset + i), flexShrink: 0 }} />
+                <span style={{ color: T.txt, fontWeight: 600 }}>{mode === "sinal" ? "Porta" : "Cabo"} {offset + i + 1}</span>
                 <span style={{ color: over ? T.red : T.mut }}>{pct}%</span>
                 <span style={{ color: T.dim }}>· {port.length} gab</span>
                 {livreEdit && <X size={13} color={T.dim} onClick={(e) => { e.stopPropagation(); removerCabo(i); }} style={{ cursor: "pointer" }} />}

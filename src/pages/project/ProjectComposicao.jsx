@@ -14,7 +14,7 @@ import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
 import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
-import { cablePorts } from "../../services/cabling.js";
+import { cablePorts, portOffset } from "../../services/cabling.js";
 import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
 import { fileName } from "../../services/filenames.js";
 import { overlappingIds } from "../../services/layout.js";
@@ -91,12 +91,14 @@ export default function ProjectComposicao({ project, patch }) {
   // thumbnails reais (render via draw) — recomputa só quando muda conteúdo/estilo, não a posição
   // portas de cabo por tela — só quando o estilo pede mapa de cabos e a tela tem gabinete
   const portsOf = (t) => (style.cableMap && style.cableMap !== "off" && parseFloat(t.gabinete?.resX) > 0 ? cablePorts(t, style.cableMap, numbering) : null);
+  // numeração global: numa composição, dois selos "1" em telas diferentes seriam mentira
+  const offsetOf = (t) => (style.cableMap && style.cableMap !== "off" ? portOffset(telas, t.id, style.cableMap, numbering) : 0);
   const thumbKey = telas.map((t) => `${t.id}:${t.cols}x${t.rows}:${parseFloat(t.gabinete?.resX) || 128}x${parseFloat(t.gabinete?.resY) || 128}:${t.nome}`).join("|") + JSON.stringify(style) + numbering;
   const thumbs = useMemo(() => {
     const map = {};
     for (const t of telas) {
       const c = document.createElement("canvas");
-      draw(c, t, { ...DEFAULTS, ...style }, portsOf(t), palette);
+      draw(c, t, { ...DEFAULTS, ...style }, portsOf(t), palette, offsetOf(t));
       map[t.id] = c.toDataURL();
     }
     return map;
@@ -159,7 +161,7 @@ export default function ProjectComposicao({ project, patch }) {
     for (const t of telas) {
       const p = positions[t.id];
       const oc = document.createElement("canvas");
-      draw(oc, t, { ...DEFAULTS, ...style }, portsOf(t), palette);
+      draw(oc, t, { ...DEFAULTS, ...style }, portsOf(t), palette, offsetOf(t));
       ctx.drawImage(oc, Math.round(p.x - bbox.minX), Math.round(p.y - bbox.minY));
     }
     c.toBlob((blob) => {
