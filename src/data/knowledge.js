@@ -29,6 +29,51 @@ export const KB_ARTICLES = [
       ] },
     ] },
   { id: "serpente", category: "Sinal", title: "Serpentina", summary: "Roteamento zig-zag para minimizar cabo.", sections: [{ h: "Estratégias", blocks: [{ t: "ul", items: ["Linha", "Coluna", "Área (minimiza cabos)"] }] }] },
+  { id: "free-topology", category: "Sinal", title: "Free topology e a regra do retângulo", summary: "Quais controladoras ignoram os buracos da tela — e quais cobram banda por eles.",
+    sections: [
+      { h: "Cuidado: o nome quer dizer duas coisas", blocks: [
+        { t: "p", text: "A NovaStar usa “free topology” para DUAS funções diferentes. Confundir as duas custa porta em campo — e é uma confusão fácil de cair, porque o mesmo termo aparece nos dois manuais." },
+        { t: "ul", items: [
+          "CABO LIVRE (linha VX Pro): você desenha o caminho do cabo como quiser, sem o zigue-zague rígido das controladoras antigas. Mas a regra do retângulo CONTINUA valendo.",
+          "SEM REGRA DO RETÂNGULO (COEX / H / TU): os espaços vazios da tela não consomem a banda da porta. Este é o “pixel livre” de verdade.",
+        ] },
+        { t: "note", text: "É essa ambiguidade que faz muita gente jurar que tem pixel livre numa VX Pro. Não tem — tem cabo livre. São coisas diferentes." },
+      ] },
+      { h: "O que é a regra do retângulo", blocks: [
+        { t: "p", text: "Sem pixel livre, a controladora desenha um retângulo circunscrito em volta dos gabinetes daquela porta. Todo buraco dentro desse retângulo consome banda como se fosse LED aceso. Numa tela irregular — círculo, triângulo, letreiro vazado — você paga pelo vazio." },
+        { t: "note", text: "Manual da família VX Pro, textual: “o tamanho do retângulo circunscrito não pode exceder 650.000 pixels”." },
+      ] },
+      { h: "Quem tem pixel livre de verdade", blocks: [
+        { t: "table", cols: ["Linha / controladoras", "Pixel livre?", "RC exigida", "Confiança"], rows: [
+          ["COEX 1G — MX6000/MX2000 Pro (10G fiber), MX40 Pro, MX30, MX20, KU20", "SIM", "série A (Armor)", "manual"],
+          ["COEX 5G — CX40 Pro, MX6000/MX2000 Pro (40G fiber)", "SIM", "CA50E · XA50 Pro", "manual"],
+          ["Série H — H2, H5, H9, H15", "manual: SIM", "consultar", "⚠ a verificar"],
+          ["Série TU — TU20 Pro, TU15 Pro", "SIM", "consultar", "manual"],
+          ["VX Pro — VX400, VX600, VX1000, VX2000 Pro", "NÃO", "qualquer", "manual + campo"],
+          ["MCTRL — 300, 600, 660, 700 Pro, 4K", "NÃO", "qualquer", "manual"],
+          ["Taurus — TB30, TB40, TB50, TB60", "NÃO", "qualquer", "manual"],
+        ] },
+        { t: "p", text: "Receiving cards da série A (Armor), exigidas pelo COEX 1G:" },
+        { t: "ul", items: ["A10s Pro", "A10s Plus-N", "A8s", "A8s-N", "A7s Plus", "A5s Plus"] },
+        { t: "note", text: "No COEX 5G a série A não serve: o tráfego exige CA50E ou XA50 Pro." },
+      ] },
+      { h: "O atalho de 5 segundos", blocks: [
+        { t: "ul", items: [
+          "Roda no NovaLCT ou no Unico (VX Pro · MCTRL · Taurus) → NÃO tem pixel livre.",
+          "Roda no VMP, com RC Armor / CA / XA (família COEX) → TEM pixel livre.",
+          "Série H ou TU → TEM, mas confirme a receiving card com o suporte NovaStar.",
+        ] },
+      ] },
+      { h: "O quanto confiar nesta página", blocks: [
+        { t: "p", text: "Cada linha da tabela traz o grau de confiança, porque nem tudo aqui foi visto funcionando:" },
+        { t: "ul", items: [
+          "manual + campo — conferido no manual E na prática.",
+          "manual — veio do manual, ainda não testado com o equipamento na mão.",
+          "⚠ a verificar — as fontes discordam. Trate com desconfiança.",
+        ] },
+        { t: "note", text: "Ponto aberto — Série H: o manual diz que o modo é nativo, mas ninguém aqui viu essa função ligada num H2/H5/H9/H15. Até alguém confirmar com o equipamento na mão, planeje a Série H como se a regra do retângulo valesse. Errar pra mais custa uma porta sobrando; errar pra menos custa a parede não fechar no dia." },
+      ] },
+    ] },
   { id: "mapa-pixels", category: "Sinal", title: "Mapa de pixels (NovaLCT / Tessera)", summary: "Exporte gabinete → porta → X/Y pra transcrever no controlador, sem redesenhar na régua.",
     sections: [
       { h: "Pra que serve", blocks: [
