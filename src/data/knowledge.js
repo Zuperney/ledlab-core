@@ -29,51 +29,41 @@ export const KB_ARTICLES = [
       ] },
     ] },
   { id: "serpente", category: "Sinal", title: "Serpentina", summary: "Roteamento zig-zag para minimizar cabo.", sections: [{ h: "Estratégias", blocks: [{ t: "ul", items: ["Linha", "Coluna", "Área (minimiza cabos)"] }] }] },
-  { id: "free-topology", category: "Sinal", title: "Free topology e a regra do retângulo", summary: "Quais controladoras ignoram os buracos da tela — e quais cobram banda por eles.",
+  { id: "free-topology", category: "Sinal", title: "Regra do retângulo e Free Topology", summary: "Quando os buracos da tela consomem banda da porta — e o interruptor que desliga isso.",
     sections: [
-      { h: "Cuidado: o nome quer dizer duas coisas", blocks: [
-        { t: "p", text: "A NovaStar usa “free topology” para DUAS funções diferentes. Confundir as duas custa porta em campo — e é uma confusão fácil de cair, porque o mesmo termo aparece nos dois manuais." },
+      { h: "O que a regra do retângulo faz", blocks: [
+        { t: "p", text: "Sem Free Topology, a controladora desenha um retângulo circunscrito em volta dos gabinetes daquela porta — e cobra banda por TODO o retângulo, inclusive pelos buracos. Numa corrente que sobe uma coluna, atravessa uma linha e sobe outra, o retângulo engole a tela inteira." },
+        { t: "note", text: "Isto NÃO é teoria de manual: foi medido no simulador do Unico com uma VX2000, mudando só o interruptor e sem tocar no cabeamento." },
+        { t: "table", cols: ["Free Topology", "Porta 1 marca", "O que ele contou"], rows: [
+          ["Ligado", "90%", "os 16 gabinetes reais"],
+          ["Desligado", "405% (vermelho)", "o retângulo inteiro: 8 × 9 = 72 posições"],
+        ] },
+        { t: "p", text: "Mesma corrente de 16 gabinetes de 192×192. Ligado cobra 16; desligado cobra 72. A diferença é de 4,5× — é o que decide se a sua tela vazada cabe em 1 porta ou em 5." },
+      ] },
+      { h: "O interruptor", blocks: [
+        { t: "p", text: "No Unico, “Free Topology” fica em Screen Properties › Screen. É configuração POR TELA, não é exclusividade de linha de equipamento — a VX2000 tem." },
         { t: "ul", items: [
-          "CABO LIVRE (linha VX Pro): você desenha o caminho do cabo como quiser, sem o zigue-zague rígido das controladoras antigas. Mas a regra do retângulo CONTINUA valendo.",
-          "SEM REGRA DO RETÂNGULO (COEX / H / TU): os espaços vazios da tela não consomem a banda da porta. Este é o “pixel livre” de verdade.",
+          "LIGADO → os buracos não consomem banda. A porta conta só o gabinete que existe.",
+          "DESLIGADO → vale a regra do retângulo. Todo vazio dentro do retângulo da porta é cobrado.",
         ] },
-        { t: "note", text: "É essa ambiguidade que faz muita gente jurar que tem pixel livre numa VX Pro. Não tem — tem cabo livre. São coisas diferentes." },
+        { t: "note", text: "A verificar: na vida real, acredita-se que ligar o Free Topology exige receiving card da série A (Armor). No simulador o gabinete é genérico, então esse vínculo não pôde ser testado — pode ser que o interruptor lá sirva justamente pra simular RCs diferentes." },
       ] },
-      { h: "O que é a regra do retângulo", blocks: [
-        { t: "p", text: "Sem pixel livre, a controladora desenha um retângulo circunscrito em volta dos gabinetes daquela porta. Todo buraco dentro desse retângulo consome banda como se fosse LED aceso. Numa tela irregular — círculo, triângulo, letreiro vazado — você paga pelo vazio." },
-        { t: "note", text: "Manual da família VX Pro, textual: “o tamanho do retângulo circunscrito não pode exceder 650.000 pixels”." },
-      ] },
-      { h: "Quem tem pixel livre de verdade", blocks: [
-        { t: "table", cols: ["Linha / controladoras", "Pixel livre?", "RC exigida", "Confiança"], rows: [
-          ["COEX 1G — MX6000/MX2000 Pro (10G fiber), MX40 Pro, MX30, MX20, KU20", "SIM", "série A (Armor)", "manual"],
-          ["COEX 5G — CX40 Pro, MX6000/MX2000 Pro (40G fiber)", "SIM", "CA50E · XA50 Pro", "manual"],
-          ["Série H — H2, H5, H9, H15, H20", "NÃO", "qualquer", "manual + campo"],
-          ["Série TU — TU20 Pro, TU15 Pro", "SIM", "consultar", "⚠ a verificar"],
-          ["VX Pro — VX400, VX600, VX1000, VX2000 Pro", "NÃO", "qualquer", "manual + campo"],
-          ["MCTRL — 300, 600, 660, 700 Pro, 4K", "NÃO", "qualquer", "manual"],
-          ["Taurus — TB30, TB40, TB50, TB60", "NÃO", "qualquer", "manual"],
+      { h: "Capacidade: 655.360 px por porta", blocks: [
+        { t: "p", text: "A régua que o software aplica na VX2000 (8-bit, 60 Hz) é 655.360 px por porta Gigabit — não os 650.000 que aparecem em catálogo. Dois testes independentes fecham no mesmo número:" },
+        { t: "table", cols: ["Teste no Unico", "Pixels", "Resultado"], rows: [
+          ["40 gabinetes de 128×128", "655.360", "100% exato, verde"],
+          ["Retângulo de 72 × 36.864", "2.654.208", "405% = 4,05 × 655.360"],
         ] },
-        { t: "p", text: "Receiving cards da série A (Armor), exigidas pelo COEX 1G:" },
-        { t: "ul", items: ["A10s Pro", "A10s Plus-N", "A8s", "A8s-N", "A7s Plus", "A5s Plus"] },
-        { t: "note", text: "No COEX 5G a série A não serve: o tráfego exige CA50E ou XA50 Pro." },
+        { t: "note", text: "Com 650.000 as duas contas quebrariam: os 40 gabinetes dariam 100,8% (vermelho) e o retângulo daria 408%. O 650.000 é número conservador de catálogo; a régua real do software é 655.360. Um gabinete de 128×128 (3.9 mm) fecha 40 por porta, cravado, sem sobra." },
       ] },
-      { h: "O atalho de 5 segundos", blocks: [
-        { t: "p", text: "Não decore a lista — olhe o software que a controladora usa. Ele é o divisor de águas:" },
+      { h: "O que ainda NÃO está verificado", blocks: [
+        { t: "p", text: "Esta página só afirma o que foi medido numa VX2000. O resto ainda não passou por teste:" },
         { t: "ul", items: [
-          "Roda no NovaLCT ou no Unico (VX Pro · MCTRL · Taurus · Série H) → NÃO tem pixel livre. Vale a regra do retângulo.",
-          "Roda no VMP, com receiving card Armor / CA / XA (família COEX) → TEM pixel livre.",
+          "Se ligar o Free Topology exige mesmo receiving card série A (Armor).",
+          "As outras famílias (MX/COEX, Série H, TU, MCTRL, Taurus) — não testadas aqui.",
+          "Se a capacidade de 655.360 vale igual nas outras linhas.",
         ] },
-        { t: "note", text: "“Configuração de tela irregular” não é a mesma coisa que pixel livre. Você monta o formato torto (círculo, vazado) em qualquer controladora — o que muda é se os buracos consomem banda. No NovaLCT, consomem." },
-      ] },
-      { h: "O quanto confiar nesta página", blocks: [
-        { t: "p", text: "Cada linha da tabela traz o grau de confiança, porque nem tudo aqui foi visto funcionando:" },
-        { t: "ul", items: [
-          "manual + campo — conferido no manual E na prática.",
-          "manual — veio do manual, ainda não testado com o equipamento na mão.",
-          "⚠ a verificar — as fontes discordam. Trate com desconfiança.",
-        ] },
-        { t: "note", text: "Série H — resolvido: uma fonte de segunda mão afirmava que o modo era nativo. O manual oficial da Série H (V1.14.0, 74 páginas) não menciona “rectangle”, “free topology” nem “blank pixel” uma única vez, roda em NovaLCT e manda configurar tela irregular pelo próprio NovaLCT. Somado a nunca terem visto a função ligada em campo: a Série H NÃO tem pixel livre." },
-        { t: "note", text: "Ponto aberto — Série TU (TU20/TU15 Pro): a função “free receiving card connection” só apareceu em fonte de segunda mão, sem manual conferido. Até confirmar, planeje a TU como se a regra do retângulo valesse. Errar pra mais custa uma porta sobrando; errar pra menos custa a parede não fechar no dia." },
+        { t: "note", text: "Regra de bolso enquanto não há teste: planeje como se a regra do retângulo valesse. Errar pra mais custa uma porta sobrando; errar pra menos custa a parede não fechar no dia." },
       ] },
     ] },
   { id: "mapa-pixels", category: "Sinal", title: "Mapa de pixels (NovaLCT / Tessera)", summary: "Exporte gabinete → porta → X/Y pra transcrever no controlador, sem redesenhar na régua.",
