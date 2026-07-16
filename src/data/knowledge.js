@@ -47,8 +47,8 @@ export const KB_ARTICLES = [
         { t: "table", cols: ["Linha / controladoras", "Pixel livre?", "RC exigida", "Confiança"], rows: [
           ["COEX 1G — MX6000/MX2000 Pro (10G fiber), MX40 Pro, MX30, MX20, KU20", "SIM", "série A (Armor)", "manual"],
           ["COEX 5G — CX40 Pro, MX6000/MX2000 Pro (40G fiber)", "SIM", "CA50E · XA50 Pro", "manual"],
-          ["Série H — H2, H5, H9, H15", "manual: SIM", "consultar", "⚠ a verificar"],
-          ["Série TU — TU20 Pro, TU15 Pro", "SIM", "consultar", "manual"],
+          ["Série H — H2, H5, H9, H15, H20", "NÃO", "qualquer", "manual + campo"],
+          ["Série TU — TU20 Pro, TU15 Pro", "SIM", "consultar", "⚠ a verificar"],
           ["VX Pro — VX400, VX600, VX1000, VX2000 Pro", "NÃO", "qualquer", "manual + campo"],
           ["MCTRL — 300, 600, 660, 700 Pro, 4K", "NÃO", "qualquer", "manual"],
           ["Taurus — TB30, TB40, TB50, TB60", "NÃO", "qualquer", "manual"],
@@ -58,11 +58,12 @@ export const KB_ARTICLES = [
         { t: "note", text: "No COEX 5G a série A não serve: o tráfego exige CA50E ou XA50 Pro." },
       ] },
       { h: "O atalho de 5 segundos", blocks: [
+        { t: "p", text: "Não decore a lista — olhe o software que a controladora usa. Ele é o divisor de águas:" },
         { t: "ul", items: [
-          "Roda no NovaLCT ou no Unico (VX Pro · MCTRL · Taurus) → NÃO tem pixel livre.",
-          "Roda no VMP, com RC Armor / CA / XA (família COEX) → TEM pixel livre.",
-          "Série H ou TU → TEM, mas confirme a receiving card com o suporte NovaStar.",
+          "Roda no NovaLCT ou no Unico (VX Pro · MCTRL · Taurus · Série H) → NÃO tem pixel livre. Vale a regra do retângulo.",
+          "Roda no VMP, com receiving card Armor / CA / XA (família COEX) → TEM pixel livre.",
         ] },
+        { t: "note", text: "“Configuração de tela irregular” não é a mesma coisa que pixel livre. Você monta o formato torto (círculo, vazado) em qualquer controladora — o que muda é se os buracos consomem banda. No NovaLCT, consomem." },
       ] },
       { h: "O quanto confiar nesta página", blocks: [
         { t: "p", text: "Cada linha da tabela traz o grau de confiança, porque nem tudo aqui foi visto funcionando:" },
@@ -71,7 +72,8 @@ export const KB_ARTICLES = [
           "manual — veio do manual, ainda não testado com o equipamento na mão.",
           "⚠ a verificar — as fontes discordam. Trate com desconfiança.",
         ] },
-        { t: "note", text: "Ponto aberto — Série H: o manual diz que o modo é nativo, mas ninguém aqui viu essa função ligada num H2/H5/H9/H15. Até alguém confirmar com o equipamento na mão, planeje a Série H como se a regra do retângulo valesse. Errar pra mais custa uma porta sobrando; errar pra menos custa a parede não fechar no dia." },
+        { t: "note", text: "Série H — resolvido: uma fonte de segunda mão afirmava que o modo era nativo. O manual oficial da Série H (V1.14.0, 74 páginas) não menciona “rectangle”, “free topology” nem “blank pixel” uma única vez, roda em NovaLCT e manda configurar tela irregular pelo próprio NovaLCT. Somado a nunca terem visto a função ligada em campo: a Série H NÃO tem pixel livre." },
+        { t: "note", text: "Ponto aberto — Série TU (TU20/TU15 Pro): a função “free receiving card connection” só apareceu em fonte de segunda mão, sem manual conferido. Até confirmar, planeje a TU como se a regra do retângulo valesse. Errar pra mais custa uma porta sobrando; errar pra menos custa a parede não fechar no dia." },
       ] },
     ] },
   { id: "mapa-pixels", category: "Sinal", title: "Mapa de pixels (NovaLCT / Tessera)", summary: "Exporte gabinete → porta → X/Y pra transcrever no controlador, sem redesenhar na régua.",
