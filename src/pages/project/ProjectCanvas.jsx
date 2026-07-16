@@ -14,13 +14,16 @@
 //
 // Opcional: projeto sem canvas segue funcionando como antes.
 import { useRef, useState, useMemo, useEffect } from "react";
-import { LayoutGrid, Wand2, AlertTriangle, RotateCcw } from "lucide-react";
+import { LayoutGrid, Wand2, AlertTriangle, RotateCcw, GitBranch, Lightbulb } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
+import { useCablePalette } from "../../hooks/useCablePalette.js";
+import { useLedLabContext } from "../../store/AppContext.jsx";
 import { T } from "../../ui/tokens.js";
 import { card, btn, label as lbl } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
 import { overlappingIds, packByModel } from "../../services/layout.js";
+import { canvasPorts, portSavings } from "../../services/canvasCabling.js";
 
 // resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
 const dimOf = (t) => ({
@@ -49,12 +52,16 @@ export default function ProjectCanvas({ project, patch }) {
   const telas = useMemo(() => project.telas || [], [project.telas]);
   const canvas = useMemo(() => project.canvas || {}, [project.canvas]);
   const isMobile = useIsMobile();
+  const { colorOf } = useCablePalette();
+  const { prefs } = useLedLabContext();
+  const numbering = prefs.cableNumbering || "row-tb-lr";
 
   const wrapRef = useRef(null);
   const dragRef = useRef(null);
   const [wrapW, setWrapW] = useState(320);
   const [drag, setDrag] = useState(null);
   const [sel, setSel] = useState(null);
+  const [showPorts, setShowPorts] = useState(false);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -95,6 +102,10 @@ export default function ProjectCanvas({ project, patch }) {
     }
     return { w: maxX, h: maxY };
   }, [telas, positions]);
+
+  // as portas do projeto inteiro — a corrente atravessa telas do mesmo modelo
+  const ports = useMemo(() => canvasPorts(telas, positions, { numbering }), [telas, positions, numbering]);
+  const savings = useMemo(() => portSavings(telas, positions, { numbering }), [telas, positions, numbering]);
 
   if (!telas.length) return <Placeholder icon={LayoutGrid} title="Sem telas" description="Adicione telas na aba Dados para montar o canvas do processador." />;
 
@@ -149,10 +160,21 @@ export default function ProjectCanvas({ project, patch }) {
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <span style={{ color: status.c, fontSize: 12, fontWeight: 600 }}>{status.l}</span>
+            <button style={btn(showPorts ? "primary" : "ghost")} onClick={() => setShowPorts(!showPorts)} title="Desenha as portas do projeto sobre o canvas"><GitBranch size={14} /> Portas</button>
             <button style={btn("ghost")} onClick={autoArrumar} title="Agrupa por modelo de gabinete e empilha as faixas"><Wand2 size={14} /> Auto-arrumar</button>
             <button style={btn("ghost")} onClick={limpar} title="Volta ao arranjo automático"><RotateCcw size={14} /></button>
           </div>
         </div>
+
+        {savings.economia > 0 && (
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: T.strip, border: `1px solid ${T.bdA}`, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
+            <Lightbulb size={15} color={T.acM} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span style={{ color: T.mut, fontSize: 12 }}>
+              Cada tela sozinha gasta <b style={{ color: T.txt }}>{savings.isolado} portas</b>. Neste canvas, com a corrente atravessando as telas do mesmo modelo, dá <b style={{ color: T.grn }}>{savings.canvas}</b> —
+              sobram <b style={{ color: T.grn }}>{savings.economia}</b>. Tela pequena sozinha come uma porta inteira e joga o resto fora.
+            </span>
+          </div>
+        )}
 
         {overlapIds.size > 0 && (
           <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: T.card2, border: `1px solid ${T.red}`, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
@@ -182,6 +204,25 @@ export default function ProjectCanvas({ project, patch }) {
                 </div>
               );
             })}
+
+            {/* correntes por cima: uma polilinha por porta, com o selo no 1º gabinete.
+                pointerEvents none — o arraste continua sendo dos blocos de tela. */}
+            {showPorts && !drag && (
+              <svg width={bbox.w * scale} height={bbox.h * scale} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                {ports.map((port, pi) => {
+                  const pts = port.map((c) => `${(c.x + c.w / 2) * scale},${(c.y + c.h / 2) * scale}`).join(" ");
+                  const f = port[0];
+                  const r = Math.min(11, Math.max(6, f.w * scale * 0.3));
+                  return (
+                    <g key={pi}>
+                      <polyline points={pts} fill="none" stroke="#fff" strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" opacity={0.9} />
+                      <circle cx={(f.x + f.w / 2) * scale} cy={(f.y + f.h / 2) * scale} r={r} fill={colorOf(pi)} stroke="#fff" strokeWidth={1.4} />
+                      <text x={(f.x + f.w / 2) * scale} y={(f.y + f.h / 2) * scale} fill="#fff" fontSize={r * 1.1} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
+                    </g>
+                  );
+                })}
+              </svg>
+            )}
           </div>
         </div>
 
@@ -195,6 +236,27 @@ export default function ProjectCanvas({ project, patch }) {
           <span style={{ color: T.dim, fontSize: 11, marginLeft: "auto" }}>Mesma cor = a corrente pode encadear entre as telas</span>
         </div>
       </div>
+
+      {showPorts && (
+        <div style={card()}>
+          <div style={{ ...lbl, marginBottom: 8 }}>Portas do projeto — {ports.length}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {ports.map((port, pi) => {
+              const nomes = [...new Set(port.map((c) => telas.find((t) => t.id === c.telaId)?.nome).filter(Boolean))];
+              const cruza = nomes.length > 1;
+              return (
+                <span key={pi} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.card2, border: `1px solid ${cruza ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: colorOf(pi), flexShrink: 0 }} />
+                  <b style={{ color: T.txt }}>Porta {pi + 1}</b>
+                  <span style={{ color: T.dim }}>{port.length} gab</span>
+                  <span style={{ color: cruza ? T.acM : T.mut }}>{nomes.join(" → ")}</span>
+                </span>
+              );
+            })}
+          </div>
+          <div style={{ color: T.dim, fontSize: 11, marginTop: 8 }}>Porta com borda roxa atravessa mais de uma tela — é o que a numeração por tela não conseguia dizer.</div>
+        </div>
+      )}
 
       {selTela && (
         <div style={card()}>
