@@ -58,7 +58,7 @@ export const KB_ARTICLES = [
         { t: "note", text: "Isto é evidência de manual, não teste ao vivo — são gerações de documento diferentes, e o vínculo com a receiving card série A segue sem prova (no simulador o gabinete é genérico). Antes de contar com a função num evento, confira na controladora que você vai levar." },
       ] },
       { h: "Capacidade: 655.360 px por porta", blocks: [
-        { t: "p", text: "A régua que o software aplica na VX2000 (8-bit, 60 Hz) é 655.360 px por porta Gigabit — não os 650.000 que aparecem em catálogo. Dois testes independentes fecham no mesmo número:" },
+        { t: "p", text: "A régua que o software aplica na VX2000 (8-bit, 60 Hz) é 655.360 px por porta Gigabit — não os 650.000 que se repetem por aí. Dois testes independentes fecham no mesmo número:" },
         { t: "table", cols: ["Teste no Unico", "Pixels", "Resultado"], rows: [
           ["40 gabinetes de 128×128", "655.360", "100% exato, verde"],
           ["Retângulo de 72 × 36.864", "2.654.208", "405% = 4,05 × 655.360"],
