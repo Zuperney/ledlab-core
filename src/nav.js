@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.2.0";
+export const VERSION = "v1.3.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🖼️ Aba Canvas nova: monte a parede como a controladora enxerga e o cabo passa a atravessar telas — tela pequena não come mais uma porta inteira. Num projeto real de 7 telas isso foi de 10 portas pra 6. As portas agora são numeradas 1..N no projeto (chega de sete “Cabo 1”) e o mapa de pixels sai na coordenada que se digita no NovaLCT. Quem não mexer no Canvas não sente diferença.";
+export const WHATS_NEW = "🖥️ Aba Screens: monte seus sistemas como faria no controlador — junte as telas que vão no mesmo cabo. O Cabeamento de Sinal agora é por Screen (automático OU livre, pra fazer a configuração na mão), o cabo atravessa telas do mesmo modelo, e o Relatório + mapa de pixels saem por Screen com a coordenada que se digita no NovaLCT. Energia (AC) segue por tela. Quem não montar Screen continua como antes.";
