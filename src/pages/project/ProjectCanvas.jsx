@@ -14,26 +14,18 @@
 //
 // Opcional: projeto sem canvas segue funcionando como antes.
 import { useRef, useState, useMemo, useEffect } from "react";
-import { LayoutGrid, Wand2, AlertTriangle, RotateCcw, GitBranch, Lightbulb } from "lucide-react";
+import { LayoutGrid, Wand2, AlertTriangle, RotateCcw, GitBranch, Lightbulb, Download } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
+import { useToast } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { T } from "../../ui/tokens.js";
 import { card, btn, label as lbl } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
 import { overlappingIds, packByModel } from "../../services/layout.js";
-import { canvasPorts, portSavings } from "../../services/canvasCabling.js";
-
-// resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
-const dimOf = (t) => ({
-  w: (t.cols || 1) * (parseFloat(t.gabinete?.resX) || 128),
-  h: (t.rows || 1) * (parseFloat(t.gabinete?.resY) || 128),
-});
-
-// duas telas são do mesmo MODELO quando o gabinete tem a mesma resolução — é isso
-// que decide se uma corrente pode passar de uma pra outra.
-const modelOf = (t) => `${parseFloat(t.gabinete?.resX) || 128}x${parseFloat(t.gabinete?.resY) || 128}`;
+import { canvasPorts, portSavings, canvasPositions, canvasAtivo, projectPixelMapCSV, dimOf, modelKey as modelOf } from "../../services/canvasCabling.js";
+import { fileName } from "../../services/filenames.js";
 
 // cor por modelo de gabinete: o agrupamento por modelo é a regra do canvas, então
 // ele precisa estar VISÍVEL — mesma cor = pode encadear junto.
@@ -62,6 +54,7 @@ export default function ProjectCanvas({ project, patch }) {
   const [drag, setDrag] = useState(null);
   const [sel, setSel] = useState(null);
   const [showPorts, setShowPorts] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -75,17 +68,10 @@ export default function ProjectCanvas({ project, patch }) {
   // modelos distintos, na ordem das telas → índice de cor estável
   const models = useMemo(() => [...new Set(telas.map(modelOf))], [telas]);
 
-  // posições salvas; tela ainda sem posição entra pelo empacotador (o padrão já é
-  // o layout que o operador montaria na mão, não uma pilha em cima da origem)
-  const positions = useMemo(() => {
-    const saved = canvas.pos || {};
-    const faltantes = telas.filter((t) => !saved[t.id]);
-    if (!faltantes.length) return saved;
-    const auto = packByModel(telas.map((t) => ({ id: t.id, ...dimOf(t), model: modelOf(t) })));
-    const pos = { ...saved };
-    for (const t of faltantes) pos[t.id] = auto.pos[t.id] || { x: 0, y: 0 };
-    return pos;
-  }, [telas, canvas.pos]);
+  // salvas + arranjo automático pras que ainda não têm posição — a MESMA função que
+  // o Relatório usa, senão a aba e o relatório divergiriam de novo
+  const positions = useMemo(() => canvasPositions({ telas, canvas }), [telas, canvas]);
+  const ativo = canvasAtivo({ canvas }); // false = ainda é só pré-visualização
 
   const posOf = (t) => (drag && drag.id === t.id ? drag : positions[t.id]);
 
@@ -118,6 +104,18 @@ export default function ProjectCanvas({ project, patch }) {
     patch({ canvas: { ...canvas, pos } });
   };
   const limpar = () => patch({ canvas: { ...canvas, pos: {} } });
+  // mapa de pixels do PROJETO: com o canvas ativo, o X/Y é o da Screen inteira —
+  // é literalmente o que o operador digita no NovaLCT.
+  const exportCSV = () => {
+    const csv = projectPixelMapCSV({ ...project, canvas: { ...canvas, pos: positions } }, numbering);
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }); // BOM: Excel abre acento certo
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName([project.name, "mapa-pixels-canvas"], "csv");
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast(`Mapa de pixels: ${ports.length} portas, coordenada do canvas.`);
+  };
 
   const dragAt = (c, ev) => ({
     x: Math.max(0, snap(c.ox + (ev.clientX - c.startX) / scale, c.d.w, c.xs, c.thr)),
@@ -153,7 +151,12 @@ export default function ProjectCanvas({ project, patch }) {
       <div style={card()}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
           <div>
-            <div style={{ color: T.acM, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Canvas do processador</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: T.acM, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Canvas do processador</span>
+              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", padding: "2px 6px", borderRadius: 4, background: ativo ? T.sel : T.card2, border: `1px solid ${ativo ? T.acc : T.bd}`, color: ativo ? T.acL : T.dim }}>
+                {ativo ? "Ativo" : "Pré-visualização"}
+              </span>
+            </div>
             <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
               {bbox.w.toLocaleString("pt-BR")} × {bbox.h.toLocaleString("pt-BR")} px · a parede como a controladora enxerga · origem no canto superior-esquerdo
             </div>
@@ -172,7 +175,14 @@ export default function ProjectCanvas({ project, patch }) {
             <span style={{ color: T.mut, fontSize: 12 }}>
               Cada tela sozinha gasta <b style={{ color: T.txt }}>{savings.isolado} portas</b>. Neste canvas, com a corrente atravessando as telas do mesmo modelo, dá <b style={{ color: T.grn }}>{savings.canvas}</b> —
               sobram <b style={{ color: T.grn }}>{savings.economia}</b>. Tela pequena sozinha come uma porta inteira e joga o resto fora.
+              {!ativo && <> Arraste uma tela ou clique em <b style={{ color: T.txt }}>Auto-arrumar</b> para o projeto passar a usar este canvas.</>}
             </span>
+          </div>
+        )}
+
+        {!ativo && (
+          <div style={{ color: T.dim, fontSize: 11, marginBottom: 10 }}>
+            Ainda é um desenho: o Relatório e o mapa de pixels seguem contando porta por tela. Mexer no canvas (arrastar ou auto-arrumar) é o que o torna a fonte da verdade do projeto.
           </div>
         )}
 
@@ -239,7 +249,10 @@ export default function ProjectCanvas({ project, patch }) {
 
       {showPorts && (
         <div style={card()}>
-          <div style={{ ...lbl, marginBottom: 8 }}>Portas do projeto — {ports.length}</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+            <span style={lbl}>Portas do projeto — {ports.length}</span>
+            <button style={btn("ghost")} onClick={exportCSV} title="CSV com X/Y na coordenada do canvas, pra transcrever no NovaLCT"><Download size={14} /> Mapa de pixels</button>
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {ports.map((port, pi) => {
               const nomes = [...new Set(port.map((c) => telas.find((t) => t.id === c.telaId)?.nome).filter(Boolean))];

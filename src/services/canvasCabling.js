@@ -12,9 +12,16 @@
 //
 // Só encadeia gabinetes do MESMO MODELO: a corrente não mistura modelos, e o manual
 // do VX Pro exige "The size of all cabinets must be the same" pra topologia livre.
-import { cableMeta, balancedChunks } from "./cabling.js";
+import { cableMeta, balancedChunks, cablePorts } from "./cabling.js";
+import { packByModel } from "./layout.js";
 
 export const modelKey = (t) => `${parseFloat(t?.gabinete?.resX) || 128}x${parseFloat(t?.gabinete?.resY) || 128}`;
+
+// resolução real da tela em pixels (gabinete vazio = 128, mesma regra do draw)
+export const dimOf = (t) => ({
+  w: (t?.cols || 1) * (parseFloat(t?.gabinete?.resX) || 128),
+  h: (t?.rows || 1) * (parseFloat(t?.gabinete?.resY) || 128),
+});
 
 // Um gabinete de cada tela, já na coordenada do canvas (origem sup-esq, como o
 // NovaLCT). Tela sem posição no canvas fica de fora.
@@ -108,6 +115,129 @@ export function canvasPorts(telas, positions, opts = {}) {
     ports.push(...balancedChunks(snakeCells(group, routing, corner), sinalBudget));
   }
   return orderCanvasPorts(ports, numbering);
+}
+
+// Posições do canvas: as salvas + o arranjo automático pras telas que ainda não
+// têm posição (tela adicionada depois não fica empilhada na origem).
+export function canvasPositions(project) {
+  const telas = project?.telas || [];
+  const saved = project?.canvas?.pos || {};
+  const faltantes = telas.filter((t) => !saved[t.id]);
+  if (!faltantes.length) return saved;
+  const auto = packByModel(telas.map((t) => ({ id: t.id, ...dimOf(t), model: modelKey(t) })));
+  const pos = { ...saved };
+  for (const t of faltantes) pos[t.id] = auto.pos[t.id] || { x: 0, y: 0 };
+  return pos;
+}
+
+// O canvas só passa a MANDAR depois que o usuário mexeu nele (arrastou ou
+// auto-arrumou). Antes disso a aba mostra uma pré-visualização e o cabeamento
+// segue por tela — é o que mantém o canvas opcional de verdade.
+export const canvasAtivo = (project) => Object.keys(project?.canvas?.pos || {}).length > 0;
+
+// ── FONTE ÚNICA das portas de sinal do projeto ──
+// Relatório, Cabeamento, Test Card e mapa de pixels TÊM que concordar: duas
+// respostas pra "quantas portas" é pior que uma resposta conservadora. Com canvas
+// ativo, a corrente atravessa telas; sem canvas, é a alocação por tela de sempre.
+// Nos dois casos a porta sai no mesmo formato — lista de gabinetes com telaId e
+// coordenada — e numerada 1..N no projeto.
+export function projectSignalPorts(project, numbering = "row-tb-lr") {
+  const telas = project?.telas || [];
+  if (canvasAtivo(project)) {
+    const { routing, corner } = project.canvas || {};
+    return { ports: canvasPorts(telas, canvasPositions(project), { numbering, routing, corner }), canvas: true };
+  }
+  const ports = [];
+  for (const t of telas) {
+    const resX = parseFloat(t.gabinete?.resX) || 128;
+    const resY = parseFloat(t.gabinete?.resY) || 128;
+    const model = modelKey(t);
+    for (const port of cablePorts(t, "sinal", numbering))
+      ports.push(port.map((cell) => ({ ...cell, telaId: t.id, x: cell.c * resX, y: cell.r * resY, w: resX, h: resY, model })));
+  }
+  return { ports, canvas: false };
+}
+
+// Resumo por porta pro Relatório e pra aba Canvas — uso em %, telas que a porta
+// cruza e o gabinete de início.
+export function projectPortSummary(project, numbering = "row-tb-lr") {
+  const { ports, canvas } = projectSignalPorts(project, numbering);
+  const telas = project?.telas || [];
+  const nomeDe = (id) => telas.find((t) => t.id === id)?.nome;
+  return {
+    canvas,
+    ports: ports.map((port, pi) => {
+      const tela = telas.find((t) => t.id === port[0]?.telaId);
+      const { sinalRule, pxPort, pxPerCab } = cableMeta(tela);
+      const usoPx = sinalRule === "px" ? port.length * pxPerCab : portBboxPx(port);
+      const f = port[0] || {};
+      // "cruza tela" se decide por ID, nunca por nome: tela sem nome existe, e o
+      // nome é só rótulo — contar nome dava porta-que-cruza como se não cruzasse.
+      const telaIds = [...new Set(port.map((c) => c.telaId))];
+      return {
+        n: pi + 1,
+        count: port.length,
+        pct: pxPort ? Math.round((usoPx / pxPort) * 100) : 0,
+        telaIds,
+        telas: telaIds.map((id) => nomeDe(id) || "sem nome"),
+        cruza: telaIds.length > 1,
+        startX: f.x ?? 0,
+        startY: f.y ?? 0,
+        rule: sinalRule,
+      };
+    }),
+  };
+}
+
+// A fatia de UMA tela nas portas do projeto: as portas que tocam esta tela, só com
+// os gabinetes dela, junto do número REAL da porta. O Test Card precisa disto — com
+// a corrente atravessando telas, uma tela pode ter gabinetes das portas 3, 4 e 7, e
+// nenhum "offset" único descreve isso.
+export function telaPortSlices(project, telaId, numbering = "row-tb-lr") {
+  const { ports } = projectSignalPorts(project, numbering);
+  const out = [];
+  ports.forEach((port, pi) => {
+    const cells = port.filter((c) => c.telaId === telaId);
+    if (cells.length) out.push({ n: pi + 1, cells });
+  });
+  return out;
+}
+
+// Mapa de pixels do PROJETO: uma linha por gabinete. Com canvas ativo, o X/Y é a
+// coordenada da Screen inteira — que é exatamente o que o operador digita no
+// NovaLCT, e o que faltava pro CSV deixar de ser "legal de ver".
+export function projectPixelMapRows(project, numbering = "row-tb-lr") {
+  const { ports, canvas } = projectSignalPorts(project, numbering);
+  const telas = project?.telas || [];
+  const rows = [];
+  ports.forEach((port, pi) => port.forEach((cell, seq) => rows.push({
+    port: pi + 1,
+    seq: seq + 1,
+    tela: telas.find((t) => t.id === cell.telaId)?.nome || "",
+    col: cell.c + 1,
+    row: cell.r + 1,
+    x: cell.x,
+    y: cell.y,
+    w: cell.w,
+    h: cell.h,
+  })));
+  return { rows, canvas };
+}
+
+// a coluna "Tela" só existe aqui (e não no mapa por tela): agora que uma porta
+// atravessa telas, sem ela o operador não sabe em que peça está o gabinete.
+export const PROJECT_PIXELMAP_COLS = [
+  ["port", "Porta"], ["seq", "Ordem"], ["tela", "Tela"], ["col", "Coluna"],
+  ["row", "Linha"], ["x", "X (px)"], ["y", "Y (px)"], ["w", "Largura"], ["h", "Altura"],
+];
+
+// CSV pt-BR: separador ';' e quebra CRLF (o Excel brasileiro abre certo).
+export function projectPixelMapCSV(project, numbering = "row-tb-lr", sep = ";") {
+  const { rows } = projectPixelMapRows(project, numbering);
+  const head = PROJECT_PIXELMAP_COLS.map((c) => c[1]).join(sep);
+  const esc = (v) => (typeof v === "string" && v.includes(sep) ? `"${v.replace(/"/g, '""')}"` : v);
+  const body = rows.map((r) => PROJECT_PIXELMAP_COLS.map((c) => esc(r[c[0]])).join(sep));
+  return [head, ...body].join("\r\n");
 }
 
 // Quantas portas o projeto gasta HOJE (cada tela isolada) × com o cabo cruzando

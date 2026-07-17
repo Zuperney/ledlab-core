@@ -1,6 +1,6 @@
 // canvasCabling.test.js — a corrente atravessando telas no canvas do processador.
 import { describe, it, expect } from "vitest";
-import { canvasCells, snakeCells, canvasPorts, portSavings, portBboxPx } from "./canvasCabling.js";
+import { canvasCells, snakeCells, canvasPorts, portSavings, portBboxPx, projectSignalPorts, projectPortSummary, projectPixelMapRows, projectPixelMapCSV, PROJECT_PIXELMAP_COLS, canvasAtivo, canvasPositions } from "./canvasCabling.js";
 import { packByModel } from "./layout.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -122,5 +122,124 @@ describe("portBboxPx — a régua de área medida no canvas", () => {
     const bbox = portBboxPx([...t4, ...central.slice(-3)]); // t4 + última coluna da Central
     expect(bbox).toBe(1792 * 768); // engoliu tudo entre elas
     expect(bbox).toBeGreaterThan(6 * 128 * 256); // muito acima dos 6 gabinetes reais
+  });
+});
+
+// ── FONTE ÚNICA ──
+// O bug que a fase C existe pra matar: o Canvas dizia 1 porta e o Relatório dizia
+// 3, na mesma tela. Um app com duas respostas pra mesma pergunta é pior que um app
+// com uma resposta conservadora.
+describe("projectSignalPorts — uma resposta só", () => {
+  const semCanvas = { telas: colacao };
+  const comCanvas = { telas: colacao, canvas: { pos: posColacao } };
+
+  it("sem canvas: segue a alocação por tela (legado intacto)", () => {
+    const { ports, canvas } = projectSignalPorts(semCanvas);
+    expect(canvas).toBe(false);
+    expect(ports.length).toBe(10); // igual à fase 0
+  });
+
+  it("com canvas ativo: a corrente atravessa e cai pra 6", () => {
+    const { ports, canvas } = projectSignalPorts(comCanvas);
+    expect(canvas).toBe(true);
+    expect(ports.length).toBe(6);
+  });
+
+  it("canvas VAZIO não conta como ativo — é só pré-visualização", () => {
+    expect(canvasAtivo({ telas: colacao })).toBe(false);
+    expect(canvasAtivo({ telas: colacao, canvas: {} })).toBe(false);
+    expect(canvasAtivo({ telas: colacao, canvas: { pos: {} } })).toBe(false);
+    expect(canvasAtivo(comCanvas)).toBe(true);
+  });
+
+  it("os dois caminhos devolvem o MESMO formato — é o que deixa a fonte ser única", () => {
+    for (const p of [semCanvas, comCanvas])
+      for (const port of projectSignalPorts(p).ports)
+        for (const cell of port)
+          expect(cell).toMatchObject({
+            telaId: expect.any(String), c: expect.any(Number), r: expect.any(Number),
+            x: expect.any(Number), y: expect.any(Number), w: expect.any(Number), h: expect.any(Number),
+          });
+  });
+
+  it("os dois caminhos cobrem os 78 gabinetes, sem repetir", () => {
+    for (const p of [semCanvas, comCanvas]) {
+      const seen = new Set();
+      for (const port of projectSignalPorts(p).ports)
+        for (const c of port) seen.add(`${c.telaId}:${c.c},${c.r}`);
+      expect(seen.size).toBe(78);
+    }
+  });
+
+  it("tela nova entra no canvas sem ficar empilhada na origem", () => {
+    const extra = mk("nova", gabTira, 2, 3);
+    const pos = canvasPositions({ telas: [...colacao, extra], canvas: { pos: posColacao } });
+    expect(pos.nova).toBeDefined();
+    expect(pos.imagD).toEqual(posColacao.imagD); // não mexe nas salvas
+  });
+});
+
+describe("projectPixelMapRows — X/Y que o operador digita no NovaLCT", () => {
+  const comCanvas = { telas: colacao, canvas: { pos: posColacao } };
+
+  it("com canvas, o X/Y é da Screen inteira — não reinicia a cada tela", () => {
+    const { rows, canvas } = projectPixelMapRows(comCanvas);
+    expect(canvas).toBe(true);
+    expect(rows.length).toBe(78);
+    const central = rows.find((r) => r.tela === undefined || r.x === 512);
+    expect(rows.some((r) => r.x === 512 && r.y === 576)).toBe(true); // 1º gab da Central
+    expect(central).toBeDefined();
+  });
+
+  it("traz a coluna Tela — sem ela não dá pra achar o gabinete numa porta que cruza", () => {
+    const { rows } = projectPixelMapRows(comCanvas);
+    const p1 = rows.filter((r) => r.port === 1);
+    expect(new Set(p1.map((r) => r.tela)).size).toBeGreaterThan(0);
+    expect(PROJECT_PIXELMAP_COLS.map((c) => c[0])).toContain("tela");
+  });
+
+  it("a porta numerada bate com o resumo", () => {
+    const { rows } = projectPixelMapRows(comCanvas);
+    const { ports } = projectPortSummary(comCanvas);
+    expect(Math.max(...rows.map((r) => r.port))).toBe(ports.length);
+    expect(rows.filter((r) => r.port === 1).length).toBe(ports[0].count);
+  });
+
+  it("CSV: cabeçalho pt-BR, ';' e CRLF", () => {
+    const csv = projectPixelMapCSV(comCanvas);
+    expect(csv.split("\r\n")[0]).toBe("Porta;Ordem;Tela;Coluna;Linha;X (px);Y (px);Largura;Altura");
+    expect(csv.split("\r\n").length).toBe(79); // cabeçalho + 78 gabinetes
+  });
+});
+
+describe("projectPortSummary", () => {
+  it("marca as portas que atravessam tela — por ID, não por nome", () => {
+    const { ports } = projectPortSummary({ telas: colacao, canvas: { pos: posColacao } });
+    expect(ports.length).toBe(6);
+    expect(ports.filter((p) => p.cruza).length).toBeGreaterThan(0);
+    for (const p of ports) expect(p.pct).toBeGreaterThan(0);
+  });
+
+  it("tela SEM nome ainda é detectada como cruzada (o nome é só rótulo)", () => {
+    // as telas da fixture não têm `nome`: contar nome dava "não cruza" pra porta
+    // que cruza. É o bug que a checagem por telaIds mata.
+    const { ports } = projectPortSummary({ telas: colacao, canvas: { pos: posColacao } });
+    const cruzada = ports.find((p) => p.cruza);
+    expect(cruzada.telaIds.length).toBeGreaterThan(1);
+    expect(cruzada.telas).toEqual(cruzada.telaIds.map(() => "sem nome"));
+  });
+
+  it("com nome, o resumo mostra o caminho da corrente", () => {
+    const comNome = colacao.map((t) => ({ ...t, nome: t.id.toUpperCase() }));
+    const { ports } = projectPortSummary({ telas: comNome, canvas: { pos: posColacao } });
+    const cruzada = ports.find((p) => p.cruza);
+    expect(cruzada.telas.length).toBeGreaterThan(1);
+    expect(cruzada.telas.join(" → ")).toMatch(/→/);
+  });
+
+  it("uso em % respeita a régua da tela (px real, não o retângulo)", () => {
+    const { ports } = projectPortSummary({ telas: colacao, canvas: { pos: posColacao } });
+    const tira = ports.find((p) => p.count === 14); // 14 × 32.768 = 458.752 de 655.360 = 70%
+    expect(tira.pct).toBe(70);
   });
 });
