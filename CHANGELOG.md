@@ -2,6 +2,34 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.3.0] — 2026-07-17
+
+**Screens — você monta os sistemas.** Reescrita do canvas da v1.2 depois do teste de campo: a v1.2 agrupava as telas sozinha (por modelo de gabinete), e isso estava errado — juntava dois IMAG que ficam a 20 m um do outro num cabo só. Metade dos eventos muda a configuração na montagem, então o app não pode impor um plano. Agora **quem agrupa é o técnico**.
+
+Uma **Screen** é o que você decide que vai no mesmo sistema — como você configuraria no NovaLCT. Um projeto tem uma Screen (caso simples) ou várias (o Admicon vai ter ~8). O agrupamento vem da sua cabeça e da logística do evento, não da geometria.
+
+### Aba Screens (era Canvas)
+- Você **cria as Screens à mão**: dá nome, coloca só as telas que quer, arruma arrastando. Cada Screen tem origem própria (0,0), igual no NovaLCT.
+- **Auto-arrumar** sugere um arranjo (agrupa por modelo, empilha faixas), mas é só ponto de partida — você ajusta. Aviso de sobreposição, cor por modelo de gabinete.
+- Botão **1 Screen por tela** pra quem não quer agrupar. Estado vazio explica o conceito.
+
+### Cabeamento por Screen
+- O Cabeamento virou um toggle **Sinal | Energia (AC)**.
+- **Sinal** é por Screen: escolhe a Screen e cabeia em **Automático** (serpentina por modelo, com Sentido/Início) ou **Livre** — desenha cada cabo, importa do automático e edita, move gabinete de cabo. É no livre que se faz a "gambiarra" (18 gabinetes numa porta que estoura 1%): o app mostra em vermelho, mas deixa fazer.
+- A corrente **atravessa telas** do mesmo modelo. Portas numeradas 1..N **por Screen** (cada Screen é um controlador).
+- **AC continua por tela** — circuito elétrico segue o físico, e a tela é um bloco físico.
+
+### Relatório, Test Card e mapa de pixels
+- Relatório › Sinal: **uma seção por Screen** (tamanho, portas, telas que cada porta percorre, X/Y de canvas) + aviso de telas que ficaram "sem Screen".
+- Test Card e Composição: o selo mostra o **número real da porta** da Screen.
+- **Mapa de pixels (CSV)** por Screen, em coordenada de canvas com coluna Screen — o X/Y que se digita no NovaLCT.
+
+### Compatibilidade
+- Projeto **sem Screen** funciona como antes (cabeamento por tela). Nada quebra; a migração é você montar as Screens quando quiser.
+
+### Nota de exportação (mobile)
+- No **PC** o nome do PDF sai na convenção (`projeto_relatorio_tipo_data`). No **celular**, quando o app está instalado como PWA, o sistema nomeia o PDF pelo nome do app (`ledlabcore.pdf`) e ignora o título da página — limitação do print-de-PWA, não do app. PNG e CSV (download de verdade) saem com o nome certo. Como o fluxo de PDF é no PC, fica como está.
+
 ## [1.2.0] — 2026-07-17
 
 **O canvas do processador.** A maior mudança de arquitetura desde a v1.0: o cabeamento de sinal deixa de ser preso à tela e passa a correr sobre a parede inteira. Saiu de um teste de campo real (projeto "Colação de Grau", 7 telas numa VX1000) onde ficou claro que o app "é legal de ver mas não tem utilidade prática" pra planejar.

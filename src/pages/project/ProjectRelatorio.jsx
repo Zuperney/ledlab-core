@@ -8,7 +8,7 @@ import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabling.js";
-import { projectPortSummary, canvasAtivo, canvasPositions, dimOf } from "../../services/canvasCabling.js";
+import { hasScreens, projectScreenReport, telasSemScreen } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
@@ -71,13 +71,11 @@ export default function ProjectRelatorio({ project }) {
   // global do projeto. Tela vazia tem 0 portas: sem isso sairia o intervalo "1–0".
   const portLabel = (off, n, sing) => (n === 0 ? `sem ${sing}s` : n === 1 ? `${sing} ${off + 1}` : `${sing}s ${off + 1}–${off + n}`);
 
-  // com o canvas ativo, o SINAL vem dele — fonte única. Sem canvas, segue por tela.
-  // (O AC não muda: circuito elétrico segue o físico, e a tela é um bloco físico.)
-  const usaCanvas = canvasAtivo(project);
-  const resumo = usaCanvas ? projectPortSummary(project, numbering) : { ports: [] };
-  const cvPos = usaCanvas ? canvasPositions(project) : {};
-  const cvW = usaCanvas ? Math.max(0, ...telas.map((t) => (cvPos[t.id]?.x || 0) + dimOf(t).w)) : 0;
-  const cvH = usaCanvas ? Math.max(0, ...telas.map((t) => (cvPos[t.id]?.y || 0) + dimOf(t).h)) : 0;
+  // com Screens, o SINAL vem delas (uma seção por Screen, portas 1..N por Screen).
+  // Sem Screens, segue por tela (legado). O AC não muda: segue o físico, por tela.
+  const usaScreens = hasScreens(project);
+  const screenReport = usaScreens ? projectScreenReport(project, numbering) : [];
+  const semScreen = usaScreens ? telasSemScreen(project) : [];
   const h3 = { color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 };
   const telaBlock = { marginBottom: 18, breakInside: "avoid" };
   const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };
@@ -163,34 +161,43 @@ export default function ProjectRelatorio({ project }) {
           </section>
         )}
 
-        {showSignal && usaCanvas && (
+        {showSignal && usaScreens && (
           <section style={{ marginBottom: 24 }}>
             <h3 style={h3}>Cabeamento de Sinal</h3>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>
-              <b>{resumo.ports.length} {resumo.ports.length === 1 ? "porta" : "portas"}</b> no canvas do processador ({cvW.toLocaleString("pt-BR")} × {cvH.toLocaleString("pt-BR")} px) — a parede como a controladora enxerga.
-              A corrente <b>atravessa telas</b> do mesmo modelo de gabinete, então a porta não reinicia a cada peça: é a porta física 1..{resumo.ports.length} da controladora.
+              Uma seção por <b>Screen</b> (o sistema como a controladora enxerga). A corrente <b>atravessa telas</b> do mesmo modelo, e as portas são numeradas <b>1..N por Screen</b> — cada Screen é um controlador. Coordenada X/Y com origem no canto superior-esquerdo da Screen (a que se digita no NovaLCT).
             </p>
-            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 10 }}>
-              <thead><tr>
-                <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Uso</th><th style={th}>Telas que percorre</th><th style={th}>Início X, Y (px)</th>
-              </tr></thead>
-              <tbody>
-                {resumo.ports.map((p) => (
-                  <tr key={p.n}>
-                    <td style={td}><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 6, verticalAlign: "middle" }} />{p.n}</td>
-                    <td style={td}>{p.count}</td>
-                    <td style={{ ...td, color: p.pct > 100 ? PRINT.red : PRINT.ink }}>{p.pct}%</td>
-                    <td style={td}>{p.telas.join(" → ")}</td>
-                    <td style={td}>{p.startX}, {p.startY}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p style={{ color: PRINT.mut, fontSize: 11 }}>Coordenada com origem no canto superior-esquerdo do canvas — a mesma que se digita no NovaLCT / Tessera. Lista completa por gabinete: botão “Mapa de pixels” na aba Canvas (CSV).</p>
+            {screenReport.map((s) => (
+              <div key={s.id} style={telaBlock}>
+                <div style={telaTitle}>{s.nome} — {s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px · {s.ports.length} {s.ports.length === 1 ? "porta" : "portas"}</div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Uso</th><th style={th}>Telas que percorre</th><th style={th}>Início X, Y (px)</th>
+                  </tr></thead>
+                  <tbody>
+                    {s.ports.map((p) => (
+                      <tr key={p.n}>
+                        <td style={td}><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 6, verticalAlign: "middle" }} />{p.n}</td>
+                        <td style={td}>{p.count}</td>
+                        <td style={{ ...td, color: p.over ? PRINT.red : PRINT.ink }}>{p.pct}%</td>
+                        <td style={td}>{p.telas.join(" → ")}</td>
+                        <td style={td}>{p.startX}, {p.startY}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            {semScreen.length > 0 && (
+              <p style={{ color: PRINT.amb, fontSize: 11.5, marginTop: 4 }}>
+                <b>{semScreen.length} tela(s) sem Screen</b> ({semScreen.map((t) => t.nome).join(", ")}) — ainda não entraram em nenhum sistema, então não têm cabeamento de sinal. Monte na aba Screens.
+              </p>
+            )}
+            <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 6 }}>Lista completa por gabinete (CSV pro NovaLCT / Tessera): botão “Mapa de pixels” na aba Cabeamento › Sinal.</p>
           </section>
         )}
 
-        {showSignal && !usaCanvas && (
+        {showSignal && !usaScreens && (
           <section style={{ marginBottom: 24 }}>
             <h3 style={h3}>Cabeamento de Sinal</h3>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo (canto configurável por tela na aba Cabeamento).</p>

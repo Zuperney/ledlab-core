@@ -1,6 +1,6 @@
 // pages/ProjectDetail.jsx — detalhe do projeto com abas.
 import { useState } from "react";
-import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText, Frame } from "lucide-react";
+import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText, Layers } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -10,7 +10,7 @@ import StatusBadge from "../components/StatusBadge.jsx";
 import ErrorBoundary from "../components/ErrorBoundary.jsx";
 import ProjectDados from "./project/ProjectDados.jsx";
 import ProjectEnergia from "./project/ProjectEnergia.jsx";
-import ProjectCanvas from "./project/ProjectCanvas.jsx";
+import ProjectScreens from "./project/ProjectScreens.jsx";
 import ProjectCabeamento from "./project/ProjectCabeamento.jsx";
 import ProjectTestCard from "./project/ProjectTestCard.jsx";
 import ProjectComposicao from "./project/ProjectComposicao.jsx";
@@ -19,8 +19,8 @@ import ProjectRelatorio from "./project/ProjectRelatorio.jsx";
 const TABS = [
   { id: "dados", label: "Dados", Icon: Folder, Comp: ProjectDados },
   { id: "energia", label: "Energia (AC)", Icon: Zap, Comp: ProjectEnergia },
-  // vem ANTES do Cabeamento: é o canvas que define onde as portas correm
-  { id: "canvas", label: "Canvas", Icon: Frame, Comp: ProjectCanvas },
+  // vem ANTES do Cabeamento: as Screens é que definem o que vai no mesmo sistema
+  { id: "screens", label: "Screens", Icon: Layers, Comp: ProjectScreens },
   { id: "cabeamento", label: "Cabeamento", Icon: GitBranch, Comp: ProjectCabeamento },
   { id: "relatorio", label: "Relatório", Icon: FileText, Comp: ProjectRelatorio },
   { id: "testcard", label: "Test Card", Icon: Monitor, Comp: ProjectTestCard },
