@@ -11,11 +11,12 @@ import { card, btn } from "../../ui/styles.js";
 import Select from "../../components/Select.jsx";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
-import { useConfirm } from "../../store/UIContext.jsx";
+import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
+import { fileName } from "../../services/filenames.js";
 import { oneScreenPerTela, screenTelas } from "../../services/screens.js";
-import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount } from "../../services/screenCabling.js";
+import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV } from "../../services/screenCabling.js";
 
 const key = (c) => `${c.telaId}:${c.c},${c.r}`;
 const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
@@ -28,6 +29,7 @@ export default function ScreenSignal({ project, patch }) {
   const { colorOf } = useCablePalette();
   const isMobile = useIsMobile();
   const confirm = useConfirm();
+  const toast = useToast();
   const { prefs } = useLedLabContext();
   const numbering = prefs.cableNumbering || "row-tb-lr";
 
@@ -109,6 +111,17 @@ export default function ScreenSignal({ project, patch }) {
   const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActiveCable(null); };
   const inverter = () => { if (cables[activeCable]?.length) setCables(cables.map((c, i) => (i === activeCable ? [...c].reverse() : c))); };
   const limpar = async () => { if (await confirm({ title: "Limpar cabeamento?", message: `Todos os cabos livres de ${active.nome} serão removidos.` })) { setCables([]); setActiveCable(null); } };
+  // mapa de pixels desta Screen (X/Y na coordenada da Screen) — o que se digita no NovaLCT
+  const exportCSV = () => {
+    const csv = projectPixelMapCSV(project, numbering, active.id);
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }); // BOM: Excel abre acento certo
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName([project.name, active.nome, "mapa-pixels"], "csv");
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast(`Mapa de pixels: ${ports.length} portas, coordenada da Screen.`);
+  };
 
   const R = (v) => v * zoom; // helper visual
 
@@ -163,11 +176,17 @@ export default function ScreenSignal({ project, patch }) {
           )}
 
           <div style={card({ padding: 0, overflow: "hidden" })}>
-            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}` }}>
-              <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{active.nome} · Sinal</div>
-              <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
-                {bbox.w.toLocaleString("pt-BR")} × {bbox.h.toLocaleString("pt-BR")} px · {ports.length} {ports.length === 1 ? "porta" : "portas"} · a corrente atravessa as telas do mesmo modelo
+            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.bd}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{active.nome} · Sinal</div>
+                <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
+                  {bbox.w.toLocaleString("pt-BR")} × {bbox.h.toLocaleString("pt-BR")} px · {ports.length} {ports.length === 1 ? "porta" : "portas"} · a corrente atravessa as telas do mesmo modelo
+                </div>
               </div>
+              <button onClick={exportCSV} title="Baixa o mapa de pixels desta Screen (gabinete → porta → X/Y) em CSV pro NovaLCT / Tessera"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, borderRadius: 8, padding: "7px 11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+                <Download size={14} /> Mapa de pixels
+              </button>
             </div>
 
             <div ref={stageRef} onWheel={onWheel} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}

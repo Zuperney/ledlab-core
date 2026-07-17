@@ -1,6 +1,6 @@
 // screenCabling.test.js — cabeamento de sinal por Screen (auto + livre).
 import { describe, it, expect } from "vitest";
-import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells } from "./screenCabling.js";
+import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV } from "./screenCabling.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
 const gabImag = { resX: "192", resY: "192", pwrMax: "150", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -97,5 +97,62 @@ describe("cellPortIndex", () => {
     const cells = screenCells(scTiras, telas);
     for (const c of cells) expect(idx[`${c.telaId}:${c.c},${c.r}`]).toBeGreaterThanOrEqual(0);
     expect(Object.keys(idx).length).toBe(36);
+  });
+});
+
+// ── nível de projeto (Relatório / Test Card / CSV) ──
+describe("hasScreens / telasSemScreen", () => {
+  it("hasScreens só é true com Screen que tem tela", () => {
+    expect(hasScreens({ screens: [] })).toBe(false);
+    expect(hasScreens({ screens: [{ telaIds: [] }] })).toBe(false);
+    expect(hasScreens({ screens: [{ telaIds: ["t1"] }] })).toBe(true);
+  });
+  it("telasSemScreen lista as telas fora de qualquer Screen", () => {
+    const proj = { telas, screens: [{ id: "s1", telaIds: ["t1"], pos: {} }] };
+    expect(telasSemScreen(proj).map((t) => t.id)).toEqual(["t2", "central", "imag"]);
+  });
+});
+
+describe("telaPortSlices — número real por Screen, com fallback legado", () => {
+  it("tela numa Screen: número da porta é o da Screen (1..N por Screen)", () => {
+    const proj = { telas, screens: [scTiras] };
+    const slices = telaPortSlices(proj, "central");
+    expect(slices.length).toBeGreaterThan(0);
+    for (const s of slices) { expect(s.n).toBeGreaterThanOrEqual(1); expect(s.cells.every((c) => c.telaId === "central")).toBe(true); }
+  });
+  it("tela fora de Screen: cai no legado por tela (numeração local)", () => {
+    const proj = { telas, screens: [] };
+    const slices = telaPortSlices(proj, "central");
+    expect(slices[0].n).toBe(1); // reinicia local
+    expect(slices.flatMap((s) => s.cells).length).toBe(30); // cobre a tela toda
+  });
+  it("tela inexistente → vazio", () => {
+    expect(telaPortSlices({ telas, screens: [] }, "sumiu")).toEqual([]);
+  });
+});
+
+describe("projectScreenReport", () => {
+  it("uma entrada por Screen com tela, com tamanho e portas 1..N por Screen", () => {
+    const proj = { telas, screens: [scTiras, scImag, { id: "vazia", nome: "Vazia", telaIds: [], pos: {} }] };
+    const rep = projectScreenReport(proj);
+    expect(rep.map((r) => r.nome)).toEqual(["Tiras", "IMAG"]); // a vazia fica de fora
+    expect(rep[0].ports[0].n).toBe(1); // cada Screen começa em 1
+    expect(rep[0].size.w).toBeGreaterThan(0);
+  });
+});
+
+describe("projectPixelMapCSV", () => {
+  const proj = { name: "P", telas, screens: [scTiras, scImag] };
+  it("cabeçalho pt-BR com coluna Screen; Porta reinicia por Screen", () => {
+    const csv = projectPixelMapCSV(proj);
+    const linhas = csv.split("\r\n");
+    expect(linhas[0]).toBe("Screen;Porta;Ordem;Tela;Coluna;Linha;X (px);Y (px);Largura;Altura");
+    expect(linhas.length).toBe(1 + 36 + 18); // 2 tiras+central (36) + imag (18)
+    const screens = new Set(linhas.slice(1).map((l) => l.split(";")[0]));
+    expect(screens.has("Tiras") && screens.has("IMAG")).toBe(true);
+  });
+  it("`only` limita a uma Screen", () => {
+    const csv = projectPixelMapCSV(proj, "row-tb-lr", scImag.id);
+    expect(csv.split("\r\n").length).toBe(1 + 18);
   });
 });
