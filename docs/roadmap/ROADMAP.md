@@ -68,6 +68,10 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **🟣 Mapa de pixels exportável** — CSV (gabinete → porta → X/Y) + tabela por porta no relatório, p/ NovaLCT/Tessera | **2** | **v1.1.0** |
 | **Drag & drop pra reordenar telas** + Configurações em sub-menus + auditoria de UX (textos enxutos) | 1 | v1.1.0 |
 | **Duração em h/min** (fim da hora decimal "9.9h") + **auditoria do motor de cachês** (nenhum valor mudou) | 3 | v1.1.2 |
+| **🟣 Canvas do processador** — a parede como a controladora enxerga (a *Screen* do NovaLCT): arraste, auto-arrumar por modelo de gabinete, aviso de sobreposição | **2** | **v1.2.0** |
+| **🟣 A corrente atravessa telas** — porta que sai de uma tela e entra na outra: numa parede real de 7 telas, **10 portas → 6**. Tela pequena parava de comer uma porta inteira | **2** | **v1.2.0** |
+| **🟣 Portas numeradas 1..N no projeto** — fim dos sete "Cabo 1"; o relatório diz a porta que o operador pluga (AC com numeração própria) | **2** | **v1.2.0** |
+| **🟣 Mapa de pixels em coordenada de canvas** — o X/Y que se digita no NovaLCT (era por tela, e por isso não servia na prática) | **2** | **v1.2.0** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -167,4 +171,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-14 (v1.1.2 · Fase 02 em curso)._
+_Última atualização: 2026-07-17 (v1.2.0 · Fase 02 em curso)._

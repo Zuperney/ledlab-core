@@ -22,7 +22,8 @@ _Aponte a câmera do celular para o QR code._
 | | |
 |---|---|
 | ⚡ **Elétrica** | Pico/típico por tela, corrente por fase, disjuntor e gerador — modelo validado com datasheets e normas (NBR/IEC) |
-| 🔌 **Cabeamento** | Portas de sinal (regra Novastar) e cabos AC com balanceamento, margem de segurança e mapa visual |
+| 🖼️ **Canvas do processador** | A parede como a controladora enxerga: o cabo atravessa telas, as portas são numeradas 1..N e o mapa de pixels sai na coordenada do NovaLCT |
+| 🔌 **Cabeamento** | Portas de sinal (px/porta real ou área) e cabos AC com balanceamento, margem de segurança e mapa visual |
 | 🖥️ **Test cards** | Cartões de teste na resolução nativa do painel, com números, geometria, mapa de cabos e export PNG |
 | 🧩 **Composição** | Várias telas posicionadas num render só (estilo mapeamento de slices), com alerta de sobreposição |
 | 📐 **Aspect Ratio & crop** | Proporção da tela e cálculo de crop do sinal (encaixar × preencher, com deslocamento) |
@@ -34,11 +35,13 @@ _Aponte a câmera do celular para o QR code._
 
 ## 🧾 Versões
 
-**Atual: v1.0.0** — primeira versão estável 🎉 *(84 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.2.0** — o **canvas do processador**: monte a parede como a controladora enxerga e o cabo atravessa telas. Numa parede real de 7 telas, isso foi de **10 portas para 6**. *(151 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|
-| **1.0.0** | Marco de estabilidade: rodada de blindagem (testes, lint zerado e bloqueante no CI, infra de deploy atualizada) |
+| **1.2.0** | **Aba Canvas**: cabo atravessando telas (tela pequena não come mais uma porta inteira), portas numeradas 1..N no projeto, mapa de pixels na coordenada do NovaLCT |
+| 1.1.x | Portas de dados reais (px/porta), mapa de pixels, arrastar telas, Configurações em sub-menus, duração em 9h55 (não "9.9h") |
+| 1.0.0 | Marco de estabilidade: rodada de blindagem (testes, lint zerado e bloqueante no CI, infra de deploy atualizada) |
 | 0.20.x | Composição de telas, crop de vídeo com deslocamento, relatório "Mapa de cabos", nomes de arquivo padronizados, aviso de sobreposição, modal de novidades |
 | 0.19.x | Dropdowns com a cara do app (fim do visual do sistema no Android), campos numéricos sem "pulos", reordenar telas |
 | 0.17–0.18 | **Reembolso completo** (despesa + foto do comprovante + relatório PDF/WhatsApp) e correções de iOS (topo atrás da status bar, zoom automático) |
