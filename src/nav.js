@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.1.2";
+export const VERSION = "v1.2.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "⏱️ Duração agora sai como 9h55 (antes “9.9h”, hora decimal que confundia) — na planilha, no recibo, nas Diárias e no Dashboard. Os valores dos cachês não mudam: os cálculos foram conferidos e estão certos.";
+export const WHATS_NEW = "🖼️ Aba Canvas nova: monte a parede como a controladora enxerga e o cabo passa a atravessar telas — tela pequena não come mais uma porta inteira. Num projeto real de 7 telas isso foi de 10 portas pra 6. As portas agora são numeradas 1..N no projeto (chega de sete “Cabo 1”) e o mapa de pixels sai na coordenada que se digita no NovaLCT. Quem não mexer no Canvas não sente diferença.";

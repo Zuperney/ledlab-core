@@ -2,6 +2,35 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.2.0] — 2026-07-17
+
+**O canvas do processador.** A maior mudança de arquitetura desde a v1.0: o cabeamento de sinal deixa de ser preso à tela e passa a correr sobre a parede inteira. Saiu de um teste de campo real (projeto "Colação de Grau", 7 telas numa VX1000) onde ficou claro que o app "é legal de ver mas não tem utilidade prática" pra planejar.
+
+**O diagnóstico:** "tela" é invenção nossa — um bloco de gabinetes iguais, ótimo pra montar e pra lista de material, mas que **não existe no NovaLCT**. Lá o que existe é a *Screen*: a parede toda, com as portas 1..N da controladora correndo por cima. Enquanto cada tela fosse uma ilha, o cabo nunca atravessava, a tira de 3 gabinetes comia uma porta inteira (15% de uso) e cada tela reiniciava no "Cabo 1".
+
+### Aba Canvas (nova)
+- **Canvas do processador**: as telas posicionadas na parede que a controladora enxerga, com arraste, snap, X/Y numérico e aviso de sobreposição. Cor **por modelo de gabinete** — mesma cor significa que a corrente pode encadear entre elas.
+- **Auto-arrumar**: agrupa por modelo de gabinete e empilha as faixas. A corrente só encadeia gabinetes iguais (o manual do VX Pro exige *"The size of all cabinets must be the same"* pra topologia livre), então juntar o mesmo modelo é o que **torna** o cabo entre telas possível. Conferido contra um canvas montado à mão no NovaLCT: a regra chega no mesmo 2304×1344 sozinha.
+- **Banner que ensina**: *"Cada tela sozinha gasta 10 portas. Neste canvas dá 6 — sobram 4."* Dá pra desperdiçar porta sem saber que a função existe.
+- **Opcional de verdade**: o canvas só manda depois que você mexe nele (arrastar ou auto-arrumar). Antes disso é "Pré-visualização" e o projeto segue contando por tela. Projeto sem canvas não muda em nada.
+
+### Sinal
+- **A corrente atravessa telas.** Serpentina sobre um conjunto de gabinetes em coordenada de canvas, com os mesmos routing/corner de sempre (os 8 padrões de Quick Connection) e o mesmo corte balanceado. Na Colação de Grau: **10 portas → 6**, e uma delas percorre Tira 4 → Tira 3 → Tira 2 → Tira 1 → Central. Cinco telas, um cabo.
+- **Numeração global das portas.** A controladora tem portas 1..N e a contagem não reinicia a cada tela — o relatório diz "Porta 83", que é a porta que o operador pluga. Vale também pros circuitos de AC, que têm numeração própria (circuito não é porta de dados). Antes, um projeto de 7 telas dava sete "Cabo 1".
+- **Fonte única.** Relatório, Cabeamento, Test Card, Composição e mapa de pixels leem a mesma alocação. Duas respostas pra "quantas portas" é pior que uma resposta conservadora.
+
+### Relatório e exportação
+- Com canvas ativo, o **Sinal** vira a tabela de portas do projeto: porta, gabinetes, uso, **telas que percorre** e início X/Y. Sem canvas, o relatório sai igual ao de antes.
+- **Mapa de pixels em coordenada de canvas** (aba Canvas → CSV) — é o X/Y que se digita no NovaLCT, e é o que faltava pro export servir pra alguma coisa. Ganhou coluna **Tela**: sem ela não dá pra achar o gabinete numa porta que cruza. O CSV por tela some quando o canvas manda (X/Y com origem na tela seria armadilha).
+- **Cabeamento**: com canvas ativo, o modo Sinal mostra a **rota dentro da tela** (pra conferir o caminho) e avisa que a porta de verdade está no Canvas. O modo **AC continua inteiro nesta aba** — circuito elétrico segue o físico, e a tela é um bloco físico.
+
+### Base de conhecimento
+- Artigo **"Regra do retângulo e Free Topology"** ancorado em fonte primária: onde o "650.000" realmente mora nos manuais (nota da Configuração Rápida e constante da fórmula de baixa latência — nunca foi limite de porta em uso normal), a comparação VX1000 × VX Pro Series, e a fórmula `(1 − Y/H) × capacidade` da baixa latência.
+- **"Capacidade da porta"**: as duas réguas deixam de ser enquadradas por marca de equipamento — quem decide é o Free Topology, um interruptor por tela no software.
+
+### Limitação conhecida
+- **Adjacência no canvas não é adjacência física.** O alocador pode encadear duas telas coladas no canvas mas distantes no palco — o cabo existe, mas é decisão sua. O layout físico (rigging, metragem de cabo) ainda não é modelado.
+
 ## [1.1.2] — 2026-07-14
 
 ### Diárias / Financeiro

@@ -3,7 +3,8 @@ import { useRef, useEffect, useState } from "react";
 import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, ChevronDown, ChevronUp } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt } from "../../store/UIContext.jsx";
-import { cablePorts } from "../../services/cabling.js";
+import { cablePorts, portOffset } from "../../services/cabling.js";
+import { canvasAtivo, telaPortSlices } from "../../services/canvasCabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
@@ -34,8 +35,13 @@ export default function ProjectTestCard({ project }) {
   const canvasRef = useRef(null);
   const tela = telas.find((t) => t.id === telaId) || telas[0];
 
-  const mapPorts = tela && o.cableMap !== "off" ? cablePorts(tela, o.cableMap, numbering) : null;
-  useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts, palette); });
+  // com o canvas ativo, o selo mostra a PORTA DE VERDADE — mesmo que a corrente
+  // tenha entrado nesta tela vindo de outra peça.
+  const slices = tela && o.cableMap === "sinal" && canvasAtivo(project) ? telaPortSlices(project, tela.id, numbering) : null;
+  const mapPorts = slices ? slices.map((s) => s.cells) : tela && o.cableMap !== "off" ? cablePorts(tela, o.cableMap, numbering) : null;
+  const mapNums = slices ? slices.map((s) => s.n)
+    : mapPorts ? mapPorts.map((_, i) => portOffset(telas, tela.id, o.cableMap, numbering) + i + 1) : null;
+  useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts, palette, mapNums); });
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o test card." />;
 

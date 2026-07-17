@@ -9,15 +9,16 @@
 // ativo, clica p/ atribuir/reatribuir gabinetes e cria novo cabo quando quiser.
 // Pode IMPORTAR o cabeamento automático (Linha/Coluna/Área) e editar só o necessário.
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight, ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
+import { Monitor, Eraser, ZoomIn, ZoomOut, Maximize, Plus, X, Download, Repeat2, Undo2, ArrowUpDown, ArrowLeftRight, ChevronDown, ChevronUp, TriangleAlert, Frame } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import Select from "../../components/Select.jsx";
 import { card } from "../../ui/styles.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
-import { range, key, parseKey, bboxArea, mkBlock, buildAuto, acRouteFromSignal, cablePorts, cableMeta } from "../../services/cabling.js";
+import { range, key, parseKey, bboxArea, mkBlock, buildAuto, acRouteFromSignal, cablePorts, cableMeta, portOffset } from "../../services/cabling.js";
 import { pixelMapCSV } from "../../services/pixelMap.js";
+import { canvasAtivo } from "../../services/canvasCabling.js";
 import { fileName } from "../../services/filenames.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { FLAGS } from "../../config/featureFlags.js";
@@ -25,6 +26,7 @@ import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
+const plural = (n, s) => (n === 1 ? s : `${s}s`); // "1 porta", não "1 portas"
 const CORNER_LABEL = { bl: "inferior-esquerdo", br: "inferior-direito", tl: "superior-esquerdo", tr: "superior-direito" };
 // botão de zoom do canto do canvas
 const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
@@ -65,6 +67,20 @@ export default function ProjectCabeamento({ project, patchTela }) {
   const allowAdvanced = !isMobile || FLAGS.advancedCablingOnMobile;
   const livreEdit = strategy === "livre" && allowAdvanced;
   const cables = cfg.cables || [];
+  // numeração GLOBAL: a controladora tem portas 1..N — a contagem não reinicia a
+  // cada tela. O mapa de pixels é sempre da rota de SINAL, então tem offset próprio.
+  const offset = portOffset(telas, tela?.id, mode, numbering);
+  const sinalOffset = portOffset(telas, tela?.id, "sinal", numbering);
+  // canvas ativo → o SINAL do projeto é alocado lá (a corrente atravessa telas), e
+  // esta aba não tem como representar isso: uma porta pode nem começar nesta tela.
+  // Então ela para de dar um segundo número e manda pra aba Canvas. O AC continua
+  // 100% aqui — circuito elétrico segue o físico, não o canvas.
+  const sinalNoCanvas = canvasAtivo(project) && mode === "sinal";
+  // com o canvas mandando, o que esta aba desenha é a rota DENTRO da tela — não a
+  // porta do projeto. Chamar de "Porta 7" seria mentira; vira "Rota", numerada
+  // localmente. É o que impede o app de dar duas respostas pra mesma pergunta.
+  const portWord = mode === "ac" ? "Cabo" : sinalNoCanvas ? "Rota" : "Porta";
+  const numOff = sinalNoCanvas ? 0 : offset;
   const setMode = (v) => patchTela?.(tela.id, { cabling: { ...cabling, mode: v } });
   const setCfg = (partial) => patchTela?.(tela.id, { cabling: { ...cabling, [mode]: { ...cfg, ...partial } } });
   const setStrategy = (v) => setCfg({ strategy: v });
@@ -73,7 +89,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
 
   // mapa de pixels em CSV (gabinete → porta → X/Y) pro operador transcrever no NovaLCT/Tessera
   const exportPixelCSV = () => {
-    const csv = pixelMapCSV(tela, numbering);
+    const csv = pixelMapCSV(tela, numbering, sinalOffset);
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }); // BOM: Excel abre acentos certo
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -202,7 +218,17 @@ export default function ProjectCabeamento({ project, patchTela }) {
           <button onClick={undo} disabled={!history.length} style={ibtn({ opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" })} title="Desfazer"><Undo2 size={15} /></button>
           <button onClick={limparCabos} style={ibtn()} title="Limpar cabos"><Eraser size={15} /></button>
           <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
-            {active != null ? <>Editando <b style={{ color: colorOf(active) }}>Cabo {active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda" : "Importe ou clique “Novo cabo”"}
+            {active != null ? <>Editando <b style={{ color: colorOf(numOff + active) }}>{portWord} {numOff + active + 1}</b> · clique nos gabinetes</> : cables.length ? "Selecione um cabo na legenda" : "Importe ou clique “Novo cabo”"}
+          </span>
+        </div>
+      )}
+
+      {sinalNoCanvas && (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: T.strip, border: `1px solid ${T.bdA}`, borderRadius: 8, padding: "9px 11px", marginBottom: 12 }}>
+          <Frame size={15} color={T.acM} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ color: T.mut, fontSize: 12 }}>
+            Este projeto usa o <b style={{ color: T.txt }}>canvas do processador</b>: a corrente atravessa telas, então uma porta pode começar em outra peça e as portas de verdade estão na aba <b style={{ color: T.txt }}>Canvas</b>.
+            O que se vê aqui embaixo é a rota <b style={{ color: T.txt }}>dentro desta tela</b> — serve pra conferir o caminho, não pra contar porta. O modo <b style={{ color: T.txt }}>AC</b> continua inteiro nesta aba.
           </span>
         </div>
       )}
@@ -212,13 +238,15 @@ export default function ProjectCabeamento({ project, patchTela }) {
           <div style={{ minWidth: 0 }}>
             <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{tela.nome} · {mode === "sinal" ? "Sinal" : "Energia AC"}</div>
             <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
-              {ports.length} {mode === "sinal" ? "portas" : "circuitos"} · máx {budget} gab/{mode === "sinal" ? (sinalRule === "px" ? `porta · ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "porta (área quadrada)") : "cabo"}
+              {ports.length} {plural(ports.length, mode === "ac" ? "circuito" : sinalNoCanvas ? "rota" : "porta")}{sinalNoCanvas && " nesta tela"} · máx {budget} gab/{mode === "sinal" ? (sinalRule === "px" ? `porta · ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "porta (área quadrada)") : "cabo"}
               {mode === "ac" && ` · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`}
               {mode === "ac" && strategy === "sinal" && " · seguindo a rota do sinal · carga balanceada entre cabos"}
               {strategy === "livre" && ` · ${assigned}/${cols * rows} atribuídos`}
             </div>
           </div>
-          {mode === "sinal" && (
+          {/* com o canvas ativo o mapa por tela seria uma armadilha: X/Y com origem na
+              TELA, e o NovaLCT quer o do canvas. O botão bom mora na aba Canvas. */}
+          {mode === "sinal" && !sinalNoCanvas && (
             <button onClick={exportPixelCSV} title="Baixa o mapa de pixels (gabinete → porta → X/Y) em CSV pro NovaLCT / Tessera" style={csvBtn}>
               <Download size={14} /> Mapa de pixels
             </button>
@@ -242,7 +270,7 @@ export default function ProjectCabeamento({ project, patchTela }) {
               {range(rows).map((r) => range(cols).map((c) => {
                 const pi = portOf[key(c, r)];
                 const isActive = strategy === "livre" && pi === active;
-                const col = pi === undefined ? T.dim2 : colorOf(pi);
+                const col = pi === undefined ? T.dim2 : colorOf(numOff + pi);
                 return <rect key={key(c, r)} x={c * CELL + 3} y={r * CELL + 3} width={CELL - 6} height={CELL - 6} rx={6}
                   fill={pi === undefined ? "transparent" : col + (isActive ? "45" : "26")} stroke={col} strokeWidth={isActive ? 3 : 1.5} strokeDasharray={pi === undefined ? "5 5" : undefined}
                   onClick={() => clickCell(c, r)} style={{ cursor: livreEdit ? "pointer" : "inherit" }} />;
@@ -254,8 +282,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
                 return (
                   <g key={pi} style={{ pointerEvents: "none" }}>
                     <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={strategy === "livre" && active != null && pi !== active ? 0.55 : 0.95} />
-                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={colorOf(pi)} stroke="#fff" strokeWidth={2} />
-                    <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
+                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={colorOf(numOff + pi)} stroke="#fff" strokeWidth={2} />
+                    <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{numOff + pi + 1}</text>
                   </g>
                 );
               })}
@@ -281,8 +309,8 @@ export default function ProjectCabeamento({ project, patchTela }) {
             return (
               <div key={i} onClick={livreEdit ? () => setActive(active === i ? null : i) : undefined}
                 style={{ display: "flex", alignItems: "center", gap: 8, background: isActive ? T.sel : T.card2, border: `1px solid ${over ? T.red : isActive ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: livreEdit ? "pointer" : "default" }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(i), flexShrink: 0 }} />
-                <span style={{ color: T.txt, fontWeight: 600 }}>{mode === "sinal" ? "Porta" : "Cabo"} {i + 1}</span>
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(numOff + i), flexShrink: 0 }} />
+                <span style={{ color: T.txt, fontWeight: 600 }}>{portWord} {numOff + i + 1}</span>
                 <span style={{ color: over ? T.red : T.mut }}>{pct}%</span>
                 <span style={{ color: T.dim }}>· {port.length} gab</span>
                 {livreEdit && <X size={13} color={T.dim} onClick={(e) => { e.stopPropagation(); removerCabo(i); }} style={{ cursor: "pointer" }} />}

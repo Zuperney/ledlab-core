@@ -8,7 +8,7 @@ import { useCablePalette } from "../hooks/useCablePalette.js";
 
 const CELL = 40;
 
-export default function CableMap({ tela, mode, numbering = "row-tb-lr", maxWidth = 760 }) {
+export default function CableMap({ tela, mode, numbering = "row-tb-lr", maxWidth = 760, offset = 0 }) {
   const { colorOf } = useCablePalette();
   const cols = tela?.cols || 1, rows = tela?.rows || 1;
   const ports = cablePorts(tela, mode, numbering);
@@ -24,7 +24,7 @@ export default function CableMap({ tela, mode, numbering = "row-tb-lr", maxWidth
       style={{ width: "100%", maxWidth: Math.min(maxWidth, W + 16), height: "auto", background: "#0d0d1a", borderRadius: 8, display: "block" }}>
       {Array.from({ length: rows }).map((_, rr) => Array.from({ length: cols }).map((_, c) => {
         const pi = portOf[key(c, rr)];
-        const col = pi === undefined ? T.dim2 : colorOf(pi);
+        const col = pi === undefined ? T.dim2 : colorOf(offset + pi);
         return <rect key={key(c, rr)} x={c * CELL + 2} y={rr * CELL + 2} width={CELL - 4} height={CELL - 4} rx={4}
           fill={pi === undefined ? "transparent" : col + "26"} stroke={col} strokeWidth={1.2} strokeDasharray={pi === undefined ? "4 4" : undefined} />;
       }))}
@@ -35,8 +35,8 @@ export default function CableMap({ tela, mode, numbering = "row-tb-lr", maxWidth
         return (
           <g key={pi}>
             <polyline points={pts} fill="none" stroke="#fff" strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" opacity={0.95} />
-            <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={r} fill={colorOf(pi)} stroke="#fff" strokeWidth={1.6} />
-            <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={fs} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
+            <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={r} fill={colorOf(offset + pi)} stroke="#fff" strokeWidth={1.6} />
+            <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={fs} fontWeight="700" textAnchor="middle" dominantBaseline="central">{offset + pi + 1}</text>
           </g>
         );
       })}

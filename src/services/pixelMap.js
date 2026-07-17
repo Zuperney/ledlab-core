@@ -7,7 +7,10 @@
 // dois softwares) — independente do início inferior-esquerdo da rota do cabo.
 import { signalRoute } from "./cabling.js";
 
-export function pixelMapRows(tela, numbering = "row-tb-lr") {
+// `offset` = quantas portas as telas anteriores do projeto já consumiram (ver
+// portOffset em cabling.js). A controladora tem portas 1..N; o operador pluga na
+// porta 7, não na "porta 1 da terceira tela". 0 = tela avulsa.
+export function pixelMapRows(tela, numbering = "row-tb-lr", offset = 0) {
   const g = tela?.gabinete || {};
   const resX = parseFloat(g.resX) || 0;
   const resY = parseFloat(g.resY) || 0;
@@ -15,7 +18,7 @@ export function pixelMapRows(tela, numbering = "row-tb-lr") {
   signalRoute(tela, numbering).forEach((port, pi) => {
     port.forEach((cell, seq) => {
       rows.push({
-        port: pi + 1,        // porta / saída (1-based, como o operador vê)
+        port: offset + pi + 1, // porta / saída (1-based, global no projeto)
         seq: seq + 1,        // ordem do gabinete dentro do cabo daquela porta
         col: cell.c + 1,     // coluna na grade (1-based)
         row: cell.r + 1,     // linha na grade (1-based)
@@ -32,7 +35,7 @@ export function pixelMapRows(tela, numbering = "row-tb-lr") {
 // resumo por porta (1 linha por porta) — versão compacta pro relatório impresso,
 // que aguenta projetos grandes sem virar milhares de linhas. Início = 1º gabinete
 // do cabo (canto de início configurável da rota); bbox = retângulo que a porta cobre.
-export function pixelMapPorts(tela, numbering = "row-tb-lr") {
+export function pixelMapPorts(tela, numbering = "row-tb-lr", offset = 0) {
   const g = tela?.gabinete || {};
   const resX = parseFloat(g.resX) || 0;
   const resY = parseFloat(g.resY) || 0;
@@ -46,7 +49,7 @@ export function pixelMapPorts(tela, numbering = "row-tb-lr") {
     });
     const start = port[0] || { c: 0, r: 0 };
     return {
-      port: pi + 1,
+      port: offset + pi + 1,
       count: port.length,
       startCol: start.c + 1,
       startRow: start.r + 1,
@@ -72,8 +75,8 @@ export const PIXELMAP_COLS = [
 
 // CSV pt-BR: separador ';' (o Excel brasileiro não joga tudo numa coluna só) e
 // quebra CRLF. Sem decimais nos valores, então nada a escapar.
-export function pixelMapCSV(tela, numbering = "row-tb-lr", sep = ";") {
+export function pixelMapCSV(tela, numbering = "row-tb-lr", offset = 0, sep = ";") {
   const head = PIXELMAP_COLS.map((c) => c[1]).join(sep);
-  const body = pixelMapRows(tela, numbering).map((r) => PIXELMAP_COLS.map((c) => r[c[0]]).join(sep));
+  const body = pixelMapRows(tela, numbering, offset).map((r) => PIXELMAP_COLS.map((c) => r[c[0]]).join(sep));
   return [head, ...body].join("\r\n");
 }

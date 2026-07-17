@@ -164,6 +164,24 @@ export function acRouteFromSignal(tela, numbering) {
   return signalRoute(tela, numbering).flatMap((p) => balancedChunks(p, acBudget));
 }
 
+// Numeração GLOBAL das portas do projeto: a controladora tem portas 1..N, e não
+// uma contagem que reinicia a cada tela — "tela" é invenção nossa (um bloco de
+// gabinetes iguais), não existe no NovaLCT. Devolve quantas portas as telas
+// ANTERIORES da lista já consumiram; 0 para tela avulsa (Diagramação/Test Card
+// fora de projeto), que volta a começar em 1.
+//
+// A ordem é a da lista de telas — o usuário reordena por drag & drop na aba
+// Dados. Isso é NUMERAÇÃO, não geometria: a ordem real depende do canvas do
+// processador, que o app ainda não modela.
+export function portOffset(telas, telaId, mode, numbering = "row-tb-lr") {
+  let n = 0;
+  for (const t of telas || []) {
+    if (t?.id === telaId) return n;
+    n += cablePorts(t, mode, numbering).length;
+  }
+  return 0;
+}
+
 // portas/cabos de uma tela para um modo, a partir da config persistida em tela.cabling
 export function cablePorts(tela, mode, numbering = "row-tb-lr") {
   const { cols, rows, acBudget, sinalBudget, sinalRule } = cableMeta(tela);
