@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.3.0";
+export const VERSION = "v1.3.1";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🖥️ Aba Screens: monte seus sistemas como faria no controlador — junte as telas que vão no mesmo cabo. O Cabeamento de Sinal agora é por Screen (automático OU livre, pra fazer a configuração na mão), o cabo atravessa telas do mesmo modelo, e o Relatório + mapa de pixels saem por Screen com a coordenada que se digita no NovaLCT. Energia (AC) segue por tela. Quem não montar Screen continua como antes.";
+export const WHATS_NEW = "⚡ Agora o AC também é por Screen, igual o sinal: mesma tela, automático ou livre, com aviso quando passa de gabinetes por cabo. Ganhou o \"Atrelar ao sinal\" (a energia acompanha a rota de dados). Assim dá pra contabilizar sinal e AC do mesmo jeito. Quem não montar Screen continua como antes.";

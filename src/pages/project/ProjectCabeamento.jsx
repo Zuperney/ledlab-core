@@ -1,16 +1,15 @@
 // pages/project/ProjectCabeamento.jsx — casca da aba Cabeamento.
 //
-// O SINAL é cabeado por Screen (a corrente atravessa telas) → ScreenSignal.
-// O AC é cabeado por tela (circuito segue o físico) → AcCabling.
-// Dois editores diferentes sob um toggle, porque agora sinal e AC vivem em níveis
-// diferentes: sinal na Screen (sistema), AC na tela (bloco físico).
+// Sinal e AC agora são cabeados do MESMO jeito: por Screen (a corrente atravessa
+// telas), pra contabilizar os cabos igual. Só o orçamento muda — sinal em px/porta,
+// AC em gabinetes/cabo pela corrente do conector. Um componente só (ScreenCabling),
+// parametrizado por `kind`.
 import { useState } from "react";
 import { GitBranch, Zap } from "lucide-react";
 import { T } from "../../ui/tokens.js";
-import ScreenSignal from "./ScreenSignal.jsx";
-import AcCabling from "./AcCabling.jsx";
+import ScreenCabling from "./ScreenCabling.jsx";
 
-export default function ProjectCabeamento({ project, patch, patchTela }) {
+export default function ProjectCabeamento({ project, patch }) {
   const [view, setView] = useState("sinal");
   return (
     <div>
@@ -25,7 +24,7 @@ export default function ProjectCabeamento({ project, patch, patchTela }) {
           );
         })}
       </div>
-      {view === "sinal" ? <ScreenSignal project={project} patch={patch} /> : <AcCabling project={project} patchTela={patchTela} />}
+      <ScreenCabling project={project} patch={patch} kind={view} />
     </div>
   );
 }

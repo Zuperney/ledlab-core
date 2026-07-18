@@ -14,7 +14,6 @@ import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
 import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
-import { cablePorts, portOffset } from "../../services/cabling.js";
 import { telaPortSlices } from "../../services/screenCabling.js";
 import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
 import { fileName } from "../../services/filenames.js";
@@ -91,21 +90,17 @@ export default function ProjectComposicao({ project, patch }) {
 
   // thumbnails reais (render via draw) — recomputa só quando muda conteúdo/estilo, não a posição
   // portas de cabo por tela — só quando o estilo pede mapa de cabos e a tela tem gabinete
-  // sinal: telaPortSlices dá o número REAL da porta (por Screen, ou local se a tela
-  // não está em Screen) — dois selos "1" em telas diferentes seriam mentira. AC por tela.
-  const slicesOf = (t) => (style.cableMap === "sinal" ? telaPortSlices(project, t.id, numbering) : null);
+  // sinal e ac: telaPortSlices dá o número REAL da porta (por Screen, ou local se a
+  // tela não está em Screen) — dois selos "1" em telas diferentes seriam mentira.
+  const slicesOf = (t) => (style.cableMap === "sinal" || style.cableMap === "ac"
+    ? telaPortSlices(project, t.id, style.cableMap, numbering) : null);
   const portsOf = (t) => {
     if (!(style.cableMap && style.cableMap !== "off" && parseFloat(t.gabinete?.resX) > 0)) return null;
-    const s = slicesOf(t);
-    return s ? s.map((x) => x.cells) : cablePorts(t, "ac", numbering);
+    return (slicesOf(t) || []).map((x) => x.cells);
   };
   const numsOf = (t) => {
-    const p = portsOf(t);
-    if (!p) return null;
     const s = slicesOf(t);
-    if (s) return s.map((x) => x.n);
-    const off = portOffset(telas, t.id, "ac", numbering);
-    return p.map((_, i) => off + i + 1);
+    return s ? s.map((x) => x.n) : null;
   };
   // o canvas entra na chave: mexer nele muda a porta de cada gabinete, e sem isto o
   // selo desenhado ficaria congelado no número antigo
