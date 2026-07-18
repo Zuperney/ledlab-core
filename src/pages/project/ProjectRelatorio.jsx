@@ -9,6 +9,7 @@ import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabling.js";
 import { hasScreens, projectScreenReport, telasSemScreen } from "../../services/screenCabling.js";
+import { effectiveProject, controllerOf } from "../../services/equipamentos.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
@@ -34,7 +35,7 @@ const videoOf = (t) => {
 };
 
 export default function ProjectRelatorio({ project }) {
-  const { prefs } = useLedLabContext();
+  const { prefs, controllers } = useLedLabContext();
   const { colorOf } = useCablePalette();
   const isMobile = useIsMobile();
   const [type, setType] = useState("Completo");
@@ -74,7 +75,9 @@ export default function ProjectRelatorio({ project }) {
   // com Screens, o SINAL vem delas (uma seção por Screen, portas 1..N por Screen).
   // Sem Screens, segue por tela (legado). O AC não muda: segue o físico, por tela.
   const usaScreens = hasScreens(project);
-  const screenReport = usaScreens ? projectScreenReport(project, "sinal", numbering) : [];
+  // SINAL respeita a controladora de cada Screen (capacidade por porta + Free
+  // Topology → régua). AC não muda: segue o físico, por corrente do conector.
+  const screenReport = usaScreens ? projectScreenReport(effectiveProject(project, controllers), "sinal", numbering) : [];
   const screenReportAc = usaScreens ? projectScreenReport(project, "ac", numbering) : [];
   const semScreen = usaScreens ? telasSemScreen(project) : [];
   const h3 = { color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 };
@@ -168,9 +171,12 @@ export default function ProjectRelatorio({ project }) {
             <p style={{ color: PRINT.mut, fontSize: 12 }}>
               Uma seção por <b>Screen</b> (o sistema como a controladora enxerga). A corrente <b>atravessa telas</b> do mesmo modelo, e as portas são numeradas <b>1..N por Screen</b> — cada Screen é um controlador. Coordenada X/Y com origem no canto superior-esquerdo da Screen (a que se digita no NovaLCT).
             </p>
-            {screenReport.map((s) => (
+            {screenReport.map((s) => {
+              const ctrl = controllerOf(controllers, (project.screens || []).find((x) => x.id === s.id));
+              const over = ctrl && s.ports.length > ctrl.portas;
+              return (
               <div key={s.id} style={telaBlock}>
-                <div style={telaTitle}>{s.nome} — {s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px · {s.ports.length} {s.ports.length === 1 ? "porta" : "portas"}</div>
+                <div style={telaTitle}>{s.nome} — {s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px · {ctrl ? <span style={{ color: over ? PRINT.red : PRINT.ink }}>{s.ports.length} de {ctrl.portas} portas ({ctrl.nome}){over ? " · estoura" : ""}</span> : `${s.ports.length} ${s.ports.length === 1 ? "porta" : "portas"}`}</div>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>
                     <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Uso</th><th style={th}>Telas que percorre</th><th style={th}>Início X, Y (px)</th>
@@ -188,7 +194,7 @@ export default function ProjectRelatorio({ project }) {
                   </tbody>
                 </table>
               </div>
-            ))}
+              ); })}
             {semScreen.length > 0 && (
               <p style={{ color: PRINT.amb, fontSize: 11.5, marginTop: 4 }}>
                 <b>{semScreen.length} tela(s) sem Screen</b> ({semScreen.map((t) => t.nome).join(", ")}) — ainda não entraram em nenhum sistema, então não têm cabeamento de sinal. Monte na aba Screens.

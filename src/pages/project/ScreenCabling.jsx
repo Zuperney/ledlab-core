@@ -6,7 +6,7 @@
 // segurança do powerCON. Numeração 1..N por Screen. Estouro em vermelho: mostra, não
 // bloqueia (sinal = px/porta; AC = corrente do conector).
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, ZoomIn, ZoomOut, Maximize, TriangleAlert, ChevronDown, ChevronUp } from "lucide-react";
+import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, ZoomIn, ZoomOut, Maximize, TriangleAlert, ChevronDown, ChevronUp, Cpu, Lock } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
 import Select from "../../components/Select.jsx";
@@ -18,6 +18,7 @@ import { genId } from "../../services/ids.js";
 import { fileName } from "../../services/filenames.js";
 import { oneScreenPerTela, screenTelas } from "../../services/screens.js";
 import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV } from "../../services/screenCabling.js";
+import { controllerOf, effectiveSinalCfg, effectiveProject } from "../../services/equipamentos.js";
 
 const key = (c) => `${c.telaId}:${c.c},${c.r}`;
 const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
@@ -33,7 +34,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
   const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
-  const { prefs } = useLedLabContext();
+  const { prefs, controllers } = useLedLabContext();
   const numbering = prefs.cableNumbering || "row-tb-lr";
 
   const [activeId, setActiveId] = useState(screens[0]?.id || null);
@@ -48,14 +49,21 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
 
   const active = screens.find((s) => s.id === activeId) || screens[0];
   const cfg = (active && (isAc ? active.ac : active.sinal)) || {};
+  // controladora da Screen — só afeta SINAL (capacidade por porta + Free Topology).
+  // A config EFETIVA alimenta os cálculos; a CRUA (cfg) é o que se grava — assim,
+  // tirar a controladora devolve a preferência de régua que o usuário tinha.
+  const controller = !isAc && active ? controllerOf(controllers, active) : null;
+  const effCfg = controller ? effectiveSinalCfg(cfg, controller) : cfg;
+  const effActive = controller ? { ...active, sinal: effCfg } : active;
+  const reguaLocked = !!controller && !controller.freeTopology; // sem FT → só Área
   // sinal tem régua (px/área); AC é sempre por área (conta por corrente). A régua
   // padrão é ÁREA (regra do retângulo) — a mais usada; px = Free Topology.
-  const rule = isAc ? "area" : (cfg.rule === "px" ? "px" : "area");
+  const rule = isAc ? "area" : (effCfg.rule === "px" ? "px" : "area");
   // disposição (estratégia): default sensato conforme a régua
   const defDisp = isAc ? "area" : (rule === "px" ? "auto" : "area");
-  const disp = cfg.strategy || defDisp;
+  const disp = effCfg.strategy || defDisp;
   const mode = disp === "livre" ? "livre" : (isAc && disp === "sinal") ? "sinal" : "auto";
-  const bbox = active ? bboxOf(active, telas) : { w: 0, h: 0 };
+  const bbox = active ? bboxOf(effActive, telas) : { w: 0, h: 0 };
 
   const fit = useCallback(() => {
     const el = stageRef.current; if (!el || !bbox.w) return;
@@ -101,13 +109,14 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
   const setCables = (next) => { setHistory((h) => [...h.slice(-29), cables]); setCfg({ cables: next }); };
   const undo = () => { if (!history.length) return; setCfg({ cables: history[history.length - 1] }); setHistory(history.slice(0, -1)); };
 
-  const ports = screenPorts(active, telas, kind, numbering);
+  const ports = screenPorts(effActive, telas, kind, numbering);
   const portIdx = cellPortIndex(ports);
-  const summary = screenPortSummary(active, telas, kind, numbering);
-  const cells = screenCells(active, telas);
-  const faltam = mode === "livre" ? unassignedCount(active, telas, kind) : 0;
+  const summary = screenPortSummary(effActive, telas, kind, numbering);
+  const cells = screenCells(effActive, telas);
+  const faltam = mode === "livre" ? unassignedCount(effActive, telas, kind) : 0;
   const anyOver = summary.some((p) => p.over);
-  const status = faltam ? { l: `Faltam ${faltam}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
+  const portsOver = !!controller && ports.length > controller.portas; // passou da capacidade
+  const status = faltam ? { l: `Faltam ${faltam}`, c: T.amb } : (anyOver || portsOver) ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
 
   const clickCell = (cell) => {
     if (mode !== "livre" || drag.current?.moved) return;
@@ -118,13 +127,13 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
   // Linha/Coluna/Área; área não tem "Automática")
   const setRegua = (v) => setCfg({ rule: v, strategy: v === "px" ? "auto" : "area" });
   const setDisp = (v) => setCfg({ strategy: v });
-  const importAuto = () => { setCables(autoAsCables(active, telas, kind, numbering)); setActiveCable(null); };
+  const importAuto = () => { setCables(autoAsCables(effActive, telas, kind, numbering)); setActiveCable(null); };
   const novoCabo = () => { setActiveCable(cables.length); setCables([...cables, []]); };
   const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActiveCable(null); };
   const inverter = () => { if (cables[activeCable]?.length) setCables(cables.map((c, i) => (i === activeCable ? [...c].reverse() : c))); };
   const limpar = async () => { if (await confirm({ title: "Limpar cabeamento?", message: `Todos os cabos livres de ${active.nome} serão removidos.` })) { setCables([]); setActiveCable(null); } };
   const exportCSV = () => {
-    const csv = projectPixelMapCSV(project, numbering, active.id);
+    const csv = projectPixelMapCSV(effectiveProject(project, controllers), numbering, active.id);
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -169,18 +178,31 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
                 {advOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />} Avançado
               </button>
               <span style={{ color: T.dim, fontSize: 12 }}>{resumo}</span>
+              {controller && (
+                <span title={reguaLocked ? "Sem Free Topology: a régua fica em Área." : "Free Topology disponível: você pode usar a régua de Pixels."}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.card2, border: `1px solid ${T.bd}`, color: T.mut, padding: "3px 9px", borderRadius: 999, fontSize: 11.5, fontWeight: 600 }}>
+                  <Cpu size={12} color={T.acM} /> {controller.nome}{controller.freeTopology ? " · FT" : ""}
+                </span>
+              )}
               <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
             </div>
             {advOpen && (
               <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.bd}` }}>
-                {!isAc && <Drop label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função). Veja Base de Conhecimento › Sinal." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
+                {!isAc && (reguaLocked
+                  ? <LockedField label="Régua" value="Área (retângulo)" title={`Definida pela ${controller.nome}: sem Free Topology, a régua fica em Área (regra do retângulo).`} />
+                  : <Drop label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função). Veja Base de Conhecimento › Sinal." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />)}
                 <Drop label="Disposição" title="Como a corrente é cortada em cabos" options={dispOpts} value={disp} onChange={setDisp} />
                 {mode === "auto" && <>
                   <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={cfg.routing || "updown"} onChange={(v) => setCfg({ routing: v })} />
                   <Drop label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
                 </>}
                 {!isAc && <Drop label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
-                <span style={{ color: T.dim, fontSize: 11, flexBasis: "100%" }}>{isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal." : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."}</span>
+                <span style={{ color: T.dim, fontSize: 11, flexBasis: "100%" }}>{
+                  isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal."
+                  : reguaLocked ? `Régua guiada pela ${controller.nome} (aba Equipamentos). Troque por uma controladora com Free Topology pra liberar a régua de Pixels.`
+                  : controller ? `${controller.nome} tem Free Topology — você escolhe a régua. Capacidade por porta vem dela.`
+                  : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."
+                }</span>
               </div>
             )}
           </div>
@@ -206,7 +228,9 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
               <div style={{ minWidth: 0 }}>
                 <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{active.nome} · {isAc ? "Energia AC" : "Sinal"}</div>
                 <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
-                  {bbox.w.toLocaleString("pt-BR")} × {bbox.h.toLocaleString("pt-BR")} px · {ports.length} {isAc ? (ports.length === 1 ? "cabo" : "cabos") : (ports.length === 1 ? "porta" : "portas")}
+                  {bbox.w.toLocaleString("pt-BR")} × {bbox.h.toLocaleString("pt-BR")} px · {controller
+                    ? <span style={{ color: portsOver ? T.red : T.dim, fontWeight: portsOver ? 700 : 400 }}>{ports.length} de {controller.portas} portas{portsOver ? " · estoura a controladora" : ""}</span>
+                    : <>{ports.length} {isAc ? (ports.length === 1 ? "cabo" : "cabos") : (ports.length === 1 ? "porta" : "portas")}</>}
                   {mode === "sinal" ? " · seguindo a rota do sinal" : " · a corrente atravessa as telas do mesmo modelo"}
                 </div>
               </div>
@@ -294,6 +318,17 @@ function Info({ text }) {
 }
 
 const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+// campo travado: mesmo visual do Drop, mas read-only (a controladora manda nele)
+function LockedField({ label, value, title }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }} title={title}>
+      {label}
+      <span style={{ ...dropSel, display: "inline-flex", alignItems: "center", gap: 6, cursor: "default", opacity: 0.85 }}>
+        <Lock size={12} color={T.dim} /> {value}
+      </span>
+    </span>
+  );
+}
 function Drop({ label, options, value, onChange, title }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }} title={title}>
