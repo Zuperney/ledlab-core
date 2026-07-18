@@ -2,6 +2,20 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.4.0] — 2026-07-17
+
+**Controles de cabeamento de volta — e sem ficar preso ao Free Topology.** No rework das Screens tinham sumido os controles finos do cabeamento. Voltaram, por Screen, num painel **"Avançado"** recolhido (a Screen já abre cabeada num bom padrão; quem quiser afinar, expande).
+
+- **Régua da porta** (o interruptor do *Free Topology / regra do retângulo*):
+  - **Área (retângulo)** — a porta reserva o retângulo circunscrito; buraco é pago. **Agora é o padrão** (é a régua mais usada; Free Topology desligado).
+  - **Pixels (real)** — conta o gabinete real (Free Topology ligado), pra controlador que tem a função.
+- **Disposição**: **Linha / Coluna / Área** (na régua de área) ou **Automática** (serpentina, na régua de pixels). Cada uma corta a corrente em cabos de um jeito.
+- **Profundidade**: **8-bit / 10-bit** (10-bit corta o orçamento da porta pela metade).
+- Vale pro **Sinal e pro AC** (o AC não tem régua de pixels — energia conta por corrente; tem Linha/Coluna/Área/Atrelar ao sinal/Livre).
+- Os controles ficam num **Avançado** recolhido, com resumo (ex.: "Área · Área · 8-bit"), 1 linha de ajuda e ponteiro pra Base de Conhecimento — poder sem obrigação, pra não pesar na curva de quem está começando.
+
+Reforço técnico: o motor cross-tela reaproveita as estratégias de bloco (Linha/Coluna/Área) do cabeamento por tela sobre a união das telas de cada modelo; a régua de área numa Screen com vãos é literalmente a regra do retângulo.
+
 ## [1.3.1] — 2026-07-17
 
 **AC por Screen — consistência com o sinal.** Fecha o rework: o cabeamento de energia (AC) passa a ser organizado por Screen igual ao sinal, pra contabilizar os cabos do mesmo jeito. Antes o AC ficava por tela; agora os dois vivem na mesma tela e na mesma lógica.

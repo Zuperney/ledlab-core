@@ -123,8 +123,10 @@ function portsArea(cols, rows, budget, routing, corner) {
   return ports;
 }
 
-// dados derivados do gabinete/tela (orçamentos de sinal e AC)
-export function cableMeta(tela) {
+// dados derivados do gabinete/tela (orçamentos de sinal e AC). `sinalOverride` deixa
+// o orçamento/régua de SINAL virem de OUTRA config (ex.: da Screen) em vez de
+// tela.cabling.sinal — o gabinete (px/gab, amps) segue vindo da tela.
+export function cableMeta(tela, sinalOverride) {
   const g = tela?.gabinete || {};
   const cols = tela?.cols || 1, rows = tela?.rows || 1;
   const pxPerCab = (parseFloat(g.resX) || 1) * (parseFloat(g.resY) || 1);
@@ -132,7 +134,7 @@ export function cableMeta(tela) {
   const ampCab = (parseFloat(g.pwrMax) || 0) / (FASE_V * fp);
   const connRating = CONN_AMP[g.conector] || 16;
   const acBudget = Math.max(1, Math.floor((connRating * acMargin) / (ampCab || 1)));
-  const s = (tela?.cabling || {}).sinal || {};
+  const s = sinalOverride || (tela?.cabling || {}).sinal || {};
   const sinalBits = s.bits === 10 ? 10 : 8; // profundidade de cor (8-bit padrão)
   const sinalRule = s.rule === "px" ? "px" : "area"; // sem o campo = legado (área) — não muda projetos existentes
   const pxPort = Math.floor(((PX_PER_PORT_BY_BITS[sinalBits] || PX_PER_PORT) * 60) / (s.hz || 60));

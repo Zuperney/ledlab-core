@@ -35,11 +35,12 @@ _Aponte a câmera do celular para o QR code._
 
 ## 🧾 Versões
 
-**Atual: v1.3.1** — **Screens**: você monta os sistemas como faria no controlador e cabeia cada um — **sinal e AC** na mesma lógica (automático ou livre). O cabo atravessa telas; relatório e mapa de pixels saem por Screen. *(176 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.4.0** — **Screens**: você monta os sistemas e cabeia cada um (sinal e AC), com os controles finos de volta — régua da porta (Área/regra do retângulo ou Pixels/Free Topology), disposição Linha/Coluna/Área e 8/10-bit, num "Avançado" recolhido. *(180 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|
-| **1.3.1** | **AC por Screen** (consistência com o sinal): automático / livre / atrelar ao sinal, com aviso de estouro de corrente |
+| **1.4.0** | **Controles de cabeamento por Screen**: régua Área/Pixels (regra do retângulo / Free Topology), disposição Linha/Coluna/Área, 8/10-bit — num "Avançado"; padrão = Área |
+| 1.3.1 | **AC por Screen** (consistência com o sinal): automático / livre / atrelar ao sinal, com aviso de estouro de corrente |
 | 1.3.0 | **Aba Screens**: você agrupa as telas em sistemas; cabeamento de sinal por Screen (auto ou livre); relatório, test card e mapa de pixels por Screen |
 | 1.2.0 | Canvas do processador (base do rework): cabo atravessando telas, portas 1..N, mapa de pixels na coordenada do NovaLCT |
 | 1.1.x | Portas de dados reais (px/porta), mapa de pixels, arrastar telas, Configurações em sub-menus, duração em 9h55 (não "9.9h") |
