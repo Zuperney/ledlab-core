@@ -12,9 +12,11 @@
 import { packByModel } from "./layout.js";
 import { dimOf, modelKey } from "./canvasCabling.js";
 
-// id vem de fora (genId no componente) pra manter isto puro/testável.
+// id vem de fora (genId no componente) pra manter isto puro/testável. sinal começa
+// vazio → régua/disposição caem no padrão (Área / regra do retângulo). AC é criado
+// sob demanda quando o usuário mexe no cabeamento AC.
 export function makeScreen(id, nome) {
-  return { id, nome, telaIds: [], pos: {}, sinal: { mode: "auto" } };
+  return { id, nome, telaIds: [], pos: {}, sinal: {} };
 }
 
 // telas que não estão em nenhuma Screen (a lista de "disponíveis")
@@ -84,6 +86,6 @@ export function oneScreenPerTela(telas, makeId) {
     nome: t.nome || "Tela",
     telaIds: [t.id],
     pos: { [t.id]: { x: 0, y: 0 } },
-    sinal: { mode: "auto" },
+    sinal: {},
   }));
 }

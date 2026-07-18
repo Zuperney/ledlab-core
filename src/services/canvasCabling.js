@@ -80,7 +80,7 @@ export function portBboxPx(port) {
 
 // ordem de numeração das portas no canvas — mesmo esquema do orderPorts() por tela
 // ("eixo-dir1-dir2"), só que medindo em pixels de canvas.
-function orderCanvasPorts(ports, scheme) {
+export function orderCanvasPorts(ports, scheme) {
   const bb = (p) => { let minY = Infinity, minX = Infinity; for (const x of p) { if (x.y < minY) minY = x.y; if (x.x < minX) minX = x.x; } return { minY, minX }; };
   const [axis, d1, d2] = (scheme || "row-tb-lr").split("-");
   return [...ports].sort((A, B) => {

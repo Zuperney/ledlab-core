@@ -20,6 +20,6 @@ export const NAV = [
 
 export const SECTIONS = ["GESTÃO", "FERRAMENTAS RÁPIDAS", "REFERÊNCIA"];
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.3.1";
+export const VERSION = "v1.4.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "⚡ Agora o AC também é por Screen, igual o sinal: mesma tela, automático ou livre, com aviso quando passa de gabinetes por cabo. Ganhou o \"Atrelar ao sinal\" (a energia acompanha a rota de dados). Assim dá pra contabilizar sinal e AC do mesmo jeito. Quem não montar Screen continua como antes.";
+export const WHATS_NEW = "🎛️ Voltaram os controles de cabeamento por Screen, num \"Avançado\": régua da porta (Área/regra do retângulo — agora o padrão — ou Pixels/Free Topology), disposição (Linha/Coluna/Área) e profundidade (8/10-bit). A Screen já abre cabeada num bom padrão; os controles ficam recolhidos pra não pesar. Free Topology deixou de ser obrigatório.";

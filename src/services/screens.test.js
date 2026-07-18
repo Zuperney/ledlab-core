@@ -14,7 +14,7 @@ const telas = [
 
 describe("makeScreen", () => {
   it("nasce vazia, com nome e modo auto", () => {
-    expect(makeScreen("s1", "Sistema Tiras")).toEqual({ id: "s1", nome: "Sistema Tiras", telaIds: [], pos: {}, sinal: { mode: "auto" } });
+    expect(makeScreen("s1", "Sistema Tiras")).toEqual({ id: "s1", nome: "Sistema Tiras", telaIds: [], pos: {}, sinal: {} });
   });
 });
 

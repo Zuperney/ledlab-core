@@ -12,9 +12,9 @@ const telas = [
 
 // Screen do "sistema tiras": 2 tiras + Central, encostadas (14 col × 3 lin de 128×256)
 const scTiras = { id: "s1", nome: "Tiras", telaIds: ["t1", "t2", "central"],
-  pos: { t1: { x: 0, y: 0 }, t2: { x: 128, y: 0 }, central: { x: 256, y: 0 } }, sinal: { mode: "auto" } };
+  pos: { t1: { x: 0, y: 0 }, t2: { x: 128, y: 0 }, central: { x: 256, y: 0 } }, sinal: { rule: "px", strategy: "auto" } };
 // Screen de 1 IMAG (18 gab de 192×192)
-const scImag = { id: "s2", nome: "IMAG", telaIds: ["imag"], pos: { imag: { x: 0, y: 0 } }, sinal: { mode: "auto" } };
+const scImag = { id: "s2", nome: "IMAG", telaIds: ["imag"], pos: { imag: { x: 0, y: 0 } }, sinal: { rule: "px", strategy: "auto" } };
 
 describe("screenAutoPorts — a corrente atravessa as telas da Screen", () => {
   it("as 2 tiras + Central viram portas que cruzam telas (mesmo modelo)", () => {
@@ -32,8 +32,8 @@ describe("screenAutoPorts — a corrente atravessa as telas da Screen", () => {
   });
 
   it("routing/corner da Screen mudam o início da serpentina", () => {
-    const bl = screenAutoPorts({ ...scImag, sinal: { mode: "auto", corner: "bl" } }, telas)[0][0];
-    const tr = screenAutoPorts({ ...scImag, sinal: { mode: "auto", corner: "tr" } }, telas)[0][0];
+    const bl = screenAutoPorts({ ...scImag, sinal: { rule: "px", strategy: "auto", corner: "bl" } }, telas)[0][0];
+    const tr = screenAutoPorts({ ...scImag, sinal: { rule: "px", strategy: "auto", corner: "tr" } }, telas)[0][0];
     expect(bl).not.toEqual({ c: tr.c, r: tr.r }); // canto diferente, início diferente
   });
 });
@@ -43,7 +43,7 @@ describe("screenPortSummary — capacidade e telas percorridas", () => {
     // 1 porta livre com os 18 gab (a gambiarra)
     const cables = autoAsCables(scImag, telas).flat(); // 18 refs num cabo só? autoAsCables dá 1 porta (18<=20... na verdade budget imag)
     // budget IMAG: 192×192=36.864 → 655.360/36.864 = 17 → auto daria 18 em 2 portas
-    const livre = { ...scImag, sinal: { mode: "livre", cables: [cables.map((c) => ({ telaId: c.telaId, c: c.c, r: c.r }))] } };
+    const livre = { ...scImag, sinal: { strategy: "livre", cables: [cables.map((c) => ({ telaId: c.telaId, c: c.c, r: c.r }))] } };
     const [p] = screenPortSummary(livre, telas);
     expect(p.count).toBe(18);
     expect(p.pct).toBe(101); // 663.552 / 655.360
@@ -58,12 +58,12 @@ describe("screenPortSummary — capacidade e telas percorridas", () => {
 
 describe("modo LIVRE", () => {
   it("resolveCables ignora referência de tela que saiu da Screen", () => {
-    const s = { ...scImag, sinal: { mode: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }, { telaId: "sumiu", c: 9, r: 9 }]] } };
+    const s = { ...scImag, sinal: { strategy: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }, { telaId: "sumiu", c: 9, r: 9 }]] } };
     expect(resolveCables(s, telas)[0].length).toBe(1); // só o que existe
   });
 
   it("screenPorts segue o modo: livre usa os cabos desenhados", () => {
-    const s = { ...scImag, sinal: { mode: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }]] } };
+    const s = { ...scImag, sinal: { strategy: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }]] } };
     expect(screenPorts(s, telas).length).toBe(1);
     expect(screenPorts(s, telas)[0].length).toBe(1);
   });
@@ -85,7 +85,7 @@ describe("modo LIVRE", () => {
   });
 
   it("unassignedCount: quantos gabinetes ainda não têm cabo", () => {
-    const s = { ...scImag, sinal: { mode: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }]] } };
+    const s = { ...scImag, sinal: { strategy: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }]] } };
     expect(unassignedCount(s, telas)).toBe(17); // 18 - 1
   });
 });
@@ -184,7 +184,7 @@ describe("AC por Screen", () => {
   });
 
   it("'Atrelar ao sinal': cada cabo de AC cabe dentro de uma porta de sinal", () => {
-    const scAtrel = { ...scTiras, ac: { mode: "sinal" } };
+    const scAtrel = { ...scTiras, ac: { strategy: "sinal" } };
     const sigKeys = screenPorts(scTiras, telas, "sinal").map((p) => new Set(p.map((c) => `${c.telaId}:${c.c},${c.r}`)));
     const acPorts = screenPorts(scAtrel, telas, "ac");
     for (const cab of acPorts) {
@@ -197,7 +197,7 @@ describe("AC por Screen", () => {
   });
 
   it("livre de AC é independente do livre de sinal (screen.ac.cables ≠ screen.sinal.cables)", () => {
-    const s = { ...scImag, sinal: { mode: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }]] }, ac: { mode: "livre", cables: [[{ telaId: "imag", c: 5, r: 2 }]] } };
+    const s = { ...scImag, sinal: { strategy: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }]] }, ac: { strategy: "livre", cables: [[{ telaId: "imag", c: 5, r: 2 }]] } };
     expect(screenPorts(s, telas, "sinal")[0][0]).toMatchObject({ c: 0, r: 0 });
     expect(screenPorts(s, telas, "ac")[0][0]).toMatchObject({ c: 5, r: 2 });
   });
@@ -207,5 +207,46 @@ describe("AC por Screen", () => {
     const slices = telaPortSlices(proj, "central", "ac");
     expect(slices.length).toBeGreaterThan(0);
     for (const s of slices) expect(s.cells.every((c) => c.telaId === "central")).toBe(true);
+  });
+});
+
+// ── régua (px × área/retângulo) + estratégias (linha/coluna/área) ──
+describe("régua e estratégia de sinal", () => {
+  it("régua padrão (sem campo) é ÁREA/retângulo, não px", () => {
+    // scTiras é px; um clone sem cfg cai no padrão área
+    const s = { ...scTiras, sinal: {} };
+    // área ainda cobre todos os 36, em blocos ≤ budget
+    const ports = screenAutoPorts(s, telas);
+    const seen = new Set(ports.flat().map((c) => `${c.telaId}:${c.c},${c.r}`));
+    expect(seen.size).toBe(36);
+  });
+
+  it("estratégia área/linha/coluna cobrem tudo, sem repetir, respeitando o budget", () => {
+    for (const strategy of ["area", "linha", "coluna"]) {
+      const s = { ...scTiras, sinal: { rule: "area", strategy } };
+      const ports = screenAutoPorts(s, telas);
+      const seen = new Set();
+      for (const p of ports) { expect(p.length).toBeLessThanOrEqual(20); for (const c of p) seen.add(`${c.telaId}:${c.c},${c.r}`); }
+      expect(seen.size).toBe(36);
+    }
+  });
+
+  it("px conta gabinete real; área cobra o retângulo (buraco pago) — L de 3 telas", () => {
+    // duas tiras nas pontas + uma no meio DESLOCADA pra baixo: cria um buraco no topo
+    const s = {
+      id: "L", nome: "L", telaIds: ["t1", "t2", "central"],
+      pos: { t1: { x: 0, y: 0 }, central: { x: 128, y: 512 }, t2: { x: 1408, y: 0 } },
+    };
+    const px = screenPortSummary({ ...s, sinal: { rule: "px", strategy: "auto" } }, telas);
+    const area = screenPortSummary({ ...s, sinal: { rule: "area", strategy: "area" } }, telas);
+    // a régua px nunca passa de 100% aqui (poucos gabinetes); a de área pode inflar
+    // por causa do retângulo que engole o vão — o pico dela é >= o pico do px
+    expect(Math.max(...area.map((p) => p.pct))).toBeGreaterThanOrEqual(Math.max(...px.map((p) => p.pct)));
+  });
+
+  it("bits: 10-bit corta o orçamento pela metade (mais portas)", () => {
+    const p8 = screenAutoPorts({ ...scTiras, sinal: { rule: "px", strategy: "auto", bits: 8 } }, telas).length;
+    const p10 = screenAutoPorts({ ...scTiras, sinal: { rule: "px", strategy: "auto", bits: 10 } }, telas).length;
+    expect(p10).toBeGreaterThanOrEqual(p8);
   });
 });

@@ -6,7 +6,7 @@
 // segurança do powerCON. Numeração 1..N por Screen. Estouro em vermelho: mostra, não
 // bloqueia (sinal = px/porta; AC = corrente do conector).
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, ZoomIn, ZoomOut, Maximize, TriangleAlert } from "lucide-react";
+import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, ZoomIn, ZoomOut, Maximize, TriangleAlert, ChevronDown, ChevronUp } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
 import Select from "../../components/Select.jsx";
@@ -42,12 +42,19 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [grabbing, setGrabbing] = useState(false);
+  const [advOpen, setAdvOpen] = useState(false); // controles avançados recolhidos por padrão
   const stageRef = useRef(null);
   const drag = useRef(null);
 
   const active = screens.find((s) => s.id === activeId) || screens[0];
-  const cfg = (active && (isAc ? active.ac : active.sinal)) || { mode: "auto" };
-  const mode = cfg.mode === "livre" ? "livre" : (isAc && cfg.mode === "sinal") ? "sinal" : "auto";
+  const cfg = (active && (isAc ? active.ac : active.sinal)) || {};
+  // sinal tem régua (px/área); AC é sempre por área (conta por corrente). A régua
+  // padrão é ÁREA (regra do retângulo) — a mais usada; px = Free Topology.
+  const rule = isAc ? "area" : (cfg.rule === "px" ? "px" : "area");
+  // disposição (estratégia): default sensato conforme a régua
+  const defDisp = isAc ? "area" : (rule === "px" ? "auto" : "area");
+  const disp = cfg.strategy || defDisp;
+  const mode = disp === "livre" ? "livre" : (isAc && disp === "sinal") ? "sinal" : "auto";
   const bbox = active ? bboxOf(active, telas) : { w: 0, h: 0 };
 
   const fit = useCallback(() => {
@@ -107,7 +114,10 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
     if (activeCable == null || activeCable >= cables.length) return;
     setCables(assignCell(cables, activeCable, cell));
   };
-  const goMode = (v) => setCfg({ mode: v });
+  // trocar a régua reseta a disposição pro padrão válido daquela régua (px não tem
+  // Linha/Coluna/Área; área não tem "Automática")
+  const setRegua = (v) => setCfg({ rule: v, strategy: v === "px" ? "auto" : "area" });
+  const setDisp = (v) => setCfg({ strategy: v });
   const importAuto = () => { setCables(autoAsCables(active, telas, kind, numbering)); setActiveCable(null); };
   const novoCabo = () => { setActiveCable(cables.length); setCables([...cables, []]); };
   const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActiveCable(null); };
@@ -125,7 +135,14 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
   };
 
   const R = (v) => v * zoom;
-  const modes = isAc ? [["auto", "Automático"], ["sinal", "Atrelar ao sinal"], ["livre", "Livre"]] : [["auto", "Automático"], ["livre", "Livre"]];
+  // disposições disponíveis conforme régua/kind (px não tem Linha/Coluna/Área; AC tem "Atrelar ao sinal")
+  const dispOpts = isAc
+    ? [["area", "Área"], ["linha", "Linha"], ["coluna", "Coluna"], ["sinal", "Atrelar ao sinal"], ["livre", "Livre"]]
+    : rule === "px"
+      ? [["auto", "Automática"], ["livre", "Livre"]]
+      : [["area", "Área"], ["linha", "Linha"], ["coluna", "Coluna"], ["livre", "Livre"]];
+  const dispLabel = (dispOpts.find(([v]) => v === disp) || [])[1] || disp;
+  const resumo = [isAc ? null : (rule === "px" ? "Pixels reais" : "Área"), dispLabel, isAc ? null : `${cfg.bits === 10 ? 10 : 8}-bit`].filter(Boolean).join(" · ");
 
   return (
     <div>
@@ -146,18 +163,26 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
         </div>
       ) : (
         <>
-          <div style={card({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: mode === "livre" ? 8 : 16 })}>
-            <div style={{ display: "flex", gap: 4 }}>
-              {modes.map(([v, l]) => {
-                const on = mode === v;
-                return <button key={v} onClick={() => goMode(v)} style={{ padding: "6px 12px", borderRadius: 7, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.acc : T.card2, color: on ? "#fff" : T.mut }}>{l}</button>;
-              })}
+          <div style={card({ marginBottom: mode === "livre" ? 8 : 16 })}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <button onClick={() => setAdvOpen((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+                {advOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />} Avançado
+              </button>
+              <span style={{ color: T.dim, fontSize: 12 }}>{resumo}</span>
+              <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
             </div>
-            {mode === "auto" && <>
-              <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={cfg.routing || "updown"} onChange={(v) => setCfg({ routing: v })} />
-              <Drop label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
-            </>}
-            <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
+            {advOpen && (
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.bd}` }}>
+                {!isAc && <Drop label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função). Veja Base de Conhecimento › Sinal." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
+                <Drop label="Disposição" title="Como a corrente é cortada em cabos" options={dispOpts} value={disp} onChange={setDisp} />
+                {mode === "auto" && <>
+                  <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={cfg.routing || "updown"} onChange={(v) => setCfg({ routing: v })} />
+                  <Drop label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
+                </>}
+                {!isAc && <Drop label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
+                <span style={{ color: T.dim, fontSize: 11, flexBasis: "100%" }}>{isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal." : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."}</span>
+              </div>
+            )}
           </div>
 
           {mode === "livre" && (

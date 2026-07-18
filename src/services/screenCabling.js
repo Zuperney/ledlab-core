@@ -10,27 +10,68 @@
 // AC é energia (segue o físico), mas por consistência de contagem é organizado por
 // Screen igual o sinal — o modo LIVRE parte os circuitos como a energia realmente
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
-import { cableMeta, cablePorts, balancedChunks } from "./cabling.js";
-import { canvasCells, canvasPorts, portBboxPx } from "./canvasCabling.js";
+import { cableMeta, cablePorts, balancedChunks, buildAuto } from "./cabling.js";
+import { canvasCells, snakeCells, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
 import { screenTelas, screenOfTela, unassignedTelas, screenSize } from "./screens.js";
 
 const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
 const cfgOf = (screen, kind) => (kind === "ac" ? screen?.ac : screen?.sinal) || {};
-const budgetKeyOf = (kind) => (kind === "ac" ? "acBudget" : "sinalBudget");
+// meta do gabinete com a config de SINAL vinda da Screen (bits/régua), não da tela
+const metaOf = (tela, cfg, kind) => (kind === "ac" ? cableMeta(tela) : cableMeta(tela, cfg));
+
+function groupByModel(cells) {
+  const m = new Map();
+  for (const c of cells) { if (!m.has(c.model)) m.set(c.model, []); m.get(c.model).push(c); }
+  return m;
+}
+
+// régua de ÁREA / regra do retângulo (e todo AC): parte o grupo do modelo em BLOCOS
+// retangulares (Linha/Coluna/Área) reaproveitando o buildAuto por tela — normaliza o
+// grupo numa grade (col/lin a partir do canto), roda a estratégia, e remapeia pros
+// gabinetes reais. Buracos entram no retângulo (é a regra do retângulo) e caem fora
+// da lista de gabinetes reais da porta.
+function blockPorts(cells, tela, budget, strategy, routing, corner, numbering) {
+  const resX = parseFloat(tela?.gabinete?.resX) || 128, resY = parseFloat(tela?.gabinete?.resY) || 128;
+  let minX = Infinity, minY = Infinity;
+  for (const c of cells) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); }
+  const byPos = new Map(); let maxC = 0, maxR = 0;
+  for (const c of cells) {
+    const gc = Math.round((c.x - minX) / resX), gr = Math.round((c.y - minY) / resY);
+    byPos.set(`${gc},${gr}`, c); maxC = Math.max(maxC, gc); maxR = Math.max(maxR, gr);
+  }
+  return buildAuto(maxC + 1, maxR + 1, strategy, budget, routing, numbering, "area", corner)
+    .map((port) => port.map((g) => byPos.get(`${g.c},${g.r}`)).filter(Boolean))
+    .filter((port) => port.length);
+}
 
 // os gabinetes da Screen em coordenada de canvas (origem própria) — a base do desenho
 export function screenCells(screen, telas) {
   return canvasCells(screenTelas(screen, telas), screen?.pos || {});
 }
 
-// AUTO: reaproveita o canvasPorts (serpentina por modelo + corte balanceado),
-// escopado nas telas DESTA Screen, com o orçamento do `kind`. routing/corner vêm da
-// config do kind.
+// AUTO (não-livre): uma serpentina/bloco por MODELO de gabinete, escopado nas telas
+// DESTA Screen. A régua decide a forma:
+//   px (Free Topology) → serpentina contígua cortada por CONTAGEM (buraco não paga)
+//   área (regra do retângulo) → blocos retangulares (Linha/Coluna/Área)
+// AC é sempre por blocos (conta por corrente). Orçamento: sinal vem dos bits da
+// Screen; AC vem da corrente do conector.
 export function screenAutoPorts(screen, telas, kind = "sinal", numbering = "row-tb-lr") {
   const cfg = cfgOf(screen, kind);
-  return canvasPorts(screenTelas(screen, telas), screen?.pos || {}, {
-    routing: cfg.routing, corner: cfg.corner, numbering, budgetKey: budgetKeyOf(kind),
-  });
+  const routing = cfg.routing || "updown", corner = cfg.corner || "bl";
+  const membros = screenTelas(screen, telas);
+  const ports = [];
+  for (const [model, group] of groupByModel(screenCells(screen, telas))) {
+    const tela = membros.find((t) => modelKey(t) === model);
+    const meta = metaOf(tela, cfg, kind);
+    const budget = kind === "ac" ? meta.acBudget : meta.sinalBudget;
+    if (kind === "sinal" && meta.sinalRule === "px") {
+      ports.push(...balancedChunks(snakeCells(group, routing, corner), budget));
+    } else {
+      const strategy = ["linha", "coluna", "area"].includes(cfg.strategy) ? cfg.strategy : "area";
+      ports.push(...blockPorts(group, tela, budget, strategy, routing, corner, numbering));
+    }
+  }
+  return orderCanvasPorts(ports, numbering);
 }
 
 // AC "atrelar ao sinal": segue as portas de SINAL da Screen, mas reparte cada uma em
@@ -51,23 +92,24 @@ export function resolveCables(screen, telas, kind = "sinal") {
   return (cfgOf(screen, kind).cables || []).map((cable) => cable.map((ref) => byKey.get(cellKey(ref))).filter(Boolean));
 }
 
-// as portas/cabos da Screen: livre → os desenhados; sinal atrelado (AC) → segue o
-// sinal; senão → a sugestão automática do app.
+// as portas/cabos da Screen. A "disposição" (strategy) manda: "livre" → os cabos
+// desenhados; "sinal" (só AC) → atrela à rota do sinal; qualquer outra → auto.
 export function screenPorts(screen, telas, kind = "sinal", numbering = "row-tb-lr") {
-  const cfg = cfgOf(screen, kind);
-  if (cfg.mode === "livre") return resolveCables(screen, telas, kind);
-  if (kind === "ac" && cfg.mode === "sinal") return acFromSignal(screen, telas, numbering);
+  const strat = cfgOf(screen, kind).strategy;
+  if (strat === "livre") return resolveCables(screen, telas, kind);
+  if (kind === "ac" && strat === "sinal") return acFromSignal(screen, telas, numbering);
   return screenAutoPorts(screen, telas, kind, numbering);
 }
 
 // resumo por porta/cabo: uso em %, se estoura, telas que percorre. Sinal mede em px
 // (régua px real ou área/retângulo); AC mede em corrente (carga vs. conector).
 export function screenPortSummary(screen, telas, kind = "sinal", numbering = "row-tb-lr") {
+  const cfg = cfgOf(screen, kind);
   const ports = screenPorts(screen, telas, kind, numbering);
   const membros = screenTelas(screen, telas);
   const nomeDe = (id) => membros.find((t) => t.id === id)?.nome;
   return ports.map((port, pi) => {
-    const m = cableMeta(membros.find((t) => t.id === port[0]?.telaId));
+    const m = metaOf(membros.find((t) => t.id === port[0]?.telaId), cfg, kind);
     const telaIds = [...new Set(port.map((c) => c.telaId))];
     const f = port[0] || {};
     const base = {
@@ -92,9 +134,13 @@ export function cellPortIndex(ports) {
 }
 
 // ── edição do modo LIVRE (puro, testável) ──
-// o auto vira ponto de partida: importa os cabos sugeridos como editáveis
+// o auto vira ponto de partida: importa os cabos sugeridos como editáveis. Se a
+// disposição atual já é "livre", cai num padrão sensato (mantém "sinal"/atrelar).
 export function autoAsCables(screen, telas, kind = "sinal", numbering = "row-tb-lr") {
-  return screenPorts({ ...screen, [kind]: { ...cfgOf(screen, kind), mode: "auto" } }, telas, kind, numbering)
+  const cfg = cfgOf(screen, kind);
+  const fallback = kind === "ac" ? "area" : (cfg.rule === "px" ? "auto" : "area");
+  const strategy = !cfg.strategy || cfg.strategy === "livre" ? fallback : cfg.strategy;
+  return screenPorts({ ...screen, [kind]: { ...cfg, strategy } }, telas, kind, numbering)
     .map((port) => port.map((c) => ({ telaId: c.telaId, c: c.c, r: c.r })));
 }
 
