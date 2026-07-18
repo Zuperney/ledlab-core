@@ -72,7 +72,8 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **🟣 A corrente atravessa telas** — porta que sai de uma tela e entra na outra: numa parede real de 7 telas, **10 portas → 6**. Tela pequena parava de comer uma porta inteira | **2** | **v1.2.0** |
 | **🟣 Portas numeradas 1..N no projeto** — fim dos sete "Cabo 1"; o relatório diz a porta que o operador pluga (AC com numeração própria) | **2** | **v1.2.0** |
 | **🟣 Mapa de pixels em coordenada de canvas** — o X/Y que se digita no NovaLCT (era por tela, e por isso não servia na prática) | **2** | **v1.2.0** |
-| **🟣 Screens — o técnico monta os sistemas** — aba Screens (agrupamento manual, não por modelo), cabeamento de sinal por Screen (automático OU livre), relatório + mapa de pixels por Screen. AC segue por tela | **2** | **v1.3.0** |
+| **🟣 Screens — o técnico monta os sistemas** — aba Screens (agrupamento manual, não por modelo), cabeamento de sinal por Screen (automático OU livre), relatório + mapa de pixels por Screen | **2** | **v1.3.0** |
+| **🟣 AC por Screen** — energia na mesma lógica do sinal (auto/livre/atrelar ao sinal), aviso de estouro de corrente, relatório por Screen — pra contabilizar sinal e AC junto | **2** | **v1.3.1** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -172,4 +173,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-17 (v1.3.0 · Fase 02 em curso)._
+_Última atualização: 2026-07-17 (v1.3.1 · Fase 02 em curso)._

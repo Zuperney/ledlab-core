@@ -97,8 +97,11 @@ function orderCanvasPorts(ports, scheme) {
 // Portas sobre um conjunto de telas+posições: uma serpentina por modelo de gabinete,
 // cortada em portas balanceadas. Cada porta é uma lista de gabinetes {telaId,c,r,x,
 // y,w,h,model} que PODE atravessar telas. É a base do modo automático da Screen.
+// budgetKey escolhe o orçamento do gabinete: "sinalBudget" (px/porta) ou "acBudget"
+// (gabinetes/cabo pela corrente do conector) — é o que deixa o mesmo motor servir
+// pro Sinal e pro AC.
 export function canvasPorts(telas, positions, opts = {}) {
-  const { routing = "updown", corner = "bl", numbering = "row-tb-lr" } = opts;
+  const { routing = "updown", corner = "bl", numbering = "row-tb-lr", budgetKey = "sinalBudget" } = opts;
   const cells = canvasCells(telas, positions);
   const byModel = new Map();
   for (const cell of cells) {
@@ -108,8 +111,8 @@ export function canvasPorts(telas, positions, opts = {}) {
   const ports = [];
   for (const [model, group] of byModel) {
     const tela = (telas || []).find((t) => modelKey(t) === model);
-    const { sinalBudget } = cableMeta(tela);
-    ports.push(...balancedChunks(snakeCells(group, routing, corner), sinalBudget));
+    const budget = cableMeta(tela)[budgetKey] || 1;
+    ports.push(...balancedChunks(snakeCells(group, routing, corner), budget));
   }
   return orderCanvasPorts(ports, numbering);
 }

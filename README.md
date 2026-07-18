@@ -23,7 +23,7 @@ _Aponte a câmera do celular para o QR code._
 |---|---|
 | ⚡ **Elétrica** | Pico/típico por tela, corrente por fase, disjuntor e gerador — modelo validado com datasheets e normas (NBR/IEC) |
 | 🖥️ **Screens** | Monte seus sistemas como no controlador: agrupe as telas que vão juntas; o cabo atravessa telas e as portas são numeradas por Screen |
-| 🔌 **Cabeamento** | Sinal por Screen (automático ou livre) e cabos AC por tela, com balanceamento, margem de segurança e mapa visual |
+| 🔌 **Cabeamento** | Sinal e AC por Screen (automático, livre ou — no AC — atrelado ao sinal), com balanceamento, margem de segurança, aviso de estouro e mapa visual |
 | 🖥️ **Test cards** | Cartões de teste na resolução nativa do painel, com números, geometria, mapa de cabos e export PNG |
 | 🧩 **Composição** | Várias telas posicionadas num render só (estilo mapeamento de slices), com alerta de sobreposição |
 | 📐 **Aspect Ratio & crop** | Proporção da tela e cálculo de crop do sinal (encaixar × preencher, com deslocamento) |
@@ -35,11 +35,12 @@ _Aponte a câmera do celular para o QR code._
 
 ## 🧾 Versões
 
-**Atual: v1.3.0** — **Screens**: você monta os sistemas como faria no controlador e cabeia cada um (automático ou livre). O cabo atravessa telas, o relatório e o mapa de pixels saem por Screen. *(170 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.3.1** — **Screens**: você monta os sistemas como faria no controlador e cabeia cada um — **sinal e AC** na mesma lógica (automático ou livre). O cabo atravessa telas; relatório e mapa de pixels saem por Screen. *(176 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|
-| **1.3.0** | **Aba Screens**: você agrupa as telas em sistemas; cabeamento de sinal por Screen (auto ou livre); relatório, test card e mapa de pixels por Screen |
+| **1.3.1** | **AC por Screen** (consistência com o sinal): automático / livre / atrelar ao sinal, com aviso de estouro de corrente |
+| 1.3.0 | **Aba Screens**: você agrupa as telas em sistemas; cabeamento de sinal por Screen (auto ou livre); relatório, test card e mapa de pixels por Screen |
 | 1.2.0 | Canvas do processador (base do rework): cabo atravessando telas, portas 1..N, mapa de pixels na coordenada do NovaLCT |
 | 1.1.x | Portas de dados reais (px/porta), mapa de pixels, arrastar telas, Configurações em sub-menus, duração em 9h55 (não "9.9h") |
 | 1.0.0 | Marco de estabilidade: rodada de blindagem (testes, lint zerado e bloqueante no CI, infra de deploy atualizada) |

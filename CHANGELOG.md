@@ -2,6 +2,16 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.3.1] — 2026-07-17
+
+**AC por Screen — consistência com o sinal.** Fecha o rework: o cabeamento de energia (AC) passa a ser organizado por Screen igual ao sinal, pra contabilizar os cabos do mesmo jeito. Antes o AC ficava por tela; agora os dois vivem na mesma tela e na mesma lógica.
+
+- Cabeamento › **Energia (AC)** é por Screen: **Automático** (serpentina por modelo, cortada em cabos pela corrente do conector), **Livre** (desenha à mão), e **Atrelar ao sinal** (a energia acompanha a rota de dados, repartida em cabos balanceados por corrente).
+- Mesmos avisos do sinal: **estouro em vermelho** quando o cabo passa da corrente do conector (não bloqueia). Numeração 1..N por Screen.
+- Relatório › AC: **uma seção por Screen** (carga por cabo × conector), no mesmo formato do sinal. Test Card e Composição mostram o número real do cabo de AC.
+- Um só componente serve sinal e AC (menos código, comportamento idêntico). Sinal em px/porta; AC em gabinetes/cabo por corrente.
+- Retrocompatível: projeto sem Screen segue como antes.
+
 ## [1.3.0] — 2026-07-17
 
 **Screens — você monta os sistemas.** Reescrita do canvas da v1.2 depois do teste de campo: a v1.2 agrupava as telas sozinha (por modelo de gabinete), e isso estava errado — juntava dois IMAG que ficam a 20 m um do outro num cabo só. Metade dos eventos muda a configuração na montagem, então o app não pode impor um plano. Agora **quem agrupa é o técnico**.

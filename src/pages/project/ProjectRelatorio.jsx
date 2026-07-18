@@ -74,7 +74,8 @@ export default function ProjectRelatorio({ project }) {
   // com Screens, o SINAL vem delas (uma seção por Screen, portas 1..N por Screen).
   // Sem Screens, segue por tela (legado). O AC não muda: segue o físico, por tela.
   const usaScreens = hasScreens(project);
-  const screenReport = usaScreens ? projectScreenReport(project, numbering) : [];
+  const screenReport = usaScreens ? projectScreenReport(project, "sinal", numbering) : [];
+  const screenReportAc = usaScreens ? projectScreenReport(project, "ac", numbering) : [];
   const semScreen = usaScreens ? telasSemScreen(project) : [];
   const h3 = { color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 };
   const telaBlock = { marginBottom: 18, breakInside: "avoid" };
@@ -241,7 +242,35 @@ export default function ProjectRelatorio({ project }) {
           </section>
         )}
 
-        {showAC && (
+        {showAC && usaScreens && (
+          <section style={{ marginBottom: 24 }}>
+            <h3 style={h3}>Energia — Cabeamento AC</h3>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.</p>
+            {screenReportAc.map((s) => (
+              <div key={s.id} style={telaBlock}>
+                <div style={telaTitle}>{s.nome} — {s.ports.length} {s.ports.length === 1 ? "cabo" : "cabos"}</div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={th}>Cabo</th><th style={th}>Gab.</th><th style={th}>Carga</th><th style={th}>Telas que percorre</th>
+                  </tr></thead>
+                  <tbody>
+                    {s.ports.map((p) => (
+                      <tr key={p.n}>
+                        <td style={td}><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 6, verticalAlign: "middle" }} />{p.n}</td>
+                        <td style={td}>{p.count}</td>
+                        <td style={{ ...td, color: p.over ? PRINT.red : PRINT.ink }}>{p.load.toFixed(1)} A ({p.pct}%)</td>
+                        <td style={td}>{p.telas.join(" → ")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 6 }}>powerCON azul: não (des)conectar sob carga. Cabo 1,5 mm² limita em 16 A; cálculo a 220 V.</p>
+          </section>
+        )}
+
+        {showAC && !usaScreens && (
           <section style={{ marginBottom: 24 }}>
             <h3 style={h3}>Energia — Cabeamento AC</h3>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>

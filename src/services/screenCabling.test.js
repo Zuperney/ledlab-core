@@ -156,3 +156,56 @@ describe("projectPixelMapCSV", () => {
     expect(csv.split("\r\n").length).toBe(1 + 18);
   });
 });
+
+// ── AC por Screen (mesma mecânica do sinal, orçamento por corrente) ──
+describe("AC por Screen", () => {
+  it("screenPorts kind=ac cobre todos os gabinetes da Screen", () => {
+    const seen = new Set();
+    for (const p of screenPorts(scTiras, telas, "ac")) for (const c of p) seen.add(`${c.telaId}:${c.c},${c.r}`);
+    expect(seen.size).toBe(36);
+  });
+
+  it("screenPortSummary kind=ac traz carga em A, % e flag over", () => {
+    const s = screenPortSummary(scTiras, telas, "ac");
+    expect(s.length).toBeGreaterThan(0);
+    for (const p of s) {
+      expect(typeof p.load).toBe("number");
+      expect(p.load).toBeGreaterThan(0);
+      expect(typeof p.pct).toBe("number");
+      expect(typeof p.over).toBe("boolean");
+    }
+  });
+
+  it("AC e SINAL podem dar contagens diferentes (orçamentos diferentes)", () => {
+    const ac = screenPorts(scTiras, telas, "ac").length;
+    const sig = screenPorts(scTiras, telas, "sinal").length;
+    expect(ac).toBeGreaterThanOrEqual(1);
+    expect(sig).toBeGreaterThanOrEqual(1);
+  });
+
+  it("'Atrelar ao sinal': cada cabo de AC cabe dentro de uma porta de sinal", () => {
+    const scAtrel = { ...scTiras, ac: { mode: "sinal" } };
+    const sigKeys = screenPorts(scTiras, telas, "sinal").map((p) => new Set(p.map((c) => `${c.telaId}:${c.c},${c.r}`)));
+    const acPorts = screenPorts(scAtrel, telas, "ac");
+    for (const cab of acPorts) {
+      const ks = cab.map((c) => `${c.telaId}:${c.c},${c.r}`);
+      expect(sigKeys.some((set) => ks.every((k) => set.has(k)))).toBe(true); // subconjunto de alguma porta de sinal
+    }
+    // cobre tudo
+    const seen = new Set(acPorts.flat().map((c) => `${c.telaId}:${c.c},${c.r}`));
+    expect(seen.size).toBe(36);
+  });
+
+  it("livre de AC é independente do livre de sinal (screen.ac.cables ≠ screen.sinal.cables)", () => {
+    const s = { ...scImag, sinal: { mode: "livre", cables: [[{ telaId: "imag", c: 0, r: 0 }]] }, ac: { mode: "livre", cables: [[{ telaId: "imag", c: 5, r: 2 }]] } };
+    expect(screenPorts(s, telas, "sinal")[0][0]).toMatchObject({ c: 0, r: 0 });
+    expect(screenPorts(s, telas, "ac")[0][0]).toMatchObject({ c: 5, r: 2 });
+  });
+
+  it("telaPortSlices kind=ac usa as portas de AC da Screen", () => {
+    const proj = { telas, screens: [scTiras] };
+    const slices = telaPortSlices(proj, "central", "ac");
+    expect(slices.length).toBeGreaterThan(0);
+    for (const s of slices) expect(s.cells.every((c) => c.telaId === "central")).toBe(true);
+  });
+});

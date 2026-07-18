@@ -3,7 +3,6 @@ import { useRef, useEffect, useState } from "react";
 import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, ChevronDown, ChevronUp } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt } from "../../store/UIContext.jsx";
-import { cablePorts, portOffset } from "../../services/cabling.js";
 import { telaPortSlices } from "../../services/screenCabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
@@ -38,10 +37,11 @@ export default function ProjectTestCard({ project }) {
   // sinal: telaPortSlices resolve Screen-ou-legado — o selo mostra a PORTA DE VERDADE
   // (número real por Screen, mesmo que a corrente tenha entrado vinda de outra tela;
   // ou numeração local se a tela não está em nenhuma Screen). AC segue por tela.
-  const slices = tela && o.cableMap === "sinal" ? telaPortSlices(project, tela.id, numbering) : null;
-  const mapPorts = slices ? slices.map((s) => s.cells) : tela && o.cableMap === "ac" ? cablePorts(tela, "ac", numbering) : null;
-  const mapNums = slices ? slices.map((s) => s.n)
-    : mapPorts ? mapPorts.map((_, i) => portOffset(telas, tela.id, "ac", numbering) + i + 1) : null;
+  // sinal E ac vêm de telaPortSlices (Screen-ou-legado): o selo mostra a PORTA REAL
+  // (número por Screen; ou local se a tela não está em Screen).
+  const slices = tela && (o.cableMap === "sinal" || o.cableMap === "ac") ? telaPortSlices(project, tela.id, o.cableMap, numbering) : null;
+  const mapPorts = slices ? slices.map((s) => s.cells) : null;
+  const mapNums = slices ? slices.map((s) => s.n) : null;
   useEffect(() => { if (tela && canvasRef.current) draw(canvasRef.current, tela, o, mapPorts, palette, mapNums); });
 
   if (!tela) return <Placeholder icon={Monitor} title="Sem telas" description="Adicione uma tela na aba Dados para gerar o test card." />;
