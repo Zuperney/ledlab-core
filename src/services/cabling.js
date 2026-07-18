@@ -137,7 +137,11 @@ export function cableMeta(tela, sinalOverride) {
   const s = sinalOverride || (tela?.cabling || {}).sinal || {};
   const sinalBits = s.bits === 10 ? 10 : 8; // profundidade de cor (8-bit padrão)
   const sinalRule = s.rule === "px" ? "px" : "area"; // sem o campo = legado (área) — não muda projetos existentes
-  const pxPort = Math.floor(((PX_PER_PORT_BY_BITS[sinalBits] || PX_PER_PORT) * 60) / (s.hz || 60));
+  // capacidade por porta: da controladora (pxPortaBase @8-bit, Equipamentos) se houver,
+  // senão a régua padrão do app. 10-bit corta pela metade; escala com o refresh.
+  const baseAt8 = s.pxPortaBase || PX_PER_PORT_BY_BITS[8] || PX_PER_PORT;
+  const pxPortBase = s.pxPortaBase ? (sinalBits === 10 ? baseAt8 / 2 : baseAt8) : (PX_PER_PORT_BY_BITS[sinalBits] || PX_PER_PORT);
+  const pxPort = Math.floor((pxPortBase * 60) / (s.hz || 60));
   const sinalBudget = Math.max(1, Math.floor(pxPort / pxPerCab));
   return { cols, rows, pxPerCab, fp, ampCab, connRating, acBudget, sinalBudget, sinalRule, sinalBits, pxPort };
 }

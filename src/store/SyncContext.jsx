@@ -28,6 +28,7 @@ export function SyncProvider({ children }) {
         { key: KEYS.tcPresets, value: app.tcPresets, apply: app.setTcPresets },
         { key: KEYS.worklog, value: app.worklog, apply: app.setWorklog },
         { key: KEYS.activityTypes, value: app.activityTypes, apply: app.setActivityTypes },
+        { key: KEYS.controllers, value: app.controllers, apply: app.setControllers },
       ]);
       setStatus("synced");
       setLastSyncedAt(Date.now());
@@ -36,8 +37,8 @@ export function SyncProvider({ children }) {
     } finally {
       running.current = false;
     }
-  }, [user, app.cabs, app.projects, app.prefs, app.tcPresets, app.worklog, app.activityTypes,
-      app.setCabs, app.setProjects, app.setPrefs, app.setTcPresets, app.setWorklog, app.setActivityTypes]);
+  }, [user, app.cabs, app.projects, app.prefs, app.tcPresets, app.worklog, app.activityTypes, app.controllers,
+      app.setCabs, app.setProjects, app.setPrefs, app.setTcPresets, app.setWorklog, app.setActivityTypes, app.setControllers]);
 
   // esquece a baseline ao deslogar (próximo login re-sincroniza limpo)
   const prevUser = useRef(user);

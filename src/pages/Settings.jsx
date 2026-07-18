@@ -11,6 +11,7 @@ import { isPersisted, requestPersist, storageUsage } from "../services/storage.j
 import { VOLT } from "../services/electricalCalc.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
+import { SEED_CONTROLLERS } from "../services/equipamentos.js";
 import Select from "../components/Select.jsx";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
@@ -29,7 +30,7 @@ const download = (name, obj) => {
 };
 
 export default function Settings() {
-  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, setDespesas, exportBackup } = useLedLabContext();
+  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, setDespesas, setControllers, exportBackup } = useLedLabContext();
   const confirm = useConfirm();
   const toast = useToast();
   const backupRef = useRef(null);
@@ -56,6 +57,7 @@ export default function Settings() {
       if (Array.isArray(d.worklog)) setWorklog(d.worklog);
       if (Array.isArray(d.activityTypes)) setActivityTypes(d.activityTypes);
       if (Array.isArray(d.despesas)) setDespesas(d.despesas); // fotos não vêm no .json (ficam no aparelho)
+      if (Array.isArray(d.controllers)) setControllers(d.controllers);
       toast("Backup importado");
     };
     reader.readAsText(file);
@@ -123,7 +125,7 @@ export default function Settings() {
     if (!(await confirm({ title: "Restaurar de fábrica?", message: "Isso apaga TODOS os seus dados (gabinetes e projetos) e recarrega os dados de exemplo. Não pode ser desfeito." }))) return;
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
     setCabs(SEED_CABINETS); setProjects(SEED_PROJECTS); setPrefs(DEFAULT_PREFS); setTcPresets([]);
-    setWorklog([]); setActivityTypes(SEED_ACTIVITY_TYPES); setDespesas([]);
+    setWorklog([]); setActivityTypes(SEED_ACTIVITY_TYPES); setDespesas([]); setControllers(SEED_CONTROLLERS);
     toast("Dados restaurados de fábrica");
   };
 
