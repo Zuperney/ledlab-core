@@ -34,6 +34,6 @@ export const SECTION_META = {
 };
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.5.2";
+export const VERSION = "v1.5.3";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🔌 O mapa de cabos ficou mais claro: gabinetes quadrados encostados, número da ordem em cada gabinete e setas de direção — no Cabeamento, na Diagramação e no Relatório. Dá pra ligar/desligar setas e números, e ajustar tamanho e canto do número, em Configurações › Mapa de cabos.";
+export const WHATS_NEW = "🔌 O mapa de cabos VISUAL voltou pro relatório: projetos com Screen agora mostram o grid com trajeto, setas e numeração em cada Screen (sinal e AC), acima das tabelas — antes só vinham as tabelas.";

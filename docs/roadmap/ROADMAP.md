@@ -81,6 +81,7 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **Configurações em overlay** — abre num painel (Drawer) por cima da tela, sem desmontar onde você está; fecha (X/toque fora/Esc) e volta no lugar, com a mudança já refletida atrás | 1 | **v1.5.0** |
 | **Seção Financeiro reorganizada** — Cachês vira aba própria (saiu do toggle da Agenda) e "Financeiro" → "Recibos"; fluxo Cachês → Recibos → Reembolso | 1 | **v1.5.1** |
 | **🟣 Mapa de cabos redesenhado + configurável** — gabinetes quadrados/encostados, nº da ordem por gabinete e setas de direção (à la NovaLCT), num render compartilhado (Cabeamento/Diagramação/Relatório) + config em Configurações › Mapa de cabos | **2** | **v1.5.2** |
+| **Mapa de cabos visual de volta no Relatório** — projetos com Screen voltam a desenhar o grid (sinal e AC), escalado pra caber na página; antes só tabelas | 2 | **v1.5.3** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -180,4 +181,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-22 (v1.5.2 · Fase 02 em curso)._
+_Última atualização: 2026-07-22 (v1.5.3 · Fase 02 em curso)._

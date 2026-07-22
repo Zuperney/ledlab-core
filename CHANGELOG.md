@@ -2,6 +2,15 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.5.3] — 2026-07-22
+
+**O mapa de cabos visual voltou pro relatório.** Correção: projetos que usam **Screens** (do rework da v1.3) só mostravam **tabelas** de cabeamento no relatório — o mapa visual (o grid com o trajeto) tinha ficado só no modo legado por tela, então "sumia" quando o projeto virava Screens.
+
+- Agora cada **Screen** desenha o **mapa de cabos** no relatório, tanto no **Sinal** quanto na **Energia (AC)**, logo acima das tabelas — no mesmo visual do Cabeamento (gabinetes quadrados, ordem por gabinete, setas).
+- O mapa é escalado pra caber na largura da página, e respeita a config de *Configurações › Mapa de cabos* (setas, numeração, tamanho e canto).
+
+Só render; nenhum cálculo mudou. 188 testes, lint limpo.
+
 ## [1.5.2] — 2026-07-22
 
 **Mapa de cabos redesenhado — mais perto do NovaLCT.** O render do cabeamento ganhou clareza, na direção dos softwares de controladora (NovaLCT/Unico), e agora é configurável.
