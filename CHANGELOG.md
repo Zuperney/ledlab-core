@@ -2,6 +2,10 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.4.1] — 2026-07-18
+
+**Menu reorganizado em seções.** A barra lateral (desktop) agora agrupa tudo em seções, de cima pra baixo: **Home** (Dashboard, Agenda, Projetos), **Financeiro** (Financeiro, Reembolso), **Gestão** (Gabinetes), **Ferramentas** (Diagramação, Test Cards, Aspect Ratio) e **Informativo** (Base de Conhecimento). Só organização — nenhuma tela mudou de lugar por dentro. (O menu do mobile será revisto na sequência.)
+
 ## [1.4.0] — 2026-07-17
 
 **Controles de cabeamento de volta — e sem ficar preso ao Free Topology.** No rework das Screens tinham sumido os controles finos do cabeamento. Voltaram, por Screen, num painel **"Avançado"** recolhido (a Screen já abre cabeada num bom padrão; quem quiser afinar, expande).
