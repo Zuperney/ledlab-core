@@ -12,7 +12,6 @@ import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge, { STATUS, STATUS_ORDER } from "../components/StatusBadge.jsx";
 import Placeholder from "../components/Placeholder.jsx";
 import BottomSheet from "../components/BottomSheet.jsx";
-import DiariasView from "./agenda/DiariasView.jsx";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const pad = (n) => String(n).padStart(2, "0");
@@ -25,7 +24,6 @@ export default function Agenda({ nav }) {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [mode, setMode] = useState("eventos"); // "eventos" | "diarias"
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
 
@@ -73,26 +71,16 @@ export default function Agenda({ nav }) {
 
   return (
     <div>
-      <SectionHeader title="Agenda" subtitle={mode === "diarias" ? "Seu registro de trabalho — toque num dia para lançar." : `${projects.length} projetos · o status acompanha a data do evento.`}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <div style={segBox}>
-            {[["eventos", "Eventos"], ["diarias", "Cachês"]].map(([k, l]) => (
-              <button key={k} onClick={() => setMode(k)} style={segBtn(mode === k)}>{l}</button>
-            ))}
-          </div>
-          {mode === "eventos" && (
-            <div style={segBox}>
-              {views.map((v) => { const Icon = v.Icon; return (
-                <button key={v.id} onClick={() => setView(v.id)} title={v.label} style={segBtn(view === v.id)}>
-                  <Icon size={15} />{!isMobile && ` ${v.label}`}
-                </button>
-              ); })}
-            </div>
-          )}
+      <SectionHeader title="Agenda" subtitle={`${projects.length} projetos · o status acompanha a data do evento.`}>
+        <div style={segBox}>
+          {views.map((v) => { const Icon = v.Icon; return (
+            <button key={v.id} onClick={() => setView(v.id)} title={v.label} style={segBtn(view === v.id)}>
+              <Icon size={15} />{!isMobile && ` ${v.label}`}
+            </button>
+          ); })}
         </div>
       </SectionHeader>
 
-      {mode === "eventos" && (<>
       {/* filtros */}
       {isMobile ? (
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -123,9 +111,6 @@ export default function Agenda({ nav }) {
       {view === "linha" && <LinhaView list={list} colorOf={colorOf} open={open} />}
       {view === "coluna" && <ColunaView list={list} colorOf={colorOf} open={open} />}
       {view === "grade" && <GradeView list={list} colorOf={colorOf} open={open} cursor={cursor} setCursor={setCursor} />}
-      </>)}
-
-      {mode === "diarias" && <DiariasView />}
     </div>
   );
 }

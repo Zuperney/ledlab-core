@@ -132,7 +132,7 @@ export default function Financeiro() {
 
   return (
     <div>
-      <SectionHeader title="Financeiro" subtitle="Cachês por período e recibo (PDF ou WhatsApp)." />
+      <SectionHeader title="Recibos" subtitle="Recibo / planilha de mão de obra por período (PDF ou WhatsApp)." />
 
       {/* filtros */}
       <div style={card({ maxWidth: 860, marginBottom: 16 })}>

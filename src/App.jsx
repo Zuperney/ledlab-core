@@ -17,6 +17,7 @@ import Drawer from "./components/Drawer.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
 import Agenda from "./pages/Agenda.jsx";
+import Caches from "./pages/Caches.jsx";
 import Financeiro from "./pages/Financeiro.jsx";
 import Reembolso from "./pages/Reembolso.jsx";
 import Inventory from "./pages/Inventory.jsx";
@@ -30,7 +31,7 @@ import Settings from "./pages/Settings.jsx";
 // Configurações NÃO é rota: vira overlay (Drawer) por cima da página atual, pra não
 // desmontar onde o usuário está. Por isso fica fora de PAGES (ver settingsOpen abaixo).
 const PAGES = {
-  dashboard: Dashboard, agenda: Agenda, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, projects: Projects,
+  dashboard: Dashboard, agenda: Agenda, diarias: Caches, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, projects: Projects,
   diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio,
   knowledge: Knowledge,
 };
