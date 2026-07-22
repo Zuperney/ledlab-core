@@ -34,6 +34,6 @@ export const SECTION_META = {
 };
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.5.1";
+export const VERSION = "v1.5.2";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🧾 A seção Financeiro ficou mais clara: os Cachês (seu registro de trabalho) viraram aba própria, e a antiga “Financeiro” virou “Recibos”. O fluxo agora é Cachês → Recibos → Reembolso, e a Agenda ficou só com os eventos.";
+export const WHATS_NEW = "🔌 O mapa de cabos ficou mais claro: gabinetes quadrados encostados, número da ordem em cada gabinete e setas de direção — no Cabeamento, na Diagramação e no Relatório. Dá pra ligar/desligar setas e números, e ajustar tamanho e canto do número, em Configurações › Mapa de cabos.";

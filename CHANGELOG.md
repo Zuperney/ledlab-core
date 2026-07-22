@@ -2,6 +2,20 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.5.2] — 2026-07-22
+
+**Mapa de cabos redesenhado — mais perto do NovaLCT.** O render do cabeamento ganhou clareza, na direção dos softwares de controladora (NovaLCT/Unico), e agora é configurável.
+
+- **Gabinetes quadrados e encostados** (sem cantos arredondados nem vãos).
+- **Número da ordem no cabo em cada gabinete**, num canto (fora da linha, pra não cruzar).
+- **Setas de direção** no trajeto — dá pra ver pra onde a corrente corre.
+- O **selo do cabo** segue marcando o início e mostrando o número da **porta**; o fim não é marcado (é redundante).
+- Vale nas **três telas** que desenhavam isso — Cabeamento, Diagramação e o mapa do Relatório —, que passaram a compartilhar um só componente de render (`CablingLayer`), no lugar de três cópias que viviam divergindo.
+
+**Configurável** em *Configurações › Mapa de cabos*: ligar/desligar **setas** e **numeração**, **tamanho** do número (pequeno/médio/grande) e **canto** onde ele aparece (um seletor visual dos 4 cantos). As cores seguem na config de Cores dos cabos, como antes.
+
+Só render e preferências; nenhum cálculo de cabeamento mudou. 188 testes, lint limpo.
+
 ## [1.5.1] — 2026-07-22
 
 **Seção Financeiro reorganizada — Cachês, Recibos e Reembolso.** A parte do dinheiro passou a contar a história inteira, em ordem: **Cachês → Recibos → Reembolso**.
