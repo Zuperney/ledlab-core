@@ -1,6 +1,6 @@
 // App.jsx — shell: sidebar, topbar e navegação principal orientada por rota.
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, TriangleAlert, Eye, EyeOff, Sparkles, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, TriangleAlert, Eye, EyeOff, Sparkles, X, Settings as SettingsIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import logo from "./assets/logo.png";
 import { NAV, SECTIONS, LABELS, VERSION, WHATS_NEW } from "./nav.js";
@@ -103,6 +103,10 @@ export default function App() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
+            <button onClick={() => navigate("settings")} aria-label="Configurações" title="Configurações"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, background: page === "settings" ? T.sel : "transparent", border: `1px solid ${page === "settings" ? T.acc : T.bd}`, color: page === "settings" ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
+              <SettingsIcon size={16} />
+            </button>
             <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
           </div>
         </header>

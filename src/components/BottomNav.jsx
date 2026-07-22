@@ -1,48 +1,45 @@
-// components/BottomNav.jsx — navegação inferior (mobile). 5 entradas: Início, Agenda,
-// Projetos, Ferramentas (folha) e Mais (folha). Reaproveita NAV p/ rótulos/ícones.
+// components/BottomNav.jsx — navegação inferior (mobile). Uma aba por SEÇÃO (mesmas
+// da sidebar do desktop): tocar abre uma folha com os itens da seção — ou navega
+// direto se a seção só tem 1 item. Configurações fica na engrenagem do topo (header),
+// fora das seções. Reaproveita NAV + SECTIONS + SECTION_META de nav.js.
 import { useState } from "react";
-import { LayoutDashboard, CalendarDays, FolderOpen, Wrench, MoreHorizontal } from "lucide-react";
-import { NAV } from "../nav.js";
+import { NAV, SECTIONS, SECTION_META } from "../nav.js";
 import { T } from "../ui/tokens.js";
 import { Z, TOUCH_MIN } from "../config/uiConfig.js";
 import BottomSheet from "./BottomSheet.jsx";
 
-const TOOL_IDS = ["diagrams", "testcards", "aspect"];
-const MORE_IDS = ["financeiro", "reembolso", "inventory", "knowledge", "settings"];
-const byId = (id) => NAV.find((n) => n.id === id);
-
 export default function BottomNav({ page, onNavigate }) {
-  const [sheet, setSheet] = useState(null); // "tools" | "more" | null
+  const [sheet, setSheet] = useState(null); // chave da seção aberta | null
 
-  const tabs = [
-    { id: "dashboard", label: "Início", Icon: LayoutDashboard, active: page === "dashboard" },
-    { id: "agenda", label: "Agenda", Icon: CalendarDays, active: page === "agenda" },
-    { id: "projects", label: "Projetos", Icon: FolderOpen, active: page === "projects" },
-    { id: "tools", label: "Ferramentas", Icon: Wrench, active: TOOL_IDS.includes(page), sheet: "tools" },
-    { id: "more", label: "Mais", Icon: MoreHorizontal, active: MORE_IDS.includes(page), sheet: "more" },
-  ];
+  const sections = SECTIONS.map((sec) => ({
+    sec,
+    ...SECTION_META[sec],
+    items: NAV.filter((n) => n.sec === sec),
+  })).filter((s) => s.items.length); // ignora seção sem itens
 
   const go = (id) => { setSheet(null); onNavigate(id); };
-  const items = sheet === "tools" ? TOOL_IDS.map(byId) : sheet === "more" ? MORE_IDS.map(byId) : [];
+  const tapSection = (s) => (s.items.length === 1 ? go(s.items[0].id) : setSheet(s.sec));
+  const openSheet = sections.find((s) => s.sec === sheet);
 
   return (
     <>
       <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: Z.bottomNav, display: "flex", background: T.sb, borderTop: `1px solid ${T.bd}`, paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {tabs.map((t) => {
-          const Icon = t.Icon;
+        {sections.map((s) => {
+          const Icon = s.Icon;
+          const active = s.items.some((it) => it.id === page);
           return (
-            <button key={t.id} onClick={() => (t.sheet ? setSheet(t.sheet) : go(t.id))}
-              style={{ flex: 1, minHeight: TOUCH_MIN + 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, background: "none", border: "none", cursor: "pointer", color: t.active ? T.acM : T.mut, padding: "6px 2px" }}>
+            <button key={s.sec} onClick={() => tapSection(s)}
+              style={{ flex: 1, minHeight: TOUCH_MIN + 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, background: "none", border: "none", cursor: "pointer", color: active ? T.acM : T.mut, padding: "6px 2px" }}>
               <Icon size={19} />
-              <span style={{ fontSize: 11, fontWeight: 600 }}>{t.label}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.tab}</span>
             </button>
           );
         })}
       </nav>
 
-      {sheet && (
-        <BottomSheet title={sheet === "tools" ? "Ferramentas" : "Mais"} onClose={() => setSheet(null)}>
-          {items.filter(Boolean).map((it) => {
+      {openSheet && (
+        <BottomSheet title={openSheet.label} onClose={() => setSheet(null)}>
+          {openSheet.items.map((it) => {
             const Icon = it.Icon;
             const active = page === it.id;
             return (
