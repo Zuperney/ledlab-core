@@ -9,9 +9,12 @@ export function useWorklog() {
   const cfg = { ...DEFAULT_WORKLOG_CFG, ...(prefs.worklog || {}) };
   const typesById = Object.fromEntries(activityTypes.map((t) => [t.id, t]));
 
-  const addEntry = (data) => { const e = { id: genId("wl"), ...data }; setWorklog([...worklog, e]); return e; };
-  const updateEntry = (data) => setWorklog(worklog.map((e) => (e.id === data.id ? { ...e, ...data } : e)));
-  const removeEntry = (id) => setWorklog(worklog.filter((e) => e.id !== id));
+  // updater funcional: parte sempre do estado mais recente. Sem isso, uma sequência
+  // add-depois-update no mesmo tick (ex.: check-in instantâneo + GPS async na Visão
+  // Geral) usaria o worklog capturado no render e a 2ª escrita apagava a 1ª.
+  const addEntry = (data) => { const e = { id: genId("wl"), ...data }; setWorklog((prev) => [...prev, e]); return e; };
+  const updateEntry = (data) => setWorklog((prev) => prev.map((e) => (e.id === data.id ? { ...e, ...data } : e)));
+  const removeEntry = (id) => setWorklog((prev) => prev.filter((e) => e.id !== id));
 
   // atalhos de cálculo já com tipos + cfg aplicados
   const breakdown = (entry) => breakdownEvento(entry, typesById[entry.tipoId], cfg);
