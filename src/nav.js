@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 
 export const NAV = [
-  { id: "dashboard",  label: "Dashboard",            Icon: LayoutDashboard, sec: "INÍCIO" },
+  { id: "dashboard",  label: "Visão Geral",          Icon: LayoutDashboard, sec: "INÍCIO" },
   { id: "agenda",     label: "Agenda",               Icon: CalendarDays,    sec: "INÍCIO" },
   { id: "projects",   label: "Projetos / Eventos",   Icon: FolderOpen,      sec: "INÍCIO" },
   { id: "financeiro", label: "Financeiro",           Icon: Receipt,         sec: "FINANCEIRO" },
@@ -33,6 +33,6 @@ export const SECTION_META = {
 };
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.4.2";
+export const VERSION = "v1.4.3";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "📱 No celular, o menu de baixo agora é por seções (Início, Financeiro, Gestão, Ferramentas, Informativo) — toque abre os itens da seção. Configurações virou a engrenagem no topo. No desktop as seções chegaram na versão anterior.";
+export const WHATS_NEW = "⏱️ Check-in num toque na Visão Geral (antiga tela inicial): sem turno aberto, um botão começa o turno na hora e salva o GPS — igual o checkout que já ficava aí. E “Dashboard” virou “Visão Geral”.";
