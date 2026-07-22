@@ -2,6 +2,15 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.5.1] — 2026-07-22
+
+**Seção Financeiro reorganizada — Cachês, Recibos e Reembolso.** A parte do dinheiro passou a contar a história inteira, em ordem: **Cachês → Recibos → Reembolso**.
+
+- **Cachês virou aba própria.** O registro de trabalho (calendário do mês, check-in/checkout com GPS, lançamento manual) saiu do toggle interno da Agenda e ganhou lugar na seção **Financeiro**, ao lado dos outros dois. A Agenda ficou só com os **eventos** (Linha/Coluna/Grade) — mais enxuta.
+- **"Financeiro" virou "Recibos".** A aba que gera o recibo/planilha de mão de obra foi renomeada, o que também elimina a redundância de ter um item "Financeiro" dentro da seção "Financeiro". Só mudou o nome — a rota interna segue a mesma (nada de link quebrado).
+
+Só reorganização de navegação; nenhum cálculo ou dado mudou. 188 testes, lint limpo.
+
 ## [1.5.0] — 2026-07-22
 
 **Configurações sem sair do lugar + numeração de cabos em serpente.**

@@ -34,6 +34,6 @@ export const SECTION_META = {
 };
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.5.0";
+export const VERSION = "v1.5.1";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "⚙️ Configurações agora abre num painel POR CIMA da tela: mexeu, fechou (X, toque fora ou Esc) e você continua exatamente onde estava. 🔌 Numeração dos cabos ganhou o modo Serpente (contínuo, à la NovaLCT) e um seletor visual com as 8 ordens. E o check-in de 1 toque parou de sumir quando o GPS resolvia.";
+export const WHATS_NEW = "🧾 A seção Financeiro ficou mais clara: os Cachês (seu registro de trabalho) viraram aba própria, e a antiga “Financeiro” virou “Recibos”. O fluxo agora é Cachês → Recibos → Reembolso, e a Agenda ficou só com os eventos.";

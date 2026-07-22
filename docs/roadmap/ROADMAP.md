@@ -79,6 +79,7 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **Check-in de 1 toque na Visão Geral** — sem turno aberto, um botão começa o turno na hora (tipo mais recente) + GPS em segundo plano; ~4 toques → 1 | 3 | v1.4.3 |
 | **🟣 Numeração dos cabos em Serpente** — modo boustrophedon (contínuo, à la *Quick Connection* do NovaLCT) + **seletor visual** com as 8 ordens (era dropdown de texto, e só 6). Retrocompatível | **2** | **v1.5.0** |
 | **Configurações em overlay** — abre num painel (Drawer) por cima da tela, sem desmontar onde você está; fecha (X/toque fora/Esc) e volta no lugar, com a mudança já refletida atrás | 1 | **v1.5.0** |
+| **Seção Financeiro reorganizada** — Cachês vira aba própria (saiu do toggle da Agenda) e "Financeiro" → "Recibos"; fluxo Cachês → Recibos → Reembolso | 1 | **v1.5.1** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -178,4 +179,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-22 (v1.5.0 · Fase 02 em curso)._
+_Última atualização: 2026-07-22 (v1.5.1 · Fase 02 em curso)._
