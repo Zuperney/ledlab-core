@@ -22,13 +22,75 @@ export const KB_ARTICLES = [
       ] },
       { h: "As duas réguas de alocação", blocks: [
         { t: "ul", items: [
-          "Pixels (real) — VX, série A, Colorlight: a porta gasta os pixels de verdade da cadeia de gabinetes; a rota serpenteia livre e corta por contagem.",
-          "Área (básico) — controladores de entrada: a porta reserva o RETÂNGULO envolvente (bounding box); um 'L' de 10 gabinetes com caixa 4×5 consome 20.",
+          "Pixels (real) — a porta gasta os pixels de verdade da cadeia de gabinetes; a rota serpenteia livre e corta por contagem.",
+          "Área (retângulo) — a porta reserva o RETÂNGULO envolvente (bounding box); um 'L' de 10 gabinetes com caixa 4×5 consome 20.",
         ] },
+        { t: "p", text: "Quem decide qual régua vale é o Free Topology — um interruptor POR TELA no software da controladora, não um atributo fixo da marca. Veja “Regra do retângulo e Free Topology”." },
         { t: "note", text: "No app, telas novas usam a régua de Pixels; dá pra trocar por tela no Cabeamento (seletor 'Porta'). Telas antigas continuam na régua de Área até você mudar." },
       ] },
     ] },
   { id: "serpente", category: "Sinal", title: "Serpentina", summary: "Roteamento zig-zag para minimizar cabo.", sections: [{ h: "Estratégias", blocks: [{ t: "ul", items: ["Linha", "Coluna", "Área (minimiza cabos)"] }] }] },
+  { id: "free-topology", category: "Sinal", title: "Regra do retângulo e Free Topology", summary: "Quando os buracos da tela consomem banda da porta — e o interruptor que desliga isso.",
+    sections: [
+      { h: "O que a regra do retângulo faz", blocks: [
+        { t: "p", text: "Sem Free Topology, a controladora desenha um retângulo circunscrito em volta dos gabinetes daquela porta — e cobra banda por TODO o retângulo, inclusive pelos buracos. Numa corrente que sobe uma coluna, atravessa uma linha e sobe outra, o retângulo engole a tela inteira." },
+        { t: "note", text: "Isto NÃO é teoria de manual: foi medido no simulador do Unico com uma VX2000, mudando só o interruptor e sem tocar no cabeamento." },
+        { t: "table", cols: ["Free Topology", "Porta 1 marca", "O que ele contou"], rows: [
+          ["Ligado", "90%", "os 16 gabinetes reais"],
+          ["Desligado", "405% (vermelho)", "o retângulo inteiro: 8 × 9 = 72 posições"],
+        ] },
+        { t: "p", text: "Mesma corrente de 16 gabinetes de 192×192. Ligado cobra 16; desligado cobra 72. A diferença é de 4,5× — é o que decide se a sua tela vazada cabe em 1 porta ou em 5." },
+      ] },
+      { h: "O interruptor", blocks: [
+        { t: "p", text: "No Unico, “Free Topology” fica em Screen Properties › Screen. É configuração POR TELA — dá pra ligar numa tela e deixar desligada na outra, dentro do mesmo projeto." },
+        { t: "ul", items: [
+          "LIGADO → os buracos não consomem banda. A porta conta só o gabinete que existe.",
+          "DESLIGADO → vale a regra do retângulo. Todo vazio dentro do retângulo da porta é cobrado.",
+        ] },
+      ] },
+      { h: "Quem tem o interruptor", blocks: [
+        { t: "p", text: "Free Topology se configura no software (NovaLCT / Unico), então nenhum manual de controladora a documenta como recurso próprio — ela aparece só de passagem. Mas comparar dois manuais lado a lado entrega a diferença: os dois descrevem a MESMA função de baixa latência, e só o Pro admite topologia livre." },
+        { t: "table", cols: ["", "VX1000 (simples)", "VX Pro Series"], rows: [
+          ["Baixa latência", "Liga / Desliga", "Liga / Desliga / Auto"],
+          ["Cabo precisa correr…", "na vertical", "vertical OU topologia livre"],
+        ] },
+        { t: "p", text: "A palavra “topologia” não aparece uma única vez no manual da VX1000 simples. No do Pro, topologia livre é tratada como coisa que o usuário já faz. E o manual do VX Pro Series cobre VX400 Pro, VX600 Pro, VX1000 Pro e VX2000 Pro — a VX2000 medida no simulador é dessa família. Bate com o que se vê em campo: selo Pro + receiving card série A (Armor) libera o cabo livre; o mesmo gabinete numa VX1000 simples, não." },
+        { t: "note", text: "Isto é evidência de manual, não teste ao vivo — são gerações de documento diferentes, e o vínculo com a receiving card série A segue sem prova (no simulador o gabinete é genérico). Antes de contar com a função num evento, confira na controladora que você vai levar." },
+      ] },
+      { h: "Capacidade: 655.360 px por porta", blocks: [
+        { t: "p", text: "A régua que o software aplica na VX2000 (8-bit, 60 Hz) é 655.360 px por porta Gigabit — não os 650.000 que se repetem por aí. Dois testes independentes fecham no mesmo número:" },
+        { t: "table", cols: ["Teste no Unico", "Pixels", "Resultado"], rows: [
+          ["40 gabinetes de 128×128", "655.360", "100% exato, verde"],
+          ["Retângulo de 72 × 36.864", "2.654.208", "405% = 4,05 × 655.360"],
+        ] },
+        { t: "note", text: "Com 650.000 as duas contas quebrariam: os 40 gabinetes dariam 100,8% (vermelho) e o retângulo daria 408%. Um gabinete de 128×128 (3.9 mm) fecha 40 por porta, cravado, sem sobra." },
+      ] },
+      { h: "De onde vem o 650.000", blocks: [
+        { t: "p", text: "O 650.000 é real e está nos manuais — mas nos dois lugares onde ele aparece, não é “a capacidade da porta no uso normal”:" },
+        { t: "ul", items: [
+          "Nota da Configuração Rápida (o assistente do botão do painel frontal), ao lado de “porta 1 ≥ porta 2 ≥ …” e “gabinetes por porta = múltiplo inteiro das linhas ou colunas”. São as regras do atalho.",
+          "Constante da fórmula de baixa latência, no apêndice do VX Pro Series.",
+        ] },
+        { t: "p", text: "O apêndice chama o 650.000 de capacidade máxima da porta “em modo comum” — é o único ponto que conflita de verdade com os 655.360 medidos. Só que ele erra a própria conta: a fórmula é (1 − Y/H) × TOTAL, mas o exemplo com Y=1200 e H=2160 escreve “≈ 0,556 × 650.000”, quando 1 − 1200/2160 = 0,444." },
+        { t: "note", text: "Entre um número medido duas vezes e um apêndice que se contradiz, o app fica com 655.360. Repare também que 655.360 = 640 × 1.024 — cara de limite de hardware. 650.000 é número redondo de gente." },
+      ] },
+      { h: "Baixa latência cobra o seu preço", blocks: [
+        { t: "p", text: "Achado do manual do VX Pro Series, e vale guardar: com baixa latência ligada, a capacidade da porta ENCOLHE conforme os gabinetes daquela porta ficam mais baixos na tela." },
+        { t: "kv", rows: [["Fórmula", "(1 − Y ÷ H) × capacidade"], ["Y", "menor coordenada Y dos gabinetes da porta"], ["H", "altura total do canvas"]] },
+        { t: "p", text: "Uma porta que só começa na metade de baixo da tela perde metade da banda. A coordenada X não influi. É por isso que o modo Auto só se liga sozinho quando os retângulos das portas estão encostados no topo." },
+        { t: "note", text: "Baixa latência vem DESLIGADA de fábrica — por isso ela não entra no cálculo do app. Se você ligar na mão pra um evento com câmera, lembre que as portas de baixo encolhem." },
+      ] },
+      { h: "O que ainda NÃO está verificado", blocks: [
+        { t: "p", text: "Esta página separa o que foi medido (simulador do Unico, VX2000) do que foi lido em manual — e do que ainda não passou por nenhum dos dois:" },
+        { t: "ul", items: [
+          "Se ligar o Free Topology exige mesmo receiving card série A (Armor): há evidência de campo e de manual, não teste.",
+          "As outras famílias (MX/COEX, Série H, TU, MCTRL, Taurus) — não testadas aqui.",
+          "Se a capacidade de 655.360 vale igual nas outras linhas.",
+        ] },
+        { t: "note", text: "Uma lição que ficou: a Série H chegou a ser dada como “não tem a função” porque o manual dela não cita nada disso. Mas o manual da VX2000 também não cita — e a VX2000 tem. Ausência no manual não prova ausência da função." },
+        { t: "note", text: "Regra de bolso enquanto não há teste: planeje como se a regra do retângulo valesse. Errar pra mais custa uma porta sobrando; errar pra menos custa a parede não fechar no dia." },
+      ] },
+    ] },
   { id: "mapa-pixels", category: "Sinal", title: "Mapa de pixels (NovaLCT / Tessera)", summary: "Exporte gabinete → porta → X/Y pra transcrever no controlador, sem redesenhar na régua.",
     sections: [
       { h: "Pra que serve", blocks: [
