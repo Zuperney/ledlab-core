@@ -10,6 +10,7 @@ import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, ZoomIn, ZoomOut, Max
 import { T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
 import Select from "../../components/Select.jsx";
+import CablingLayer from "../../components/CablingLayer.jsx";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
@@ -35,6 +36,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
   const toast = useToast();
   const { prefs } = useLedLabContext();
   const numbering = prefs.cableNumbering || "row-tb-lr";
+  const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl", ...(prefs.cablingRender || {}) };
 
   const [activeId, setActiveId] = useState(screens[0]?.id || null);
   const [activeCable, setActiveCable] = useState(null);
@@ -230,27 +232,14 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
               style={{ position: "relative", height: isMobile ? 360 : 460, background: "#08080f", overflow: "hidden", cursor: grabbing ? "grabbing" : "grab", touchAction: "none" }}>
               <svg width="100%" height="100%" style={{ display: "block" }}>
                 <g transform={`translate(${pan.x},${pan.y})`}>
-                  {cells.map((cell) => {
-                    const pi = portIdx[key(cell)];
-                    const isActCell = mode === "livre" && pi === activeCable;
-                    const col = pi === undefined ? T.dim2 : colorOf(pi);
-                    return <rect key={key(cell)} x={R(cell.x) + 2} y={R(cell.y) + 2} width={R(cell.w) - 4} height={R(cell.h) - 4} rx={3}
-                      fill={pi === undefined ? "transparent" : col + (isActCell ? "45" : "26")} stroke={col} strokeWidth={isActCell ? 2.5 : 1.2} strokeDasharray={pi === undefined ? "4 4" : undefined}
-                      onClick={() => clickCell(cell)} style={{ cursor: mode === "livre" ? "pointer" : "inherit" }} />;
-                  })}
-                  {ports.map((port, pi) => {
-                    if (!port.length) return null;
-                    const pts = port.map((c) => `${R(c.x + c.w / 2)},${R(c.y + c.h / 2)}`).join(" ");
-                    const f = port[0];
-                    const rad = Math.max(9, Math.min(16, R(Math.min(f.w, f.h)) * 0.3));
-                    return (
-                      <g key={pi} style={{ pointerEvents: "none" }}>
-                        <polyline points={pts} fill="none" stroke="#fff" strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" opacity={mode === "livre" && activeCable != null && pi !== activeCable ? 0.5 : 0.92} />
-                        <circle cx={R(f.x + f.w / 2)} cy={R(f.y + f.h / 2)} r={rad} fill={colorOf(pi)} stroke="#fff" strokeWidth={1.6} />
-                        <text x={R(f.x + f.w / 2)} y={R(f.y + f.h / 2)} fill="#fff" fontSize={rad * 1.05} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
-                      </g>
-                    );
-                  })}
+                  <CablingLayer
+                    cells={cells.map((cell) => ({ k: key(cell), x: R(cell.x), y: R(cell.y), w: R(cell.w), h: R(cell.h), port: portIdx[key(cell)] ?? null, orig: cell }))}
+                    ports={ports.map((port) => port.map((cell) => ({ k: key(cell), x: R(cell.x), y: R(cell.y), w: R(cell.w), h: R(cell.h) })))}
+                    colorOf={colorOf}
+                    showNumbers={(cr.numbers ?? true) && R(cells[0]?.w || 128) >= 22}
+                    arrows={cr.arrows ?? true} numberSize={cr.numberSize} numberPos={cr.numberPos}
+                    onCellClick={mode === "livre" ? (c) => clickCell(c.orig) : undefined}
+                    activeCable={mode === "livre" ? activeCable : null} />
                 </g>
               </svg>
               <div style={{ position: "absolute", right: 12, bottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>

@@ -2,7 +2,7 @@
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
 import { useRef, useState, useEffect } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard, Cable } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { useAuth } from "../store/AuthContext.jsx";
 import { useSync } from "../store/SyncContext.jsx";
@@ -138,6 +138,10 @@ export default function Settings({ embedded = false }) {
   const removeColor = (i) => { if (palette.length > 2) setPalette(palette.filter((_, j) => j !== i)); };
   const resetPalette = () => setPrefs({ ...prefs, cablePalette: undefined });
 
+  // ── Render do mapa de cabos (setas, numeração, tamanho e canto do número) ──
+  const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl", ...(prefs.cablingRender || {}) };
+  const setCr = (patch) => setPrefs({ ...prefs, cablingRender: { ...cr, ...patch } });
+
   // categorias SEMPRE recolhidas (desktop = mobile, pedido do usuário); 3 sub-menus organizam
   const open = false;
   const [group, setGroup] = useState("eng"); // sub-menu ativo: "eng" | "cache" | "dados"
@@ -178,6 +182,23 @@ export default function Settings({ embedded = false }) {
           <option value="0.9">90% — margem leve</option>
           <option value="0.8">80% — carga contínua</option>
         </Select>
+      </Section>
+
+      <Section icon={Cable} title="Mapa de cabos" subtitle="Setas, numeração e posição do número no gabinete" defaultOpen={open}>
+        <div style={subDesc}>Como o cabeamento aparece no Cabeamento, na Diagramação e no Relatório.</div>
+        <PrefToggle on={cr.arrows} onClick={() => setCr({ arrows: !cr.arrows })} titulo="Setas de direção" desc="Mostra pra onde a corrente corre em cada cabo." />
+        <div style={{ height: 8 }} />
+        <PrefToggle on={cr.numbers} onClick={() => setCr({ numbers: !cr.numbers })} titulo="Numerar gabinetes" desc="Número da ordem no cabo dentro de cada gabinete (some quando fica miúdo no zoom)." />
+        {cr.numbers && (<>
+          <div style={{ ...subLabel, marginTop: 16 }}>Tamanho do número</div>
+          <div style={segRow}>
+            {[["sm", "Pequeno"], ["md", "Médio"], ["lg", "Grande"]].map(([k, l]) => (
+              <button key={k} type="button" onClick={() => setCr({ numberSize: k })} style={segBtn2(cr.numberSize === k)}>{l}</button>
+            ))}
+          </div>
+          <div style={{ ...subLabel, marginTop: 16 }}>Posição no gabinete</div>
+          <CornerPicker value={cr.numberPos} onChange={(v) => setCr({ numberPos: v })} />
+        </>)}
       </Section>
 
       <Section icon={Palette} title="Cores dos cabos" subtitle="Paleta dos cabos e portas" defaultOpen={open}>
@@ -284,6 +305,25 @@ function PrefToggle({ on, onClick, titulo, desc }) {
       <span><span style={{ color: T.txt, fontWeight: 600, fontSize: 14 }}>{titulo}</span><br /><span style={{ color: T.dim, fontSize: 12 }}>{desc}</span></span>
       <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: on ? T.acM : T.mut }}>{on ? "SIM" : "NÃO"}</span>
     </button>
+  );
+}
+
+// seletor visual do canto do número (2×2): um mini-gabinete com o "1" no canto escolhido
+function CornerPicker({ value, onChange }) {
+  const corners = [["tl", "Sup-esq"], ["tr", "Sup-dir"], ["bl", "Inf-esq"], ["br", "Inf-dir"]];
+  const at = { tl: { top: 6, left: 6 }, tr: { top: 6, right: 6 }, bl: { bottom: 6, left: 6 }, br: { bottom: 6, right: 6 } };
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 46px)", gap: 8 }}>
+      {corners.map(([k, label]) => {
+        const active = value === k;
+        return (
+          <button key={k} type="button" onClick={() => onChange(k)} title={label} aria-label={label}
+            style={{ position: "relative", width: 46, height: 46, borderRadius: 6, cursor: "pointer", background: active ? T.sel : T.card2, border: `1px solid ${active ? T.acc : T.bd}` }}>
+            <span style={{ position: "absolute", ...at[k], width: 13, height: 13, borderRadius: 3, background: active ? T.acc : T.dim2, color: "#fff", fontSize: 9, fontWeight: 700, display: "grid", placeItems: "center" }}>1</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -429,4 +469,6 @@ const mDesc = { color: T.dim, fontSize: 12 };
 const selStyle = { width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 16 };
 const subLabel = { color: T.txt, fontWeight: 600, fontSize: 13.5, marginBottom: 2 };
 const subDesc = { color: T.dim, fontSize: 12.5, marginBottom: 8 };
+const segRow = { display: "inline-flex", background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 3, gap: 3 };
+const segBtn2 = (active) => ({ padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });
 const rowStyle = (first) => ({ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 0", borderTop: first ? "none" : `1px solid ${T.bd}`, flexWrap: "wrap" });

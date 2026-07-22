@@ -9,6 +9,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { ZoomIn, ZoomOut, Maximize, ChevronDown, ChevronUp } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { useCablePalette } from "../hooks/useCablePalette.js";
+import CablingLayer from "../components/CablingLayer.jsx";
 import { card } from "../ui/styles.js";
 import Select from "../components/Select.jsx";
 import NumField from "../components/NumField.jsx";
@@ -129,24 +130,16 @@ export default function Diagrams() {
           <svg width="100%" height="100%" style={{ display: "block" }}>
             <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
               <rect x={-8} y={-8} width={panelW + 16} height={panelH + 16} rx={10} fill="#0d0d1a" stroke={T.bd} strokeWidth={1.5} />
-              {Array.from({ length: rows }).map((_, r) => Array.from({ length: cols }).map((_, c) => {
-                const pi = portOf[key(c, r)];
-                const col = pi === undefined ? T.dim2 : colorOf(pi);
-                return <rect key={key(c, r)} x={c * CELL + 3} y={r * CELL + 3} width={CELL - 6} height={CELL - 6} rx={6}
-                  fill={pi === undefined ? "transparent" : col + "26"} stroke={col} strokeWidth={1.5} strokeDasharray={pi === undefined ? "5 5" : undefined} />;
-              }))}
-              {ports.map((port, pi) => {
-                if (!port.length) return null;
-                const pts = port.map((cell) => `${cell.c * CELL + CELL / 2},${cell.r * CELL + CELL / 2}`).join(" ");
-                const f = port[0];
-                return (
-                  <g key={pi} style={{ pointerEvents: "none" }}>
-                    <polyline points={pts} fill="none" stroke="#fff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" opacity={0.95} />
-                    <circle cx={f.c * CELL + CELL / 2} cy={f.r * CELL + CELL / 2} r={14} fill={colorOf(pi)} stroke="#fff" strokeWidth={2} />
-                    <text x={f.c * CELL + CELL / 2} y={f.r * CELL + CELL / 2} fill="#fff" fontSize={14} fontWeight="700" textAnchor="middle" dominantBaseline="central">{pi + 1}</text>
-                  </g>
-                );
-              })}
+              <CablingLayer
+                cells={Array.from({ length: rows }).flatMap((_, r) => Array.from({ length: cols }).map((_, c) =>
+                  ({ k: key(c, r), x: c * CELL, y: r * CELL, w: CELL, h: CELL, port: portOf[key(c, r)] ?? null })))}
+                ports={ports.map((port) => port.map((cell) =>
+                  ({ k: key(cell.c, cell.r), x: cell.c * CELL, y: cell.r * CELL, w: CELL, h: CELL })))}
+                colorOf={colorOf}
+                showNumbers={(prefs.cablingRender?.numbers ?? true) && CELL * zoom >= 22}
+                arrows={prefs.cablingRender?.arrows ?? true}
+                numberSize={prefs.cablingRender?.numberSize || "sm"}
+                numberPos={prefs.cablingRender?.numberPos || "bl"} />
             </g>
           </svg>
           {/* botões diretos (sem array intermediário): o compilador vê fit/zoomBy como handlers */}
