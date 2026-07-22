@@ -4,11 +4,11 @@ Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](h
 
 ## [1.4.2] — 2026-07-18
 
-**Menu por seções no celular.** A barra de baixo passa a ter uma aba por **seção** (as mesmas do desktop): **Home, Financeiro, Gestão, Ferramentas, Informativo**. Tocar numa seção abre uma folha com os itens dela — ou navega direto quando a seção só tem um item. **Configurações** virou a **engrenagem** no topo. Fecha a reorganização iniciada na v1.4.1.
+**Menu por seções no celular.** A barra de baixo passa a ter uma aba por **seção** (as mesmas do desktop): **Início, Financeiro, Gestão, Ferramentas, Informativo**. Tocar numa seção abre uma folha com os itens dela — ou navega direto quando a seção só tem um item. **Configurações** virou a **engrenagem** no topo. Fecha a reorganização iniciada na v1.4.1.
 
 ## [1.4.1] — 2026-07-18
 
-**Menu reorganizado em seções.** A barra lateral (desktop) agora agrupa tudo em seções, de cima pra baixo: **Home** (Dashboard, Agenda, Projetos), **Financeiro** (Financeiro, Reembolso), **Gestão** (Gabinetes), **Ferramentas** (Diagramação, Test Cards, Aspect Ratio) e **Informativo** (Base de Conhecimento). Só organização — nenhuma tela mudou de lugar por dentro. (O menu do mobile será revisto na sequência.)
+**Menu reorganizado em seções.** A barra lateral (desktop) agora agrupa tudo em seções, de cima pra baixo: **Início** (Dashboard, Agenda, Projetos), **Financeiro** (Financeiro, Reembolso), **Gestão** (Gabinetes), **Ferramentas** (Diagramação, Test Cards, Aspect Ratio) e **Informativo** (Base de Conhecimento). Só organização — nenhuma tela mudou de lugar por dentro. (O menu do mobile será revisto na sequência.)
 
 ## [1.4.0] — 2026-07-17
 

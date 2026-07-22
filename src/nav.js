@@ -5,9 +5,9 @@ import {
 } from "lucide-react";
 
 export const NAV = [
-  { id: "dashboard",  label: "Dashboard",            Icon: LayoutDashboard, sec: "HOME" },
-  { id: "agenda",     label: "Agenda",               Icon: CalendarDays,    sec: "HOME" },
-  { id: "projects",   label: "Projetos / Eventos",   Icon: FolderOpen,      sec: "HOME" },
+  { id: "dashboard",  label: "Dashboard",            Icon: LayoutDashboard, sec: "INÍCIO" },
+  { id: "agenda",     label: "Agenda",               Icon: CalendarDays,    sec: "INÍCIO" },
+  { id: "projects",   label: "Projetos / Eventos",   Icon: FolderOpen,      sec: "INÍCIO" },
   { id: "financeiro", label: "Financeiro",           Icon: Receipt,         sec: "FINANCEIRO" },
   { id: "reembolso",  label: "Reembolso",            Icon: Wallet,          sec: "FINANCEIRO" },
   { id: "inventory",  label: "Gabinetes",            Icon: Package,         sec: "GESTÃO" },
@@ -19,13 +19,13 @@ export const NAV = [
 ];
 
 // ordem de cima pra baixo na sidebar (desktop) e das abas de baixo (mobile)
-export const SECTIONS = ["HOME", "FINANCEIRO", "GESTÃO", "FERRAMENTAS", "INFORMATIVO"];
+export const SECTIONS = ["INÍCIO", "FINANCEIRO", "GESTÃO", "FERRAMENTAS", "INFORMATIVO"];
 
 // metadados de cada seção pro menu MOBILE: ícone + rótulo curto da aba de baixo.
 // `label` é o título da folha (BottomSheet) que lista os itens; `tab` é o texto curto
 // embaixo do ícone. Seção com 1 item só navega direto (sem folha).
 export const SECTION_META = {
-  HOME:        { label: "Home",        tab: "Home",        Icon: Home },
+  "INÍCIO":    { label: "Início",      tab: "Início",      Icon: Home },
   FINANCEIRO:  { label: "Financeiro",  tab: "Financeiro",  Icon: Wallet },
   "GESTÃO":    { label: "Gestão",      tab: "Gestão",      Icon: Boxes },
   FERRAMENTAS: { label: "Ferramentas", tab: "Ferram.",     Icon: Wrench },
@@ -35,4 +35,4 @@ export const SECTION_META = {
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
 export const VERSION = "v1.4.2";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "📱 No celular, o menu de baixo agora é por seções (Home, Financeiro, Gestão, Ferramentas, Informativo) — toque abre os itens da seção. Configurações virou a engrenagem no topo. No desktop as seções chegaram na versão anterior.";
+export const WHATS_NEW = "📱 No celular, o menu de baixo agora é por seções (Início, Financeiro, Gestão, Ferramentas, Informativo) — toque abre os itens da seção. Configurações virou a engrenagem no topo. No desktop as seções chegaram na versão anterior.";
