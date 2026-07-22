@@ -28,7 +28,9 @@ const download = (name, obj) => {
   a.click();
 };
 
-export default function Settings() {
+// `embedded`: renderizado dentro do Drawer de Configurações (o Drawer já dá o título
+// e o X), então esconde o SectionHeader próprio pra não duplicar o cabeçalho.
+export default function Settings({ embedded = false }) {
   const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, setDespesas, exportBackup } = useLedLabContext();
   const confirm = useConfirm();
   const toast = useToast();
@@ -140,8 +142,8 @@ export default function Settings() {
   const [group, setGroup] = useState("eng"); // sub-menu ativo: "eng" | "cache" | "dados"
 
   return (
-    <div style={{ maxWidth: 640 }}>
-      <SectionHeader title="Configurações" subtitle="Preferências, dados e manutenção." />
+    <div style={{ maxWidth: embedded ? "none" : 640 }}>
+      {!embedded && <SectionHeader title="Configurações" subtitle="Preferências, dados e manutenção." />}
 
       {/* 3 sub-menus: reduz o "muro" de cards, principalmente no mobile */}
       <div style={tabsWrap}>
