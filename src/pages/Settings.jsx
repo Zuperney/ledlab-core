@@ -208,7 +208,7 @@ export default function Settings() {
       </>)}
 
       {group === "cache" && (<>
-      <Section icon={LayoutDashboard} title="Dashboard" subtitle="Privacidade e exibição da tela inicial" defaultOpen={open}>
+      <Section icon={LayoutDashboard} title="Visão Geral" subtitle="Privacidade e exibição da tela inicial" defaultOpen={open}>
         <PrefToggle on={!!prefs.dashOcultarValor} onClick={() => setPrefs({ ...prefs, dashOcultarValor: !prefs.dashOcultarValor })}
           titulo="Ocultar valores em R$" desc="Esconde o total de cachês na tela inicial — também no ícone de olho do card." />
       </Section>

@@ -1,11 +1,14 @@
 // pages/Dashboard.jsx — visão geral: evento atual, contadores e próximos.
-import { CalendarDays, MapPin, Layers, ChevronRight, Receipt, Square, Clock } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, MapPin, Layers, ChevronRight, Receipt, Square, Clock, Play } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { projectRollup, MONTHS_LONG } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useWorklog } from "../hooks/useWorklog.js";
+import { useActivityTypes } from "../hooks/useActivityTypes.js";
 import { fmtDur } from "../services/worklog.js";
+import { getPosition } from "../services/geo.js";
 import { useToast } from "../store/UIContext.jsx";
 import { T } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
@@ -29,7 +32,8 @@ function MetaLine({ p }) {
 
 export default function Dashboard({ nav }) {
   const { projects, prefs } = useLedLabContext();
-  const { worklog, porDia, updateEntry, typesById } = useWorklog();
+  const { worklog, porDia, addEntry, updateEntry, typesById } = useWorklog();
+  const { activityTypes } = useActivityTypes();
   const toast = useToast();
   const isMobile = useIsMobile();
   const active = projects.filter((p) => p.status === "active");
@@ -65,9 +69,27 @@ export default function Dashboard({ nav }) {
   const abertoMin = aberto ? Math.max(0, Math.round((Date.now() - Date.parse(aberto.checkin)) / 60000)) : 0;
   const doCheckout = () => { updateEntry({ id: aberto.id, checkout: new Date().toISOString() }); toast("Checkout feito ✓"); };
 
+  // check-in num toque: sem turno aberto, começa o turno JÁ com o tipo mais recente
+  // (fallback pro 1º ativo) e anexa o GPS quando resolver — sem sheet, sem espera.
+  const ativos = activityTypes.filter((t) => t.ativo);
+  const ultimoTipo = worklog.filter((e) => e.checkin).sort((a, b) => (a.checkin < b.checkin ? 1 : -1))[0]?.tipoId;
+  const tipoPadrao = ativos.find((t) => t.id === ultimoTipo) ? ultimoTipo : ativos[0]?.id;
+  const [checkinBusy, setCheckinBusy] = useState(false);
+  const doCheckin = async () => {
+    if (!tipoPadrao || checkinBusy) return;
+    setCheckinBusy(true);
+    const d = new Date();
+    const dataRef = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    const e = addEntry({ dataRef, tipoId: tipoPadrao, checkin: d.toISOString() });
+    toast("Check-in feito ✓");
+    const loc = await getPosition();
+    if (loc) { updateEntry({ id: e.id, local: loc }); toast("Local salvo 📍"); }
+    setCheckinBusy(false);
+  };
+
   return (
     <div>
-      {aberto && (
+      {aberto ? (
         <div style={card({ marginBottom: 16, borderColor: T.acc, background: T.strip, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" })}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             <span style={{ width: 10, height: 10, borderRadius: 999, background: T.grn, boxShadow: `0 0 0 4px ${T.grn}22`, flexShrink: 0 }} />
@@ -78,7 +100,12 @@ export default function Dashboard({ nav }) {
           </div>
           <button style={btn("primary")} onClick={doCheckout}><Square size={14} /> Checkout</button>
         </div>
-      )}
+      ) : tipoPadrao ? (
+        <button onClick={doCheckin} disabled={checkinBusy}
+          style={{ ...card({ marginBottom: 16, borderColor: T.bdA, cursor: checkinBusy ? "default" : "pointer" }), width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, color: T.acM, fontWeight: 700, fontSize: 15, fontFamily: "inherit", opacity: checkinBusy ? 0.6 : 1 }}>
+          <Play size={16} /> Check-in agora
+        </button>
+      ) : null}
       {hero && (
         <div style={card({ background: `linear-gradient(100deg, ${T.strip}, ${T.hero} 42%)`, marginBottom: 16 })}>
           <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.08em", marginBottom: 6 }}>Evento em andamento</div>

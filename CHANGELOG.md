@@ -2,6 +2,10 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.4.3] — 2026-07-18
+
+**Check-in num toque na Visão Geral.** Sem turno aberto, a Visão Geral (antiga tela inicial) mostra um botão **Check-in agora** que começa o turno na hora — com o tipo de atividade mais recente como padrão — e salva o GPS em segundo plano. Antes eram ~4 toques (Agenda › Diárias › Check-in › confirmar); agora é um só. O checkout já era um toque aí. Também: **"Dashboard" → "Visão Geral"** (nome em português).
+
 ## [1.4.2] — 2026-07-18
 
 **Menu por seções no celular.** A barra de baixo passa a ter uma aba por **seção** (as mesmas do desktop): **Início, Financeiro, Gestão, Ferramentas, Informativo**. Tocar numa seção abre uma folha com os itens dela — ou navega direto quando a seção só tem um item. **Configurações** virou a **engrenagem** no topo. Fecha a reorganização iniciada na v1.4.1.
