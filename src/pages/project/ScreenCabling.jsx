@@ -199,8 +199,8 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
                 {!isAc && <Drop label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
                 <span style={{ color: T.dim, fontSize: 11, flexBasis: "100%" }}>{
                   isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal."
-                  : reguaLocked ? `Régua guiada pela ${controller.nome} (aba Equipamentos). Troque por uma controladora com Free Topology pra liberar a régua de Pixels.`
-                  : controller ? `${controller.nome} tem Free Topology — você escolhe a régua. Capacidade por porta vem dela.`
+                  : reguaLocked ? `Régua guiada pelo ${controller.nome} (aba Equipamentos). Troque por um processador com Free Topology pra liberar a régua de Pixels.`
+                  : controller ? `${controller.nome} tem Free Topology — você escolhe a régua. Capacidade por porta vem dele.`
                   : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."
                 }</span>
               </div>

@@ -12,7 +12,8 @@ import { screenPorts, screenPortSummary } from "./screenCabling.js";
 // suporta Free Topology (régua de pixels / cabo livre) e limite de resolução.
 export function makeController(id, patch = {}) {
   return {
-    id, nome: patch.nome || "Controladora",
+    id, nome: patch.nome || "Processador",
+    marca: patch.marca || "", // fabricante (NovaStar/Colorlight/Brompton…) — pra filtrar o catálogo
     portas: patch.portas ?? 4,
     pxPorta: patch.pxPorta ?? 655360,
     freeTopology: !!patch.freeTopology,
@@ -24,7 +25,7 @@ export function makeController(id, patch = {}) {
 // só o que foi VERIFICADO em manual/campo entra como semente; o resto o técnico
 // cadastra (ele conhece o próprio estoque). Números por modelo = lacuna de dado.
 export const SEED_CONTROLLERS = [
-  makeController("ctrl-vx1000", { nome: "NovaStar VX1000", portas: 10, pxPorta: 655360, freeTopology: false, maxW: 10240, maxH: 8192, obs: "Descontinuada. Sem Free Topology — régua de área (regra do retângulo)." }),
+  makeController("ctrl-vx1000", { nome: "VX1000", marca: "NovaStar", portas: 10, pxPorta: 655360, freeTopology: false, maxW: 10240, maxH: 8192, obs: "Descontinuada. Sem Free Topology — régua de área (regra do retângulo)." }),
 ];
 
 export const controllerById = (controllers, id) => (controllers || []).find((c) => c.id === id) || null;

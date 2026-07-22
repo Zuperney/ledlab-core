@@ -19,6 +19,7 @@ import Agenda from "./pages/Agenda.jsx";
 import Financeiro from "./pages/Financeiro.jsx";
 import Reembolso from "./pages/Reembolso.jsx";
 import Inventory from "./pages/Inventory.jsx";
+import Processadores from "./pages/Processadores.jsx";
 import Projects from "./pages/Projects.jsx";
 import Diagrams from "./pages/Diagrams.jsx";
 import TestCards from "./pages/TestCards.jsx";
@@ -27,7 +28,7 @@ import Knowledge from "./pages/Knowledge.jsx";
 import Settings from "./pages/Settings.jsx";
 
 const PAGES = {
-  dashboard: Dashboard, agenda: Agenda, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, projects: Projects,
+  dashboard: Dashboard, agenda: Agenda, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, processadores: Processadores, projects: Projects,
   diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio,
   knowledge: Knowledge, settings: Settings,
 };
