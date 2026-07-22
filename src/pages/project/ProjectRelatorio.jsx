@@ -13,6 +13,7 @@ import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
+import ScreenCableMap from "../../components/ScreenCableMap.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
@@ -77,6 +78,7 @@ export default function ProjectRelatorio({ project }) {
   const screenReport = usaScreens ? projectScreenReport(project, "sinal", numbering) : [];
   const screenReportAc = usaScreens ? projectScreenReport(project, "ac", numbering) : [];
   const semScreen = usaScreens ? telasSemScreen(project) : [];
+  const screensById = Object.fromEntries((project.screens || []).map((s) => [s.id, s])); // p/ o mapa visual por Screen
   const h3 = { color: PRINT.acc, borderBottom: `1px solid ${PRINT.line}`, paddingBottom: 6 };
   const telaBlock = { marginBottom: 18, breakInside: "avoid" };
   const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };
@@ -171,6 +173,7 @@ export default function ProjectRelatorio({ project }) {
             {screenReport.map((s) => (
               <div key={s.id} style={telaBlock}>
                 <div style={telaTitle}>{s.nome} — {s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px · {s.ports.length} {s.ports.length === 1 ? "porta" : "portas"}</div>
+                {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>
                     <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Uso</th><th style={th}>Telas que percorre</th><th style={th}>Início X, Y (px)</th>
@@ -249,6 +252,7 @@ export default function ProjectRelatorio({ project }) {
             {screenReportAc.map((s) => (
               <div key={s.id} style={telaBlock}>
                 <div style={telaTitle}>{s.nome} — {s.ports.length} {s.ports.length === 1 ? "cabo" : "cabos"}</div>
+                {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="ac" numbering={numbering} /></div>}
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>
                     <th style={th}>Cabo</th><th style={th}>Gab.</th><th style={th}>Carga</th><th style={th}>Telas que percorre</th>
