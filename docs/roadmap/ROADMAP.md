@@ -9,8 +9,8 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.1 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
-**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (2 de 5, na v1.1.0) · Fase 03 iniciada (Reembolso entregue).
+**Horizonte:** v1.5 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (2 de 5 iniciativas-chave · v1.1→v1.5) · Fase 03 iniciada (Reembolso entregue).
 
 ---
 
@@ -75,6 +75,10 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **🟣 Screens — o técnico monta os sistemas** — aba Screens (agrupamento manual, não por modelo), cabeamento de sinal por Screen (automático OU livre), relatório + mapa de pixels por Screen | **2** | **v1.3.0** |
 | **🟣 AC por Screen** — energia na mesma lógica do sinal (auto/livre/atrelar ao sinal), aviso de estouro de corrente, relatório por Screen — pra contabilizar sinal e AC junto | **2** | **v1.3.1** |
 | **🟣 Controles de cabeamento por Screen** — régua Área (regra do retângulo, padrão) / Pixels (Free Topology), disposição Linha/Coluna/Área, 8/10-bit, num "Avançado" recolhido. Deixa de ficar preso ao Free Topology | **2** | **v1.4.0** |
+| **Menu reorganizado em seções** — sidebar (desktop) e barra de baixo (mobile) por seção; Configurações virou engrenagem no topo | 1 | v1.4.1–1.4.2 |
+| **Check-in de 1 toque na Visão Geral** — sem turno aberto, um botão começa o turno na hora (tipo mais recente) + GPS em segundo plano; ~4 toques → 1 | 3 | v1.4.3 |
+| **🟣 Numeração dos cabos em Serpente** — modo boustrophedon (contínuo, à la *Quick Connection* do NovaLCT) + **seletor visual** com as 8 ordens (era dropdown de texto, e só 6). Retrocompatível | **2** | **v1.5.0** |
+| **Configurações em overlay** — abre num painel (Drawer) por cima da tela, sem desmontar onde você está; fecha (X/toque fora/Esc) e volta no lugar, com a mudança já refletida atrás | 1 | **v1.5.0** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -174,4 +178,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-17 (v1.4.0 · Fase 02 em curso)._
+_Última atualização: 2026-07-22 (v1.5.0 · Fase 02 em curso)._

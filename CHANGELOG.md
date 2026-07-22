@@ -2,6 +2,22 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.5.0] — 2026-07-22
+
+**Configurações sem sair do lugar + numeração de cabos em serpente.**
+
+### Configurações virou um painel (overlay)
+Antes, abrir **Configurações** trocava de página e **desmontava** onde você estava — pra ver o efeito de um ajuste (ex.: a numeração dos cabos) tinha que re-navegar *Projetos › abrir projeto › Cabeamento* toda vez, e o mesmo pra mão de obra e futuras telas. Agora ela abre num **painel deslizante por cima da tela atual**, com **botão de fechar no topo** (ou toque fora / **Esc**). A página de baixo nunca sai, então fechar te devolve **exatamente onde estava** — e como as preferências são reativas, a tela atrás já reflete a mudança na hora. Vale pro celular (tela cheia) e pro desktop (painel lateral). Reaproveita o `Drawer` que já existia; fica **abaixo** dos diálogos de confirmação (o "restaurar de fábrica" segue aparecendo por cima).
+
+### Numeração dos cabos: modo Serpente + seletor visual
+A ordem de numeração das portas ganhou o modo **Serpente** (boustrophedon): em vez de toda faixa recomeçar do mesmo lado (**Zigzag**, com o "salto de volta"), o trajeto flui **contínuo**, invertendo o sentido a cada faixa — é o padrão do *Quick Connection* do NovaLCT. O seletor em *Configurações › Elétrica & cabeamento* deixou de ser um dropdown de texto e virou **visual** (estilo "Quick Topo"): um toggle **Zigzag/Serpente** + as **8 ordens** (4 Coluna + 4 Linha) como ícones que desenham o caminho na grade 3×3 (verde = início, vermelho = fim). Antes só apareciam 6 — agora fecham as 8 combinações possíveis. Guardado como sufixo `-serp` no `cableNumbering`; **retrocompatível** (o padrão segue zigzag, nenhum projeto muda).
+
+### Corrigido
+- **Check-in de 1 toque (v1.4.3) não some mais.** Sem turno aberto, tocar em "Check-in agora" criava o turno, mas quando o GPS resolvia (quase sempre no desktop) uma segunda escrita partindo do estado **congelado no render** apagava o turno recém-criado. As escritas das Diárias (`addEntry`/`updateEntry`/`removeEntry`) passam a usar *updater* funcional (partem sempre do estado mais recente) — o check-in fica, e o local é anexado nele.
+
+### Qualidade
+- 180 → **188 testes** (ordem serpente nos dois níveis de motor + cobertura das 8×2 combinações); lint limpo.
+
 ## [1.4.3] — 2026-07-18
 
 **Check-in num toque na Visão Geral.** Sem turno aberto, a Visão Geral (antiga tela inicial) mostra um botão **Check-in agora** que começa o turno na hora — com o tipo de atividade mais recente como padrão — e salva o GPS em segundo plano. Antes eram ~4 toques (Agenda › Diárias › Check-in › confirmar); agora é um só. O checkout já era um toque aí. Também: **"Dashboard" → "Visão Geral"** (nome em português).

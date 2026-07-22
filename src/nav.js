@@ -33,6 +33,6 @@ export const SECTION_META = {
 };
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.4.3";
+export const VERSION = "v1.5.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "⏱️ Check-in num toque na Visão Geral (antiga tela inicial): sem turno aberto, um botão começa o turno na hora e salva o GPS — igual o checkout que já ficava aí. E “Dashboard” virou “Visão Geral”.";
+export const WHATS_NEW = "⚙️ Configurações agora abre num painel POR CIMA da tela: mexeu, fechou (X, toque fora ou Esc) e você continua exatamente onde estava. 🔌 Numeração dos cabos ganhou o modo Serpente (contínuo, à la NovaLCT) e um seletor visual com as 8 ordens. E o check-in de 1 toque parou de sumir quando o GPS resolvia.";
