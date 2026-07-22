@@ -10,7 +10,7 @@
 //
 // Estas são as PEÇAS; o cabeamento por Screen (auto/livre) e as funções de projeto
 // (relatório, mapa de pixels) vivem em services/screenCabling.js.
-import { cableMeta, balancedChunks } from "./cabling.js";
+import { cableMeta, balancedChunks, serpOrder } from "./cabling.js";
 
 export const modelKey = (t) => `${parseFloat(t?.gabinete?.resX) || 128}x${parseFloat(t?.gabinete?.resY) || 128}`;
 
@@ -79,10 +79,15 @@ export function portBboxPx(port) {
 }
 
 // ordem de numeração das portas no canvas — mesmo esquema do orderPorts() por tela
-// ("eixo-dir1-dir2"), só que medindo em pixels de canvas.
+// ("eixo-dir1-dir2" zigzag, ou "…-serp" serpentina), só que medindo em px de canvas.
 export function orderCanvasPorts(ports, scheme) {
   const bb = (p) => { let minY = Infinity, minX = Infinity; for (const x of p) { if (x.y < minY) minY = x.y; if (x.x < minX) minX = x.x; } return { minY, minX }; };
-  const [axis, d1, d2] = (scheme || "row-tb-lr").split("-");
+  const [axis, d1, d2, serp] = (scheme || "row-tb-lr").split("-");
+  if (serp === "serp") {
+    return axis === "col"
+      ? serpOrder(ports, bb, "minX", "minY", d1 === "lr", d2 !== "bt")
+      : serpOrder(ports, bb, "minY", "minX", d1 !== "bt", d2 === "lr");
+  }
   return [...ports].sort((A, B) => {
     const a = bb(A), b = bb(B);
     if (axis === "col") {

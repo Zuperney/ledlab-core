@@ -47,10 +47,35 @@ export const balancedChunks = (arr, budget) => {
   return out;
 };
 
-// ordem de numeração dos cabos (config global). scheme = "eixo-dir1-dir2".
+// serpentina (boustrophedon) na NUMERAÇÃO das portas: mantém o sentido PRIMÁRIO do
+// raster, mas inverte o SECUNDÁRIO a cada faixa — a numeração flui contínua, sem o
+// "salto de volta" do zigzag. `bb` extrai o canto da porta; `prim`/`sec` são os campos
+// (ex.: "minR"/"minC"); `primAsc`/`secAsc` a direção base (idêntica ao raster).
+// Compartilhado com orderCanvasPorts (canvasCabling.js), que mede em px de canvas.
+export function serpOrder(ports, bb, prim, sec, primAsc, secAsc) {
+  const dec = ports.map((p) => { const b = bb(p); return { p, a: b[prim], b: b[sec] }; });
+  const faixas = [...new Set(dec.map((d) => d.a))].sort((x, y) => (primAsc ? x - y : y - x));
+  const idx = new Map(faixas.map((v, i) => [v, i]));
+  dec.sort((A, B) => {
+    const ia = idx.get(A.a), ib = idx.get(B.a);
+    if (ia !== ib) return ia - ib;
+    const dir = (secAsc ? 1 : -1) * (ia % 2 ? -1 : 1); // inverte a cada faixa (a serpentina)
+    return (A.b - B.b) * dir;
+  });
+  return dec.map((d) => d.p);
+}
+
+// ordem de numeração dos cabos (config global). scheme = "eixo-dir1-dir2" (raster/
+// zigzag, padrão) ou "eixo-dir1-dir2-serp" (serpentina). Só o 4º token muda o modo —
+// sem o token, é o comportamento histórico intacto.
 function orderPorts(ports, scheme) {
   const bb = (p) => { let minR = 1e9, minC = 1e9; for (const x of p) { if (x.r < minR) minR = x.r; if (x.c < minC) minC = x.c; } return { minR, minC }; };
-  const [axis, d1, d2] = (scheme || "row-tb-lr").split("-");
+  const [axis, d1, d2, serp] = (scheme || "row-tb-lr").split("-");
+  if (serp === "serp") {
+    return axis === "col"
+      ? serpOrder(ports, bb, "minC", "minR", d1 === "lr", d2 !== "bt")
+      : serpOrder(ports, bb, "minR", "minC", d1 !== "bt", d2 === "lr");
+  }
   return [...ports].sort((A, B) => {
     const a = bb(A), b = bb(B);
     if (axis === "col") {

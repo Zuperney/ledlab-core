@@ -1,6 +1,6 @@
 // canvasCabling.test.js — a corrente atravessando telas no canvas do processador.
 import { describe, it, expect } from "vitest";
-import { canvasCells, snakeCells, canvasPorts, portBboxPx } from "./canvasCabling.js";
+import { canvasCells, snakeCells, canvasPorts, portBboxPx, orderCanvasPorts } from "./canvasCabling.js";
 import { packByModel } from "./layout.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -103,6 +103,25 @@ describe("canvasPorts — o ganho real da Colação de Grau", () => {
   it("sem canvas não inventa porta nenhuma", () => {
     expect(canvasPorts(colacao, {})).toEqual([]);
     expect(canvasPorts([], {})).toEqual([]);
+  });
+});
+
+describe("orderCanvasPorts — numeração zigzag vs serpente no canvas", () => {
+  // 9 "portas" de 1 gabinete numa grade 3×3 de 100px (ordem embaralhada de propósito)
+  const ports = [];
+  for (let r = 2; r >= 0; r--) for (let c = 2; c >= 0; c--) ports.push([{ x: c * 100, y: r * 100 }]);
+  const order = (scheme) => orderCanvasPorts(ports, scheme).map((p) => [p[0].x / 100, p[0].y / 100]);
+
+  it("zigzag numera toda linha no mesmo sentido", () => {
+    expect(order("row-tb-lr")).toEqual([
+      [0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2],
+    ]);
+  });
+
+  it("serpente inverte a cada linha (contínuo)", () => {
+    expect(order("row-tb-lr-serp")).toEqual([
+      [0, 0], [1, 0], [2, 0], [2, 1], [1, 1], [0, 1], [0, 2], [1, 2], [2, 2],
+    ]);
   });
 });
 
