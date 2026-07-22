@@ -13,6 +13,7 @@ import { useLedLabContext } from "./store/AppContext.jsx";
 import NavBtn from "./components/NavBtn.jsx";
 import BottomNav from "./components/BottomNav.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import Drawer from "./components/Drawer.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
 import Agenda from "./pages/Agenda.jsx";
@@ -26,10 +27,12 @@ import AspectRatio from "./pages/AspectRatio.jsx";
 import Knowledge from "./pages/Knowledge.jsx";
 import Settings from "./pages/Settings.jsx";
 
+// Configurações NÃO é rota: vira overlay (Drawer) por cima da página atual, pra não
+// desmontar onde o usuário está. Por isso fica fora de PAGES (ver settingsOpen abaixo).
 const PAGES = {
   dashboard: Dashboard, agenda: Agenda, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, projects: Projects,
   diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio,
-  knowledge: Knowledge, settings: Settings,
+  knowledge: Knowledge,
 };
 const DEFAULT_PAGE = "dashboard";
 const PAGE_TO_PATH = Object.fromEntries(Object.keys(PAGES).map((id) => [id, `/${id}`]));
@@ -39,6 +42,7 @@ export default function App() {
   const [location, setLocation] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [openProjectId, setOpenProjectId] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false); // overlay de Configurações
   const page = PATH_TO_PAGE[location] || DEFAULT_PAGE;
   const Page = PAGES[page] || Dashboard;
   const isMobile = useIsMobile();
@@ -68,6 +72,14 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem("ledlab.lastSeenVersion", VERSION); } catch { /* ok */ }
   }, []);
+
+  // Esc fecha o overlay de Configurações (backdrop e X já fecham no próprio Drawer)
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setSettingsOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [settingsOpen]);
 
   useEffect(() => {
     if (location === "/") {
@@ -103,8 +115,8 @@ export default function App() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
-            <button onClick={() => navigate("settings")} aria-label="Configurações" title="Configurações"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, background: page === "settings" ? T.sel : "transparent", border: `1px solid ${page === "settings" ? T.acc : T.bd}`, color: page === "settings" ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
+            <button onClick={() => setSettingsOpen(true)} aria-label="Configurações" title="Configurações"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, background: settingsOpen ? T.sel : "transparent", border: `1px solid ${settingsOpen ? T.acc : T.bd}`, color: settingsOpen ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
               <SettingsIcon size={16} />
             </button>
             <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
@@ -119,6 +131,9 @@ export default function App() {
         </main>
         <BottomNav page={page} onNavigate={navigate} />
         {updateInfo && <UpdateModal info={updateInfo} onClose={() => setUpdateInfo(null)} />}
+        <Drawer open={settingsOpen} title="Configurações" onClose={() => setSettingsOpen(false)} width={560}>
+          <Settings embedded />
+        </Drawer>
       </div>
     );
   }
@@ -156,7 +171,7 @@ export default function App() {
         </nav>
 
         <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 8, marginTop: 8 }}>
-          {settingsItem && renderItem(settingsItem)}
+          {settingsItem && <NavBtn item={settingsItem} active={settingsOpen} collapsed={collapsed} onClick={() => setSettingsOpen(true)} />}
           <button onClick={() => setCollapsed((c) => !c)} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 12px", justifyContent: collapsed ? "center" : "flex-start", background: "transparent", color: T.dim, border: "none", cursor: "pointer", fontSize: 13 }}>
             {collapsed ? <ChevronRight size={18} /> : <><ChevronLeft size={18} /> Recolher</>}
           </button>
@@ -182,6 +197,9 @@ export default function App() {
         </main>
       </div>
       {updateInfo && <UpdateModal info={updateInfo} onClose={() => setUpdateInfo(null)} />}
+      <Drawer open={settingsOpen} title="Configurações" onClose={() => setSettingsOpen(false)} width={560}>
+        <Settings embedded />
+      </Drawer>
     </div>
   );
 }
