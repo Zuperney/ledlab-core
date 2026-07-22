@@ -30,7 +30,7 @@ export const DEFAULT_PREFS = {
   dashOcultarValor: false, // esconde o total de cachês (R$) na tela inicial (privacidade)
   cabCols: { pitch: true, resolucao: true, dimensoes: false, pwrMax: true, pwrMed: false, peso: true, ip: false },
   cablingAreaCount: true,
-  cableNumbering: "row-tb-lr", // ordem de numeração dos cabos (ver ProjectCabeamento)
+  cableNumbering: "row-tb-lr", // ordem de numeração dos cabos; sufixo "-serp" = serpentina (ver NumberingPicker)
   acMargin: 1, // fator de segurança do cabo AC: 1 = sem margem; 0,8 = regra dos 80% (carga contínua)
   // módulo Diárias — parâmetros globais de cálculo (ver docs/diarias-spec.md §5.1)
   worklog: { jornadaH: 12, janelaExtraH: 4, toleranciaExtraMin: 50 },

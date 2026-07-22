@@ -32,6 +32,59 @@ describe("cabling — disposição Área", () => {
   });
 });
 
+describe("cabling — numeração serpente (boustrophedon)", () => {
+  // 9 portas de 1 gabinete (budget 1) → a ordem de numeração = ordem das células
+  const order = (scheme) => buildAuto(3, 3, "linha", 1, "updown", scheme).map((p) => [p[0].c, p[0].r]);
+
+  it("zigzag (padrão): toda linha vai no mesmo sentido (esq→dir)", () => {
+    expect(order("row-tb-lr")).toEqual([
+      [0, 0], [1, 0], [2, 0],
+      [0, 1], [1, 1], [2, 1],
+      [0, 2], [1, 2], [2, 2],
+    ]);
+  });
+
+  it("serpente por linha: inverte o sentido a cada faixa (sem salto)", () => {
+    expect(order("row-tb-lr-serp")).toEqual([
+      [0, 0], [1, 0], [2, 0],
+      [2, 1], [1, 1], [0, 1],
+      [0, 2], [1, 2], [2, 2],
+    ]);
+  });
+
+  it("serpente por coluna: inverte a cada coluna", () => {
+    expect(order("col-lr-tb-serp")).toEqual([
+      [0, 0], [0, 1], [0, 2],
+      [1, 2], [1, 1], [1, 0],
+      [2, 0], [2, 1], [2, 2],
+    ]);
+  });
+
+  it("respeita o canto: row-bt-rl-serp começa embaixo-direita e sobe em U contínuo", () => {
+    expect(order("row-bt-rl-serp")).toEqual([
+      [2, 2], [1, 2], [0, 2], // base: dir→esq
+      [0, 1], [1, 1], [2, 1], // meio: esq→dir (inverteu)
+      [2, 0], [1, 0], [0, 0], // topo: dir→esq
+    ]);
+  });
+
+  it("serpente só REORDENA — mesmo conjunto de portas do zigzag", () => {
+    const z = order("row-tb-lr").map(String).sort();
+    const s = order("row-tb-lr-serp").map(String).sort();
+    expect(s).toEqual(z);
+  });
+
+  it("as 8 combinações (× zigzag/serpente) cobrem a grade inteira sem repetir", () => {
+    const SCHEMES = ["col-lr-bt", "col-lr-tb", "col-rl-bt", "col-rl-tb", "row-bt-lr", "row-tb-lr", "row-bt-rl", "row-tb-rl"];
+    for (const s of SCHEMES)
+      for (const suf of ["", "-serp"]) {
+        const o = order(s + suf).map(String);
+        expect(o.length).toBe(9);
+        expect(new Set(o).size).toBe(9); // 9 gabinetes, cobertura total, sem repetição
+      }
+  });
+});
+
 describe("cabling — régua de PIXELS (portas de dados reais)", () => {
   // gabinete 128×128 = 16.384 px → 8-bit: 655.360/16.384 = 40 gab; 10-bit: 327.680/16.384 = 20
   const gab128 = { resX: 128, resY: 128 };
