@@ -28,7 +28,7 @@ function Arrow({ a, b, size }) {
   return <path d={`M ${-size} ${-size * 0.85} L ${size} 0 L ${-size} ${size * 0.85} Z`} fill="#fff" transform={`translate(${mx},${my}) rotate(${ang})`} />;
 }
 
-export default function CablingLayer({ cells, ports, colorOf, showNumbers = true, arrows = true, numberSize = "sm", numberPos = "bl", onCellClick, activeCable = null }) {
+export default function CablingLayer({ cells, ports, colorOf, showNumbers = true, arrows = true, numberSize = "sm", numberPos = "bl", portOffset = 0, onCellClick, activeCable = null }) {
   const seqOf = {};
   ports.forEach((port) => port.forEach((cell, i) => { seqOf[cell.k] = i + 1; }));
   const nsize = NSIZE[numberSize] ?? NSIZE.sm;
@@ -50,9 +50,10 @@ export default function CablingLayer({ cells, ports, colorOf, showNumbers = true
         );
       })}
 
-      {/* número da ordem no cabo, num canto (o gabinete de início leva o selo, não repete o "1") */}
+      {/* número da ordem no cabo, num canto — em TODO gabinete (inclusive o de início, que
+          também leva o selo da PORTA no centro; um é a ordem no cabo, o outro é o nº da porta) */}
       {showNumbers && cells.map((cell) => {
-        if (cell.port == null || seqOf[cell.k] === 1) return null;
+        if (cell.port == null) return null;
         const u = Math.min(cell.w, cell.h);
         const fs = u * nsize;
         const pos = posOf(cell, u * 0.16);
@@ -79,7 +80,7 @@ export default function CablingLayer({ cells, ports, colorOf, showNumbers = true
             <path d={d} fill="none" stroke="#fff" strokeWidth={Math.max(1.6, u * 0.06)} strokeLinejoin="round" strokeLinecap="round" opacity={0.92} />
             {arrows && pts.slice(0, -1).map((p, i) => <Arrow key={`a${i}`} a={p} b={pts[i + 1]} size={u * 0.14} />)}
             <circle cx={cxOf(f)} cy={cyOf(f)} r={rad} fill={colorOf(pi)} stroke="#fff" strokeWidth={Math.max(1.2, u * 0.045)} />
-            <text x={cxOf(f)} y={cyOf(f)} fill="#fff" fontSize={rad * 1.1} fontWeight="700" textAnchor="middle" dominantBaseline="central">1</text>
+            <text x={cxOf(f)} y={cyOf(f)} fill="#fff" fontSize={rad * 1.05} fontWeight="700" textAnchor="middle" dominantBaseline="central">{portOffset + pi + 1}</text>
           </g>
         );
       })}

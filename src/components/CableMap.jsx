@@ -30,7 +30,7 @@ export default function CableMap({ tela, mode, numbering = "row-tb-lr", maxWidth
   return (
     <svg viewBox={`-8 -8 ${W + 16} ${H + 16}`} width={W + 16}
       style={{ width: "100%", maxWidth: Math.min(maxWidth, W + 16), height: "auto", background: "#0d0d1a", borderRadius: 8, display: "block" }}>
-      <CablingLayer cells={cells} ports={drawPorts} colorOf={(pi) => colorOf(offset + pi)}
+      <CablingLayer cells={cells} ports={drawPorts} colorOf={(pi) => colorOf(offset + pi)} portOffset={offset}
         showNumbers={cr.numbers ?? true} arrows={cr.arrows ?? true} numberSize={cr.numberSize} numberPos={cr.numberPos} />
     </svg>
   );
