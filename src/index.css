@@ -72,8 +72,17 @@ body {
     box-shadow: none !important;
   }
   .tbl-scroll { overflow: visible !important; }
+  /* cada seção começa numa página nova; a 1ª acompanha a capa */
+  .report-doc section { break-before: page; page-break-before: always; }
+  .report-doc section:first-of-type { break-before: auto; page-break-before: auto; }
   @page { margin: 14mm; }
 }
+
+/* Relatório: divisórias verticais sutis entre as colunas das tabelas ("pipes") */
+.report-doc th,
+.report-doc td { border-right: 1px solid #eef2f6; }
+.report-doc th:last-child,
+.report-doc td:last-child { border-right: none; }
 
 /* iOS: input/select/textarea com font-size < 16px dispara zoom automático ao focar
    no Safari. Garante o mínimo globalmente (rede de segurança; os estilos inline já usam 16). */

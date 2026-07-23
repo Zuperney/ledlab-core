@@ -40,6 +40,19 @@ export function SectionHead({ n, tag, title, right }) {
   );
 }
 
+// sub-cabeçalho de uma subdivisão dentro da seção (ex.: "04.1 · Screen 1")
+export function SubHead({ n, title, right }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, margin: "18px 0 8px", breakInside: "avoid", breakAfter: "avoid" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 9, minWidth: 0 }}>
+        {n != null && <span style={{ fontSize: 12, fontWeight: 800, color: PRINT.acc, letterSpacing: "0.03em", flexShrink: 0 }}>{n}</span>}
+        <span style={{ fontSize: 14, fontWeight: 700, color: PRINT.ink }}>{title}</span>
+      </div>
+      {right && <span style={{ fontSize: 11, color: PRINT.dim, whiteSpace: "nowrap" }}>{right}</span>}
+    </div>
+  );
+}
+
 // linha de stats rotuladas (label pequeno em caixa-alta + valor grande)
 export function StatRow({ items }) {
   return (

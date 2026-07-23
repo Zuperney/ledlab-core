@@ -14,7 +14,7 @@ import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
-import { ReportCover, SectionHead, StatRow, HeroStat, Chip, UsageBar } from "./reportUi.jsx";
+import { ReportCover, SectionHead, SubHead, StatRow, HeroStat, Chip, UsageBar } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
@@ -83,10 +83,8 @@ export default function ProjectRelatorio({ project }) {
   // hero da resolução: 1 tela → W×H; várias → total em Mpx
   const totalPx = telas.reduce((s, t) => { const v = videoOf(t); return s + v.pxW * v.pxH; }, 0);
   const heroResVal = telas.length === 1 ? `${videoOf(telas[0]).pxW} × ${videoOf(telas[0]).pxH}` : `${(totalPx / 1e6).toFixed(1)} Mpx`;
-  const heroResSub = totalPx ? `${totalPx.toLocaleString("pt-BR")} pixels ativos${telas.length > 1 ? ` · ${telas.length} telas` : ""}` : null;
   const gabsUsados = [...new Map(telas.filter((t) => t.gabinete?.nome).map((t) => [t.gabinete.nome, t.gabinete])).values()]; // modelos distintos p/ chips
   const telaBlock = { marginBottom: 24, breakInside: "avoid" };
-  const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
   return (
@@ -138,7 +136,7 @@ export default function ProjectRelatorio({ project }) {
           <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Resolução total por tela (para configurar processador/mídia) e proporção de tela.</p>
-            <HeroStat label="Resolução total" value={heroResVal} sub={heroResSub} />
+            <HeroStat label="Resolução total" value={heroResVal} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Total</th><th style={th}>Aspecto</th><th style={th}>Pitch</th></tr></thead>
               <tbody>
@@ -167,15 +165,15 @@ export default function ProjectRelatorio({ project }) {
           </section>
         )}
 
-        {showSignal && usaScreens && (
+        {showSignal && usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 36 }}>
-            <SectionHead n={sec()} title="Cabeamento de Sinal" tag="Portas de dados" />
+            <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>
               Uma seção por <b>Screen</b> (o sistema como a controladora enxerga). A corrente <b>atravessa telas</b> do mesmo modelo, e as portas são numeradas <b>1..N por Screen</b> — cada Screen é um controlador. Coordenada X/Y com origem no canto superior-esquerdo da Screen (a que se digita no NovaLCT).
             </p>
-            {screenReport.map((s) => (
+            {screenReport.map((s, i) => (
               <div key={s.id} style={telaBlock}>
-                <div style={telaTitle}>{s.nome} — {s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px · {s.ports.length} {s.ports.length === 1 ? "porta" : "portas"}</div>
+                <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.size.w.toLocaleString("pt-BR")} × ${s.size.h.toLocaleString("pt-BR")} px · ${s.ports.length} ${s.ports.length === 1 ? "porta" : "portas"}`} />
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>
@@ -202,19 +200,19 @@ export default function ProjectRelatorio({ project }) {
             )}
             <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 6 }}>Lista completa por gabinete (CSV pro NovaLCT / Tessera): botão “Mapa de pixels” na aba Cabeamento › Sinal.</p>
           </section>
-        )}
+        ); })()}
 
-        {showSignal && !usaScreens && (
+        {showSignal && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 36 }}>
-            <SectionHead n={sec()} title="Cabeamento de Sinal" tag="Portas de dados" />
+            <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo (canto configurável por tela na aba Cabeamento).</p>
-            {telas.map((t) => {
+            {telas.map((t, i) => {
               const { sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(t);
               const ports = cablePorts(t, "sinal", numbering);
               const off = portOffset(telas, t.id, "sinal", numbering); // portas 1..N do projeto
               return (
                 <div key={t.id} style={telaBlock}>
-                  <div style={telaTitle}>{t.nome} — {portLabel(off, ports.length, "porta")} · máx {sinalBudget} gab/porta · {sinalRule === "px" ? `pixels reais: ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "área quadrada"}</div>
+                  <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${portLabel(off, ports.length, "porta")} · máx ${sinalBudget} gab/porta · ${sinalRule === "px" ? `pixels reais: ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "área quadrada"}`} />
                   <CableMap tela={t} mode="sinal" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {ports.map((p, i) => { const pct = Math.round(((sinalRule === "px" ? p.length : bboxArea(p)) / sinalBudget) * 100); return (
@@ -246,15 +244,15 @@ export default function ProjectRelatorio({ project }) {
               );
             })}
           </section>
-        )}
+        ); })()}
 
-        {showAC && usaScreens && (
+        {showAC && usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 36 }}>
-            <SectionHead n={sec()} title="Energia — Cabeamento AC" tag="Circuitos de força" />
+            <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.</p>
-            {screenReportAc.map((s) => (
+            {screenReportAc.map((s, i) => (
               <div key={s.id} style={telaBlock}>
-                <div style={telaTitle}>{s.nome} — {s.ports.length} {s.ports.length === 1 ? "cabo" : "cabos"}</div>
+                <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`} />
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="ac" numbering={numbering} /></div>}
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>
@@ -275,19 +273,19 @@ export default function ProjectRelatorio({ project }) {
             ))}
             <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 6 }}>powerCON azul: não (des)conectar sob carga. Cabo 1,5 mm² limita em 16 A; cálculo a 220 V.</p>
           </section>
-        )}
+        ); })()}
 
-        {showAC && !usaScreens && (
+        {showAC && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 36 }}>
-            <SectionHead n={sec()} title="Energia — Cabeamento AC" tag="Circuitos de força" />
+            <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
-            {telas.map((t) => {
+            {telas.map((t, i) => {
               const { ampCab, connRating, acBudget } = cableMeta(t);
               const ports = cablePorts(t, "ac", numbering);
               const off = portOffset(telas, t.id, "ac", numbering); // circuitos 1..N do projeto
               return (
                 <div key={t.id} style={telaBlock}>
-                  <div style={telaTitle}>{t.nome} — {portLabel(off, ports.length, "cabo")} · máx {acBudget} gab/cabo · {ampCab.toFixed(2)} A/gab · conector {connRating} A</div>
+                  <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${portLabel(off, ports.length, "cabo")} · máx ${acBudget} gab/cabo · ${ampCab.toFixed(2)} A/gab · conector ${connRating} A`} />
                   <CableMap tela={t} mode="ac" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); return (
@@ -298,7 +296,7 @@ export default function ProjectRelatorio({ project }) {
               );
             })}
           </section>
-        )}
+        ); })()}
       </div>
       </div>
     </div>
