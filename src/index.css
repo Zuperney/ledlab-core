@@ -72,9 +72,12 @@ body {
     box-shadow: none !important;
   }
   .tbl-scroll { overflow: visible !important; }
-  /* fluxo natural: enche a página; nunca corta um cabeçalho/bloco no meio,
-     mas NÃO força página nova por seção (isso deixava páginas meio-vazias em
-     projetos grandes). break-inside evita órfãos; o resto flui. */
+  /* cada tópico principal em página nova (a capa já tem break-after). Agora o
+     conteúdo está denso (tabelas 2-col, mapas com teto), então cada seção enche
+     bem a página; break-inside evita cortar cabeçalho/linha no meio. */
+  .report-doc section { break-before: page; page-break-before: always; }
+  /* a 1ª seção não força quebra própria: a capa já tem break-after (evita página em branco) */
+  .report-doc section:first-of-type { break-before: auto; page-break-before: auto; }
   .report-doc thead { display: table-header-group; }
   .report-doc tr { break-inside: avoid; }
   @page { margin: 13mm; }

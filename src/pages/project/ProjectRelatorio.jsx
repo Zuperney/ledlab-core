@@ -14,7 +14,7 @@ import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
-import { ReportCover, SectionHead, SubHead, StatRow, HeroStat, Chip, DenseTable } from "./reportUi.jsx";
+import { ReportCoverPage, SectionHead, SubHead, HeroStat, Chip, DenseTable } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
@@ -100,14 +100,14 @@ export default function ProjectRelatorio({ project }) {
 
       <div ref={docWrapRef} style={{ overflow: "hidden" }}>
       <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, border: "1px solid #cbd5e1", borderRadius: 16, padding: 40, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
-        <ReportCover docType={type} name={project.name}
+        <ReportCoverPage docType={type} name={project.name}
           meta={[project.cliente, project.local, formatRange(project.dataInicio, project.dataFim), STATUS[project.status]?.l].filter(Boolean).join(" · ")}
-          generated={today} config={`${agg.vc.label} · brilho ${Math.round(cfg.brilho * 100)}% · conteúdo ${Math.round(cfg.conteudo * 100)}%`} />
-        <StatRow items={[
-          { label: "Telas", value: roll.telas }, { label: "Gabinetes", value: roll.gab },
-          { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` }, { label: "Peso", value: `${roll.peso_kg.toFixed(1)} kg` },
-          ...(showElec ? [{ label: "kVA pico", value: agg.kVA }, { label: "kVA típico", value: agg.typKva }, { label: "Gerador ~", value: `${agg.gerador} kVA` }] : []),
-        ]} />
+          generated={today} config={`${agg.vc.label} · brilho ${Math.round(cfg.brilho * 100)}% · conteúdo ${Math.round(cfg.conteudo * 100)}%`}
+          stats={[
+            { label: "Telas", value: roll.telas }, { label: "Gabinetes", value: roll.gab },
+            { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` }, { label: "Peso", value: `${roll.peso_kg.toFixed(1)} kg` },
+            ...(showElec ? [{ label: "kVA pico", value: agg.kVA }, { label: "kVA típico", value: agg.typKva }, { label: "Gerador ~", value: `${agg.gerador} kVA` }] : []),
+          ]} />
 
         {showPhys && (
           <section style={{ marginBottom: 22 }}>
