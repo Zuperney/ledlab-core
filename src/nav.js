@@ -36,6 +36,6 @@ export const SECTION_META = {
 };
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.5.5";
+export const VERSION = "v1.6.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🎨 Capa nova do relatório — uma folha de rosto de verdade, com a marca LedLab (lime + preto): tag Caderno Técnico, nome do evento em destaque, dados do evento e specs organizados em bloco-de-título. Cara de projeto de engenharia.";
+export const WHATS_NEW = "🎛️ Nova página Equipamentos (Gestão, no desktop): catálogo certificado de controladoras NovaStar — séries VX e MX (COEX) — e verificação por projeto: escolha a controladora de cada Screen e o app confere portas, carga do dispositivo e resolução, com a dica de Hz quando não cabe.";
