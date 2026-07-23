@@ -3,7 +3,7 @@
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState, useRef, useEffect } from "react";
-import { Printer, Info } from "lucide-react";
+import { Printer, Info, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
@@ -15,7 +15,7 @@ import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
 import ReportTelasCanvas from "../../components/ReportTelasCanvas.jsx";
-import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable } from "./reportUi.jsx";
+import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable, WarnBox } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
@@ -24,6 +24,27 @@ import { fileName, printAs } from "../../services/filenames.js";
 const TYPES = ["Completo", "Resumido", "Elétrico", "Mapa de cabos", "Estrutural", "Design", "Gabinetes"];
 // largura fixa "de impressão": no mobile o relatório é montado nela e escalado (zoom) p/ caber
 const DOC_W = 800;
+
+// disciplinas do caderno técnico: cor de índice por seção (produção / vídeo / elétrica)
+const DISC = { prod: "#475569", video: "#1d4ed8", elec: "#c2410c" };
+// peso legível: ≥ 1 tonelada vira "t"
+const fmtPeso = (kg) => (kg >= 1000 ? `${(kg / 1000).toFixed(1)} t` : `${Math.round(kg)} kg`);
+
+// glossário do caderno técnico (leitor leigo/cliente) — termos que aparecem no doc
+const GLOSSARIO = [
+  { t: "Pico × Típico", d: "Pico = branco pleno, dimensiona disjuntor e cabo. Típico = consumo médio real do conteúdo, estima energia e gerador." },
+  { t: "kVA × kW", d: "kW é a potência real; kVA a aparente (kW ÷ FP). Disjuntor e gerador se dimensionam em kVA/corrente." },
+  { t: "FP (fator de potência)", d: "Relação entre potência real e aparente do gabinete (ex.: 0,90). Entra na corrente e no kVA." },
+  { t: "Pitch", d: "Distância entre centros de LEDs (mm). Menor pitch = mais resolução por m² e menor distância mínima de visão." },
+  { t: "APL / conteúdo", d: "Nível médio da imagem — quanto do branco pleno o vídeo acende, em média. Escala o consumo típico." },
+  { t: "Gabinete", d: "Módulo físico de LED (cabinet + receiving card). Menor unidade de montagem e cabeamento." },
+  { t: "Tela", d: "Bloco de gabinetes iguais montados juntos — a unidade de projeto do app." },
+  { t: "Screen", d: "O sistema como a controladora enxerga, onde correm as portas 1..N. Pode reunir várias telas." },
+  { t: "Porta × Circuito", d: "Porta = saída de dados Gigabit da controladora. Circuito = cabo de energia (AC)." },
+  { t: "Disjuntor", d: "Proteção do circuito, dimensionada acima da corrente de pico (margem de carga contínua)." },
+  { t: "Trifásico (F+F+F+N)", d: "Alimentação em 3 fases + neutro — distribui a carga e reduz a corrente por fase." },
+  { t: "Serpentina", d: "Roteamento em zigue-zague dos cabos para minimizar comprimento e cruzamentos." },
+];
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const videoOf = (t) => {
@@ -65,6 +86,7 @@ export default function ProjectRelatorio({ project }) {
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
   const showSignal = ["Completo", "Mapa de cabos"].includes(type);
   const showAC = ["Completo", "Mapa de cabos"].includes(type); // AC saiu do Elétrico → foco em tabelas
+  const showGloss = type === "Completo"; // glossário só no caderno completo (leitor leigo/cliente)
 
   const th = { textAlign: "left", padding: "6px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase" };
   const td = { padding: "6px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
@@ -113,20 +135,20 @@ export default function ProjectRelatorio({ project }) {
           ]}
           stats={[
             { label: "Telas", value: roll.telas }, { label: "Gabinetes", value: roll.gab },
-            { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` }, { label: "Peso", value: `${roll.peso_kg.toFixed(1)} kg` },
+            { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` }, { label: "Peso", value: fmtPeso(roll.peso_kg) },
             ...(showElec ? [{ label: "kVA pico", value: agg.kVA }, { label: "kVA típico", value: agg.typKva }, { label: "Gerador ~", value: `${agg.gerador} kVA` }] : []),
           ]} />
 
         {showPhys && (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sec()} title="Visão Geral" tag="Composição do painel" />
+            <SectionHead n={sec()} title="Visão Geral" tag="Composição do painel" color={DISC.prod} Icon={LayoutGrid} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Dimensão</th><th style={th}>Grade</th><th style={th}>Gabinete</th><th style={th}>Gab.</th><th style={th}>Peso</th><th style={th}>{showElec ? "Carga" : "Peso/gab"}</th></tr></thead>
               <tbody>
                 {telas.map((t) => { const r = screenRollup(t); return (
-                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={td}>{r.dim.largura_m.toFixed(1)}×{r.dim.altura_m.toFixed(1)} m</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.nome}</td><td style={td}>{r.gab}</td><td style={td}>{r.peso_kg.toFixed(1)} kg</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(r.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}>{(parseFloat(t.gabinete?.peso) || 0).toFixed(1)} kg</td>}</tr>
+                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={td}>{r.dim.largura_m.toFixed(1)}×{r.dim.altura_m.toFixed(1)} m</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.nome}</td><td style={td}>{r.gab}</td><td style={td}>{fmtPeso(r.peso_kg)}</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(r.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}>{(parseFloat(t.gabinete?.peso) || 0).toFixed(1)} kg</td>}</tr>
                 ); })}
-                <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}>{roll.area_m2.toFixed(1)} m²</td><td style={td}></td><td style={td}></td><td style={td}>{roll.gab}</td><td style={td}>{roll.peso_kg.toFixed(1)} kg</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(roll.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}></td>}</tr>
+                <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}>{roll.area_m2.toFixed(1)} m²</td><td style={td}></td><td style={td}></td><td style={td}>{roll.gab}</td><td style={td}>{fmtPeso(roll.peso_kg)}</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(roll.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}></td>}</tr>
               </tbody>
             </table>
             {gabsUsados.length > 0 && (
@@ -142,7 +164,7 @@ export default function ProjectRelatorio({ project }) {
 
         {showVideo && (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" />
+            <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" color={DISC.video} Icon={Monitor} />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas em fila (nome de cada uma no seu bloco) — a largura somada é a resolução linear do projeto, pela altura da tela maior.</p>
             <ReportTelasCanvas project={project} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -158,7 +180,7 @@ export default function ProjectRelatorio({ project }) {
 
         {showElec && (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sec()} title="Informações Elétricas" tag="Energia · dimensionamento" />
+            <SectionHead n={sec()} title="Informações Elétricas" tag="Energia · dimensionamento" color={DISC.elec} Icon={Zap} />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Dimensionamento em <b style={{ color: PRINT.ink }}>{agg.vc.label}</b>. A potência de <b>pico</b> define o disjuntor e a bitola dos cabos; a potência <b>típica</b> (consumo médio em operação) estima o gerador.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Gab.</th><th style={th}>Pico kW</th><th style={th}>Pico kVA</th><th style={th}>Pico A</th><th style={th}>Disjuntor</th><th style={th}>Típ. kVA</th><th style={th}>Típ. A</th></tr></thead>
@@ -179,7 +201,7 @@ export default function ProjectRelatorio({ project }) {
 
         {showSignal && usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" />
+            <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" color={DISC.video} Icon={Network} />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>
               Uma seção por <b>Screen</b> (o sistema como a controladora enxerga). A corrente <b>atravessa telas</b> do mesmo modelo, e as portas são numeradas <b>1..N por Screen</b> — cada Screen é um controlador. Coordenadas X/Y por gabinete no CSV “Mapa de pixels”.
             </p>
@@ -205,7 +227,7 @@ export default function ProjectRelatorio({ project }) {
 
         {showSignal && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" />
+            <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" color={DISC.video} Icon={Network} />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo (canto configurável por tela na aba Cabeamento).</p>
             {telas.map((t, i) => {
               const { sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(t);
@@ -249,7 +271,8 @@ export default function ProjectRelatorio({ project }) {
 
         {showAC && usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" />
+            <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
+            <WarnBox title="Atenção — energização" tone="amber">Conectores <b>powerCON azuis NÃO podem ser (des)conectados sob carga</b>. Cabo de 1,5 mm² limita cada circuito em <b>16 A</b> (cálculo a 220 V) — confira a corrente por cabo na tabela antes de energizar.</WarnBox>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.</p>
             {screenReportAc.map((s, i) => (
               <div key={s.id} style={telaBlock}>
@@ -262,13 +285,13 @@ export default function ProjectRelatorio({ project }) {
                 ]} />
               </div>
             ))}
-            <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 6 }}>powerCON azul: não (des)conectar sob carga. Cabo 1,5 mm² limita em 16 A; cálculo a 220 V.</p>
           </section>
         ); })()}
 
         {showAC && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" />
+            <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
+            <WarnBox title="Atenção — energização" tone="amber">Conectores <b>powerCON azuis NÃO podem ser (des)conectados sob carga</b>. Cabo de 1,5 mm² limita cada circuito em <b>16 A</b> (cálculo a 220 V) — confira a corrente por cabo na tabela antes de energizar.</WarnBox>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
             {telas.map((t, i) => {
               const { ampCab, connRating, acBudget } = cableMeta(t);
@@ -288,6 +311,20 @@ export default function ProjectRelatorio({ project }) {
             })}
           </section>
         ); })()}
+
+        {showGloss && (
+          <section style={{ marginBottom: 22 }}>
+            <SectionHead n={sec()} title="Glossário" tag="Termos técnicos" color={DISC.prod} Icon={BookOpen} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "11px 30px" }}>
+              {GLOSSARIO.map((g, i) => (
+                <div key={i} style={{ breakInside: "avoid" }}>
+                  <div style={{ fontWeight: 700, color: PRINT.ink, fontSize: 12.5 }}>{g.t}</div>
+                  <div style={{ color: PRINT.mut, fontSize: 11.5, lineHeight: 1.5 }}>{g.d}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
       </div>
     </div>

@@ -58,21 +58,37 @@ export function ReportCoverPage({ docType, name, fields = [], generated, stats =
   );
 }
 
-// cabeçalho de seção: badge numerado + tag curta + título + meta à direita + régua
-export function SectionHead({ n, tag, title, right }) {
+// cabeçalho de seção: badge numerado + ícone + tag curta + título + meta à direita + régua.
+// `color` = cor da disciplina (produção/elétrica/vídeo); `Icon` = ícone lucide da seção.
+export function SectionHead({ n, tag, title, right, color = PRINT.ink, Icon }) {
   return (
     <div style={{ marginBottom: 20, marginTop: 4, breakInside: "avoid" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-          {n != null && <div style={{ width: 32, height: 32, borderRadius: 8, background: PRINT.ink, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{String(n).padStart(2, "0")}</div>}
+          {n != null && <div style={{ width: 32, height: 32, borderRadius: 8, background: color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{String(n).padStart(2, "0")}</div>}
           <div style={{ minWidth: 0 }}>
-            {tag && <div style={{ fontSize: 9, letterSpacing: "0.16em", color: PRINT.acc, fontWeight: 700, textTransform: "uppercase" }}>{tag}</div>}
-            <div style={{ fontSize: 16, fontWeight: 800, color: PRINT.ink, letterSpacing: "0.01em", textTransform: "uppercase" }}>{title}</div>
+            {tag && <div style={{ fontSize: 9, letterSpacing: "0.16em", color, fontWeight: 700, textTransform: "uppercase" }}>{tag}</div>}
+            <div style={{ fontSize: 16, fontWeight: 800, color: PRINT.ink, letterSpacing: "0.01em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 8 }}>{Icon && <Icon size={17} style={{ color, flexShrink: 0 }} />}{title}</div>
           </div>
         </div>
         {right && <div style={{ textAlign: "right", fontSize: 9.5, letterSpacing: "0.06em", color: PRINT.dim, textTransform: "uppercase", whiteSpace: "nowrap", lineHeight: 1.5 }}>{right}</div>}
       </div>
-      <div style={{ height: 1.5, background: PRINT.ink, marginTop: 9, opacity: 0.85 }} />
+      <div style={{ height: 1.5, background: color, marginTop: 9, opacity: 0.85 }} />
+    </div>
+  );
+}
+
+// box de AVISO de alta visibilidade (segurança de campo) — borda forte + texto colorido
+// (imprime mesmo sem "Gráficos de segundo plano"; o fundo é bônus). tone: amber | red.
+export function WarnBox({ title, children, tone = "amber" }) {
+  const c = tone === "red" ? { bg: "#fef2f2", bd: PRINT.red } : { bg: "#fffbeb", bd: PRINT.amb };
+  return (
+    <div style={{ display: "flex", gap: 11, alignItems: "flex-start", background: c.bg, border: `2px solid ${c.bd}`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, breakInside: "avoid" }}>
+      <span style={{ color: c.bd, fontSize: 18, fontWeight: 800, lineHeight: 1.1 }}>⚠</span>
+      <div style={{ fontSize: 12, color: PRINT.ink, lineHeight: 1.55 }}>
+        {title && <div style={{ fontWeight: 800, color: c.bd, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 11, marginBottom: 3 }}>{title}</div>}
+        {children}
+      </div>
     </div>
   );
 }
