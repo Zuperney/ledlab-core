@@ -141,9 +141,12 @@ export default function ProjectRelatorio({ project }) {
             { label: "Data de realização", value: formatRange(project.dataInicio, project.dataFim) },
           ]}
           stats={[
-            { label: "Telas", value: roll.telas }, { label: "Gabinetes", value: roll.gab },
-            { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` }, { label: "Peso", value: fmtPeso(roll.peso_kg) },
-            ...(showElec ? [{ label: "kVA pico", value: agg.kVA }, { label: "kVA típico", value: agg.typKva }, { label: "Gerador ~", value: `${agg.gerador} kVA` }] : []),
+            { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` },
+            { label: "Peso", value: fmtPeso(roll.peso_kg) },
+            ...(showElec ? [
+              { label: "Pico", value: `${Math.round(parseFloat(agg.kVA))} kVA` },
+              { label: "Gerador", value: `~${Math.round(parseFloat(agg.gerador))} kVA` },
+            ] : []),
           ]} />
 
         {showPhys && (

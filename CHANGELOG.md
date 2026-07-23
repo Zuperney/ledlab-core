@@ -2,6 +2,18 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.5.5] — 2026-07-24
+
+**Capa nova — a "Folha Técnica".** A primeira aplicação da identidade de marca no relatório.
+
+- **Marca LedLab** (logo led/lab + lime **#ebf51e**) na capa, com a tag **Caderno Técnico** e o **nome do evento** dominante + um acento lime.
+- **Bloco-de-título** no estilo prancha de engenharia: dados do **evento à esquerda** (Cliente / Local / Status / Data) e **specs à direita** (Área / Peso / Pico / Gerador), empilhados e separados por réguas finas.
+- Sai a contagem de **gabinetes** do topo — pro cliente o que importa é metragem, peso e consumo.
+- Rodapé enxuto (Nº do documento, revisão, geração).
+- Escala por *container query* — funde na largura da página em paisagem.
+
+Inspiração no cânone do design técnico (ISO 7200 · Vignelli · NASA · Volvo). Só a capa; nenhum cálculo mudou. 188 testes.
+
 ## [1.5.4] — 2026-07-24
 
 **O relatório virou um Caderno Técnico.** Redesign completo, em **paisagem por padrão** — pensado pra *distribuir* (cliente, produção, técnico de campo, locadora do painel) sem precisar do app.
