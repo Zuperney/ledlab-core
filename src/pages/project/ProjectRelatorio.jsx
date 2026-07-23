@@ -14,7 +14,7 @@ import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
-import ReportComposicao from "../../components/ReportComposicao.jsx";
+import ReportTelasCanvas from "../../components/ReportTelasCanvas.jsx";
 import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
@@ -143,13 +143,13 @@ export default function ProjectRelatorio({ project }) {
         {showVideo && (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas montadas (test card de cada uma na sua posição) — a caixa envolvente é o tamanho total do projeto. Detalhe por tela abaixo.</p>
-            <ReportComposicao project={project} />
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas em fila (nome de cada uma no seu bloco) — a largura somada é a resolução linear do projeto, pela altura da tela maior.</p>
+            <ReportTelasCanvas project={project} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Aspecto</th><th style={th}>Pitch</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Aspecto</th><th style={th}>Grade</th><th style={th}>Pixel/gab.</th></tr></thead>
               <tbody>
                 {telas.map((t) => { const v = videoOf(t); return (
-                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={td}>{v.pitch ? `${v.pitch.toFixed(2)} mm` : "—"}</td></tr>
+                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.resX && t.gabinete?.resY ? `${t.gabinete.resX}×${t.gabinete.resY}` : "—"}</td></tr>
                 ); })}
               </tbody>
             </table>
@@ -170,7 +170,10 @@ export default function ProjectRelatorio({ project }) {
               </tbody>
             </table>
             <p style={{ color: PRINT.mut, fontSize: 12, marginTop: 8 }}>Gerador sugerido (típico + 25% de margem): <b style={{ color: PRINT.acc }}>~{agg.gerador} kVA</b>.</p>
-            <p style={{ color: PRINT.dim, fontSize: 11, marginTop: 4 }}>Uso típico estimado com <b>brilho {Math.round(agg.brilho * 100)}%</b> e <b>conteúdo {Math.round(agg.conteudo * 100)}%</b> aplicados sobre o pico (somados ao consumo de base do gabinete){fpLabel ? <>. Fator de potência (FP) dos gabinetes: <b>{fpLabel}</b></> : null}.</p>
+            <div style={{ marginTop: 6, padding: "10px 12px", borderRadius: 8, background: PRINT.head, border: `1px solid ${PRINT.line}`, fontSize: 11, color: PRINT.mut }}>
+              <div style={{ fontFamily: "ui-monospace, monospace", color: PRINT.ink, fontSize: 12, marginBottom: 5 }}>Típico/gab = base + (pico − base) × brilho × conteúdo</div>
+              O consumo real fica entre <b>tela preta</b> (base) e <b>branco pleno</b> (pico); o <b>brilho</b> calibrado ({Math.round(agg.brilho * 100)}%) e o <b>conteúdo</b> médio do vídeo ({Math.round(agg.conteudo * 100)}%) escalam só a parcela dinâmica.{fpLabel ? <> Fator de potência (FP) dos gabinetes: <b>{fpLabel}</b>.</> : null} Modelo baseado no estudo de consumo da Barco — detalhes na Base de Conhecimento.
+            </div>
           </section>
         )}
 
