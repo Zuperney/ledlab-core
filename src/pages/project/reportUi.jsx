@@ -25,7 +25,7 @@ export function ReportCover({ docType, name, meta, generated, config }) {
 // breakAfter:page → o conteúdo começa na página seguinte. É a "capa".
 export function ReportCoverPage({ docType, name, fields = [], generated, stats = [] }) {
   return (
-    <div style={{ breakAfter: "page", pageBreakAfter: "always", minHeight: 820, display: "flex", flexDirection: "column", justifyContent: "center", gap: 22 }}>
+    <div style={{ breakAfter: "page", pageBreakAfter: "always", minHeight: 560, display: "flex", flexDirection: "column", justifyContent: "center", gap: 22 }}>
       <div style={{ background: PRINT.ink, borderRadius: 16, padding: "44px 40px", color: "#fff" }}>
         <div style={{ fontSize: 11, letterSpacing: "0.22em", color: "#c4b5fd", fontWeight: 700, textTransform: "uppercase" }}>Documentação técnica{docType ? ` · ${docType}` : ""}</div>
         <div style={{ fontSize: 46, fontWeight: 800, margin: "18px 0 18px", letterSpacing: "0.01em", lineHeight: 1.04 }}>{name}</div>

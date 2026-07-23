@@ -10,7 +10,7 @@ import CablingLayer from "./CablingLayer.jsx";
 
 const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
 
-export default function ScreenCableMap({ screen, telas, kind = "sinal", numbering = "row-tb-lr", maxWidth = 760, maxHeight = 300 }) {
+export default function ScreenCableMap({ screen, telas, kind = "sinal", numbering = "row-tb-lr", maxWidth = 1040, maxHeight = 300 }) {
   const { colorOf } = useCablePalette();
   const { prefs } = useLedLabContext();
   const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl", ...(prefs.cablingRender || {}) };

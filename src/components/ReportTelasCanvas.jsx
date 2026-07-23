@@ -11,7 +11,7 @@ const dimOf = (t) => ({
   h: (t.rows || 1) * (parseFloat(t.gabinete?.resY) || 128),
 });
 
-export default function ReportTelasCanvas({ project, maxWidth = 760, maxHeight = 300 }) {
+export default function ReportTelasCanvas({ project, maxWidth = 1040, maxHeight = 300 }) {
   const { colorOf } = useCablePalette();
   const telas = project.telas || [];
   if (!telas.length) return null;
@@ -34,15 +34,16 @@ export default function ReportTelasCanvas({ project, maxWidth = 760, maxHeight =
         <rect x={0} y={0} width={W} height={H} fill="#0d0d1a" />
         {raw.map((b) => {
           const x = b.x * scale, y = b.y * scale, w = b.d.w * scale, h = b.d.h * scale, col = colOf(b.t);
-          const fs = Math.max(7, Math.min(18, Math.min(h * 0.26, w / (Math.max(4, b.t.nome.length) * 0.56))));
+          const fs = Math.max(7, Math.min(18, Math.min(h * 0.26, w / (Math.max(4, b.t.nome.length) * 0.62))));
+          const showRes = w > 64 && h > fs * 3.4; // resolução só quando cabe no bloco (senão transborda no estreito, ex.: Tela 7/6 vs MAIN STAGE)
           return (
             <g key={b.t.id}>
               <rect x={x} y={y} width={w} height={h} fill={col} fillOpacity={0.2} stroke={col} strokeWidth={1.5} />
               {w > 22 && (
-                <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={fs} fontWeight="700" paintOrder="stroke" stroke="#0d0d1a" strokeWidth={fs * 0.14}>{b.t.nome}</text>
+                <text x={x + w / 2} y={y + (showRes ? h / 2 - fs * 0.2 : h / 2)} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={fs} fontWeight="700" paintOrder="stroke" stroke="#0d0d1a" strokeWidth={fs * 0.14}>{b.t.nome}</text>
               )}
-              {w > 22 && h > fs * 3.2 && (
-                <text x={x + w / 2} y={y + h / 2 + fs * 1.15} textAnchor="middle" dominantBaseline="middle" fill="#cbd5e1" fontSize={fs * 0.72}>{b.d.w} × {b.d.h}</text>
+              {showRes && (
+                <text x={x + w / 2} y={y + h / 2 + fs * 1.05} textAnchor="middle" dominantBaseline="middle" fill="#cbd5e1" fontSize={fs * 0.72}>{b.d.w} × {b.d.h}</text>
               )}
             </g>
           );

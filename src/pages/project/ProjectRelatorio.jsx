@@ -132,7 +132,7 @@ export default function ProjectRelatorio({ project }) {
       </div>
 
       <div ref={docWrapRef} style={{ overflow: "hidden" }}>
-      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, border: "1px solid #cbd5e1", borderRadius: 16, padding: 40, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
+      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, border: "1px solid #cbd5e1", borderRadius: 16, padding: 40, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 1120, zoom: isMobile ? docZoom : undefined }}>
         <ReportCoverPage docType={type} name={project.name} generated={today}
           fields={[
             { label: "Cliente", value: project.cliente },
