@@ -43,7 +43,7 @@ export function SectionHead({ n, tag, title, right }) {
 // sub-cabeçalho de uma subdivisão dentro da seção (ex.: "04.1 · Screen 1")
 export function SubHead({ n, title, right }) {
   return (
-    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, margin: "18px 0 8px", breakInside: "avoid", breakAfter: "avoid" }}>
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, margin: "12px 0 6px", breakInside: "avoid", breakAfter: "avoid" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 9, minWidth: 0 }}>
         {n != null && <span style={{ fontSize: 12, fontWeight: 800, color: PRINT.acc, letterSpacing: "0.03em", flexShrink: 0 }}>{n}</span>}
         <span style={{ fontSize: 14, fontWeight: 700, color: PRINT.ink }}>{title}</span>
@@ -85,6 +85,31 @@ export function Chip({ color, title, sub }) {
       {color && <span style={{ width: 11, height: 11, borderRadius: 3, background: color, flexShrink: 0 }} />}
       <span style={{ fontSize: 12.5 }}><b style={{ color: PRINT.ink }}>{title}</b>{sub && <span style={{ color: PRINT.dim, marginLeft: 6 }}>{sub}</span>}</span>
     </span>
+  );
+}
+
+// tabela densa: colunas declarativas + quebra automática em 2 colunas quando há
+// muitas linhas (projetos grandes) — mantém TODAS as linhas, mas na metade da altura.
+// columns: [{ key, label, align, render(row), tdStyle(row)? }]
+export function DenseTable({ columns, data, twoColFrom = 12, gap = 22 }) {
+  const th = { textAlign: "left", padding: "5px 8px", fontSize: 8.5, letterSpacing: "0.04em", color: PRINT.dim, textTransform: "uppercase", borderBottom: `1.5px solid ${PRINT.ink}`, whiteSpace: "nowrap" };
+  // números não quebram (evita "9528," numa linha e "2112" na outra); só colunas wrap:true quebram
+  const td = { padding: "4px 8px", borderBottom: `1px solid ${PRINT.line}`, fontSize: 11, color: PRINT.ink, verticalAlign: "middle", whiteSpace: "nowrap" };
+  const one = (rows, start = 0) => (
+    <table style={{ flex: 1, minWidth: 0, borderCollapse: "collapse" }}>
+      <thead><tr>{columns.map((c) => <th key={c.key} style={{ ...th, textAlign: c.align || "left" }}>{c.label}</th>)}</tr></thead>
+      <tbody>{rows.map((r, i) => (
+        <tr key={start + i}>{columns.map((c) => <td key={c.key} style={{ ...td, textAlign: c.align || "left", whiteSpace: c.wrap ? "normal" : "nowrap", ...(c.tdStyle ? c.tdStyle(r) : null) }}>{c.render(r)}</td>)}</tr>
+      ))}</tbody>
+    </table>
+  );
+  if (data.length < twoColFrom) return one(data);
+  const half = Math.ceil(data.length / 2);
+  return (
+    <div style={{ display: "flex", gap, alignItems: "flex-start" }}>
+      {one(data.slice(0, half), 0)}
+      {one(data.slice(half), half)}
+    </div>
   );
 }
 

@@ -14,7 +14,7 @@ import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
-import { ReportCover, SectionHead, SubHead, StatRow, HeroStat, Chip, UsageBar } from "./reportUi.jsx";
+import { ReportCover, SectionHead, SubHead, StatRow, HeroStat, Chip, DenseTable } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
@@ -65,8 +65,8 @@ export default function ProjectRelatorio({ project }) {
   const showSignal = ["Completo", "Mapa de cabos"].includes(type);
   const showAC = ["Completo", "Mapa de cabos"].includes(type); // AC saiu do Elétrico → foco em tabelas
 
-  const th = { textAlign: "left", padding: "10px 12px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase" };
-  const td = { padding: "10px 12px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
+  const th = { textAlign: "left", padding: "6px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase" };
+  const td = { padding: "6px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
   const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: colorOf(i), flexShrink: 0 });
   // "porta 7" · "portas 7–12" · "sem portas" — a faixa que a tela ocupa na numeração
@@ -84,7 +84,7 @@ export default function ProjectRelatorio({ project }) {
   const totalPx = telas.reduce((s, t) => { const v = videoOf(t); return s + v.pxW * v.pxH; }, 0);
   const heroResVal = telas.length === 1 ? `${videoOf(telas[0]).pxW} × ${videoOf(telas[0]).pxH}` : `${(totalPx / 1e6).toFixed(1)} Mpx`;
   const gabsUsados = [...new Map(telas.filter((t) => t.gabinete?.nome).map((t) => [t.gabinete.nome, t.gabinete])).values()]; // modelos distintos p/ chips
-  const telaBlock = { marginBottom: 24, breakInside: "avoid" };
+  const telaBlock = { marginBottom: 16, breakInside: "avoid" };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
   return (
@@ -99,7 +99,7 @@ export default function ProjectRelatorio({ project }) {
       </div>
 
       <div ref={docWrapRef} style={{ overflow: "hidden" }}>
-      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, border: "1px solid #cbd5e1", borderRadius: 16, padding: 48, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
+      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, border: "1px solid #cbd5e1", borderRadius: 16, padding: 40, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
         <ReportCover docType={type} name={project.name}
           meta={[project.cliente, project.local, formatRange(project.dataInicio, project.dataFim), STATUS[project.status]?.l].filter(Boolean).join(" · ")}
           generated={today} config={`${agg.vc.label} · brilho ${Math.round(cfg.brilho * 100)}% · conteúdo ${Math.round(cfg.conteudo * 100)}%`} />
@@ -110,7 +110,7 @@ export default function ProjectRelatorio({ project }) {
         ]} />
 
         {showPhys && (
-          <section style={{ marginBottom: 36 }}>
+          <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Visão Geral" tag="Composição do painel" />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Dimensão</th><th style={th}>Grade</th><th style={th}>Gabinete</th><th style={th}>Gab.</th><th style={th}>Peso</th><th style={th}>{showElec ? "Carga" : "Peso/gab"}</th></tr></thead>
@@ -133,7 +133,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showVideo && (
-          <section style={{ marginBottom: 36 }}>
+          <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Resolução total por tela (para configurar processador/mídia) e proporção de tela.</p>
             <HeroStat label="Resolução total" value={heroResVal} />
@@ -149,7 +149,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showElec && (
-          <section style={{ marginBottom: 36 }}>
+          <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Informações Elétricas" tag="Energia · dimensionamento" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Pico (pwrMax) dimensiona disjuntor e cabo; típico estima o gerador. {agg.vc.label}.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -166,7 +166,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showSignal && usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
-          <section style={{ marginBottom: 36 }}>
+          <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>
               Uma seção por <b>Screen</b> (o sistema como a controladora enxerga). A corrente <b>atravessa telas</b> do mesmo modelo, e as portas são numeradas <b>1..N por Screen</b> — cada Screen é um controlador. Coordenada X/Y com origem no canto superior-esquerdo da Screen (a que se digita no NovaLCT).
@@ -175,22 +175,13 @@ export default function ProjectRelatorio({ project }) {
               <div key={s.id} style={telaBlock}>
                 <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.size.w.toLocaleString("pt-BR")} × ${s.size.h.toLocaleString("pt-BR")} px · ${s.ports.length} ${s.ports.length === 1 ? "porta" : "portas"}`} />
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr>
-                    <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Uso</th><th style={th}>Telas que percorre</th><th style={th}>Início X, Y (px)</th>
-                  </tr></thead>
-                  <tbody>
-                    {s.ports.map((p) => (
-                      <tr key={p.n}>
-                        <td style={td}><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 6, verticalAlign: "middle" }} />{p.n}</td>
-                        <td style={td}>{p.count}</td>
-                        <td style={td}><UsageBar pct={p.pct} color={colorOf(p.n - 1)} /></td>
-                        <td style={td}>{p.telas.join(" → ")}</td>
-                        <td style={td}>{p.startX}, {p.startY}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DenseTable data={s.ports} columns={[
+                  { key: "n", label: "Porta", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
+                  { key: "count", label: "Gab.", align: "right", render: (p) => p.count },
+                  { key: "pct", label: "Uso", align: "right", render: (p) => `${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
+                  { key: "telas", label: "Telas", wrap: true, render: (p) => p.telas.join(" → ") },
+                  { key: "xy", label: "Início X,Y", align: "right", render: (p) => `${p.startX}, ${p.startY}` },
+                ]} />
               </div>
             ))}
             {semScreen.length > 0 && (
@@ -203,7 +194,7 @@ export default function ProjectRelatorio({ project }) {
         ); })()}
 
         {showSignal && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
-          <section style={{ marginBottom: 36 }}>
+          <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo (canto configurável por tela na aba Cabeamento).</p>
             {telas.map((t, i) => {
@@ -247,28 +238,19 @@ export default function ProjectRelatorio({ project }) {
         ); })()}
 
         {showAC && usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
-          <section style={{ marginBottom: 36 }}>
+          <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.</p>
             {screenReportAc.map((s, i) => (
               <div key={s.id} style={telaBlock}>
                 <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`} />
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="ac" numbering={numbering} /></div>}
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr>
-                    <th style={th}>Cabo</th><th style={th}>Gab.</th><th style={th}>Carga</th><th style={th}>Telas que percorre</th>
-                  </tr></thead>
-                  <tbody>
-                    {s.ports.map((p) => (
-                      <tr key={p.n}>
-                        <td style={td}><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 6, verticalAlign: "middle" }} />{p.n}</td>
-                        <td style={td}>{p.count}</td>
-                        <td style={td}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><span style={{ fontWeight: 600, color: p.over ? PRINT.red : PRINT.ink, whiteSpace: "nowrap" }}>{p.load.toFixed(1)} A</span><UsageBar pct={p.pct} color={colorOf(p.n - 1)} /></div></td>
-                        <td style={td}>{p.telas.join(" → ")}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DenseTable data={s.ports} columns={[
+                  { key: "n", label: "Cabo", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
+                  { key: "count", label: "Gab.", align: "right", render: (p) => p.count },
+                  { key: "load", label: "Carga", align: "right", render: (p) => `${p.load.toFixed(1)} A · ${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : PRINT.ink, whiteSpace: "nowrap" }) },
+                  { key: "telas", label: "Telas", wrap: true, render: (p) => p.telas.join(" → ") },
+                ]} />
               </div>
             ))}
             <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 6 }}>powerCON azul: não (des)conectar sob carga. Cabo 1,5 mm² limita em 16 A; cálculo a 220 V.</p>
@@ -276,7 +258,7 @@ export default function ProjectRelatorio({ project }) {
         ); })()}
 
         {showAC && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
-          <section style={{ marginBottom: 36 }}>
+          <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
             {telas.map((t, i) => {

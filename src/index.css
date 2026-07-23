@@ -72,10 +72,12 @@ body {
     box-shadow: none !important;
   }
   .tbl-scroll { overflow: visible !important; }
-  /* cada seção começa numa página nova; a 1ª acompanha a capa */
-  .report-doc section { break-before: page; page-break-before: always; }
-  .report-doc section:first-of-type { break-before: auto; page-break-before: auto; }
-  @page { margin: 14mm; }
+  /* fluxo natural: enche a página; nunca corta um cabeçalho/bloco no meio,
+     mas NÃO força página nova por seção (isso deixava páginas meio-vazias em
+     projetos grandes). break-inside evita órfãos; o resto flui. */
+  .report-doc thead { display: table-header-group; }
+  .report-doc tr { break-inside: avoid; }
+  @page { margin: 13mm; }
 }
 
 /* Relatório: divisórias verticais sutis entre as colunas das tabelas ("pipes") */

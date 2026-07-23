@@ -10,7 +10,7 @@ import CablingLayer from "./CablingLayer.jsx";
 
 const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
 
-export default function ScreenCableMap({ screen, telas, kind = "sinal", numbering = "row-tb-lr", maxWidth = 760 }) {
+export default function ScreenCableMap({ screen, telas, kind = "sinal", numbering = "row-tb-lr", maxWidth = 760, maxHeight = 300 }) {
   const { colorOf } = useCablePalette();
   const { prefs } = useLedLabContext();
   const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl", ...(prefs.cablingRender || {}) };
@@ -24,7 +24,7 @@ export default function ScreenCableMap({ screen, telas, kind = "sinal", numberin
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const c of cells) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); maxX = Math.max(maxX, c.x + c.w); maxY = Math.max(maxY, c.y + c.h); }
   const bw = maxX - minX || 1, bh = maxY - minY || 1;
-  const scale = maxWidth / bw;
+  const scale = Math.min(maxWidth / bw, maxHeight / bh); // teto de largura E altura (mapa não come página inteira)
   const W = bw * scale, H = bh * scale;
 
   const put = (c) => ({ k: cellKey(c), x: (c.x - minX) * scale, y: (c.y - minY) * scale, w: c.w * scale, h: c.h * scale });
