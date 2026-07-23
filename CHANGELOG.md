@@ -2,6 +2,20 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.5.4] — 2026-07-24
+
+**O relatório virou um Caderno Técnico.** Redesign completo, em **paisagem por padrão** — pensado pra *distribuir* (cliente, produção, técnico de campo, locadora do painel) sem precisar do app.
+
+- **Capa dedicada** (página de rosto): título, dados rotulados (Cliente / Local / Status / Data de realização) e resumo executivo em cards.
+- **Um tópico por página**, cada seção com **cor de índice + ícone por disciplina** (produção / vídeo / elétrica) e respiro no topo.
+- **Vídeo / Resolução**: esquema das telas **em fila** (nome dentro de cada bloco) dando a resolução linear do projeto + tabela (grade, pixel por gabinete).
+- **Cabeamento**: tabelas de porta/cabo em **até 4 colunas** com distribuição balanceada; mapa por Screen; e um **bloco de specs** por Screen (resolução, frequência, gabinete, grade, total de cabos) — o que o operador precisa no processador.
+- **Elétrica**: prosa sem jargão, **fórmula do consumo típico** (modelo Barco, com fontes na Base de Conhecimento) e **box de segurança** de energização (powerCON / 16 A) em destaque.
+- **Peso em toneladas**, **glossário** de termos técnicos, **sem referências ao app** e **sem abreviações** (documento pra quem não abre o LedLab).
+- **Base de Conhecimento**: artigo "Pico × Típico" com a fórmula, o exemplo da Barco e as fontes.
+
+Só relatório e documentação; nenhum cálculo mudou. 188 testes, lint limpo.
+
 ## [1.5.3] — 2026-07-22
 
 **O mapa de cabos visual voltou pro relatório.** Correção: projetos que usam **Screens** (do rework da v1.3) só mostravam **tabelas** de cabeamento no relatório — o mapa visual (o grid com o trajeto) tinha ficado só no modo legado por tela, então "sumia" quando o projeto virava Screens.

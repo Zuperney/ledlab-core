@@ -34,6 +34,6 @@ export const SECTION_META = {
 };
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.5.3";
+export const VERSION = "v1.5.4";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🔌 O mapa de cabos VISUAL voltou pro relatório: projetos com Screen agora mostram o grid com trajeto, setas e numeração em cada Screen (sinal e AC), acima das tabelas — antes só vinham as tabelas.";
+export const WHATS_NEW = "📄 O relatório virou um CADERNO TÉCNICO em paisagem: capa dedicada, seções por disciplina (cor + ícone), esquema das telas, specs por Screen, box de segurança e glossário — feito pra distribuir pro cliente, produção e equipe de campo.";

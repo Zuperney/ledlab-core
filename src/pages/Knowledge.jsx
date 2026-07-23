@@ -23,6 +23,11 @@ function Block({ b }) {
       </table>
     </div>
   );
+  if (b.t === "links") return (
+    <ul style={{ color: T.mut, lineHeight: 1.9, listStyle: "none", padding: 0, margin: 0 }}>
+      {b.items.map((i, k) => <li key={k} style={{ marginBottom: 4 }}><a href={i.url} target="_blank" rel="noopener noreferrer" style={{ color: T.acM, textDecoration: "none", fontWeight: 600 }}>{i.label} ↗</a></li>)}
+    </ul>
+  );
   return null;
 }
 

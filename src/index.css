@@ -72,8 +72,24 @@ body {
     box-shadow: none !important;
   }
   .tbl-scroll { overflow: visible !important; }
-  @page { margin: 14mm; }
+  /* cada tópico principal em página nova (a capa já tem break-after). Agora o
+     conteúdo está denso (tabelas 2-col, mapas com teto), então cada seção enche
+     bem a página; break-inside evita cortar cabeçalho/linha no meio. */
+  .report-doc section { break-before: page; page-break-before: always; padding-top: 10mm; }
+  /* respiro no topo de cada subseção por Screen (04.1, 04.2…) quando cai no topo de uma página */
+  .report-doc .rp-block { padding-top: 7mm; }
+  /* a 1ª seção não força quebra própria: a capa já tem break-after (evita página em branco) */
+  .report-doc section:first-of-type { break-before: auto; page-break-before: auto; }
+  .report-doc thead { display: table-header-group; }
+  .report-doc tr { break-inside: avoid; }
+  @page { size: A4 landscape; margin: 12mm; } /* relatório nasce em paisagem (cara de projeto de engenharia) */
 }
+
+/* Relatório: divisórias verticais sutis entre as colunas das tabelas ("pipes") */
+.report-doc th,
+.report-doc td { border-right: 1px solid #eef2f6; }
+.report-doc th:last-child,
+.report-doc td:last-child { border-right: none; }
 
 /* iOS: input/select/textarea com font-size < 16px dispara zoom automático ao focar
    no Safari. Garante o mínimo globalmente (rede de segurança; os estilos inline já usam 16). */
