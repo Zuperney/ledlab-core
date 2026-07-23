@@ -3,7 +3,7 @@
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState, useRef, useEffect } from "react";
-import { Printer } from "lucide-react";
+import { Printer, Info } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
@@ -96,6 +96,11 @@ export default function ProjectRelatorio({ project }) {
           ))}
         </div>
         <button style={btn("primary")} onClick={() => printAs(fileName([project.name, "relatorio", type]))}><Printer size={15} /> Imprimir / Salvar PDF</button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "9px 12px", borderRadius: 10, background: T.card2, border: `1px solid ${T.bd}`, fontSize: 12.5, color: T.mut }}>
+        <Info size={15} style={{ flexShrink: 0, color: T.acc }} />
+        <span>Ao salvar o PDF, ative <b style={{ color: T.txt }}>“Gráficos de segundo plano”</b> na janela de impressão — sem isso a capa e as cores dos cabos saem apagadas.</span>
       </div>
 
       <div ref={docWrapRef} style={{ overflow: "hidden" }}>

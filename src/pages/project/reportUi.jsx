@@ -124,7 +124,7 @@ export function Chip({ color, title, sub }) {
 // tabela densa: colunas declarativas + quebra automática em 2 colunas quando há
 // muitas linhas (projetos grandes) — mantém TODAS as linhas, mas na metade da altura.
 // columns: [{ key, label, align, render(row), tdStyle(row)? }]
-export function DenseTable({ columns, data, twoColFrom = 12, maxCols = 2, rowsPerCol = 18, gap = 20 }) {
+export function DenseTable({ columns, data, maxCols = 2, minSplit = 3, gap = 20 }) {
   const th = { textAlign: "left", padding: "5px 8px", fontSize: 8.5, letterSpacing: "0.04em", color: PRINT.dim, textTransform: "uppercase", borderBottom: `1.5px solid ${PRINT.ink}`, whiteSpace: "nowrap" };
   // números não quebram (evita "9528," numa linha e "2112" na outra); só colunas wrap:true quebram
   const td = { padding: "4px 8px", borderBottom: `1px solid ${PRINT.line}`, fontSize: 11, color: PRINT.ink, verticalAlign: "middle", whiteSpace: "nowrap" };
@@ -136,13 +136,17 @@ export function DenseTable({ columns, data, twoColFrom = 12, maxCols = 2, rowsPe
       ))}</tbody>
     </table>
   );
-  if (data.length < twoColFrom) return one(data, 0, 0);
-  // muitas linhas → reparte em até maxCols colunas lado a lado (metade/terço da altura)
-  const cols = Math.min(maxCols, Math.max(2, Math.ceil(data.length / rowsPerCol)));
-  const per = Math.ceil(data.length / cols);
+  const cols = Math.min(maxCols, data.length);
+  if (cols <= 1 || data.length < minSplit) return one(data, 0, 0);
+  // divisão ORGÂNICA: colunas travadas em `cols`, distribuição balanceada — as
+  // primeiras (n % cols) colunas levam 1 a mais. Ex.: 4 em 3 col = 2,1,1; 5 = 2,2,1;
+  // 8 = 3,3,2. Nunca enche uma coluna inteira antes de passar pra próxima.
+  const base = Math.floor(data.length / cols), rem = data.length % cols;
+  const groups = []; let idx = 0;
+  for (let i = 0; i < cols; i++) { const size = base + (i < rem ? 1 : 0); groups.push({ rows: data.slice(idx, idx + size), start: idx }); idx += size; }
   return (
     <div style={{ display: "flex", gap, alignItems: "flex-start" }}>
-      {Array.from({ length: cols }, (_, i) => one(data.slice(i * per, (i + 1) * per), i * per, i))}
+      {groups.map((g, i) => one(g.rows, g.start, i))}
     </div>
   );
 }
