@@ -169,18 +169,16 @@ export default function ProjectRelatorio({ project }) {
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>
-              Uma seção por <b>Screen</b> (o sistema como a controladora enxerga). A corrente <b>atravessa telas</b> do mesmo modelo, e as portas são numeradas <b>1..N por Screen</b> — cada Screen é um controlador. Coordenada X/Y com origem no canto superior-esquerdo da Screen (a que se digita no NovaLCT).
+              Uma seção por <b>Screen</b> (o sistema como a controladora enxerga). A corrente <b>atravessa telas</b> do mesmo modelo, e as portas são numeradas <b>1..N por Screen</b> — cada Screen é um controlador. Coordenadas X/Y por gabinete no CSV “Mapa de pixels”.
             </p>
             {screenReport.map((s, i) => (
               <div key={s.id} style={telaBlock}>
                 <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.size.w.toLocaleString("pt-BR")} × ${s.size.h.toLocaleString("pt-BR")} px · ${s.ports.length} ${s.ports.length === 1 ? "porta" : "portas"}`} />
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}
-                <DenseTable data={s.ports} columns={[
+                <DenseTable data={s.ports} maxCols={3} columns={[
                   { key: "n", label: "Porta", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
                   { key: "count", label: "Gab.", align: "right", render: (p) => p.count },
                   { key: "pct", label: "Uso", align: "right", render: (p) => `${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
-                  { key: "telas", label: "Telas", wrap: true, render: (p) => p.telas.join(" → ") },
-                  { key: "xy", label: "Início X,Y", align: "right", render: (p) => `${p.startX}, ${p.startY}` },
                 ]} />
               </div>
             ))}
@@ -245,11 +243,10 @@ export default function ProjectRelatorio({ project }) {
               <div key={s.id} style={telaBlock}>
                 <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`} />
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="ac" numbering={numbering} /></div>}
-                <DenseTable data={s.ports} columns={[
+                <DenseTable data={s.ports} maxCols={3} columns={[
                   { key: "n", label: "Cabo", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
                   { key: "count", label: "Gab.", align: "right", render: (p) => p.count },
                   { key: "load", label: "Carga", align: "right", render: (p) => `${p.load.toFixed(1)} A · ${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : PRINT.ink, whiteSpace: "nowrap" }) },
-                  { key: "telas", label: "Telas", wrap: true, render: (p) => p.telas.join(" → ") },
                 ]} />
               </div>
             ))}
