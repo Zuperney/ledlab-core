@@ -23,18 +23,22 @@ export function ReportCover({ docType, name, meta, generated, config }) {
 
 // PÁGINA DE ROSTO dedicada: título + resumo executivo (stats em cards) + rodapé.
 // breakAfter:page → o conteúdo começa na página seguinte. É a "capa".
-export function ReportCoverPage({ docType, name, meta, generated, config, stats = [] }) {
+export function ReportCoverPage({ docType, name, fields = [], generated, stats = [] }) {
   return (
     <div style={{ breakAfter: "page", pageBreakAfter: "always", minHeight: 820, display: "flex", flexDirection: "column", justifyContent: "center", gap: 22 }}>
       <div style={{ background: PRINT.ink, borderRadius: 16, padding: "44px 40px", color: "#fff" }}>
         <div style={{ fontSize: 11, letterSpacing: "0.22em", color: "#c4b5fd", fontWeight: 700, textTransform: "uppercase" }}>Documentação técnica{docType ? ` · ${docType}` : ""}</div>
-        <div style={{ fontSize: 46, fontWeight: 800, margin: "18px 0 12px", letterSpacing: "0.01em", lineHeight: 1.04 }}>{name}</div>
-        {meta && <div style={{ color: "#cbd5e1", fontSize: 14.5 }}>{meta}</div>}
-        <div style={{ height: 1, background: "rgba(255,255,255,0.14)", margin: "26px 0 14px" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 12, color: "#94a3b8" }}>
-          {config && <span>{config}</span>}
-          {generated && <span>Gerado em {generated}</span>}
-        </div>
+        <div style={{ fontSize: 46, fontWeight: 800, margin: "18px 0 18px", letterSpacing: "0.01em", lineHeight: 1.04 }}>{name}</div>
+        {fields.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "7px 22px", fontSize: 13.5 }}>
+            {fields.map((f, i) => [
+              <div key={`l${i}`} style={{ color: "#94a3b8", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", alignSelf: "center" }}>{f.label}</div>,
+              <div key={`v${i}`} style={{ color: "#e5e7eb", fontWeight: 600 }}>{f.value || "—"}</div>,
+            ])}
+          </div>
+        )}
+        <div style={{ height: 1, background: "rgba(255,255,255,0.14)", margin: "22px 0 14px" }} />
+        <div style={{ fontSize: 12, color: "#94a3b8" }}>{generated && <span>Gerado em {generated}</span>}</div>
       </div>
       {stats.length > 0 && (
         <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 12 }}>

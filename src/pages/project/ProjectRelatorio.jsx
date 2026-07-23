@@ -82,6 +82,7 @@ export default function ProjectRelatorio({ project }) {
   const semScreen = usaScreens ? telasSemScreen(project) : [];
   const screensById = Object.fromEntries((project.screens || []).map((s) => [s.id, s])); // p/ o mapa visual por Screen
   const gabsUsados = [...new Map(telas.filter((t) => t.gabinete?.nome).map((t) => [t.gabinete.nome, t.gabinete])).values()]; // modelos distintos p/ chips
+  const fpLabel = [...new Set(gabsUsados.map((g) => parseFloat(g.fp) || 0.85))].sort((a, b) => a - b).map((f) => f.toFixed(2).replace(".", ",")).join(" · "); // FP dos gabinetes do projeto
   const telaBlock = { marginBottom: 16, breakInside: "avoid" };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
@@ -103,9 +104,13 @@ export default function ProjectRelatorio({ project }) {
 
       <div ref={docWrapRef} style={{ overflow: "hidden" }}>
       <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, border: "1px solid #cbd5e1", borderRadius: 16, padding: 40, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
-        <ReportCoverPage docType={type} name={project.name}
-          meta={[project.cliente, project.local, formatRange(project.dataInicio, project.dataFim), STATUS[project.status]?.l].filter(Boolean).join(" · ")}
-          generated={today} config={`${agg.vc.label} · brilho ${Math.round(cfg.brilho * 100)}% · conteúdo ${Math.round(cfg.conteudo * 100)}%`}
+        <ReportCoverPage docType={type} name={project.name} generated={today}
+          fields={[
+            { label: "Cliente", value: project.cliente },
+            { label: "Local", value: project.local },
+            { label: "Status", value: STATUS[project.status]?.l },
+            { label: "Data de realização", value: formatRange(project.dataInicio, project.dataFim) },
+          ]}
           stats={[
             { label: "Telas", value: roll.telas }, { label: "Gabinetes", value: roll.gab },
             { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` }, { label: "Peso", value: `${roll.peso_kg.toFixed(1)} kg` },
@@ -141,10 +146,10 @@ export default function ProjectRelatorio({ project }) {
             <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas montadas (test card de cada uma na sua posição) — a caixa envolvente é o tamanho total do projeto. Detalhe por tela abaixo.</p>
             <ReportComposicao project={project} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Total</th><th style={th}>Aspecto</th><th style={th}>Pitch</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Aspecto</th><th style={th}>Pitch</th></tr></thead>
               <tbody>
                 {telas.map((t) => { const v = videoOf(t); return (
-                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={td}>{v.mp.toFixed(2)} Mpx</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={td}>{v.pitch ? `${v.pitch.toFixed(2)} mm` : "—"}</td></tr>
+                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={td}>{v.pitch ? `${v.pitch.toFixed(2)} mm` : "—"}</td></tr>
                 ); })}
               </tbody>
             </table>
@@ -154,7 +159,7 @@ export default function ProjectRelatorio({ project }) {
         {showElec && (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Informações Elétricas" tag="Energia · dimensionamento" />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Pico (pwrMax) dimensiona disjuntor e cabo; típico estima o gerador. {agg.vc.label}.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Dimensionamento em <b style={{ color: PRINT.ink }}>{agg.vc.label}</b>. A potência de <b>pico</b> define o disjuntor e a bitola dos cabos; a potência <b>típica</b> (consumo médio em operação) estima o gerador.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Gab.</th><th style={th}>Pico kW</th><th style={th}>Pico kVA</th><th style={th}>Pico A</th><th style={th}>Disjuntor</th><th style={th}>Típ. kVA</th><th style={th}>Típ. A</th></tr></thead>
               <tbody>
@@ -165,6 +170,7 @@ export default function ProjectRelatorio({ project }) {
               </tbody>
             </table>
             <p style={{ color: PRINT.mut, fontSize: 12, marginTop: 8 }}>Gerador sugerido (típico + 25% de margem): <b style={{ color: PRINT.acc }}>~{agg.gerador} kVA</b>.</p>
+            <p style={{ color: PRINT.dim, fontSize: 11, marginTop: 4 }}>Uso típico estimado com <b>brilho {Math.round(agg.brilho * 100)}%</b> e <b>conteúdo {Math.round(agg.conteudo * 100)}%</b> aplicados sobre o pico (somados ao consumo de base do gabinete){fpLabel ? <>. Fator de potência (FP) dos gabinetes: <b>{fpLabel}</b></> : null}.</p>
           </section>
         )}
 
