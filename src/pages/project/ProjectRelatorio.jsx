@@ -65,8 +65,8 @@ export default function ProjectRelatorio({ project }) {
   const showSignal = ["Completo", "Mapa de cabos"].includes(type);
   const showAC = ["Completo", "Mapa de cabos"].includes(type); // AC saiu do Elétrico → foco em tabelas
 
-  const th = { textAlign: "left", padding: "8px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase" };
-  const td = { padding: "8px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
+  const th = { textAlign: "left", padding: "10px 12px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase" };
+  const td = { padding: "10px 12px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
   const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: colorOf(i), flexShrink: 0 });
   // "porta 7" · "portas 7–12" · "sem portas" — a faixa que a tela ocupa na numeração
@@ -80,7 +80,7 @@ export default function ProjectRelatorio({ project }) {
   const screenReportAc = usaScreens ? projectScreenReport(project, "ac", numbering) : [];
   const semScreen = usaScreens ? telasSemScreen(project) : [];
   const screensById = Object.fromEntries((project.screens || []).map((s) => [s.id, s])); // p/ o mapa visual por Screen
-  const telaBlock = { marginBottom: 18, breakInside: "avoid" };
+  const telaBlock = { marginBottom: 24, breakInside: "avoid" };
   const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
@@ -96,7 +96,7 @@ export default function ProjectRelatorio({ project }) {
       </div>
 
       <div ref={docWrapRef} style={{ overflow: "hidden" }}>
-      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, borderRadius: 8, padding: 40, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
+      <div className="report-doc" style={{ background: "#fff", color: PRINT.ink, border: "1px solid #cbd5e1", borderRadius: 16, padding: 48, fontSize: 13, margin: "0 auto", width: isMobile ? DOC_W : "100%", maxWidth: isMobile ? "none" : 860, zoom: isMobile ? docZoom : undefined }}>
         <ReportCover docType={type} name={project.name}
           meta={[project.cliente, project.local, formatRange(project.dataInicio, project.dataFim), STATUS[project.status]?.l].filter(Boolean).join(" · ")}
           generated={today} config={`${agg.vc.label} · brilho ${Math.round(cfg.brilho * 100)}% · conteúdo ${Math.round(cfg.conteudo * 100)}%`} />
@@ -107,7 +107,7 @@ export default function ProjectRelatorio({ project }) {
         ]} />
 
         {showPhys && (
-          <section style={{ marginBottom: 24 }}>
+          <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Visão Geral" tag="Composição do painel" />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Dimensão</th><th style={th}>Grade</th><th style={th}>Gabinete</th><th style={th}>Gab.</th><th style={th}>Peso</th><th style={th}>{showElec ? "Carga" : "Peso/gab"}</th></tr></thead>
@@ -122,7 +122,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showVideo && (
-          <section style={{ marginBottom: 24 }}>
+          <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Resolução total por tela (para configurar processador/mídia) e proporção de tela.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -137,7 +137,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showElec && (
-          <section style={{ marginBottom: 24 }}>
+          <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Informações Elétricas" tag="Energia · dimensionamento" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Pico (pwrMax) dimensiona disjuntor e cabo; típico estima o gerador. {agg.vc.label}.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -154,7 +154,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showSignal && usaScreens && (
-          <section style={{ marginBottom: 24 }}>
+          <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Cabeamento de Sinal" tag="Portas de dados" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>
               Uma seção por <b>Screen</b> (o sistema como a controladora enxerga). A corrente <b>atravessa telas</b> do mesmo modelo, e as portas são numeradas <b>1..N por Screen</b> — cada Screen é um controlador. Coordenada X/Y com origem no canto superior-esquerdo da Screen (a que se digita no NovaLCT).
@@ -191,7 +191,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showSignal && !usaScreens && (
-          <section style={{ marginBottom: 24 }}>
+          <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Cabeamento de Sinal" tag="Portas de dados" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo (canto configurável por tela na aba Cabeamento).</p>
             {telas.map((t) => {
@@ -235,7 +235,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showAC && usaScreens && (
-          <section style={{ marginBottom: 24 }}>
+          <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Energia — Cabeamento AC" tag="Circuitos de força" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.</p>
             {screenReportAc.map((s) => (
@@ -264,7 +264,7 @@ export default function ProjectRelatorio({ project }) {
         )}
 
         {showAC && !usaScreens && (
-          <section style={{ marginBottom: 24 }}>
+          <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Energia — Cabeamento AC" tag="Circuitos de força" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
             {telas.map((t) => {

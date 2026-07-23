@@ -7,7 +7,7 @@ import { PRINT } from "../../ui/tokens.js";
 // capa: faixa escura com a marca + título do projeto + meta e geração
 export function ReportCover({ docType, name, meta, generated, config }) {
   return (
-    <div style={{ background: PRINT.ink, borderRadius: 14, padding: "20px 22px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
+    <div style={{ background: PRINT.ink, borderRadius: 14, padding: "24px 26px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 9.5, letterSpacing: "0.16em", color: "#c4b5fd", fontWeight: 700, textTransform: "uppercase" }}>Documentação técnica{docType ? ` · ${docType}` : ""}</div>
         <div style={{ fontSize: 25, fontWeight: 800, margin: "6px 0 4px", letterSpacing: "0.01em" }}>{name}</div>
@@ -24,7 +24,7 @@ export function ReportCover({ docType, name, meta, generated, config }) {
 // cabeçalho de seção: badge numerado + tag curta + título + meta à direita + régua
 export function SectionHead({ n, tag, title, right }) {
   return (
-    <div style={{ marginBottom: 14, breakInside: "avoid" }}>
+    <div style={{ marginBottom: 20, marginTop: 4, breakInside: "avoid" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
           {n != null && <div style={{ width: 32, height: 32, borderRadius: 8, background: PRINT.ink, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{String(n).padStart(2, "0")}</div>}
@@ -43,7 +43,7 @@ export function SectionHead({ n, tag, title, right }) {
 // linha de stats rotuladas (label pequeno em caixa-alta + valor grande)
 export function StatRow({ items }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 26, marginBottom: 18 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 34, marginBottom: 26, marginTop: 4 }}>
       {items.map((s, i) => (
         <div key={i}>
           <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase" }}>{s.label}</div>
