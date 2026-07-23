@@ -14,7 +14,7 @@ import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
-import { ReportCover, SectionHead, StatRow } from "./reportUi.jsx";
+import { ReportCover, SectionHead, StatRow, HeroStat, Chip, UsageBar } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
@@ -80,6 +80,11 @@ export default function ProjectRelatorio({ project }) {
   const screenReportAc = usaScreens ? projectScreenReport(project, "ac", numbering) : [];
   const semScreen = usaScreens ? telasSemScreen(project) : [];
   const screensById = Object.fromEntries((project.screens || []).map((s) => [s.id, s])); // p/ o mapa visual por Screen
+  // hero da resolução: 1 tela → W×H; várias → total em Mpx
+  const totalPx = telas.reduce((s, t) => { const v = videoOf(t); return s + v.pxW * v.pxH; }, 0);
+  const heroResVal = telas.length === 1 ? `${videoOf(telas[0]).pxW} × ${videoOf(telas[0]).pxH}` : `${(totalPx / 1e6).toFixed(1)} Mpx`;
+  const heroResSub = totalPx ? `${totalPx.toLocaleString("pt-BR")} pixels ativos${telas.length > 1 ? ` · ${telas.length} telas` : ""}` : null;
+  const gabsUsados = [...new Map(telas.filter((t) => t.gabinete?.nome).map((t) => [t.gabinete.nome, t.gabinete])).values()]; // modelos distintos p/ chips
   const telaBlock = { marginBottom: 24, breakInside: "avoid" };
   const telaTitle = { fontWeight: 700, fontSize: 13, marginBottom: 6, color: PRINT.ink };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
@@ -118,6 +123,14 @@ export default function ProjectRelatorio({ project }) {
                 <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}>{roll.area_m2.toFixed(1)} m²</td><td style={td}></td><td style={td}></td><td style={td}>{roll.gab}</td><td style={td}>{roll.peso_kg.toFixed(1)} kg</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(roll.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}></td>}</tr>
               </tbody>
             </table>
+            {gabsUsados.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", marginBottom: 8 }}>Gabinetes utilizados</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {gabsUsados.map((g, i) => <Chip key={g.nome} color={colorOf(i)} title={g.nome} sub={g.pitch ? `${parseFloat(g.pitch).toFixed(1)} mm` : g.resX && g.resY ? `${g.resX}×${g.resY}px` : undefined} />)}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -125,6 +138,7 @@ export default function ProjectRelatorio({ project }) {
           <section style={{ marginBottom: 36 }}>
             <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" />
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Resolução total por tela (para configurar processador/mídia) e proporção de tela.</p>
+            <HeroStat label="Resolução total" value={heroResVal} sub={heroResSub} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Total</th><th style={th}>Aspecto</th><th style={th}>Pitch</th></tr></thead>
               <tbody>
@@ -172,7 +186,7 @@ export default function ProjectRelatorio({ project }) {
                       <tr key={p.n}>
                         <td style={td}><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 6, verticalAlign: "middle" }} />{p.n}</td>
                         <td style={td}>{p.count}</td>
-                        <td style={{ ...td, color: p.over ? PRINT.red : PRINT.ink }}>{p.pct}%</td>
+                        <td style={td}><UsageBar pct={p.pct} color={colorOf(p.n - 1)} /></td>
                         <td style={td}>{p.telas.join(" → ")}</td>
                         <td style={td}>{p.startX}, {p.startY}</td>
                       </tr>
@@ -251,7 +265,7 @@ export default function ProjectRelatorio({ project }) {
                       <tr key={p.n}>
                         <td style={td}><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 6, verticalAlign: "middle" }} />{p.n}</td>
                         <td style={td}>{p.count}</td>
-                        <td style={{ ...td, color: p.over ? PRINT.red : PRINT.ink }}>{p.load.toFixed(1)} A ({p.pct}%)</td>
+                        <td style={td}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><span style={{ fontWeight: 600, color: p.over ? PRINT.red : PRINT.ink, whiteSpace: "nowrap" }}>{p.load.toFixed(1)} A</span><UsageBar pct={p.pct} color={colorOf(p.n - 1)} /></div></td>
                         <td style={td}>{p.telas.join(" → ")}</td>
                       </tr>
                     ))}
