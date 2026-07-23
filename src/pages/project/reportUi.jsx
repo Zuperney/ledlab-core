@@ -52,7 +52,6 @@ export function ReportCoverPage({ docType, name, fields = [], generated, stats =
       )}
       <div style={{ marginTop: 0, paddingTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${PRINT.line}`, color: PRINT.dim, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
         <span>LedLab Core · Engenharia de LED</span>
-        {docType && <span>{docType}</span>}
       </div>
     </div>
   );
