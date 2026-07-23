@@ -21,6 +21,7 @@ import Caches from "./pages/Caches.jsx";
 import Financeiro from "./pages/Financeiro.jsx";
 import Reembolso from "./pages/Reembolso.jsx";
 import Inventory from "./pages/Inventory.jsx";
+import Equipamentos from "./pages/Equipamentos.jsx";
 import Projects from "./pages/Projects.jsx";
 import Diagrams from "./pages/Diagrams.jsx";
 import TestCards from "./pages/TestCards.jsx";
@@ -31,7 +32,7 @@ import Settings from "./pages/Settings.jsx";
 // Configurações NÃO é rota: vira overlay (Drawer) por cima da página atual, pra não
 // desmontar onde o usuário está. Por isso fica fora de PAGES (ver settingsOpen abaixo).
 const PAGES = {
-  dashboard: Dashboard, agenda: Agenda, diarias: Caches, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, projects: Projects,
+  dashboard: Dashboard, agenda: Agenda, diarias: Caches, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, equipamentos: Equipamentos, projects: Projects,
   diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio,
   knowledge: Knowledge,
 };
@@ -44,9 +45,11 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [openProjectId, setOpenProjectId] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false); // overlay de Configurações
-  const page = PATH_TO_PAGE[location] || DEFAULT_PAGE;
-  const Page = PAGES[page] || Dashboard;
   const isMobile = useIsMobile();
+  // páginas desktop-only (ex.: Equipamentos) caem na Visão Geral no mobile
+  const rawPage = PATH_TO_PAGE[location] || DEFAULT_PAGE;
+  const page = isMobile && NAV.find((n) => n.id === rawPage)?.desktopOnly ? DEFAULT_PAGE : rawPage;
+  const Page = PAGES[page] || Dashboard;
   const { storageOk, projects, worklog, prefs, setPrefs, lastBackupAt, exportBackup } = useLedLabContext();
   const { user } = useAuth();
   const toast = useToast();

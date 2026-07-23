@@ -1,6 +1,6 @@
 // pages/ProjectDetail.jsx — detalhe do projeto com abas.
 import { useState } from "react";
-import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText, Layers, Cpu } from "lucide-react";
+import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText, Layers } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -11,7 +11,6 @@ import ErrorBoundary from "../components/ErrorBoundary.jsx";
 import ProjectDados from "./project/ProjectDados.jsx";
 import ProjectEnergia from "./project/ProjectEnergia.jsx";
 import ProjectScreens from "./project/ProjectScreens.jsx";
-import ProjectEquipamentos from "./project/ProjectEquipamentos.jsx";
 import ProjectCabeamento from "./project/ProjectCabeamento.jsx";
 import ProjectTestCard from "./project/ProjectTestCard.jsx";
 import ProjectComposicao from "./project/ProjectComposicao.jsx";
@@ -22,8 +21,6 @@ const TABS = [
   { id: "energia", label: "Energia (AC)", Icon: Zap, Comp: ProjectEnergia },
   // vem ANTES do Cabeamento: as Screens é que definem o que vai no mesmo sistema
   { id: "screens", label: "Screens", Icon: Layers, Comp: ProjectScreens },
-  // Equipamentos é desktop-only (aposta de diferenciar features mobile×desktop)
-  { id: "equipamentos", label: "Equipamentos", Icon: Cpu, Comp: ProjectEquipamentos, desktopOnly: true },
   { id: "cabeamento", label: "Cabeamento", Icon: GitBranch, Comp: ProjectCabeamento },
   { id: "relatorio", label: "Relatório", Icon: FileText, Comp: ProjectRelatorio },
   { id: "testcard", label: "Test Card", Icon: Monitor, Comp: ProjectTestCard },
@@ -40,8 +37,7 @@ export default function ProjectDetail({ project, onBack }) {
     patch({ telas: (project.telas || []).map((t) => (t.id === telaId ? { ...t, ...partial } : t)) });
 
   const roll = projectRollup(project);
-  const visibleTabs = TABS.filter((t) => !t.desktopOnly || !isMobile);
-  const Active = visibleTabs.find((t) => t.id === tab)?.Comp || ProjectDados;
+  const Active = TABS.find((t) => t.id === tab)?.Comp || ProjectDados;
 
   return (
     <div>
@@ -65,7 +61,7 @@ export default function ProjectDetail({ project, onBack }) {
       </div>
 
       <div className="no-scrollbar" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: 20, overflowX: "auto", flexWrap: "nowrap" }}>
-        {visibleTabs.map((t) => {
+        {TABS.map((t) => {
           const active = tab === t.id;
           const Icon = t.Icon;
           return (
