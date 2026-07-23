@@ -3,6 +3,12 @@
 // tabela com barra de %, chips). Documento CLARO (tokens PRINT), pronto pra impressão.
 // Direto ao ponto — rótulos curtos, sem jargão inflado.
 import { PRINT } from "../../ui/tokens.js";
+import ledlabSquare from "../../assets/ledlab-square.png";
+
+// tipos da CAPA (Folha Técnica) — grotesca + mono, à la cânone técnico
+const COV_SANS = '"Helvetica Neue", Helvetica, Arial, system-ui, sans-serif';
+const COV_MONO = 'ui-monospace, "SF Mono", "Cascadia Code", monospace';
+const covLabel = { fontFamily: COV_MONO, fontSize: "1.05cqi", fontWeight: 700, letterSpacing: "0.11em", textTransform: "uppercase", color: "#8d8b7e" };
 
 // capa: faixa escura com a marca + título do projeto + meta e geração
 export function ReportCover({ docType, name, meta, generated, config }) {
@@ -24,34 +30,46 @@ export function ReportCover({ docType, name, meta, generated, config }) {
 // PÁGINA DE ROSTO dedicada: título + resumo executivo (stats em cards) + rodapé.
 // breakAfter:page → o conteúdo começa na página seguinte. É a "capa".
 export function ReportCoverPage({ docType, name, fields = [], generated, stats = [] }) {
+  const docNo = (name || "").toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 22);
+  // outer = container de query (inline-size); inner usa cqi → escala com a largura do doc
   return (
-    <div style={{ breakAfter: "page", pageBreakAfter: "always", minHeight: 560, display: "flex", flexDirection: "column", justifyContent: "center", gap: 22 }}>
-      <div style={{ background: PRINT.ink, borderRadius: 16, padding: "44px 40px", color: "#fff" }}>
-        <div style={{ fontSize: 11, letterSpacing: "0.22em", color: "#c4b5fd", fontWeight: 700, textTransform: "uppercase" }}>Documentação técnica{docType ? ` · ${docType}` : ""}</div>
-        <div style={{ fontSize: 46, fontWeight: 800, margin: "18px 0 18px", letterSpacing: "0.01em", lineHeight: 1.04 }}>{name}</div>
-        {fields.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "7px 22px", fontSize: 13.5 }}>
-            {fields.map((f, i) => [
-              <div key={`l${i}`} style={{ color: "#94a3b8", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", alignSelf: "center" }}>{f.label}</div>,
-              <div key={`v${i}`} style={{ color: "#e5e7eb", fontWeight: 600 }}>{f.value || "—"}</div>,
-            ])}
-          </div>
-        )}
-        <div style={{ height: 1, background: "rgba(255,255,255,0.14)", margin: "22px 0 14px" }} />
-        <div style={{ fontSize: 12, color: "#94a3b8" }}>{generated && <span>Gerado em {generated}</span>}</div>
-      </div>
-      {stats.length > 0 && (
-        <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 12 }}>
-          {stats.map((s, i) => (
-            <div key={i} style={{ border: `1px solid ${PRINT.line}`, borderRadius: 12, padding: "13px 15px", background: PRINT.head }}>
-              <div style={{ fontSize: 9, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase" }}>{s.label}</div>
-              <div style={{ fontSize: 21, fontWeight: 800, color: s.color || PRINT.ink, marginTop: 4 }}>{s.value}</div>
-            </div>
-          ))}
+    <div style={{ breakAfter: "page", pageBreakAfter: "always", containerType: "inline-size" }}>
+      <div style={{ background: "#fafaf7", color: "#14140e", minHeight: "66cqi", display: "flex", flexDirection: "column", padding: "4.2cqi 5.6cqi 3cqi", fontFamily: COV_SANS }}>
+        {/* topo: tag lime + marca */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <span style={{ fontFamily: COV_MONO, fontSize: "1.45cqi", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "#14140e", background: "#ebf51e", padding: "0.95cqi 1.35cqi", borderRadius: "0.5cqi" }}>Caderno Técnico{docType ? ` · ${docType}` : ""}</span>
+          <img src={ledlabSquare} alt="LedLab" style={{ width: "7.4cqi", height: "7.4cqi", borderRadius: "1.3cqi", display: "block", flex: "none" }} />
         </div>
-      )}
-      <div style={{ marginTop: 0, paddingTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${PRINT.line}`, color: PRINT.dim, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-        <span>LedLab Core · Engenharia de LED</span>
+
+        {/* nome + acento lime */}
+        <div style={{ fontSize: "13.5cqi", lineHeight: 0.9, fontWeight: 800, letterSpacing: "-0.035em", margin: "2.4cqi 0 0" }}>{name}</div>
+        <div style={{ height: "0.3cqi", width: "22cqi", background: "#ebf51e", margin: "1.5cqi 0 0" }} />
+
+        {/* dados: EVENTO (esq) | SPECS (dir), empilhados com pipes hairline */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", marginTop: "2.2cqi" }}>
+          <div style={{ display: "flex", flexDirection: "column", paddingRight: "4.6cqi" }}>
+            {fields.map((f, i) => (
+              <div key={i} style={{ padding: "0.85cqi 0", borderTop: i ? "0.12cqi solid #dad9d0" : undefined }}>
+                <div style={covLabel}>{f.label}</div>
+                <div style={{ fontSize: "2.1cqi", fontWeight: 600, marginTop: "0.5cqi", letterSpacing: "-0.005em" }}>{f.value || "—"}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", paddingLeft: "4.6cqi", borderLeft: "0.12cqi solid #dad9d0" }}>
+            {stats.map((s, i) => (
+              <div key={i} style={{ padding: "0.85cqi 0", borderTop: i ? "0.12cqi solid #dad9d0" : undefined }}>
+                <div style={covLabel}>{s.label}</div>
+                <div style={{ fontSize: "2.1cqi", fontWeight: 800, marginTop: "0.5cqi", letterSpacing: "-0.02em", color: s.color || "#14140e" }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* rodapé enxuto */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "2cqi", marginTop: "auto", paddingTop: "1.3cqi", borderTop: "0.12cqi solid #dad9d0", fontFamily: COV_MONO }}>
+          <span style={{ fontSize: "1.15cqi", fontWeight: 600, color: "#6c6a5d", letterSpacing: "0.02em" }}>Nº <b style={{ color: "#14140e" }}>{docNo || "—"}</b> · Rev <b style={{ color: "#14140e" }}>A</b>{generated ? ` · Gerado em ${generated}` : ""}</span>
+          <span style={{ fontSize: "1.15cqi", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#14140e" }}>LedLab Core <span style={{ color: "#9b998c" }}>· Engenharia de LED</span></span>
+        </div>
       </div>
     </div>
   );
