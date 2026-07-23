@@ -76,6 +76,8 @@ body {
      conteúdo está denso (tabelas 2-col, mapas com teto), então cada seção enche
      bem a página; break-inside evita cortar cabeçalho/linha no meio. */
   .report-doc section { break-before: page; page-break-before: always; padding-top: 10mm; }
+  /* respiro no topo de cada subseção por Screen (04.1, 04.2…) quando cai no topo de uma página */
+  .report-doc .rp-block { padding-top: 7mm; }
   /* a 1ª seção não força quebra própria: a capa já tem break-after (evita página em branco) */
   .report-doc section:first-of-type { break-before: auto; page-break-before: auto; }
   .report-doc thead { display: table-header-group; }

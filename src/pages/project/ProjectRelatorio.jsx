@@ -210,7 +210,7 @@ export default function ProjectRelatorio({ project }) {
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" color={DISC.video} Icon={Network} />
             {screenReport.map((s, i) => { const sp = screenSpec(s); return (
-              <div key={s.id} style={telaBlock}>
+              <div key={s.id} className="rp-block" style={telaBlock}>
                 <SubHead n={`${S}.${i + 1}`} title={s.nome} />
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", fontSize: 11.5, color: PRINT.mut, margin: "0 0 10px", padding: "9px 13px", background: PRINT.head, borderRadius: 8, border: `1px solid ${PRINT.line}` }}>
                   <span>Resolução da Screen <b style={{ color: PRINT.ink }}>{s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px</b></span>
@@ -220,7 +220,7 @@ export default function ProjectRelatorio({ project }) {
                   <span>Total de cabos <b style={{ color: PRINT.ink }}>{s.ports.length}</b></span>
                 </div>
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}
-                <DenseTable data={s.ports} maxCols={3} columns={[
+                <DenseTable data={s.ports} maxCols={4} columns={[
                   { key: "n", label: "Porta", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
                   { key: "count", label: "Gabinetes", align: "right", render: (p) => p.count },
                   { key: "pct", label: "Uso", align: "right", render: (p) => `${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
@@ -244,7 +244,7 @@ export default function ProjectRelatorio({ project }) {
               const ports = cablePorts(t, "sinal", numbering);
               const off = portOffset(telas, t.id, "sinal", numbering); // portas 1..N do projeto
               return (
-                <div key={t.id} style={telaBlock}>
+                <div key={t.id} className="rp-block" style={telaBlock}>
                   <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${portLabel(off, ports.length, "porta")} · máx ${sinalBudget} gabinetes/porta · ${sinalRule === "px" ? `pixels reais: ${pxPort.toLocaleString("pt-BR")} px (${sinalBits}-bit)` : "área quadrada"}`} />
                   <CableMap tela={t} mode="sinal" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -285,10 +285,10 @@ export default function ProjectRelatorio({ project }) {
             <WarnBox title="Atenção — energização" tone="amber">Conectores <b>powerCON azuis NÃO podem ser (des)conectados sob carga</b>. Cabo de 1,5 mm² limita cada circuito em <b>16 A</b> (cálculo a 220 V) — confira a corrente por cabo na tabela antes de energizar.</WarnBox>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.</p>
             {screenReportAc.map((s, i) => (
-              <div key={s.id} style={telaBlock}>
+              <div key={s.id} className="rp-block" style={telaBlock}>
                 <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`} />
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="ac" numbering={numbering} /></div>}
-                <DenseTable data={s.ports} maxCols={3} columns={[
+                <DenseTable data={s.ports} maxCols={4} columns={[
                   { key: "n", label: "Cabo", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
                   { key: "count", label: "Gabinetes", align: "right", render: (p) => p.count },
                   { key: "load", label: "Carga", align: "right", render: (p) => `${p.load.toFixed(1)} A · ${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : PRINT.ink, whiteSpace: "nowrap" }) },
@@ -308,7 +308,7 @@ export default function ProjectRelatorio({ project }) {
               const ports = cablePorts(t, "ac", numbering);
               const off = portOffset(telas, t.id, "ac", numbering); // circuitos 1..N do projeto
               return (
-                <div key={t.id} style={telaBlock}>
+                <div key={t.id} className="rp-block" style={telaBlock}>
                   <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${portLabel(off, ports.length, "cabo")} · máx ${acBudget} gabinetes/cabo · ${ampCab.toFixed(2)} A/gabinete · conector ${connRating} A`} />
                   <CableMap tela={t} mode="ac" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
