@@ -83,6 +83,7 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **🟣 Mapa de cabos redesenhado + configurável** — gabinetes quadrados/encostados, nº da ordem por gabinete e setas de direção (à la NovaLCT), num render compartilhado (Cabeamento/Diagramação/Relatório) + config em Configurações › Mapa de cabos | **2** | **v1.5.2** |
 | **Mapa de cabos visual de volta no Relatório** — projetos com Screen voltam a desenhar o grid (sinal e AC), escalado pra caber na página; antes só tabelas | 2 | **v1.5.3** |
 | **🟣 Relatório vira Caderno Técnico** — redesign completo em **paisagem**: capa dedicada, seções por disciplina (cor + ícone), esquema das telas em fila, tabelas em até 4 colunas, specs por Screen, box de segurança, fórmula do consumo típico (Barco) + glossário; sem referências ao app, pensado pra distribuição | **3** | **v1.5.4** |
+| **Capa "Folha Técnica"** — folha de rosto com a identidade de marca (logo led/lab + lime), tag Caderno Técnico e nome dominante; evento à esquerda e specs à direita em bloco-de-título; sai a contagem de gabinetes do topo | 1 | **v1.5.5** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -182,4 +183,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-24 (v1.5.4 · Fase 02 em curso)._
+_Última atualização: 2026-07-24 (v1.5.5 · Fase 02 em curso)._

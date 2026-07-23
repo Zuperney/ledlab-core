@@ -34,6 +34,6 @@ export const SECTION_META = {
 };
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.5.4";
+export const VERSION = "v1.5.5";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "📄 O relatório virou um CADERNO TÉCNICO em paisagem: capa dedicada, seções por disciplina (cor + ícone), esquema das telas, specs por Screen, box de segurança e glossário — feito pra distribuir pro cliente, produção e equipe de campo.";
+export const WHATS_NEW = "🎨 Capa nova do relatório — uma folha de rosto de verdade, com a marca LedLab (lime + preto): tag Caderno Técnico, nome do evento em destaque, dados do evento e specs organizados em bloco-de-título. Cara de projeto de engenharia.";
