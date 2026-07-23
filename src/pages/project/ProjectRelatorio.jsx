@@ -14,7 +14,8 @@ import { formatRange, formatFull } from "../../services/dates.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
-import { ReportCoverPage, SectionHead, SubHead, HeroStat, Chip, DenseTable } from "./reportUi.jsx";
+import ReportComposicao from "../../components/ReportComposicao.jsx";
+import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
@@ -80,9 +81,6 @@ export default function ProjectRelatorio({ project }) {
   const screenReportAc = usaScreens ? projectScreenReport(project, "ac", numbering) : [];
   const semScreen = usaScreens ? telasSemScreen(project) : [];
   const screensById = Object.fromEntries((project.screens || []).map((s) => [s.id, s])); // p/ o mapa visual por Screen
-  // hero da resolução: 1 tela → W×H; várias → total em Mpx
-  const totalPx = telas.reduce((s, t) => { const v = videoOf(t); return s + v.pxW * v.pxH; }, 0);
-  const heroResVal = telas.length === 1 ? `${videoOf(telas[0]).pxW} × ${videoOf(telas[0]).pxH}` : `${(totalPx / 1e6).toFixed(1)} Mpx`;
   const gabsUsados = [...new Map(telas.filter((t) => t.gabinete?.nome).map((t) => [t.gabinete.nome, t.gabinete])).values()]; // modelos distintos p/ chips
   const telaBlock = { marginBottom: 16, breakInside: "avoid" };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
@@ -140,8 +138,8 @@ export default function ProjectRelatorio({ project }) {
         {showVideo && (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Resolução total por tela (para configurar processador/mídia) e proporção de tela.</p>
-            <HeroStat label="Resolução total" value={heroResVal} />
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas montadas (test card de cada uma na sua posição) — a caixa envolvente é o tamanho total do projeto. Detalhe por tela abaixo.</p>
+            <ReportComposicao project={project} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Total</th><th style={th}>Aspecto</th><th style={th}>Pitch</th></tr></thead>
               <tbody>
