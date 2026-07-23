@@ -2,6 +2,18 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.6.0] — 2026-07-24
+
+**Nova página Equipamentos (Gestão, no desktop).** Caminho próprio, separado das abas do projeto.
+
+- **Catálogo certificado de controladoras NovaStar** — conferido nos datasheets, não editável: você **seleciona**, o dado é revisado por nós (dado errado de controladora vira informação errada no circuito).
+- **Série VX** (all-in-one clássica do rental): VX400 e VX600 (descontinuadas, só 8-bit), VX1000, VX400 Pro, VX600 Pro, VX1000 Pro e VX2000 Pro — 650.000 px/porta.
+- **Série MX (COEX/VMP)**: MX20, MX30 e MX40 Pro — 659.722 px/porta; a MX40 Pro tem 20 portas mas o dispositivo processa no máximo **9M px**, e o app confere esse teto também.
+- **Verificar projeto**: traga um projeto, escolha a controladora de cada Screen e veja se cabe — portas usadas × disponíveis (barra de ocupação), carga total do dispositivo, resolução máxima e a dica de **Hz** quando não cabe ("a 50 Hz caberia").
+- Desktop-only: no celular a página não aparece (a verificação de sistema é trabalho de bancada).
+
+197 testes. Nenhum cálculo de cabeamento existente mudou; Screens sem controladora seguem a régua manual.
+
 ## [1.5.5] — 2026-07-24
 
 **Capa nova — a "Folha Técnica".** A primeira aplicação da identidade de marca no relatório.

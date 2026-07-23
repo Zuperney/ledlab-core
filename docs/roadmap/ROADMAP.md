@@ -106,7 +106,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 
 ---
 
-## Fase 02 — Profundidade de engenharia · `v1.1 → v1.5` · **em curso** *(2 de 5)*
+## Fase 02 — Profundidade de engenharia · `v1.1 → v1.6` · **em curso** *(3 de 5)*
 **O cálculo que nenhum app de aluguel faz.** *Aqui mora o diferencial — engenharia de verdade, não só inventário.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
@@ -115,7 +115,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 | ✅ **Mapa de pixels exportável** *(v1.1.0)* | 🟣 | M | **Feito:** CSV com uma linha por gabinete (porta · ordem no cabo · coluna/linha · X/Y, origem sup-esq) + tabela de início por porta no relatório "Mapa de cabos". Modelo conferido **contra o NovaLCT real** (aba *Screen Connection*): bate 1:1 com o que o operador digita. **Gerar `.scr` binário foi descartado** — formato proprietário (`DSCI`+checksum), risco de desconfigurar parede em campo. | workflow Novastar/Brompton |
 | **Recomendador pitch × distância** | 🟣 | M | Dado o pitch (ou tamanho + distância), retorna distância mínima/ótima/máxima + VAD e sugere o pitch ideal. Expande a aba Aspect Ratio. *É a primeira pergunta de todo cliente — "de longe fica bom?".* **← próximo** | regra 10×, VAD 3438, altura×30 |
 | **Rigging & estrutura** | 🟣 | G | Peso total e por ponto, nº de pontos de içamento (4–8), fator de segurança (≈5:1), voado vs. ground support, carga de vento (outdoor), checklist de motor/hardware. *É o cálculo de maior risco em obra.* | práticas de rigging |
-| **Biblioteca de processadores** | 🟣 | M | Cadastro de modelos (Novastar/Colorlight/Brompton) com capacidade de porta e de quadro → nº de processadores/portas automático. *Transforma estimativa em número exato por marca.* **Destrava também o "Sending Card + Porta" físico no mapa de pixels** (hoje o app diz "Porta 1..N", não "Card 2 / saída 1"). | — |
+| ✅ **Catálogo de controladoras (ex-"Biblioteca de processadores")** *(v1.6.0)* | 🟣 | M | **Feito (1ª leva):** página **Equipamentos** (Gestão, desktop) com catálogo **certificado nos datasheets** (read-only — o usuário seleciona, não cadastra): séries **VX** (650.000 px/porta) e **MX/COEX** (659.722), com teto de carga do dispositivo (MX40 Pro = 9M px). "Verificar projeto": controladora por Screen → portas usadas × disponíveis, carga, resolução e a dica de Hz. **Próximas levas:** modulares (H9, MX2000/6000 Pro), Colorlight/Brompton, "Sending Card + Porta" no mapa de pixels. | datasheets NovaStar (acervo) |
 
 ---
 
