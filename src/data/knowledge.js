@@ -11,7 +11,37 @@ export const KB_ARTICLES = [
   { id: "guia-relatorio", category: "Guia do App", title: "Relatório", summary: "Completo, Resumido, Elétrico, Estrutural, Design ou Gabinetes.", sections: [{ h: "PDF", blocks: [{ t: "p", text: "Use Imprimir / Salvar PDF do navegador para exportar." }] }] },
   { id: "guia-ferramentas", category: "Guia do App", title: "Ferramentas rápidas", summary: "Diagramação, Test Cards e Aspect Ratio sem abrir um projeto.", sections: [{ h: "Uso", blocks: [{ t: "p", text: "Diagramação (portas de sinal), Test Cards e Aspect Ratio rodam de forma avulsa — você escolhe um gabinete e uma grade, ou parte de pixels." }, { t: "note", text: "São para estudo/planejamento rápido; não salvam em um projeto." }] }] },
   { id: "guia-config", category: "Guia do App", title: "Configurações e backup", summary: "Exporte, importe e restaure de fábrica.", sections: [{ h: "Backup", blocks: [{ t: "p", text: "Exporte um backup completo antes de limpar dados ou trocar de máquina." }] }] },
-  { id: "pico-tipico", category: "Energia", title: "Pico × Típico", summary: "Por que dimensionar pelo pico e estimar o gerador pelo típico.", sections: [{ h: "Conceito", blocks: [{ t: "p", text: "O pico (pwrMax) protege disjuntor e cabo. O consumo típico usa o Modelo Barco: black level + (máx − preto) × brilho × conteúdo." }] }] },
+  { id: "pico-tipico", category: "Energia", title: "Pico × Típico — cálculo do consumo", summary: "Por que dimensionar a instalação pelo PICO e estimar energia/gerador pelo TÍPICO — com a fórmula (modelo Barco) e as fontes.",
+    sections: [
+      { h: "Conceito", blocks: [
+        { t: "p", text: "O pico (pwrMax = branco pleno, 100% de brilho) é o que a instalação precisa aguentar — protege disjuntor, cabo e fonte. Mas conteúdo real quase nunca é branco: o consumo TÍPICO (médio, em operação) é bem menor, e é ele que estima energia, calor e o gerador." },
+      ] },
+      { h: "A fórmula (por gabinete)", blocks: [
+        { t: "kv", rows: [["Típico", "base + (pico − base) × brilho × conteúdo"]] },
+        { t: "ul", items: [
+          "base (pwrBlack) — consumo de tela PRETA: drivers e receiving card ligados, LEDs apagados. Em telas indoor de alta densidade (muitos drivers) isso não é desprezível.",
+          "pico (pwrMax) — consumo de BRANCO pleno a 100% de brilho.",
+          "brilho — o brilho calibrado do painel (o app usa a config do projeto; a Barco cita ~70% como média de mercado).",
+          "conteúdo — o nível médio da imagem (APL): quanto do branco pleno o vídeo típico acende (Barco cita ~33%; broadcast/UI escura puxa pra baixo, fundo branco pra cima).",
+        ] },
+        { t: "note", text: "Nos extremos a fórmula fecha: brilho e conteúdo a 100% → típico = pico; conteúdo 0 → típico = base (tela preta). Quando o gabinete não traz o pwrBlack, o app usa base = 15% do pico." },
+      ] },
+      { h: "Exemplo (modelo Barco)", blocks: [
+        { t: "p", text: "Gabinete de pico 100 W e base 30 W (janela preto→branco = 70 W), a 70% de brilho e 33% de conteúdo:" },
+        { t: "kv", rows: [["Regra antiga (÷3)", "100 ÷ 3 = 33 W"], ["Modelo Barco", "(70 × 70% × 33%) + 30 = 46,2 W"]] },
+        { t: "p", text: "A velha regra de 'dividir o máximo por três' ignora o black level e subestima telas indoor modernas (muitos drivers). Por isso o típico real costuma ficar ACIMA de 1/3 do pico. Fora da Barco, guias de mercado convergem em típico ≈ 30–50% do pico, conforme a aplicação." },
+      ] },
+      { h: "Importante — segurança", blocks: [
+        { t: "note", text: "Disjuntor, cabo e fonte se dimensionam SEMPRE pelo PICO (com a margem de carga contínua), nunca pelo típico — conteúdo branco sustentado derruba o circuito. O típico serve pra energia, calor e a estimativa do gerador." },
+      ] },
+      { h: "Fontes", blocks: [
+        { t: "links", items: [
+          { label: "Barco — The truth about the power consumption of LED walls", url: "https://www.barco.com/en/inspiration/news-insights/2020-04-15-ledtalks-truth-about-power-consumption" },
+          { label: "Portrait Displays — APL (Average Picture Level) e consumo", url: "https://www.portrait.com/resource-center/constant-apl-test-patterns/" },
+          { label: "Show Tech — LED video wall power (fator de carga por aplicação)", url: "https://www.showtechapp.com/guides/led-video-wall-calculations" },
+        ] },
+      ] },
+    ] },
   { id: "tensoes-br", category: "Energia", title: "Tensões no Brasil", summary: "220V/380V, mono/bi/trifásico e seus divisores.", sections: [{ h: "Divisores", blocks: [{ t: "kv", rows: [["220V Bifásico", "÷ 220"], ["220V Trifásico", "÷ 220 × √3"], ["380V Mono (F+N)", "÷ 220"], ["380V Bifásico", "÷ 440"], ["380V Trifásico", "÷ 380 × √3"]] }] }] },
   { id: "disjuntor-125", category: "Energia", title: "Margem de 25% no disjuntor", summary: "De onde vem a margem — e o que a NBR realmente pede.", sections: [{ h: "Regra", blocks: [{ t: "p", text: "O app escolhe o disjuntor padrão imediatamente acima de corrente × 1,25. Essa margem de 25% é a regra NEC/UL (EUA) para carga contínua — disjuntores IEC (NBR NM 60898) já são 100%-rated." }, { t: "note", text: "O que a NBR 5410 exige de fato é In ≤ Iz: o disjuntor não pode passar da capacidade do CABO (corrigida por temperatura e agrupamento). O ×1,25 é conservador e ajuda, mas confira a bitola. Inrush das fontes pede disjuntor curva C (ou D em telas grandes)." }] }] },
   { id: "sinal-porta", category: "Sinal", title: "Capacidade da porta", summary: "Pixels por porta Gigabit: 8-bit ≈ 655k, 10-bit ≈ 327k — e as duas réguas de alocação.",
