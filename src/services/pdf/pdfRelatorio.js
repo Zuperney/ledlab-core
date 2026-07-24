@@ -110,7 +110,17 @@ function warnBox({ titulo, partes }) {
 // de ser unbreakable, senão o pdfmake o move pra uma página onde não cabe e
 // corta o fim. estH ≈ cabeçalhos + mapa + linhas da tabela densa (4 colunas).
 const blocoH = (nRows, mapH) => 46 + (mapH || 0) + Math.ceil(nRows / 4) * 13 + 20;
-const bloco = (nodes, estH) => ({ stack: nodes, unbreakable: estH <= 460, margin: [0, 0, 0, 4] });
+const bloco = (nodes, estH) => ({ stack: nodes, unbreakable: estH <= 460, _estH: estH, margin: [0, 0, 0, 4] });
+
+// gruda o cabeçalho da seção (e intro/aviso) no PRIMEIRO bloco quando couberem
+// juntos na página — senão a seção abre com o cabeçalho órfão numa página quase
+// vazia e o bloco inteiro na seguinte. ~90pt ≈ cabeçalho + intro + aviso.
+function grudaCabecalho(nodes) {
+  const i = nodes.findIndex((n) => n && n._estH != null);
+  if (i < 0 || !nodes[i].unbreakable || nodes[i]._estH + 90 > 460) return nodes;
+  // o unbreakable sobe pro conjunto (aninhado confundiria o layout do pdfmake)
+  return [{ stack: [...nodes.slice(0, i), { ...nodes[i], unbreakable: false }], unbreakable: true }, ...nodes.slice(i + 1)];
+}
 
 // nó de mapa pro conteúdo: o gerador devolve {svg,width,height} ou null (sem células)
 const mapNode = (m) => (m ? [{ svg: m.svg, width: m.width, margin: [0, 0, 0, 6] }] : []);
@@ -374,7 +384,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     const sn = sec(); const S = String(sn).padStart(2, "0");
     const head = sectionHead(sn, "Cabeamento de Sinal", "Portas de dados", DISC.video);
     if (usaScreens) {
-      return [
+      return grudaCabecalho([
         head,
         ...screenReport.map((s, i) => {
           const sp = screenSpec(s);
@@ -400,9 +410,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           text: [{ text: `${semScreen.length} tela(s) fora de qualquer Screen `, bold: true }, { text: `(${semScreen.map((t) => t.nome).join(", ")}) — não entraram em nenhum sistema, então não têm cabeamento de sinal.` }],
           fontSize: 8.5, color: PRINT.amb, margin: [0, 6, 0, 0],
         }] : []),
-      ];
+      ]);
     }
-    return [
+    return grudaCabecalho([
       head,
       { text: "Portas de dados por tela — régua de pixels reais (processadores VX/série A/Colorlight) ou de área retangular (controlador básico), conforme a configuração da tela.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 4] },
       ...telas.flatMap((t, i) => {
@@ -440,7 +450,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           ] : []),
         ];
       }),
-    ];
+    ]);
   })();
 
   // ── ENERGIA — CABEAMENTO AC ──
@@ -448,7 +458,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     const sn = sec(); const S = String(sn).padStart(2, "0");
     const head = [sectionHead(sn, "Energia — Cabeamento AC", "Circuitos de força", DISC.elec), warnBox(AVISO_AC)];
     if (usaScreens) {
-      return [
+      return grudaCabecalho([
         ...head,
         { text: "Cabos de energia por Screen, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 4] },
         ...screenReportAc.map((s, i) => {
@@ -463,9 +473,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
             ]),
           ], blocoH(s.ports.length, mapa?.height));
         }),
-      ];
+      ]);
     }
-    return [
+    return grudaCabecalho([
       ...head,
       { text: "Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 4] },
       ...telas.flatMap((t, i) => {
@@ -487,7 +497,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           ]),
         ], blocoH(rows.length, mapa?.height));
       }),
-    ];
+    ]);
   })();
 
   // ── GLOSSÁRIO ──
