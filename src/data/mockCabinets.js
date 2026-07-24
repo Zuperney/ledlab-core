@@ -4,13 +4,26 @@
 //
 // ATENÇÃO: valores de referência para começar — confira sempre no datasheet
 // do fabricante antes de dimensionar um evento real.
+//
+// AUDITORIA pwrMax (24/07/2026, datasheets públicos):
+//   ✓ ROE CB5: 650W máx / 330W méd CONFERE (brochure Carbon, roevisual.com).
+//   ✎ ROE BP2: era 230W → 190W máx / 95W méd (BP2 V2; specs 4Wall/ROE; peso 9.35).
+//   ✎ Absen PL3.9 Pro: era 320W → 200W máx / 67W méd (PL3.9 Pro V2: 800/267 W/m²).
+//   ✎ ROE Ruby RB2.3: era 250W → 180W máx / 90W méd (spec oficial ROE; peso 8.16).
+//   ✓ INFiLED ER5.9: 600W mantido (já auditado na v0.15.1 — potência real do painel).
+//   ? Demais modelos: sem datasheet público confiável encontrado — os valores
+//     seguem como referência e tendem ao SUPERdimensionado (erra pro lado
+//     seguro: mais cabos e disjuntor maior, nunca menos).
+//   Filosofia desde 24/07: com a regra dos 80% PADRÃO (acMargin 0.8) e alerta
+//   laranja >80%, o seed usa o valor REAL de datasheet — margem disfarçada em
+//   cima de margem explícita superdimensionaria duas vezes.
 
 export const SEED_CABINETS = [
   { id: 1,  marca: "ROE",         nome: "ROE CB5 Outdoor",      resX: "104", resY: "208", dimW: "600", dimH: "1200", peso: "13.5", pwrMax: "650", pwrMed: "330", pwrBlack: "98", fp: "0.90", ip: "Outdoor", brilho: "5000", receivingCard: "Novastar MRV328",    conector: "PowerCON TRUE1",       conectorCustom: "" },
   { id: 2,  marca: "Absen",       nome: "Absen A2.9 Pro",       resX: "256", resY: "144", dimW: "745", dimH: "419",  peso: "6.2",  pwrMax: "250", pwrMed: "83",  pwrBlack: "50", fp: "0.85", ip: "Indoor",  brilho: "3500", receivingCard: "Absen Armor",        conector: "PowerCON TRUE1",       conectorCustom: "" },
   { id: 3,  marca: "Unilumin",    nome: "Unilumin Upanel 2.6",  resX: "192", resY: "192", dimW: "500", dimH: "500",  peso: "8.0",  pwrMax: "200", pwrMed: "67",  pwrBlack: "42", fp: "0.90", ip: "Indoor",  brilho: "1200", receivingCard: "Novastar A5s Plus",  conector: "PowerCON TRUE1",       conectorCustom: "" },
-  { id: 4,  marca: "ROE",         nome: "ROE Black Pearl BP2",  resX: "176", resY: "176", dimW: "500", dimH: "500",  peso: "9.2",  pwrMax: "230", pwrMed: "77",  pwrBlack: "48", fp: "0.90", ip: "Indoor",  brilho: "1500", receivingCard: "Novastar MRV366",    conector: "PowerCON TRUE1",       conectorCustom: "" },
-  { id: 5,  marca: "Absen",       nome: "Absen PL3.9 Pro",      resX: "128", resY: "128", dimW: "500", dimH: "500",  peso: "8.6",  pwrMax: "320", pwrMed: "107", pwrBlack: "48", fp: "0.92", ip: "Outdoor", brilho: "5500", receivingCard: "Novastar A8s",       conector: "PowerCON Azul/Branco", conectorCustom: "" },
+  { id: 4,  marca: "ROE",         nome: "ROE Black Pearl BP2",  resX: "176", resY: "176", dimW: "500", dimH: "500",  peso: "9.35", pwrMax: "190", pwrMed: "95",  pwrBlack: "30", fp: "0.90", ip: "Indoor",  brilho: "1500", receivingCard: "Novastar MRV366",    conector: "PowerCON TRUE1",       conectorCustom: "" },
+  { id: 5,  marca: "Absen",       nome: "Absen PL3.9 Pro",      resX: "128", resY: "128", dimW: "500", dimH: "500",  peso: "8.4",  pwrMax: "200", pwrMed: "67",  pwrBlack: "30", fp: "0.92", ip: "Outdoor", brilho: "5500", receivingCard: "Novastar A8s",       conector: "PowerCON Azul/Branco", conectorCustom: "" },
   { id: 6,  marca: "INFiLED",     nome: "INFiLED ER5.9",        resX: "84",  resY: "84",  dimW: "500", dimH: "500",  peso: "11.0", pwrMax: "600", pwrMed: "200", pwrBlack: "90", fp: "0.90", ip: "Outdoor", brilho: "6500", receivingCard: "Novastar A10s Pro",  conector: "PowerCON Azul/Branco", conectorCustom: "" },
   { id: 7,  marca: "Absen",       nome: "Absen Polaris PL2.5",  resX: "200", resY: "200", dimW: "500", dimH: "500",  peso: "8.5",  pwrMax: "280", pwrMed: "93",  pwrBlack: "45", fp: "0.90", ip: "Indoor",  brilho: "1000", receivingCard: "Novastar A5s Plus",  conector: "PowerCON TRUE1",       conectorCustom: "" },
   { id: 8,  marca: "Unilumin",    nome: "Unilumin Uslim II 2.6",resX: "192", resY: "192", dimW: "500", dimH: "500",  peso: "6.8",  pwrMax: "220", pwrMed: "73",  pwrBlack: "40", fp: "0.90", ip: "Indoor",  brilho: "1500", receivingCard: "Novastar A8s",       conector: "PowerCON TRUE1",       conectorCustom: "" },
@@ -20,6 +33,6 @@ export const SEED_CABINETS = [
   { id: 12, marca: "LianTronics", nome: "LianTronics VD3.9",    resX: "128", resY: "128", dimW: "500", dimH: "500",  peso: "8.8",  pwrMax: "350", pwrMed: "117", pwrBlack: "55", fp: "0.90", ip: "Outdoor", brilho: "6000", receivingCard: "Novastar A8s",       conector: "PowerCON Azul/Branco", conectorCustom: "" },
   { id: 13, marca: "Desay",       nome: "Desay S3 3.0",         resX: "168", resY: "168", dimW: "500", dimH: "500",  peso: "7.0",  pwrMax: "230", pwrMed: "77",  pwrBlack: "45", fp: "0.90", ip: "Indoor",  brilho: "1200", receivingCard: "Novastar A5s Plus",  conector: "PowerCON TRUE1",       conectorCustom: "" },
   { id: 14, marca: "Absen",       nome: "Absen AX3.9 Pro",      resX: "128", resY: "128", dimW: "500", dimH: "500",  peso: "8.9",  pwrMax: "330", pwrMed: "110", pwrBlack: "50", fp: "0.92", ip: "Outdoor", brilho: "6500", receivingCard: "Novastar A8s",       conector: "PowerCON Azul/Branco", conectorCustom: "" },
-  { id: 15, marca: "ROE",         nome: "ROE Ruby RB2.3",       resX: "216", resY: "216", dimW: "500", dimH: "500",  peso: "9.5",  pwrMax: "250", pwrMed: "83",  pwrBlack: "45", fp: "0.90", ip: "Indoor",  brilho: "1500", receivingCard: "Novastar MRV366",    conector: "PowerCON TRUE1",       conectorCustom: "" },
+  { id: 15, marca: "ROE",         nome: "ROE Ruby RB2.3",       resX: "216", resY: "216", dimW: "500", dimH: "500",  peso: "8.16", pwrMax: "180", pwrMed: "90",  pwrBlack: "27", fp: "0.90", ip: "Indoor",  brilho: "1500", receivingCard: "Novastar MRV366",    conector: "PowerCON TRUE1",       conectorCustom: "" },
   { id: 16, marca: "Unilumin",    nome: "Unilumin UpadIV 3.9",  resX: "128", resY: "128", dimW: "500", dimH: "500",  peso: "9.0",  pwrMax: "360", pwrMed: "120", pwrBlack: "55", fp: "0.90", ip: "Outdoor", brilho: "5500", receivingCard: "Novastar A8s",       conector: "PowerCON Azul/Branco", conectorCustom: "" },
 ];

@@ -10,6 +10,7 @@ import Segmented from "../../components/Segmented.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
+import { acTone } from "../../services/electricalCalc.js";
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabling.js";
 import { hasScreens, projectScreenReport, telasSemScreen } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
@@ -283,7 +284,7 @@ export default function ProjectRelatorio({ project }) {
                 <DenseTable data={s.ports} maxCols={4} columns={[
                   { key: "n", label: "Cabo", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
                   { key: "count", label: "Gabinetes", align: "right", render: (p) => p.count },
-                  { key: "load", label: "Carga", align: "right", render: (p) => `${p.load.toFixed(1)} A · ${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : PRINT.ink, whiteSpace: "nowrap" }) },
+                  { key: "load", label: "Carga", align: "right", render: (p) => `${p.load.toFixed(1)} A · ${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink, whiteSpace: "nowrap" }) },
                 ]} />
               </div>
             ))}
@@ -304,8 +305,8 @@ export default function ProjectRelatorio({ project }) {
                   <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${portLabel(off, ports.length, "cabo")} · máx ${acBudget} gabinetes/cabo · ${ampCab.toFixed(2)} A/gabinete · conector ${connRating} A`} />
                   <CableMap tela={t} mode="ac" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                    {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); return (
-                      <span key={i} style={{ ...chip, borderColor: pct > 100 ? PRINT.red : PRINT.line }}><span style={sw(off + i)} />Cabo {off + i + 1} · {load.toFixed(1)} A ({pct}%) · {p.length} gabinetes</span>
+                    {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); const tone = acTone(pct); return (
+                      <span key={i} style={{ ...chip, borderColor: tone === "over" ? PRINT.red : tone === "warn" ? PRINT.amb : PRINT.line }}><span style={sw(off + i)} />Cabo {off + i + 1} · {load.toFixed(1)} A ({pct}%) · {p.length} gabinetes</span>
                     ); })}
                   </div>
                 </div>
