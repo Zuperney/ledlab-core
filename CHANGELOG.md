@@ -2,6 +2,18 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.7.1] — 2026-07-24
+
+**O modal leve virou o padrão dos ajustes.** Refino em cima do feedback de campo da v1.7.0.
+
+- **Ajustes do mapa** (Cabeamento) e **Ajustes do test card** agora abrem no mesmo modal leve e centrado do Avançado da Screen — compactos (fontes e controles menores, textos resumidos), sem cobrir a tela.
+- **Seletor de predefinição unificado**: Test Card e Composição usam o mesmo seletor (botão + modal leve com a lista, ✓ na atual).
+- **Test Card com chips de tela** — o mesmo padrão dos chips de Screen do Cabeamento; com uma tela só, nem aparecem.
+- No Cabeamento, Avançado e Ajustes moram na linha das sub-abas Sinal/AC; o selo de status só aparece quando há problema.
+- No celular: o "?" de ajuda abre centrado (não corta mais), Energia com tensão/brilho/conteúdo numa linha, e as predefinições do sistema podem ser ocultadas em Configurações › Dados.
+
+197 testes. Nenhum cálculo mudou.
+
 ## [1.7.0] — 2026-07-24
 
 **A interface repaginada — especialmente no celular.** Um mês de teste de campo virou um refino completo, guiado por pesquisa (NN/g, Material 3, Apple HIG) e pelos apontamentos reais de uso.

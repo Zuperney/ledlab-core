@@ -48,6 +48,6 @@ export const MOBILE_SECTIONS = [
 ];
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.7.0";
+export const VERSION = "v1.7.1";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "📱 Interface repaginada no celular: todas as abas com nome, ajustes no lugar onde você usa (folhas e modais leves, sem viagem às Configurações), Projetos a um toque na barra de baixo, modo SOL ☀️ de alto contraste pra ler ao ar livre, Energia em lista compacta e telas mais limpas do Test Card à Composição — o app inteiro falando uma língua só.";
+export const WHATS_NEW = "🪟 Ajustes agora abrem num modal leve e centrado em todo o app (mapa de cabos, test card, avançado da Screen), o seletor de predefinição ficou igual no Test Card e na Composição, e o Test Card ganhou os mesmos chips de tela do Cabeamento — tudo mais compacto e no mesmo padrão.";
