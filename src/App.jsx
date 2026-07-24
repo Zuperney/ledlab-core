@@ -74,14 +74,21 @@ export default function App() {
   const ocultarValores = !!prefs.dashOcultarValor;
   const toggleOcultar = () => setPrefs({ ...prefs, dashOcultarValor: !ocultarValores });
 
-  // MODO SOL: claro de alto contraste pra operar ao ar livre (toggle no topbar —
-  // em campo é ajuste frequente, não mora em Configurações). Os tokens T são
-  // trocados in-place e o key={theme} remonta a árvore pra tudo reler as cores.
-  // troca determinística dos tokens ANTES dos filhos renderizarem; o key={theme}
-  // remonta a árvore no mesmo render, então todo style inline relê as cores novas
-  const theme = prefs.theme === "sol" ? "sol" : "dark";
+  // MODO SOL: claro de alto contraste pra operar ao ar livre (toggle no topbar).
+  // O tema LOCAL manda (flag no localStorage, lida também no boot do tokens.js):
+  // muitas consts de estilo capturam T no import, então ALTERNAR o tema exige
+  // reload — é ocasional, e é o único jeito de TODA a UI renascer na cor certa.
+  const theme = (() => {
+    try { const f = localStorage.getItem("ledlab.theme"); if (f === "sol" || f === "dark") return f; } catch { /* ok */ }
+    return prefs.theme === "sol" ? "sol" : "dark";
+  })();
   applyTheme(theme);
-  const toggleTheme = () => setPrefs({ ...prefs, theme: theme === "sol" ? "dark" : "sol" });
+  const toggleTheme = () => {
+    const next = theme === "sol" ? "dark" : "sol";
+    try { localStorage.setItem("ledlab.theme", next); } catch { /* ok */ }
+    setPrefs({ ...prefs, theme: next }); // segue no prefs (backup/sync como padrão de outros aparelhos)
+    setTimeout(() => window.location.reload(), 120); // deixa o persist gravar antes
+  };
 
   // marca a versão atual como "vista" (o modal já foi decidido no initializer acima)
   useEffect(() => {

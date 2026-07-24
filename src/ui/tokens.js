@@ -81,12 +81,26 @@ const SOL = {
 
 export const THEMES = { dark: DARK, sol: SOL };
 
-export const T = { ...DARK };
+// tema de BOOT, lido SÍNCRONO do localStorage ANTES de qualquer módulo importar
+// T — muitos arquivos capturam cores em consts de estilo no momento do import
+// (ex.: `const tabsWrap = { background: T.card2 }`); só nascendo no tema certo
+// elas ficam certas. Por isso o TOGGLE de tema recarrega a página (App.jsx).
+function bootTheme() {
+  try {
+    const flag = localStorage.getItem("ledlab.theme");
+    if (flag === "sol" || flag === "dark") return flag;
+    const p = JSON.parse(localStorage.getItem("ledlab.prefs.v1") || "{}");
+    return p.theme === "sol" ? "sol" : "dark";
+  } catch { return "dark"; }
+}
 
-// troca o tema IN-PLACE (quem chama força o re-render — ver App.jsx)
+export const T = { ...(THEMES[bootTheme()] || DARK) };
+
+// troca o tema IN-PLACE (inline styles no próximo render; consts de módulo só
+// renascem no reload — quem alterna o tema recarrega, ver App.jsx)
 export function applyTheme(name) {
   Object.assign(T, THEMES[name] || DARK);
-  // o body tem background próprio no index.css (dark); acompanha o tema
+  // o body tem background próprio no index.css; acompanha o tema
   if (typeof document !== "undefined") document.body.style.background = T.bg;
 }
 
