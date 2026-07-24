@@ -11,6 +11,7 @@ import { Cpu, AlertTriangle, Check, Zap, Gauge, FolderOpen } from "lucide-react"
 import { T } from "../ui/tokens.js";
 import { card, label as lbl } from "../ui/styles.js";
 import Select from "../components/Select.jsx";
+import HelpTip from "../components/HelpTip.jsx";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { CATALOGO, equipById, cargaTotal, equipReport, hzQueCabe } from "../services/equipamentos.js";
 
@@ -38,8 +39,12 @@ export default function Equipamentos({ nav }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ color: T.dim, fontSize: 12.5, lineHeight: 1.55 }}>
-        Traga um <b style={{ color: T.mut }}>projeto</b> e escolha a <b style={{ color: T.mut }}>controladora</b> de cada Screen — o app confere se cabem nas <b style={{ color: T.mut }}>portas</b>, na <b style={{ color: T.mut }}>carga</b> e na resolução. Os modelos vêm de um <b style={{ color: T.mut }}>catálogo certificado</b> (não editável): você <b style={{ color: T.mut }}>seleciona</b>, o dado é conferido por nós.
+      {/* didática no "?" (R4) — o parágrafo fixo saiu */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.dim, fontSize: 12.5 }}>
+        Escolha a controladora de cada Screen — o app confere se cabe.
+        <HelpTip title="Como funciona" align="left">
+          Traga um <b style={{ color: T.txt }}>projeto</b> e escolha a <b style={{ color: T.txt }}>controladora</b> de cada Screen — o app confere se cabem nas portas, na carga do dispositivo e na resolução, com a dica de Hz quando não cabe. Os modelos vêm de um <b style={{ color: T.txt }}>catálogo certificado</b> (não editável): você seleciona, o dado é conferido por nós nos datasheets.
+        </HelpTip>
       </div>
 
       {/* ── verificação com um projeto ── */}

@@ -6,7 +6,8 @@
 // dos cabos ficam CONSISTENTES em todo o app. Ferramenta avulsa: escolhe um
 // gabinete e uma grade, sem precisar de projeto (não persiste).
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ZoomIn, ZoomOut, Maximize, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import ZoomTrio from "../components/ZoomTrio.jsx";
 import { T } from "../ui/tokens.js";
 import { useCablePalette } from "../hooks/useCablePalette.js";
 import CablingLayer from "../components/CablingLayer.jsx";
@@ -21,7 +22,6 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
 const CORNER_LABEL = { bl: "inferior-esquerdo", br: "inferior-direito", tl: "superior-esquerdo", tr: "superior-direito" };
 // botão de zoom do canto do canvas
-const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
 
 export default function Diagrams() {
   const isMobile = useIsMobile();
@@ -142,11 +142,8 @@ export default function Diagrams() {
                 numberPos={prefs.cablingRender?.numberPos || "bl"} />
             </g>
           </svg>
-          {/* botões diretos (sem array intermediário): o compilador vê fit/zoomBy como handlers */}
-          <div style={{ position: "absolute", right: 12, bottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-            <button title="Aumentar" onClick={() => zoomBy(1.2)} style={zb}><ZoomIn size={16} /></button>
-            <button title="Enquadrar" onClick={fit} style={zb}><Maximize size={16} /></button>
-            <button title="Diminuir" onClick={() => zoomBy(0.8)} style={zb}><ZoomOut size={16} /></button>
+          <div style={{ position: "absolute", right: 12, bottom: 12 }}>
+            <ZoomTrio onOut={() => zoomBy(0.8)} onFit={fit} onIn={() => zoomBy(1.2)} />
           </div>
           <div style={{ position: "absolute", left: 12, bottom: 12, color: T.dim, fontSize: 11, background: "rgba(0,0,0,0.4)", padding: "4px 8px", borderRadius: 6 }}>
             início {CORNER_LABEL[corner]} · arraste p/ mover · scroll p/ zoom
