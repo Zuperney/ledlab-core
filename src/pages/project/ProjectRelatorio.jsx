@@ -3,7 +3,8 @@
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState, useRef, useEffect } from "react";
-import { Printer, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
+import { Printer, Download, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
+import { useToast } from "../../store/UIContext.jsx";
 import HelpTip from "../../components/HelpTip.jsx";
 import Segmented from "../../components/Segmented.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
@@ -13,6 +14,7 @@ import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabl
 import { hasScreens, projectScreenReport, telasSemScreen } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
+import { GLOSSARIO, AVISO_AC, DISC, fmtPeso, portLabel, videoOf } from "../../services/reportContent.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
@@ -29,41 +31,9 @@ const TYPES_MOBILE = ["Completo", "Resumido", "Mapa de cabos"];
 // largura fixa "de impressão": no mobile o relatório é montado nela e escalado (zoom) p/ caber
 const DOC_W = 800;
 
-// disciplinas do caderno técnico: cor de índice por seção (produção / vídeo / elétrica)
-const DISC = { prod: "#475569", video: "#1d4ed8", elec: "#c2410c" };
-// peso legível: ≥ 1 tonelada vira "t"
-const fmtPeso = (kg) => (kg >= 1000 ? `${(kg / 1000).toFixed(1)} t` : `${Math.round(kg)} kg`);
-
-// glossário do caderno técnico (leitor leigo/cliente) — termos que aparecem no doc
-const GLOSSARIO = [
-  { t: "Pico × Típico", d: "Pico = branco pleno, dimensiona disjuntor e cabo. Típico = consumo médio real do conteúdo, estima energia e gerador." },
-  { t: "kVA × kW", d: "kW é a potência real; kVA a aparente (kW ÷ FP). Disjuntor e gerador se dimensionam em kVA/corrente." },
-  { t: "FP (fator de potência)", d: "Relação entre potência real e aparente do gabinete (ex.: 0,90). Entra na corrente e no kVA." },
-  { t: "Pitch", d: "Distância entre centros de LEDs (mm). Menor pitch = mais resolução por m² e menor distância mínima de visão." },
-  { t: "APL / conteúdo", d: "Nível médio da imagem — quanto do branco pleno o vídeo acende, em média. Escala o consumo típico." },
-  { t: "Gabinete", d: "Módulo físico de LED (cabinet + receiving card). Menor unidade de montagem e cabeamento." },
-  { t: "Tela", d: "Bloco de gabinetes iguais montados juntos — a unidade de projeto do app." },
-  { t: "Screen", d: "O sistema como a controladora enxerga, onde correm as portas 1..N. Pode reunir várias telas." },
-  { t: "Porta × Circuito", d: "Porta = saída de dados Gigabit da controladora. Circuito = cabo de energia (AC)." },
-  { t: "Disjuntor", d: "Proteção do circuito, dimensionada acima da corrente de pico (margem de carga contínua)." },
-  { t: "Trifásico (F+F+F+N)", d: "Alimentação em 3 fases + neutro — distribui a carga e reduz a corrente por fase." },
-  { t: "Serpentina", d: "Roteamento em zigue-zague dos cabos para minimizar comprimento e cruzamentos." },
-];
-
-const gcd = (a, b) => (b ? gcd(b, a % b) : a);
-const videoOf = (t) => {
-  const g = t.gabinete || {};
-  const pxW = (parseInt(g.resX) || 0) * (t.cols || 0), pxH = (parseInt(g.resY) || 0) * (t.rows || 0);
-  const d = gcd(pxW, pxH) || 1;
-  const arSimple = pxW && pxH && pxW / d <= 100 && pxH / d <= 100 ? `${pxW / d}:${pxH / d}` : null;
-  const dec = pxH ? (pxW / pxH).toFixed(2) : "—";
-  const pitch = parseFloat(g.dimW) && parseInt(g.resX) ? parseFloat(g.dimW) / parseInt(g.resX) : 0;
-  return { pxW, pxH, mp: (pxW * pxH) / 1e6, ar: arSimple || `${dec}:1`, dec, pitch };
-};
-
 export default function ProjectRelatorio({ project }) {
   const { prefs } = useLedLabContext();
-  const { colorOf } = useCablePalette();
+  const { colorOf, palette } = useCablePalette();
   const isMobile = useIsMobile();
   const [type, setType] = useState("Completo");
   // no mobile, mede a largura disponível e calcula o zoom p/ o relatório (DOC_W) caber
@@ -85,6 +55,21 @@ export default function ProjectRelatorio({ project }) {
   const roll = projectRollup(project);
   const today = formatFull(isoDate()); // data LOCAL (evita virar o dia seguinte à noite)
   const telas = project.telas || [];
+  // F1 do motor nativo: o pdfmake (pesado) só carrega no clique — chunk separado
+  const [gerandoPdf, setGerandoPdf] = useState(false);
+  const toast = useToast();
+  const baixarPdf = async () => {
+    setGerandoPdf(true);
+    try {
+      const { baixarRelatorioPdf } = await import("../../services/pdf/pdfEngine.js");
+      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette, render: prefs.cablingRender });
+      toast("PDF gerado");
+    } catch (e) {
+      console.error(e);
+      toast("Não deu pra gerar o PDF — tenta de novo", "info");
+    }
+    setGerandoPdf(false);
+  };
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
   const showPhys = ["Completo", "Resumido", "Estrutural", "Gabinetes", "Design"].includes(type);
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
@@ -96,9 +81,6 @@ export default function ProjectRelatorio({ project }) {
   const td = { padding: "6px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
   const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: colorOf(i), flexShrink: 0 });
-  // "porta 7" · "portas 7–12" · "sem portas" — a faixa que a tela ocupa na numeração
-  // global do projeto. Tela vazia tem 0 portas: sem isso sairia o intervalo "1–0".
-  const portLabel = (off, n, sing) => (n === 0 ? `sem ${sing}s` : n === 1 ? `${sing} ${off + 1}` : `${sing}s ${off + 1}–${off + n}`);
 
   // com Screens, o SINAL vem delas (uma seção por Screen, portas 1..N por Screen).
   // Sem Screens, segue por tela (legado). O AC não muda: segue o físico, por tela.
@@ -126,10 +108,14 @@ export default function ProjectRelatorio({ project }) {
         <Segmented value={type} onChange={setType} size="sm"
           options={(isMobile ? TYPES_MOBILE : TYPES).map((t) => ({ value: t, label: t }))} />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <button style={btn("primary")} onClick={() => printAs(fileName([project.name, "relatorio", type]))}><Printer size={15} /> Imprimir / Salvar PDF</button>
-          {/* o aviso do PDF virou "?" ao lado do botão que ele explica (era um box fixo) */}
-          <HelpTip title="Dica pro PDF sair certo">
-            Ao salvar o PDF, ative <b style={{ color: T.txt }}>“Gráficos de segundo plano”</b> na janela de impressão — sem isso a capa e as cores dos cabos saem apagadas.
+          {/* MOTOR NATIVO (F1): gera o PDF no app — funciona no celular, com nome
+              certo e sem "gráficos de segundo plano". Imprimir fica de fallback. */}
+          <button style={btn("primary", gerandoPdf ? { opacity: 0.6, cursor: "wait" } : {})} disabled={gerandoPdf} onClick={baixarPdf}>
+            <Download size={15} /> {gerandoPdf ? "Gerando…" : "Baixar PDF"}
+          </button>
+          <button style={btn("ghost")} onClick={() => printAs(fileName([project.name, "relatorio", type]))} title="Imprimir pelo navegador (fallback)"><Printer size={15} />{!isMobile && " Imprimir"}</button>
+          <HelpTip title="Dica pro Imprimir do navegador">
+            O <b style={{ color: T.txt }}>Baixar PDF</b> já sai pronto. Se usar o Imprimir do navegador, ative <b style={{ color: T.txt }}>“Gráficos de segundo plano”</b> — sem isso a capa e as cores saem apagadas.
           </HelpTip>
         </span>
       </div>
@@ -288,7 +274,7 @@ export default function ProjectRelatorio({ project }) {
         {showAC && usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
-            <WarnBox title="Atenção — energização" tone="amber">Conectores <b>powerCON azuis NÃO podem ser (des)conectados sob carga</b>. Cabo de 1,5 mm² limita cada circuito em <b>16 A</b> (cálculo a 220 V) — confira a corrente por cabo na tabela antes de energizar.</WarnBox>
+            <WarnBox title={AVISO_AC.titulo} tone="amber">{AVISO_AC.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.</p>
             {screenReportAc.map((s, i) => (
               <div key={s.id} className="rp-block" style={telaBlock}>
@@ -307,7 +293,7 @@ export default function ProjectRelatorio({ project }) {
         {showAC && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
-            <WarnBox title="Atenção — energização" tone="amber">Conectores <b>powerCON azuis NÃO podem ser (des)conectados sob carga</b>. Cabo de 1,5 mm² limita cada circuito em <b>16 A</b> (cálculo a 220 V) — confira a corrente por cabo na tabela antes de energizar.</WarnBox>
+            <WarnBox title={AVISO_AC.titulo} tone="amber">{AVISO_AC.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
             {telas.map((t, i) => {
               const { ampCab, connRating, acBudget } = cableMeta(t);
