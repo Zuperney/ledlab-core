@@ -163,10 +163,13 @@ export function unassignedCount(screen, telas, kind = "sinal") {
 }
 
 // ── nível de PROJETO (Relatório, Test Card, Composição, CSV) ──
-// o projeto "usa Screens" quando tem ao menos uma Screen com tela. Se não usa,
-// os consumidores caem no modo legado (por tela), sem quebrar nada.
+// o projeto "usa Screens" quando tem ao menos uma Screen com tela EXISTENTE —
+// telaIds órfãos (tela excluída sem limpar a Screen, dado antigo) não contam,
+// senão o Relatório entra no modo por-Screen com uma Screen 0×0 (LLC-11).
+// Se não usa, os consumidores caem no modo legado (por tela), sem quebrar nada.
 export function hasScreens(project) {
-  return (project?.screens || []).some((s) => (s.telaIds || []).length > 0);
+  const telas = project?.telas || [];
+  return (project?.screens || []).some((s) => screenTelas(s, telas).length > 0);
 }
 
 // telas que não foram postas em nenhuma Screen — o relatório avisa "sem sistema"
@@ -179,7 +182,7 @@ export function telasSemScreen(project) {
 export function projectScreenReport(project, kind = "sinal", numbering = "row-tb-lr") {
   const telas = project?.telas || [];
   return (project?.screens || [])
-    .filter((s) => (s.telaIds || []).length)
+    .filter((s) => screenTelas(s, telas).length) // só telas existentes (LLC-11)
     .map((s) => ({ id: s.id, nome: s.nome, size: screenSize(s, telas), ports: screenPortSummary(s, telas, kind, numbering) }));
 }
 

@@ -1,4 +1,4 @@
-// screenCabling.test.js — cabeamento de sinal por Screen (auto + livre).
+﻿// screenCabling.test.js — cabeamento de sinal por Screen (auto + livre).
 import { describe, it, expect } from "vitest";
 import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV } from "./screenCabling.js";
 
@@ -105,7 +105,7 @@ describe("hasScreens / telasSemScreen", () => {
   it("hasScreens só é true com Screen que tem tela", () => {
     expect(hasScreens({ screens: [] })).toBe(false);
     expect(hasScreens({ screens: [{ telaIds: [] }] })).toBe(false);
-    expect(hasScreens({ screens: [{ telaIds: ["t1"] }] })).toBe(true);
+    expect(hasScreens({ telas, screens: [{ telaIds: ["t1"] }] })).toBe(true); // precisa da tela EXISTIR (LLC-11)
   });
   it("telasSemScreen lista as telas fora de qualquer Screen", () => {
     const proj = { telas, screens: [{ id: "s1", telaIds: ["t1"], pos: {} }] };
@@ -250,3 +250,28 @@ describe("régua e estratégia de sinal", () => {
     expect(p10).toBeGreaterThanOrEqual(p8);
   });
 });
+
+describe("telaIds órfãos (tela excluída sem limpar a Screen) — LLC-11", () => {
+  // cenário do caderno real: Screen só com ids de telas que não existem mais,
+  // e as telas do projeto todas fora de qualquer Screen
+  const scOrfa = { id: "sx", nome: "Screen 2", telaIds: ["morta1", "morta2"], pos: {}, sinal: {} };
+  const project = { telas, screens: [scOrfa] };
+
+  it("hasScreens ignora Screen sem tela existente → cai no modo legado", () => {
+    expect(hasScreens(project)).toBe(false);
+  });
+
+  it("projectScreenReport não lista a Screen 0×0", () => {
+    expect(projectScreenReport(project, "sinal")).toEqual([]);
+  });
+
+  it("Screen com MISTURA de vivo e órfão continua valendo (só os vivos contam)", () => {
+    const scMista = { id: "sm", nome: "Mista", telaIds: ["morta1", "imag"], pos: { imag: { x: 0, y: 0 } }, sinal: {} };
+    const p2 = { telas, screens: [scMista] };
+    expect(hasScreens(p2)).toBe(true);
+    const rep = projectScreenReport(p2, "sinal");
+    expect(rep.length).toBe(1);
+    expect(rep[0].size).toEqual({ w: 6 * 192, h: 3 * 192 });
+  });
+});
+

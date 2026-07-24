@@ -25,10 +25,38 @@ const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
 const fmtBR = (iso) => { const d = new Date(iso + "T12:00"); return isNaN(d.getTime()) ? iso : `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; };
 
 const PRESETS = [
+  { id: "semana", label: "Esta semana" },
   { id: "mes", label: "Este mês" },
   { id: "mesPassado", label: "Mês passado" },
   { id: "30d", label: "Últimos 30 dias" },
 ];
+
+// "30/2026" — nº da semana ISO + ano ISO (a semana 1 contém a 1ª quinta do ano;
+// o ano é o da quinta, cobrindo viradas de ano)
+const isoWeekLabel = (date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const y = d.getUTCFullYear();
+  const y0 = new Date(Date.UTC(y, 0, 1));
+  return `${Math.ceil(((d - y0) / 86400000 + 1) / 7)}/${y}`;
+};
+
+// máscara progressiva de CPF (000.000.000-00) / CNPJ (00.000.000/0000-00) — LLC-06
+const maskDoc = (v) => {
+  const d = (v || "").replace(/\D/g, "").slice(0, 14);
+  if (!d) return "";
+  if (d.length <= 11) {
+    let out = d.slice(0, 3);
+    if (d.length > 3) out += "." + d.slice(3, 6);
+    if (d.length > 6) out += "." + d.slice(6, 9);
+    if (d.length > 9) out += "-" + d.slice(9, 11);
+    return out;
+  }
+  let out = d.slice(0, 2) + "." + d.slice(2, 5) + "." + d.slice(5, 8) + "/" + d.slice(8, 12);
+  if (d.length > 12) out += "-" + d.slice(12, 14);
+  return out;
+};
 
 // largura fixa "de impressão": no mobile o recibo é montado nessa largura (layout igual
 // ao do desktop/PDF) e escalado com zoom p/ caber na tela — mini-preview fiel, não reflow.
@@ -67,16 +95,34 @@ export default function Financeiro() {
     if (p === "mes") setRange({ from: monthStart(d), to: monthEnd(d) });
     else if (p === "mesPassado") { const pm = new Date(d.getFullYear(), d.getMonth() - 1, 1); setRange({ from: monthStart(pm), to: monthEnd(pm) }); }
     else if (p === "30d") { const ini = new Date(d); ini.setDate(ini.getDate() - 29); setRange({ from: isoOf(ini), to: isoOf(d) }); }
+    else if (p === "semana") { // LLC-09: semana corrente; o início (seg/dom) vem das Configurações
+      const startDow = (prefs.semanaInicio || "seg") === "dom" ? 0 : 1;
+      const diff = (d.getDay() - startDow + 7) % 7;
+      const ini = new Date(d); ini.setDate(d.getDate() - diff);
+      const fim = new Date(ini); fim.setDate(ini.getDate() + 6);
+      setRange({ from: isoOf(ini), to: isoOf(fim) });
+    }
   };
   const setFrom = (v) => { setPreset("custom"); setRange((r) => ({ ...r, from: v })); };
   const setTo = (v) => { setPreset("custom"); setRange((r) => ({ ...r, to: v })); };
 
-  const clientes = useMemo(() => [...new Set(worklog.map((e) => e.clienteLivre).filter(Boolean))].sort(), [worklog]);
+  // cliente é texto livre nos lançamentos: compara ignorando caixa/espaço, senão
+  // "Mega Led" ≠ "MEGA LED" e o fixo mensal some do recibo (LLC-03)
+  const cliEq = (a, b) => (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
+  const fixoCfg = prefs.fixo || { valor: 0, cliente: "" };
+  const fixoConfigurado = (Number(fixoCfg.valor) || 0) > 0;
+
+  const clientes = useMemo(() => {
+    const list = [...new Set(worklog.map((e) => e.clienteLivre).filter(Boolean))];
+    // o cliente do fixo entra mesmo sem cachê no período — recibo só do fixo existe
+    if (fixoConfigurado && fixoCfg.cliente && !list.some((c) => cliEq(c, fixoCfg.cliente))) list.push(fixoCfg.cliente);
+    return list.sort();
+  }, [worklog, fixoConfigurado, fixoCfg.cliente]);
 
   const grupos = useMemo(() => {
     const filtered = worklog.filter((e) =>
       (e.dataRef || "") >= range.from && (e.dataRef || "") <= range.to &&
-      (cliente === "" || (e.clienteLivre || "") === cliente)
+      (cliente === "" || cliEq(e.clienteLivre, cliente))
     );
     return porDia(filtered);
   }, [worklog, range.from, range.to, cliente, porDia]);
@@ -86,14 +132,19 @@ export default function Financeiro() {
   const nCaches = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.cobrado ? (it.breakdown.cachês || 0) : 0), 0), 0);
   const totalMin = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.breakdown.duracaoMin ?? 0), 0), 0);
 
-  // fixo mensal (retainer): só quando configurado e o filtro de cliente casa (ou é "Todos")
-  const fixoCfg = prefs.fixo || { valor: 0, cliente: "" };
-  const fixoAtivo = (Number(fixoCfg.valor) || 0) > 0 && (cliente === "" || cliente === fixoCfg.cliente);
-  const fixoValor = fixoAtivo && incluirFixo ? Number(fixoCfg.valor) : 0;
+  // fixo mensal (retainer): desacoplado do filtro — aplicável com "Todos" ou com o
+  // PRÓPRIO cliente do fixo; com outro cliente, avisa que ficou de fora (LLC-03).
+  // Em fechamento SEMANAL o fixo nunca entra (regime mensal, sem rateio — LLC-09).
+  const fixoAplicavel = preset !== "semana" && fixoConfigurado && (cliente === "" || cliEq(cliente, fixoCfg.cliente));
+  const fixoValor = fixoAplicavel && incluirFixo ? Number(fixoCfg.valor) : 0;
   const grandTotal = total + fixoValor;
   const temConteudo = nDias > 0 || fixoValor > 0;
 
-  const periodoLabel = `${fmtBR(range.from)} a ${fmtBR(range.to)}`;
+  // LLC-09: recibo SEMANAL declara o regime — intervalo + nº da semana no cabeçalho
+  const isSemana = preset === "semana";
+  const periodoLabel = isSemana
+    ? `Semana ${fmtBR(range.from)} a ${fmtBR(range.to)} · Semana ${isoWeekLabel(new Date(range.from + "T12:00"))}`
+    : `${fmtBR(range.from)} a ${fmtBR(range.to)}`;
   const docTitulo = docTipo === "recibo" ? "Recibo de mão de obra" : "Planilha de pagamento";
   const texto = reciboWhatsApp({ grupos, titulo: docTitulo.toUpperCase(), tecnico: prefs.tecnico, periodoLabel, clienteLabel: cliente, showCliente: cliente === "", total, fixoValor, fixoCliente: fixoCfg.cliente });
 
@@ -121,6 +172,15 @@ export default function Financeiro() {
   };
   const abrirWhats = () => window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
 
+  // LLC-06: "próximo" no teclado — Enter pula pro campo seguinte do formulário
+  const nextOnEnter = (e) => {
+    if (e.key !== "Enter") return;
+    const form = e.currentTarget.closest("[data-recibo-form]");
+    const inputs = [...(form?.querySelectorAll('input:not([type="checkbox"])') || [])];
+    const i = inputs.indexOf(e.currentTarget);
+    if (i >= 0 && inputs[i + 1]) { e.preventDefault(); inputs[i + 1].focus(); }
+  };
+
   const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" };
   const td = { padding: "6px 8px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink, fontSize: 12.5 };
   const footRow = { display: "flex", justifyContent: "space-between", color: PRINT.mut, fontSize: 13, padding: "3px 0" };
@@ -134,8 +194,8 @@ export default function Financeiro() {
     <div>
       <SectionHeader title="Recibos" subtitle="Recibo / planilha de mão de obra por período (PDF ou WhatsApp)." />
 
-      {/* filtros */}
-      <div style={card({ maxWidth: 860, marginBottom: 16 })}>
+      {/* filtros — ordem de preenchimento: Período → Cliente → Pagador → Opções (LLC-06) */}
+      <div data-recibo-form style={card({ maxWidth: 860, marginBottom: 16 })}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {PRESETS.map((p) => (
             <button key={p.id} onClick={() => applyPreset(p.id)}
@@ -152,17 +212,25 @@ export default function Financeiro() {
               {clientes.map((c) => <option key={c} value={c}>{c}</option>)}
             </Select>
           </div>
-          <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: seu nome ou empresa" style={input()} /></div>
+          <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} onKeyDown={nextOnEnter} enterKeyHint="next" autoComplete="name" placeholder="Ex.: seu nome ou empresa" style={input()} /></div>
         </div>
         <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginTop: 12 }}>
-          <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} placeholder="Nome / razão social do cliente" style={input()} /></div>
-          <div><div style={lbl}>CPF / CNPJ do pagador</div><input value={pagDoc} onChange={(e) => savePagador(pagNome, e.target.value)} placeholder="Opcional" style={input()} /></div>
+          <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} onKeyDown={nextOnEnter} enterKeyHint="next" placeholder="Nome / razão social do cliente" style={input()} /></div>
+          {/* CPF/CNPJ: teclado numérico + máscara progressiva (LLC-06) */}
+          <div><div style={lbl}>CPF / CNPJ do pagador</div><input value={pagDoc} onChange={(e) => savePagador(pagNome, maskDoc(e.target.value))} onKeyDown={nextOnEnter} enterKeyHint="done" inputMode="numeric" placeholder="Opcional" style={input()} /></div>
         </div>
-        {fixoAtivo && (
+        {fixoAplicavel && (
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: T.txt, fontSize: 14, cursor: "pointer" }}>
             <input type="checkbox" checked={incluirFixo} onChange={(e) => setIncluirFixo(e.target.checked)} style={{ width: 16, height: 16, accentColor: T.acc, cursor: "pointer" }} />
             Incluir fixo mensal{fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} — <b>{brl(fixoCfg.valor)}</b>
           </label>
+        )}
+        {fixoConfigurado && !fixoAplicavel && (
+          <div style={{ marginTop: 12, color: T.amb, fontSize: 12.5 }}>
+            {isSemana
+              ? `Fixo mensal${fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} não entra no fechamento semanal — emita pelo período mensal.`
+              : `Fixo mensal${fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} não incluído — o recibo é de outro cliente.`}
+          </div>
         )}
       </div>
 
@@ -175,11 +243,15 @@ export default function Financeiro() {
         <span style={{ color: T.dim, fontSize: 12 }}>{docTipo === "planilha" ? "lista pra o cliente conferir e aprovar" : "recibo com quitação, após validado"}</span>
       </div>
 
-      {/* ações */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <button style={btn("primary")} onClick={() => printAs(fileName(["recibo", cliente]))} disabled={!temConteudo}><Printer size={15} /> Imprimir / Salvar PDF</button>
-        <button style={btn("ghost")} onClick={copiar} disabled={!temConteudo}><Copy size={15} /> Copiar texto</button>
-        <button style={btn("ghost")} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
+      {/* ações de SAÍDA — no mobile ficam FIXAS no rodapé, acima da bottom nav
+          (LLC-06): sempre à mão, sem rolar procurando botão. No papel some via
+          o @media print global (só o .report-doc imprime). */}
+      <div style={isMobile
+        ? { position: "fixed", left: 0, right: 0, bottom: "calc(62px + env(safe-area-inset-bottom))", zIndex: 40, display: "flex", gap: 8, padding: "10px 12px", background: T.sb, borderTop: `1px solid ${T.bd}` }
+        : { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <button style={btn("primary", isMobile ? { flex: 1, justifyContent: "center" } : {})} onClick={() => printAs(fileName(["recibo", cliente]))} disabled={!temConteudo}><Printer size={15} /> {isMobile ? "PDF" : "Imprimir / Salvar PDF"}</button>
+        <button style={btn("ghost", isMobile ? { flex: 1, justifyContent: "center" } : {})} onClick={copiar} disabled={!temConteudo}><Copy size={15} /> Copiar</button>
+        <button style={btn("ghost", isMobile ? { flex: 1, justifyContent: "center" } : {})} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
       </div>
 
       {/* recibo imprimível — no mobile, montado em DOC_W e escalado (zoom) p/ caber, virando
@@ -208,6 +280,7 @@ export default function Financeiro() {
         <div style={{ borderTop: `2px solid ${PRINT.ink}`, borderBottom: `1px solid ${PRINT.line}`, padding: "12px 0", marginBottom: 16 }}>
           <h1 style={{ margin: 0, fontSize: 22 }}>{docTitulo}</h1>
           <div style={{ color: PRINT.mut, fontSize: 13, marginTop: 4 }}>{[prefs.tecnico && `Prestador: ${prefs.tecnico}`, `Período: ${periodoLabel}`, cliente && `Cliente: ${cliente}`].filter(Boolean).join(" · ")}</div>
+          {isSemana && <div style={{ color: PRINT.mut, fontSize: 12, marginTop: 2 }}>Fechamento semanal de mão de obra referente ao período acima.</div>}
         </div>
 
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 20 }}>
@@ -303,6 +376,8 @@ export default function Financeiro() {
         )}
       </div>
       </div>
+      {/* espaço pro fim do documento rolar acima da barra fixa de saída (mobile) */}
+      {isMobile && <div style={{ height: 66 }} />}
     </div>
   );
 }

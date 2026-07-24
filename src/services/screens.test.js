@@ -1,6 +1,6 @@
-// screens.test.js — Screens que o técnico monta à mão (agrupamento manual).
+﻿// screens.test.js — Screens que o técnico monta à mão (agrupamento manual).
 import { describe, it, expect } from "vitest";
-import { makeScreen, unassignedTelas, screenOfTela, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela } from "./screens.js";
+import { makeScreen, unassignedTelas, screenOfTela, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela, dropTela } from "./screens.js";
 
 const gabTira = { resX: "128", resY: "256" };
 const gabImag = { resX: "192", resY: "192" };
@@ -109,3 +109,17 @@ describe("oneScreenPerTela (D4)", () => {
     expect(unassignedTelas(s, telas)).toEqual([]); // nada sobra
   });
 });
+
+describe("dropTela — exclusão de tela limpa TODAS as Screens (LLC-11)", () => {
+  it("tira a tela de qualquer Screen que a contenha, com a posição junto", () => {
+    const screens = [
+      { id: "s1", telaIds: ["t1", "central"], pos: { t1: { x: 0, y: 0 }, central: { x: 128, y: 0 } }, sinal: {} },
+      { id: "s2", telaIds: ["imagD"], pos: { imagD: { x: 0, y: 0 } }, sinal: {} },
+    ];
+    const out = dropTela(screens, "t1");
+    expect(out[0].telaIds).toEqual(["central"]);
+    expect(out[0].pos.t1).toBeUndefined();
+    expect(out[1]).toBe(screens[1]); // Screen sem a tela não é recriada
+  });
+});
+

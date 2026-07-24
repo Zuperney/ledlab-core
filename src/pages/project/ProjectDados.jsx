@@ -13,6 +13,7 @@ import { DateField } from "../../components/PickerField.jsx";
 import Select from "../../components/Select.jsx";
 import NumField from "../../components/NumField.jsx";
 import { reorder } from "../../services/layout.js";
+import { dropTela } from "../../services/screens.js";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, favCab } = useCabinets();
@@ -48,12 +49,29 @@ export default function ProjectDados({ project, patch, patchTela }) {
     const next = reorder(telas, cur, insertion);
     if (next.some((t, i) => t.id !== telas[i].id)) patch({ telas: next }); // só grava se a ordem mudou
   };
-  const onDragDown = (e, t) => { e.preventDefault(); e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ } setDragId(t.id); };
+  const orderBeforeRef = useRef(null); // snapshot da ordem no início do arraste (pro Desfazer)
+  const onDragDown = (e, t) => { e.preventDefault(); e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ } orderBeforeRef.current = telas; setDragId(t.id); };
   const onDragMove = (e) => { if (dragId) reorderByPointer(e.clientY); };
-  const onDragUp = (e) => { if (!dragId) return; try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* noop */ } setDragId(null); };
+  // LLC-05: o drop CONFIRMA — haptic + toast "Tela → posição N" com Desfazer
+  // (manual §9.2: undo só em rearranjo reversível em memória, como aqui)
+  const onDragUp = (e) => {
+    if (!dragId) return;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+    const antes = orderBeforeRef.current;
+    const pos = telas.findIndex((x) => x.id === dragId);
+    const mudou = antes && telas.some((x, i) => x.id !== antes[i]?.id);
+    if (mudou) {
+      try { navigator.vibrate?.(10); } catch { /* iOS ignora */ }
+      toast(`"${telas[pos]?.nome || "Tela"}" → posição ${pos + 1}`, "success", { action: { label: "Desfazer", fn: () => patch({ telas: antes }) } });
+    }
+    orderBeforeRef.current = null;
+    setDragId(null);
+  };
   const delTela = async (t) => {
     if (await confirm({ title: "Excluir tela?", message: `"${t.nome || "tela"}" será removida deste projeto.` })) {
-      patch({ telas: telas.filter((x) => x.id !== t.id) });
+      // limpa a tela também das Screens — telaId órfão numa Screen quebra o
+      // Relatório (Screen 0×0 e telas "fora de qualquer Screen"; LLC-11)
+      patch({ telas: telas.filter((x) => x.id !== t.id), ...(project.screens ? { screens: dropTela(project.screens, t.id) } : {}) });
       toast("Tela excluída");
     }
   };
@@ -70,8 +88,9 @@ export default function ProjectDados({ project, patch, patchTela }) {
           <button style={btn("primary")} onClick={addTela}><Plus size={15} /> Adicionar tela</button>
         </div>
         {telas.length === 0 && <div style={{ color: T.dim, fontSize: 13 }}>Nenhuma tela ainda.</div>}
-        {telas.map((t) => {
+        {telas.map((t, idx) => {
           const open = editId === t.id;
+          const lifted = dragId === t.id; // LLC-05: a tela arrastada "levanta"
           const g = t.gabinete || {};
           const dW = parseFloat(g.dimW) || 0, dH = parseFloat(g.dimH) || 0;
           const larguraM = (t.cols || 0) * dW / 1000, alturaM = (t.rows || 0) * dH / 1000;
@@ -80,13 +99,19 @@ export default function ProjectDados({ project, patch, patchTela }) {
           const setRows = (n) => patchTela(t.id, { rows: Math.max(0, n || 0) });
           return (
             <div key={t.id} style={{ borderTop: `1px solid ${T.bd}` }}>
-              <div data-tid={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0", flexWrap: "wrap", background: dragId === t.id ? T.sel : "transparent", borderRadius: dragId === t.id ? 8 : 0 }}>
+              <div data-tid={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: lifted ? "10px 6px" : "10px 0", flexWrap: "wrap", background: lifted ? T.sel : "transparent", borderRadius: lifted ? 10 : 0, border: `1px solid ${lifted ? T.acc : "transparent"}`, boxShadow: lifted ? "0 8px 22px rgba(0,0,0,0.35)" : "none", transform: lifted ? "scale(1.02)" : "none", transition: "transform .12s, box-shadow .12s", position: "relative", zIndex: lifted ? 2 : "auto" }}>
                 {telas.length > 1 && (
                   <button onPointerDown={(e) => onDragDown(e, t)} onPointerMove={onDragMove} onPointerUp={onDragUp} onPointerCancel={onDragUp}
                     title="Arraste para reordenar" aria-label="Arraste para reordenar"
                     style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: isMobile ? 34 : 26, height: isMobile ? 40 : 30, border: "none", background: "transparent", color: T.mut, cursor: dragId === t.id ? "grabbing" : "grab", touchAction: "none", padding: 0 }}>
                     <GripVertical size={16} />
                   </button>
+                )}
+                {/* durante o arraste, TODA linha mostra a posição ao vivo (#1, #2…) */}
+                {dragId && (
+                  <span style={{ flexShrink: 0, fontFamily: "ui-monospace,monospace", fontSize: 11.5, fontWeight: 700, color: lifted ? T.accInk : T.dim, background: lifted ? T.acc : T.card2, border: `1px solid ${lifted ? T.acc : T.bd}`, borderRadius: 6, padding: "2px 6px" }}>
+                    #{idx + 1}
+                  </span>
                 )}
                 <button onClick={() => setEditId(open ? null : t.id)}
                   style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer", color: "inherit" }}>

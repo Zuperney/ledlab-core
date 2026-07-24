@@ -73,6 +73,13 @@ export function removeTela(screens, screenId, telaId) {
   return (screens || []).map((s) => (s.id === screenId ? stripTela(s, telaId) : s));
 }
 
+// tira a tela de TODAS as Screens — uso: exclusão da tela no projeto. Sem isso a
+// Screen fica com telaIds órfãos e o Relatório mostra uma Screen 0×0 com as telas
+// reais "fora de qualquer Screen" (LLC-11, visto no caderno do Ademicom Summit).
+export function dropTela(screens, telaId) {
+  return (screens || []).map((s) => ((s.telaIds || []).includes(telaId) ? stripTela(s, telaId) : s));
+}
+
 function stripTela(screen, telaId) {
   const pos = { ...(screen.pos || {}) };
   delete pos[telaId];

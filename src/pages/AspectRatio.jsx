@@ -7,10 +7,21 @@ import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
+import HelpTip from "../components/HelpTip.jsx";
+import Segmented from "../components/Segmented.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import Select from "../components/Select.jsx";
 import NumField from "../components/NumField.jsx";
 import { fillCrop } from "../services/crop.js";
+
+// LLC-08: didática dos números mora no tooltip do rótulo (R4 — zero parágrafo fixo)
+const STAT_TIP = {
+  "Proporção": "Razão largura:altura simplificada (ou o nome comercial quando bate).",
+  "Decimal": "Largura ÷ altura — o número que processadores e media servers usam.",
+  "Formato": "O formato de vídeo conhecido mais próximo (≈ quando não é exato).",
+  "Resolução": "Pixels reais do painel: largura × altura.",
+  "Orientação": "Paisagem (deitado), retrato (em pé) ou quadrado.",
+};
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
@@ -68,7 +79,14 @@ export default function AspectRatio() {
 
   const inp = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 15, width: 120 };
   const lbl = { textTransform: "uppercase", fontSize: 11, color: T.mut, display: "block", marginBottom: 4 };
-  const stat = (l, v, c) => (<div><div style={{ fontSize: 10, textTransform: "uppercase", color: T.mut }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800, color: c || T.txt }}>{v}</div></div>);
+  // LLC-08: resultado vira CHIP passivo numa linha compacta (R5); toque/hover no
+  // rótulo explica (title) e o "?" concentra a didática no mobile
+  const chipStat = (l, v, c) => (
+    <span key={l} title={STAT_TIP[l]} style={{ display: "inline-flex", alignItems: "baseline", gap: 6, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "5px 10px", background: T.card2 }}>
+      <span style={{ fontSize: 10, textTransform: "uppercase", color: T.mut }}>{l}</span>
+      <b style={{ fontSize: 14, color: c || T.txt }}>{v}</b>
+    </span>
+  );
 
   // visualização do crop: a FONTE (X + círculo no centro) com a janela de crop revelando a parte usada
   const boxW = 460, boxH = 240, vpad = 18;
@@ -87,7 +105,6 @@ export default function AspectRatio() {
   let ctW = pvW, ctH = pvW / srcAsp;
   if (ctH > pvH) { ctH = pvH; ctW = pvH * srcAsp; }
   const ctX = pvX + (pvW - ctW) / 2, ctY = pvY + (pvH - ctH) / 2;
-  const vizBtn = (on) => ({ padding: "5px 11px", borderRadius: 7, cursor: "pointer", fontSize: 12.5, fontWeight: 600, border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.acc : "transparent", color: on ? T.accInk : T.mut, fontFamily: "inherit" });
 
   return (
     <div>
@@ -113,59 +130,30 @@ export default function AspectRatio() {
           <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: T.accInk, cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
         </div>
         )}
-        <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>
-          {stat("Proporção", friendly(W, H), T.acM)}
-          {stat("Decimal", `${dec.toFixed(3)}:1`)}
-          {stat("Formato", `${namedExact ? "" : "≈ "}${named[0]}`, namedExact ? T.grn : T.txt)}
-          {stat("Resolução", `${W} × ${H}`)}
-          {stat("Orientação", orient)}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.bd}` }}>
+          {chipStat("Proporção", friendly(W, H), T.acM)}
+          {chipStat("Decimal", `${dec.toFixed(3)}:1`)}
+          {chipStat("Formato", `${namedExact ? "" : "≈ "}${named[0]}`, namedExact ? T.grn : undefined)}
+          {chipStat("Resolução", `${W} × ${H}`)}
+          {chipStat("Orientação", orient)}
+          <HelpTip title="Os números da proporção">
+            <b style={{ color: T.txt }}>Proporção</b> — razão simplificada (ou nome comercial). <b style={{ color: T.txt }}>Decimal</b> — largura ÷ altura. <b style={{ color: T.txt }}>Formato</b> — o padrão de vídeo mais próximo (≈ quando aproximado). <b style={{ color: T.txt }}>Resolução</b> — pixels reais do painel. <b style={{ color: T.txt }}>Orientação</b> — paisagem, retrato ou quadrado.
+          </HelpTip>
         </div>
       </div>
 
-      {/* CROP / ENCAIXE DE VÍDEO */}
+      {/* LLC-08: o CROP é a primeira coisa abaixo do seletor de proporção — preview
+          gráfico + números no MESMO card; modo exclusivo = Segmented (R2) */}
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Crop / encaixe de vídeo</div>
-        <div style={{ color: T.dim, fontSize: 12, marginBottom: 14 }}>Como a fonte entra na tela <b style={{ color: T.mut }}>{W}×{H}</b> ({friendly(W, H)}): encaixar (mostra tudo, com barras) ou preencher (enche, cortando).</div>
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>
-          <div><label style={lbl}>Fonte — largura</label><NumField value={sw} onChange={(n) => setSw(Math.max(0, n))} style={{ ...inp, width: 120 }} /></div>
-          <div><label style={lbl}>Fonte — altura</label><NumField value={sh} onChange={(n) => setSh(Math.max(0, n))} style={{ ...inp, width: 120 }} /></div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+          <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Encaixar / Preencher (crop)</div>
+          <Segmented size="sm" value={vizMode} onChange={setVizMode}
+            options={[{ value: "crop", label: "Preencher (corta)" }, { value: "fit", label: "Encaixar (barras)" }]} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
-          <div style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 14 }}>
-            <div style={{ color: T.acM, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Encaixar · mostra tudo</div>
-            <div style={{ fontSize: 13, color: T.txt, lineHeight: 1.7 }}>
-              <div>Conteúdo: <b style={{ fontFamily: "ui-monospace,monospace" }}>{fitW} × {fitH}</b> · escala {(kFit * 100).toFixed(1)}%</div>
-              <div style={{ color: T.mut }}>{barX > 0 ? `Barras: ${barX}px nas laterais (pillarbox)` : barY > 0 ? `Barras: ${barY}px topo e base (letterbox)` : "Sem barras — mesmo aspecto"}</div>
-            </div>
-          </div>
-          <div style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 14 }}>
-            <div style={{ color: T.acM, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Preencher · corta (crop)</div>
-            <div style={{ fontSize: 13, color: T.txt, lineHeight: 1.7 }}>
-              <div>Recorte da fonte: <b style={{ fontFamily: "ui-monospace,monospace" }}>{fc.cropW} × {fc.cropH}</b> · escala {(fc.scale * 100).toFixed(1)}%</div>
-              <div style={{ color: T.mut }}>Região: <span style={{ fontFamily: "ui-monospace,monospace", color: T.txt }}>x {fc.x} · y {fc.y}</span></div>
-            </div>
-            {fc.axis ? (
-              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 11, color: T.mut, textTransform: "uppercase" }}>Deslocar {fc.axis.toUpperCase()}</span>
-                <NumField value={cropOff} onChange={setCropOff} style={{ ...inp, width: 88, fontSize: 14 }} />
-                <span style={{ fontSize: 12, color: T.dim }}>0–{cropSlack}px</span>
-                <button onClick={() => setOffFrac(0.5)} style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${T.bd}`, background: T.card, color: T.txt, cursor: "pointer", fontSize: 12 }}>Centralizar</button>
-              </div>
-            ) : (
-              <div style={{ marginTop: 8, fontSize: 12, color: T.dim }}>Sem sobra pra deslocar — mesmo aspecto.</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* VISUALIZAÇÃO */}
-      <div style={card({ marginBottom: 16 })}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-          <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Visualização</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setVizMode("crop")} style={vizBtn(vizMode === "crop")}>Preencher (corta)</button>
-            <button onClick={() => setVizMode("fit")} style={vizBtn(vizMode === "fit")}>Encaixar (dentro)</button>
-          </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 12 }}>
+          <div><label style={lbl}>Fonte — largura</label><NumField value={sw} onChange={(n) => setSw(Math.max(0, n))} style={{ ...inp, width: 110 }} /></div>
+          <div><label style={lbl}>Fonte — altura</label><NumField value={sh} onChange={(n) => setSh(Math.max(0, n))} style={{ ...inp, width: 110 }} /></div>
+          <div style={{ color: T.dim, fontSize: 12, paddingBottom: 9 }}>→ tela <b style={{ color: T.mut }}>{W}×{H}</b> ({friendly(W, H)})</div>
         </div>
         <div>
           <svg viewBox={`0 0 ${boxW} ${boxH}`} width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, maxWidth: "100%", height: "auto" }}>
@@ -206,6 +194,33 @@ export default function AspectRatio() {
             )}
           </svg>
           <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>{vizMode === "crop" ? "A janela roxa mostra o que aparece na tela; o resto da fonte fica escondido. A linha tracejada marca o deslocamento." : "A imagem inteira cabe no painel preservando a proporção; o preto em volta são as barras (letterbox/pillarbox)."}</div>
+        </div>
+        {/* números dos dois modos, abaixo do preview */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginTop: 14 }}>
+          <div style={{ background: T.card2, border: `1px solid ${vizMode === "fit" ? T.acc : T.bd}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ color: T.acM, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Encaixar · mostra tudo</div>
+            <div style={{ fontSize: 13, color: T.txt, lineHeight: 1.7 }}>
+              <div>Conteúdo: <b style={{ fontFamily: "ui-monospace,monospace" }}>{fitW} × {fitH}</b> · escala {(kFit * 100).toFixed(1)}%</div>
+              <div style={{ color: T.mut }}>{barX > 0 ? `Barras: ${barX}px nas laterais (pillarbox)` : barY > 0 ? `Barras: ${barY}px topo e base (letterbox)` : "Sem barras — mesmo aspecto"}</div>
+            </div>
+          </div>
+          <div style={{ background: T.card2, border: `1px solid ${vizMode === "crop" ? T.acc : T.bd}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ color: T.acM, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Preencher · corta (crop)</div>
+            <div style={{ fontSize: 13, color: T.txt, lineHeight: 1.7 }}>
+              <div>Recorte da fonte: <b style={{ fontFamily: "ui-monospace,monospace" }}>{fc.cropW} × {fc.cropH}</b> · escala {(fc.scale * 100).toFixed(1)}%</div>
+              <div style={{ color: T.mut }}>Região: <span style={{ fontFamily: "ui-monospace,monospace", color: T.txt }}>x {fc.x} · y {fc.y}</span></div>
+            </div>
+            {fc.axis ? (
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 11, color: T.mut, textTransform: "uppercase" }}>Deslocar {fc.axis.toUpperCase()}</span>
+                <NumField value={cropOff} onChange={setCropOff} style={{ ...inp, width: 88, fontSize: 14 }} />
+                <span style={{ fontSize: 12, color: T.dim }}>0–{cropSlack}px</span>
+                <button onClick={() => setOffFrac(0.5)} style={{ padding: "6px 10px", borderRadius: 7, border: `1px solid ${T.bd}`, background: T.card, color: T.txt, cursor: "pointer", fontSize: 12 }}>Centralizar</button>
+              </div>
+            ) : (
+              <div style={{ marginTop: 8, fontSize: 12, color: T.dim }}>Sem sobra pra deslocar — mesmo aspecto.</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
