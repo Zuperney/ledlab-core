@@ -10,9 +10,13 @@
 //   ✎ ROE BP2: era 230W → 190W máx / 95W méd (BP2 V2; specs 4Wall/ROE; peso 9.35).
 //   ✎ Absen PL3.9 Pro: era 320W → 200W máx / 67W méd (PL3.9 Pro V2: 800/267 W/m²).
 //   ✎ ROE Ruby RB2.3: era 250W → 180W máx / 90W méd (spec oficial ROE; peso 8.16).
+//   ✓ INFiLED ER5.9: 600W mantido (já auditado na v0.15.1 — potência real do painel).
 //   ? Demais modelos: sem datasheet público confiável encontrado — os valores
 //     seguem como referência e tendem ao SUPERdimensionado (erra pro lado
 //     seguro: mais cabos e disjuntor maior, nunca menos).
+//   Filosofia desde 24/07: com a regra dos 80% PADRÃO (acMargin 0.8) e alerta
+//   laranja >80%, o seed usa o valor REAL de datasheet — margem disfarçada em
+//   cima de margem explícita superdimensionaria duas vezes.
 
 export const SEED_CABINETS = [
   { id: 1,  marca: "ROE",         nome: "ROE CB5 Outdoor",      resX: "104", resY: "208", dimW: "600", dimH: "1200", peso: "13.5", pwrMax: "650", pwrMed: "330", pwrBlack: "98", fp: "0.90", ip: "Outdoor", brilho: "5000", receivingCard: "Novastar MRV328",    conector: "PowerCON TRUE1",       conectorCustom: "" },
