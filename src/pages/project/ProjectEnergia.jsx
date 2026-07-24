@@ -6,7 +6,7 @@ import { useElectrical } from "../../hooks/useElectrical.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
-import Select from "../../components/Select.jsx";
+import Segmented from "../../components/Segmented.jsx";
 
 export default function ProjectEnergia({ project, patch }) {
   const isMobile = useIsMobile();
@@ -18,14 +18,16 @@ export default function ProjectEnergia({ project, patch }) {
   return (
     <div>
       <div style={card({ marginBottom: 16 })}>
-        {/* mobile: os 3 controles NUMA linha (pedido do usuário) — a tensão encolhe, os chips não */}
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: isMobile ? "nowrap" : "wrap" }}>
-          <Select value={cfg.vk} onChange={(e) => setCfg({ vk: e.target.value })} title="Tensão do evento"
-            style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, fontWeight: 600, ...(isMobile ? { flex: "1 1 0", minWidth: 0, overflow: "hidden" } : {}) }}>
-            {Object.entries(VOLT).map(([k, v]) => <option key={k} value={k}>{v.g}V · {v.label}</option>)}
-          </Select>
-          <ValueChip label="Brilho" pct={Math.round(cfg.brilho * 100)} active={open === "brilho"} onClick={() => setOpen((o) => (o === "brilho" ? null : "brilho"))} />
-          <ValueChip label="Conteúdo" pct={Math.round(cfg.conteudo * 100)} active={open === "conteudo"} onClick={() => setOpen((o) => (o === "conteudo" ? null : "conteudo"))} />
+        {/* LLC-04: a TENSÃO tem linha própria como barra segmentada (rolável) — o valor
+            ativo é legível em 360dp, sem dropdown truncado em "38…" */}
+        <div style={{ marginBottom: 8 }}>
+          <Segmented value={cfg.vk} onChange={(vk) => setCfg({ vk })} size="sm"
+            options={Object.entries(VOLT).map(([k, v]) => ({ value: k, label: v.s, title: `${v.g}V · ${v.label}` }))} />
+          <div style={{ color: T.dim, fontSize: 11.5, marginTop: 4 }}>{agg.vc.label}{agg.vc.note ? ` · ${agg.vc.note}` : ""}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <ValueChip label={isMobile ? "BRI" : "Brilho"} title="Brilho de operação" pct={Math.round(cfg.brilho * 100)} active={open === "brilho"} onClick={() => setOpen((o) => (o === "brilho" ? null : "brilho"))} />
+          <ValueChip label={isMobile ? "CONT" : "Conteúdo"} title="Conteúdo (fração da potência)" pct={Math.round(cfg.conteudo * 100)} active={open === "conteudo"} onClick={() => setOpen((o) => (o === "conteudo" ? null : "conteudo"))} />
         </div>
         {open === "brilho" && <SliderRow label="Brilho de operação" value={cfg.brilho} onChange={(v) => setCfg({ brilho: v })} />}
         {open === "conteudo" && <SliderRow label="Conteúdo (fração da potência)" value={cfg.conteudo} onChange={(v) => setCfg({ conteudo: v })} />}
@@ -90,9 +92,9 @@ function Row({ tag, tagColor, cols, isMobile }) {
 }
 
 // chip compacto que mostra o valor e abre o slider ao tocar
-function ValueChip({ label, pct, active, onClick }) {
+function ValueChip({ label, title, pct, active, onClick }) {
   return (
-    <button onClick={onClick} title={label}
+    <button onClick={onClick} title={title || label}
       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.sel : T.card2, color: T.txt, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
       <span style={{ color: T.mut }}>{label}</span>
       <b style={{ color: T.acM }}>{pct}%</b>

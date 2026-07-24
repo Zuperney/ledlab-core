@@ -13,12 +13,13 @@ const SQRT3 = Math.sqrt(3);
 //  label = nome da fase
 //  ph    = nº de fases
 //  g     = grupo de tensão ("220" | "380")
+// `s` = nome curto padronizado pra UI compacta (barra segmentada da aba Energia)
 export const VOLT = {
-  "220_bi":   { div: 220,        dl: "220",      label: "Bifásico",            note: "",                  ph: 2, g: "220" },
-  "220_tri":  { div: 220 * SQRT3, dl: "220 × √3", label: "Trifásico",           note: "",                  ph: 3, g: "220" },
-  "380_mono": { div: 220,        dl: "220",      label: "Monofásico (F+N)",    note: "F+N → 220V fase",   ph: 1, g: "380" },
-  "380_bi":   { div: 440,        dl: "2 × 220",  label: "Bifásico (F+F+N)",    note: "220V por fase",     ph: 2, g: "380" },
-  "380_tri":  { div: 380 * SQRT3, dl: "380 × √3", label: "Trifásico (F+F+F+N)", note: "",                  ph: 3, g: "380" },
+  "220_bi":   { div: 220,        dl: "220",      label: "Bifásico",            note: "",                  ph: 2, g: "220", s: "220V·2F" },
+  "220_tri":  { div: 220 * SQRT3, dl: "220 × √3", label: "Trifásico",           note: "",                  ph: 3, g: "220", s: "220V·3F" },
+  "380_mono": { div: 220,        dl: "220",      label: "Monofásico (F+N)",    note: "F+N → 220V fase",   ph: 1, g: "380", s: "380V·F+N" },
+  "380_bi":   { div: 440,        dl: "2 × 220",  label: "Bifásico (F+F+N)",    note: "220V por fase",     ph: 2, g: "380", s: "380V·2F+N" },
+  "380_tri":  { div: 380 * SQRT3, dl: "380 × √3", label: "Trifásico (F+F+F+N)", note: "",                  ph: 3, g: "380", s: "380V·3F+N" },
 };
 
 // Escada de disjuntores IEC. Escolhe o 1º padrão >= corrente × 1.25 (margem 25%).
