@@ -3,7 +3,8 @@
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState, useRef, useEffect } from "react";
-import { Printer, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
+import { Printer, Download, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
+import { useToast } from "../../store/UIContext.jsx";
 import HelpTip from "../../components/HelpTip.jsx";
 import Segmented from "../../components/Segmented.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
@@ -85,6 +86,21 @@ export default function ProjectRelatorio({ project }) {
   const roll = projectRollup(project);
   const today = formatFull(isoDate()); // data LOCAL (evita virar o dia seguinte à noite)
   const telas = project.telas || [];
+  // F1 do motor nativo: o pdfmake (pesado) só carrega no clique — chunk separado
+  const [gerandoPdf, setGerandoPdf] = useState(false);
+  const toast = useToast();
+  const baixarPdf = async () => {
+    setGerandoPdf(true);
+    try {
+      const { baixarRelatorioPdf } = await import("../../services/pdf/pdfEngine.js");
+      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today });
+      toast("PDF gerado");
+    } catch (e) {
+      console.error(e);
+      toast("Não deu pra gerar o PDF — tenta de novo", "info");
+    }
+    setGerandoPdf(false);
+  };
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
   const showPhys = ["Completo", "Resumido", "Estrutural", "Gabinetes", "Design"].includes(type);
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
@@ -126,10 +142,14 @@ export default function ProjectRelatorio({ project }) {
         <Segmented value={type} onChange={setType} size="sm"
           options={(isMobile ? TYPES_MOBILE : TYPES).map((t) => ({ value: t, label: t }))} />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <button style={btn("primary")} onClick={() => printAs(fileName([project.name, "relatorio", type]))}><Printer size={15} /> Imprimir / Salvar PDF</button>
-          {/* o aviso do PDF virou "?" ao lado do botão que ele explica (era um box fixo) */}
-          <HelpTip title="Dica pro PDF sair certo">
-            Ao salvar o PDF, ative <b style={{ color: T.txt }}>“Gráficos de segundo plano”</b> na janela de impressão — sem isso a capa e as cores dos cabos saem apagadas.
+          {/* MOTOR NATIVO (F1): gera o PDF no app — funciona no celular, com nome
+              certo e sem "gráficos de segundo plano". Imprimir fica de fallback. */}
+          <button style={btn("primary", gerandoPdf ? { opacity: 0.6, cursor: "wait" } : {})} disabled={gerandoPdf} onClick={baixarPdf}>
+            <Download size={15} /> {gerandoPdf ? "Gerando…" : "Baixar PDF"}
+          </button>
+          <button style={btn("ghost")} onClick={() => printAs(fileName([project.name, "relatorio", type]))} title="Imprimir pelo navegador (fallback)"><Printer size={15} />{!isMobile && " Imprimir"}</button>
+          <HelpTip title="Dica pro Imprimir do navegador">
+            O <b style={{ color: T.txt }}>Baixar PDF</b> já sai pronto. Se usar o Imprimir do navegador, ative <b style={{ color: T.txt }}>“Gráficos de segundo plano”</b> — sem isso a capa e as cores saem apagadas.
           </HelpTip>
         </span>
       </div>
