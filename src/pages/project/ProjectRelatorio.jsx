@@ -62,7 +62,7 @@ export default function ProjectRelatorio({ project }) {
     setGerandoPdf(true);
     try {
       const { baixarRelatorioPdf } = await import("../../services/pdf/pdfEngine.js");
-      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette });
+      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette, render: prefs.cablingRender });
       toast("PDF gerado");
     } catch (e) {
       console.error(e);

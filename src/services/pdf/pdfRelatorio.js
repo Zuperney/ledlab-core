@@ -14,6 +14,7 @@ import { aggregateElectrical, projectRollup, screenRollup } from "../projectCalc
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../cabling.js";
 import { hasScreens, projectScreenReport, telasSemScreen } from "../screenCabling.js";
 import { pixelMapPorts } from "../pixelMap.js";
+import { screenMapSvg, telaMapSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, portLabel, videoOf } from "../reportContent.js";
 
@@ -103,11 +104,16 @@ function warnBox({ titulo, partes }) {
   };
 }
 
-// bloco INDIVISÍVEL de uma Screen/tela (subtítulo + specs + tabela): não quebra no
-// meio da página — como o breakInside:avoid do .rp-block no DOM. Blocos gigantes
-// (mais de ~28 linhas por coluna na tabela de 4) deixam de ser unbreakable, senão
-// o pdfmake move o bloco inteiro pra uma página onde ele não cabe e corta o fim.
-const bloco = (nodes, nRows) => ({ stack: nodes, unbreakable: nRows <= 112, margin: [0, 0, 0, 4] });
+// bloco INDIVISÍVEL de uma Screen/tela (subtítulo + specs + mapa + tabela): não
+// quebra no meio da página — como o breakInside:avoid do .rp-block no DOM. A
+// válvula é por ALTURA estimada: bloco maior que a área útil da paisagem deixa
+// de ser unbreakable, senão o pdfmake o move pra uma página onde não cabe e
+// corta o fim. estH ≈ cabeçalhos + mapa + linhas da tabela densa (4 colunas).
+const blocoH = (nRows, mapH) => 46 + (mapH || 0) + Math.ceil(nRows / 4) * 13 + 20;
+const bloco = (nodes, estH) => ({ stack: nodes, unbreakable: estH <= 460, margin: [0, 0, 0, 4] });
+
+// nó de mapa pro conteúdo: o gerador devolve {svg,width,height} ou null (sem células)
+const mapNode = (m) => (m ? [{ svg: m.svg, width: m.width, margin: [0, 0, 0, 6] }] : []);
 
 // linha rotulada da capa (label mono caps + valor), com hairline entre linhas
 const coverRow = (label, value, { bold = false, first = false } = {}) => ({
@@ -119,9 +125,11 @@ const coverRow = (label, value, { bold = false, first = false } = {}) => ({
   ],
 });
 
-export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerado, numbering = "row-tb-lr", palette }) {
+export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerado, numbering = "row-tb-lr", palette, render }) {
   const pal = Array.isArray(palette) && palette.length ? palette : PALETTE;
   const colorOf = (i) => pal[(((i | 0) % pal.length) + pal.length) % pal.length];
+  // render do mapa (setas/números/tamanho/canto) — mesmas prefs do DOM
+  const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl", ...(render || {}) };
   // célula "porta/cabo": quadradinho na cor do cabo + número (paridade com o selo do DOM)
   const portCell = (idx, label) => ({
     columns: [
@@ -364,6 +372,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
         head,
         ...screenReport.map((s, i) => {
           const sp = screenSpec(s);
+          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "sinal", numbering, colorOf, cr) : null;
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
@@ -373,12 +382,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
               ["Grade da Screen", `${sp.cols} × ${sp.rows} gabinetes`],
               ["Total de cabos", String(s.ports.length)],
             ]),
+            ...mapNode(mapa),
             densePortTable(s.ports, [
               { label: "Porta", cell: (p) => portCell(p.n - 1, p.n) },
               { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
             ]),
-          ], s.ports.length);
+          ], blocoH(s.ports.length, mapa?.height));
         }),
         ...(semScreen.length ? [{
           text: [{ text: `${semScreen.length} tela(s) fora de qualquer Screen `, bold: true }, { text: `(${semScreen.map((t) => t.nome).join(", ")}) — não entraram em nenhum sistema, então não têm cabeamento de sinal.` }],
@@ -394,15 +404,17 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
         const ports = cablePorts(t, "sinal", numbering);
         const off = portOffset(telas, t.id, "sinal", numbering);
         const rows = ports.map((p, pi) => ({ n: off + pi + 1, idx: off + pi, count: p.length, pct: Math.round(((sinalRule === "px" ? p.length : bboxArea(p)) / sinalBudget) * 100) }));
+        const mapa = telaMapSvg(t, "sinal", numbering, off, colorOf, cr);
         return [
           bloco([
             subHead(`${S}.${i + 1}`, t.nome, `${portLabel(off, ports.length, "porta")} · máx ${sinalBudget} gabinetes/porta · ${sinalRule === "px" ? `pixels reais: ${ptBR(pxPort)} px (${sinalBits}-bit)` : "área quadrada"}`),
+            ...mapNode(mapa),
             densePortTable(rows, [
               { label: "Porta", cell: (p) => portCell(p.idx, p.n) },
               { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
             ]),
-          ], rows.length),
+          ], blocoH(rows.length, mapa?.height)),
           ...(tipo === "Mapa de cabos" ? [
             { text: "Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) para transcrever no processador (NovaLCT / Tessera).", fontSize: 8, color: PRINT.mut, margin: [0, 6, 0, 3] },
             {
@@ -433,14 +445,18 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
       return [
         ...head,
         { text: "Cabos de energia por Screen, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 4] },
-        ...screenReportAc.map((s, i) => bloco([
-          subHead(`${S}.${i + 1}`, s.nome, `${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`),
-          densePortTable(s.ports, [
-            { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
-            { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-            { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)} A · ${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : PRINT.ink }) },
-          ]),
-        ], s.ports.length)),
+        ...screenReportAc.map((s, i) => {
+          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr) : null;
+          return bloco([
+            subHead(`${S}.${i + 1}`, s.nome, `${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`),
+            ...mapNode(mapa),
+            densePortTable(s.ports, [
+              { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
+              { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)} A · ${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : PRINT.ink }) },
+            ]),
+          ], blocoH(s.ports.length, mapa?.height));
+        }),
       ];
     }
     return [
@@ -454,14 +470,16 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           const load = p.length * ampCab;
           return { n: off + pi + 1, idx: off + pi, count: p.length, load, pct: Math.round((load / connRating) * 100) };
         });
+        const mapa = telaMapSvg(t, "ac", numbering, off, colorOf, cr);
         return bloco([
           subHead(`${S}.${i + 1}`, t.nome, `${portLabel(off, ports.length, "cabo")} · máx ${acBudget} gabinetes/cabo · ${ampCab.toFixed(2)} A/gabinete · conector ${connRating} A`),
+          ...mapNode(mapa),
           densePortTable(rows, [
             { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
             { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
             { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)} A · ${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
           ]),
-        ], rows.length);
+        ], blocoH(rows.length, mapa?.height));
       }),
     ];
   })();

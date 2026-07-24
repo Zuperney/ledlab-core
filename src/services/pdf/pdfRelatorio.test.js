@@ -144,6 +144,13 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(JSON.stringify(build("Completo").content)).toContain('"unbreakable":true');
   });
 
+  it("F3: sinal e AC levam o mapa de cabos VISUAL (nó svg por tela)", () => {
+    const j = JSON.stringify(build("Completo").content);
+    // 2 telas × (sinal + AC) = 4 mapas
+    expect((j.match(/"svg":"<svg/g) || []).length).toBe(4);
+    expect(j).toContain("#0d0d1a"); // fundo do mapa (identidade visual v1.5.3)
+  });
+
   it("numeração de seção segue a ordem exibida (Completo começa em 01)", () => {
     const j = JSON.stringify(build("Completo").content);
     expect(j).toContain('"01"');
