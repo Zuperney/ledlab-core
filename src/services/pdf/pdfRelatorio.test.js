@@ -2,22 +2,25 @@ import { describe, it, expect } from "vitest";
 import { buildRelatorioDoc } from "./pdfRelatorio.js";
 
 // projeto mínimo com 2 telas reais (gabinete com specs) — o suficiente pro
-// builder montar capa, Visão Geral e Elétrica sem NaN
+// builder montar todas as seções sem NaN
 const gab = { nome: "ROE CB5", resX: 104, resY: 104, dimW: 600, dimH: 600, pwrMax: 650, peso: 13.5, fp: 0.9, conector: "true1" };
 const project = {
   name: "AD Summit",
   cliente: "Performance",
   local: "Arena da Baixada",
-  status: "Planejamento",
+  status: "planned",
+  dataInicio: "2026-08-10",
+  dataFim: "2026-08-12",
   telas: [
     { id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: gab },
     { id: "t2", nome: "Side", cols: 4, rows: 6, gabinete: gab },
   ],
 };
 const cfg = { vk: "220_tri", brilho: 0.7, conteudo: 0.33 };
+const build = (tipo) => buildRelatorioDoc({ project, tipo, cfg, logo: null, gerado: "24/07/2026" });
 
-describe("buildRelatorioDoc (F1 do motor de PDF)", () => {
-  const doc = buildRelatorioDoc({ project, tipo: "Completo", cfg, logo: null, gerado: "24/07/2026" });
+describe("buildRelatorioDoc (motor de PDF, F2)", () => {
+  const doc = build("Completo");
   const json = JSON.stringify(doc.content);
 
   it("é paisagem A4 com fontes standard e margens", () => {
@@ -26,9 +29,10 @@ describe("buildRelatorioDoc (F1 do motor de PDF)", () => {
     expect(doc.defaultStyle.font).toBe("Helvetica");
   });
 
-  it("capa: tag Caderno Técnico, nome do projeto e quebra de página", () => {
+  it("capa: tag Caderno Técnico, nome, STATUS legível, datas do evento e quebra de página", () => {
     expect(json).toContain("CADERNO TÉCNICO · COMPLETO");
     expect(json).toContain("AD Summit");
+    expect(json).toContain("Planejamento"); // planned → rótulo PT, não a chave crua
     expect(json).toContain('"pageBreak":"after"');
   });
 
@@ -44,13 +48,19 @@ describe("buildRelatorioDoc (F1 do motor de PDF)", () => {
     expect(f).toContain("AD-SUMMIT");
   });
 
-  it("Visão Geral: uma linha por tela + total, dados em Courier", () => {
-    expect(json).toContain("Visão Geral".toUpperCase());
+  it("Visão Geral: uma linha por tela + total + gabinetes utilizados", () => {
+    expect(json).toContain("VISÃO GERAL");
     expect(json).toContain("Main");
     expect(json).toContain("Side");
     expect(json).toContain('"Courier"');
-    // total de gabinetes: 10×6 + 4×6 = 84
-    expect(json).toContain('"84"');
+    expect(json).toContain('"84"'); // total de gabinetes: 10×6 + 4×6
+    expect(json).toContain("GABINETES UTILIZADOS");
+    expect(json).toContain("ROE CB5");
+  });
+
+  it("Vídeo/Resolução: resolução por tela e aspecto", () => {
+    expect(json).toContain("VÍDEO / RESOLUÇÃO");
+    expect(json).toContain("1.040 × 624"); // 10×104 por 6×104, pt-BR
   });
 
   it("Elétrica: disjuntor por tela, gerador sugerido e fórmula do típico", () => {
@@ -60,7 +70,71 @@ describe("buildRelatorioDoc (F1 do motor de PDF)", () => {
     expect(json).toContain("Típico por gabinete = base + (pico − base) × brilho × conteúdo");
   });
 
+  it("Sinal (legado, sem Screens): seção por tela com faixa de portas", () => {
+    expect(json).toContain("CABEAMENTO DE SINAL");
+    expect(json).toContain("gabinetes/porta");
+  });
+
+  it("AC: aviso de energização (laranja) + carga por cabo", () => {
+    expect(json).toContain("ENERGIA — CABEAMENTO AC");
+    expect(json).toContain("ATENÇÃO — ENERGIZAÇÃO");
+    expect(json).toContain("powerCON azuis");
+    expect(json).toContain("gabinetes/cabo");
+  });
+
+  it("Glossário em duas colunas fecha o caderno Completo", () => {
+    expect(json).toContain("GLOSSÁRIO");
+    expect(json).toContain("Pico × Típico");
+    expect(json).toContain("Serpentina");
+  });
+
   it("sem logo, a capa não tem node de imagem (não quebra o pdfmake)", () => {
     expect(json).not.toContain('"image"');
+  });
+
+  it("swatch de cor por porta (rect na cor do cabo)", () => {
+    expect(json).toContain('"type":"rect"');
+  });
+});
+
+describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
+  it("Resumido: sem sinal/AC/glossário; com VG, vídeo e elétrica", () => {
+    const j = JSON.stringify(build("Resumido").content);
+    expect(j).toContain("VISÃO GERAL");
+    expect(j).toContain("INFORMAÇÕES ELÉTRICAS");
+    expect(j).not.toContain("CABEAMENTO DE SINAL");
+    expect(j).not.toContain("GLOSSÁRIO");
+  });
+
+  it("Elétrico: só elétrica (sem VG/vídeo/sinal)", () => {
+    const j = JSON.stringify(build("Elétrico").content);
+    expect(j).toContain("INFORMAÇÕES ELÉTRICAS");
+    expect(j).not.toContain("VISÃO GERAL");
+    expect(j).not.toContain("CABEAMENTO DE SINAL");
+  });
+
+  it("Mapa de cabos: sinal+AC com mapa de pixels, sem elétrica; capa sem Pico/Gerador", () => {
+    const doc = build("Mapa de cabos");
+    const j = JSON.stringify(doc.content);
+    expect(j).toContain("CABEAMENTO DE SINAL");
+    expect(j).toContain("Mapa de pixels");
+    expect(j).not.toContain("INFORMAÇÕES ELÉTRICAS");
+    expect(j).not.toContain("Gerador");
+  });
+
+  it("LLC-01: nome de 40+ caracteres encolhe o título da capa (não estoura a página)", () => {
+    const longo = buildRelatorioDoc({ project: { ...project, name: "Ademicom Summit 2026 — Arena da Baixada PR" }, tipo: "Completo", cfg, logo: null });
+    const title = longo.content.find((n) => typeof n.text === "string" && n.text.startsWith("Ademicom"));
+    expect(title.fontSize).toBeLessThanOrEqual(33);
+    expect(title.fontSize).toBeGreaterThanOrEqual(24);
+    const curto = build("Completo").content.find((n) => n.text === "AD Summit");
+    expect(curto.fontSize).toBe(58);
+  });
+
+  it("numeração de seção segue a ordem exibida (Completo começa em 01)", () => {
+    const j = JSON.stringify(build("Completo").content);
+    expect(j).toContain('"01"');
+    expect(j).toContain('"05"'); // 5 seções numeradas no Completo sem Screens... VG, vídeo, elétrica, sinal, AC, glossário = 6
+    expect(j).toContain('"06"');
   });
 });
