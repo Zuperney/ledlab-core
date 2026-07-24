@@ -14,6 +14,7 @@ import { T } from "../../ui/tokens.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import BottomSheet from "../../components/BottomSheet.jsx";
 import Drawer from "../../components/Drawer.jsx";
+import Segmented from "../../components/Segmented.jsx";
 import { NumeracaoPrefs, MapaCabosPrefs, CoresPrefs } from "../../components/CablingPrefs.jsx";
 import ScreenCabling from "./ScreenCabling.jsx";
 
@@ -41,18 +42,12 @@ export default function ProjectCabeamento({ project, patch }) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 12, alignItems: "center" }}>
-        {[["sinal", "Sinal", GitBranch], ["ac", "Energia (AC)", Zap]].map(([v, l, Icon]) => {
-          const on = view === v;
-          return (
-            <button key={v} onClick={() => setView(v)}
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", minHeight: 40, borderRadius: 8, cursor: "pointer", fontSize: 13.5, fontWeight: 600, border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.acc : T.card2, color: on ? "#fff" : T.mut }}>
-              <Icon size={15} /> {l}
-            </button>
-          );
-        })}
+      {/* F1: modo exclusivo = Segmented (gramática R2) · F2: 🎛 ajustes do mapa */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
+        <Segmented value={view} onChange={setView}
+          options={[{ value: "sinal", label: "Sinal", Icon: GitBranch }, { value: "ac", label: "Energia (AC)", Icon: Zap }]} />
         <button onClick={() => setAjustes(true)} title="Ajustes do mapa (numeração, setas, cores)" aria-label="Ajustes do mapa"
-          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", minHeight: 40, borderRadius: 8, cursor: "pointer", fontSize: 13.5, fontWeight: 600, border: `1px solid ${ajustes ? T.acc : T.bd}`, background: ajustes ? T.sel : T.card2, color: ajustes ? T.acM : T.mut }}>
+          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", minHeight: 40, borderRadius: 8, cursor: "pointer", fontSize: 13.5, fontWeight: 600, border: `1px solid ${ajustes ? T.acc : T.bd}`, background: ajustes ? T.sel : T.card2, color: ajustes ? T.acM : T.mut, flexShrink: 0 }}>
           <SlidersHorizontal size={15} />{!isMobile && " Ajustes"}
         </button>
       </div>
