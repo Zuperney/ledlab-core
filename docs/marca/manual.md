@@ -240,8 +240,10 @@ Botão-ícone 36-40px com borda. FAB só em lista de criação.
 
 1. Toast fala **no passado** — confirma ação resolvida: "Backup exportado".
 2. Curto, sem botão, some sozinho em **~2.8s**, 1 por ação, empilha no máximo o
-   inevitável. **Sem "Desfazer"** (não há rollback assíncrono — a proteção vem
-   ANTES, no confirm()).
+   inevitável. Exceção única (backlog Rev A · LLC-05): **"Desfazer" só em
+   REARRANJO reversível em memória** (ex.: reordenar telas) — uma única ação no
+   toast, ~5s, que restaura o estado anterior. Ação DESTRUTIVA continua
+   protegida ANTES, no confirm() — nunca por undo.
 3. Posição: **desktop** canto inferior-direito · **mobile** centro-inferior,
    ACIMA da bottom nav (nunca atrás dela).
 4. `success` (padrão) confirma · `info` orienta/erro recuperável com instrução.

@@ -23,10 +23,12 @@ export function UIProvider({ children }) {
   const prompt = useCallback((opts) => new Promise((resolve) => setPromptState({ ...opts, resolve })), []);
   const closePrompt = (value) => { setPromptState((d) => { d?.resolve(value); return null; }); };
 
-  const toast = useCallback((message, type = "success") => {
+  // opts.action = { label, fn } — permitido SÓ pra rearranjo reversível em memória
+  // (manual §9.2); toast com ação vive ~5s pra dar tempo do toque
+  const toast = useCallback((message, type = "success", opts = {}) => {
     const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, message, type }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2800);
+    setToasts((t) => [...t, { id, message, type, action: opts.action }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), opts.action ? 5000 : 2800);
   }, []);
 
   return (
@@ -34,7 +36,7 @@ export function UIProvider({ children }) {
       {children}
       {dialog && <ConfirmDialog dialog={dialog} onClose={closeDialog} />}
       {promptState && <PromptDialog dialog={promptState} onClose={closePrompt} />}
-      <ToastStack toasts={toasts} />
+      <ToastStack toasts={toasts} onDismiss={(id) => setToasts((s) => s.filter((x) => x.id !== id))} />
     </UIContext.Provider>
   );
 }
@@ -90,7 +92,7 @@ function ConfirmDialog({ dialog, onClose }) {
   );
 }
 
-function ToastStack({ toasts }) {
+function ToastStack({ toasts, onDismiss }) {
   const isMobile = useIsMobile();
   // manual §9.3: desktop no canto inferior-direito; MOBILE centro-inferior,
   // ACIMA da bottom nav (nunca atrás dela)
@@ -106,6 +108,12 @@ function ToastStack({ toasts }) {
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, background: T.card, border: `1px solid ${T.bd}`, borderLeft: `3px solid ${color}`, borderRadius: 10, padding: "10px 14px", color: T.txt, fontSize: 13, boxShadow: "0 8px 24px rgba(0,0,0,0.4)", minWidth: 220 }}>
             <Icon size={16} color={color} />
             {t.message}
+            {t.action && (
+              <button onClick={() => { t.action.fn(); onDismiss(t.id); }}
+                style={{ marginLeft: 4, border: "none", background: "transparent", color: T.acM, fontWeight: 700, fontSize: 13, cursor: "pointer", padding: "4px 6px", fontFamily: "inherit" }}>
+                {t.action.label}
+              </button>
+            )}
           </div>
         );
       })}
