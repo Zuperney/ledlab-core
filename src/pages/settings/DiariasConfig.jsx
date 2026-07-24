@@ -9,6 +9,7 @@ import { DEFAULT_WORKLOG_CFG } from "../../services/worklog.js";
 import { T } from "../../ui/tokens.js";
 import { input, btn, iconBtn, dangerIconBtn, label as lbl } from "../../ui/styles.js";
 import Drawer from "../../components/Drawer.jsx";
+import Segmented from "../../components/Segmented.jsx";
 
 export default function DiariasConfig() {
   const { prefs, setPrefs, worklog } = useLedLabContext();
@@ -102,6 +103,15 @@ export default function DiariasConfig() {
           <div><div style={lbl}>PIX</div><input value={emit.pix} onChange={(e) => setEmit({ pix: e.target.value })} style={input()} /></div>
           <div><div style={lbl}>Banco / conta</div><input value={emit.banco} onChange={(e) => setEmit({ banco: e.target.value })} placeholder="Banco · Ag · C/C" style={input()} /></div>
         </div>
+      </div>
+
+      {/* LLC-09: início da semana do chip "Esta semana" dos Recibos */}
+      <div style={{ marginTop: 18, paddingTop: 18, borderTop: `1px solid ${T.bd}` }}>
+        <div style={{ color: T.txt, fontWeight: 600 }}>Fechamento semanal</div>
+        <div style={{ color: T.dim, fontSize: 13, margin: "2px 0 10px" }}>Define o período do chip "Esta semana" nos Recibos.</div>
+        <div style={lbl}>Início da semana</div>
+        <Segmented size="sm" value={prefs.semanaInicio || "seg"} onChange={(v) => setPrefs({ ...prefs, semanaInicio: v })}
+          options={[{ value: "seg", label: "Segunda-feira" }, { value: "dom", label: "Domingo" }]} />
       </div>
 
       </>)}

@@ -25,10 +25,22 @@ const brl = (n) => `R$ ${(n || 0).toLocaleString("pt-BR")}`;
 const fmtBR = (iso) => { const d = new Date(iso + "T12:00"); return isNaN(d.getTime()) ? iso : `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; };
 
 const PRESETS = [
+  { id: "semana", label: "Esta semana" },
   { id: "mes", label: "Este mês" },
   { id: "mesPassado", label: "Mês passado" },
   { id: "30d", label: "Últimos 30 dias" },
 ];
+
+// "30/2026" — nº da semana ISO + ano ISO (a semana 1 contém a 1ª quinta do ano;
+// o ano é o da quinta, cobrindo viradas de ano)
+const isoWeekLabel = (date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const y = d.getUTCFullYear();
+  const y0 = new Date(Date.UTC(y, 0, 1));
+  return `${Math.ceil(((d - y0) / 86400000 + 1) / 7)}/${y}`;
+};
 
 // máscara progressiva de CPF (000.000.000-00) / CNPJ (00.000.000/0000-00) — LLC-06
 const maskDoc = (v) => {
@@ -83,6 +95,13 @@ export default function Financeiro() {
     if (p === "mes") setRange({ from: monthStart(d), to: monthEnd(d) });
     else if (p === "mesPassado") { const pm = new Date(d.getFullYear(), d.getMonth() - 1, 1); setRange({ from: monthStart(pm), to: monthEnd(pm) }); }
     else if (p === "30d") { const ini = new Date(d); ini.setDate(ini.getDate() - 29); setRange({ from: isoOf(ini), to: isoOf(d) }); }
+    else if (p === "semana") { // LLC-09: semana corrente; o início (seg/dom) vem das Configurações
+      const startDow = (prefs.semanaInicio || "seg") === "dom" ? 0 : 1;
+      const diff = (d.getDay() - startDow + 7) % 7;
+      const ini = new Date(d); ini.setDate(d.getDate() - diff);
+      const fim = new Date(ini); fim.setDate(ini.getDate() + 6);
+      setRange({ from: isoOf(ini), to: isoOf(fim) });
+    }
   };
   const setFrom = (v) => { setPreset("custom"); setRange((r) => ({ ...r, from: v })); };
   const setTo = (v) => { setPreset("custom"); setRange((r) => ({ ...r, to: v })); };
@@ -114,13 +133,18 @@ export default function Financeiro() {
   const totalMin = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.breakdown.duracaoMin ?? 0), 0), 0);
 
   // fixo mensal (retainer): desacoplado do filtro — aplicável com "Todos" ou com o
-  // PRÓPRIO cliente do fixo; com outro cliente, avisa que ficou de fora (LLC-03)
-  const fixoAplicavel = fixoConfigurado && (cliente === "" || cliEq(cliente, fixoCfg.cliente));
+  // PRÓPRIO cliente do fixo; com outro cliente, avisa que ficou de fora (LLC-03).
+  // Em fechamento SEMANAL o fixo nunca entra (regime mensal, sem rateio — LLC-09).
+  const fixoAplicavel = preset !== "semana" && fixoConfigurado && (cliente === "" || cliEq(cliente, fixoCfg.cliente));
   const fixoValor = fixoAplicavel && incluirFixo ? Number(fixoCfg.valor) : 0;
   const grandTotal = total + fixoValor;
   const temConteudo = nDias > 0 || fixoValor > 0;
 
-  const periodoLabel = `${fmtBR(range.from)} a ${fmtBR(range.to)}`;
+  // LLC-09: recibo SEMANAL declara o regime — intervalo + nº da semana no cabeçalho
+  const isSemana = preset === "semana";
+  const periodoLabel = isSemana
+    ? `Semana ${fmtBR(range.from)} a ${fmtBR(range.to)} · Semana ${isoWeekLabel(new Date(range.from + "T12:00"))}`
+    : `${fmtBR(range.from)} a ${fmtBR(range.to)}`;
   const docTitulo = docTipo === "recibo" ? "Recibo de mão de obra" : "Planilha de pagamento";
   const texto = reciboWhatsApp({ grupos, titulo: docTitulo.toUpperCase(), tecnico: prefs.tecnico, periodoLabel, clienteLabel: cliente, showCliente: cliente === "", total, fixoValor, fixoCliente: fixoCfg.cliente });
 
@@ -203,7 +227,9 @@ export default function Financeiro() {
         )}
         {fixoConfigurado && !fixoAplicavel && (
           <div style={{ marginTop: 12, color: T.amb, fontSize: 12.5 }}>
-            Fixo mensal{fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} não incluído — o recibo é de outro cliente.
+            {isSemana
+              ? `Fixo mensal${fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} não entra no fechamento semanal — emita pelo período mensal.`
+              : `Fixo mensal${fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} não incluído — o recibo é de outro cliente.`}
           </div>
         )}
       </div>
@@ -254,6 +280,7 @@ export default function Financeiro() {
         <div style={{ borderTop: `2px solid ${PRINT.ink}`, borderBottom: `1px solid ${PRINT.line}`, padding: "12px 0", marginBottom: 16 }}>
           <h1 style={{ margin: 0, fontSize: 22 }}>{docTitulo}</h1>
           <div style={{ color: PRINT.mut, fontSize: 13, marginTop: 4 }}>{[prefs.tecnico && `Prestador: ${prefs.tecnico}`, `Período: ${periodoLabel}`, cliente && `Cliente: ${cliente}`].filter(Boolean).join(" · ")}</div>
+          {isSemana && <div style={{ color: PRINT.mut, fontSize: 12, marginTop: 2 }}>Fechamento semanal de mão de obra referente ao período acima.</div>}
         </div>
 
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 20 }}>
