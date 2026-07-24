@@ -26,8 +26,10 @@ export default function Drawer({ open, title, onClose, children, footer, width =
             <X size={20} />
           </button>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>{children}</div>
-        {footer && <div style={{ padding: 16, borderTop: `1px solid ${T.bd}`, display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
+        {/* safe-area também EMBAIXO: no iPhone a barra de gesto cobria o fim do
+            conteúdo (sem footer) ou os botões do rodapé (com footer) */}
+        <div style={{ flex: 1, overflowY: "auto", padding: 16, paddingBottom: footer ? 16 : "calc(16px + env(safe-area-inset-bottom))" }}>{children}</div>
+        {footer && <div style={{ padding: 16, paddingBottom: "calc(16px + env(safe-area-inset-bottom))", borderTop: `1px solid ${T.bd}`, display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
       </div>
     </div>
   );
