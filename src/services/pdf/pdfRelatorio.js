@@ -45,11 +45,12 @@ const zebraLayout = (start = 0) => ({
 // pdfmake não tem text-transform: o caps do cabeçalho entra aqui (paridade com o DOM)
 const th = (text, align = "left") => ({ text: text.toUpperCase(), bold: true, fontSize: 7, color: PRINT.dim, characterSpacing: 0.6, alignment: align, margin: [0, 2, 0, 2] });
 
-// cabeçalho de seção: badge numerado colorido + título + tag (como no Caderno DOM)
+// cabeçalho de seção: badge numerado colorido + título + tag (como no Caderno DOM);
+// o stack carrega junto o marcador invisível que registra a seção no SUMÁRIO
 function sectionHead(n, titulo, tag, cor) {
   return {
     margin: [0, 14, 0, 8],
-    columns: [
+    stack: [tocMarker(n, titulo, cor), { columns: [
       {
         width: "auto",
         table: { body: [[{ text: String(n).padStart(2, "0"), bold: true, color: "#ffffff", fontSize: 10, font: "PlexMono", margin: [4, 2, 4, 2] }]] },
@@ -57,7 +58,17 @@ function sectionHead(n, titulo, tag, cor) {
       },
       { width: "auto", text: titulo.toUpperCase(), bold: true, fontSize: 12, color: PRINT.ink, margin: [8, 2, 0, 0], characterSpacing: 0.3 },
       { width: "*", text: tag.toUpperCase(), fontSize: 7, color: PRINT.dim, alignment: "right", characterSpacing: 0.8, margin: [0, 6, 0, 0] },
-    ],
+    ] }],
+  };
+}
+
+// registra a seção no SUMÁRIO sem mexer no visual do cabeçalho: um marcador de
+// texto INVISÍVEL (0.1pt) carrega a linha "01 · TÍTULO" na cor da disciplina.
+// Inofensivo quando o caderno não tem nó toc (tipos que não são o Completo).
+function tocMarker(n, titulo, cor) {
+  return {
+    text: `${String(n).padStart(2, "0")}  ·  ${titulo.toUpperCase()}`, fontSize: 0.1, opacity: 0, margin: [0, 0, 0, 0],
+    tocItem: true, tocStyle: { bold: true, color: cor, fontSize: 9.5, characterSpacing: 0.4 }, tocMargin: [0, 0, 0, 7],
   };
 }
 
@@ -537,12 +548,22 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
       ],
     }),
     content: (() => {
-      // UM TÓPICO POR PÁGINA (manual §10.6, como no print do DOM): toda seção
-      // depois da 1ª abre página nova. A 1ª já nasce em página limpa — a capa
-      // termina com pageBreak "after"; dar "before" nela criaria página em branco.
       const secoes = [visaoGeral, video, eletrica, sinal, ac, gloss].filter((s) => s.length);
-      secoes.slice(1).forEach((s) => { s[0] = { ...s[0], pageBreak: "before" }; });
-      return [...capa, ...secoes.flat()];
+      // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
+      // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
+      // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead
+      const sumario = tipo === "Completo" && secoes.length > 1 ? [
+        { text: "SUMÁRIO", bold: true, fontSize: 12, color: PRINT.ink, characterSpacing: 0.3, margin: [0, 14, 0, 2] },
+        { text: "CONTEÚDO DO CADERNO", fontSize: 7, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 0, 0, 4] },
+        { canvas: [{ type: "line", x1: 0, y1: 0, x2: 762, y2: 0, lineWidth: 1.2, lineColor: PRINT.ink }], margin: [0, 0, 0, 12] },
+        { toc: { numberStyle: { bold: true, color: PRINT.acc, font: "PlexMono", fontSize: 9.5 } } },
+      ] : [];
+      // UM TÓPICO POR PÁGINA (manual §10.6): com sumário, TODA seção abre página
+      // nova (o sumário ocupa a página pós-capa); sem, a 1ª já nasce em página
+      // limpa — a capa termina com pageBreak "after" e "before" dobrado = página
+      // em branco.
+      secoes.slice(sumario.length ? 0 : 1).forEach((s) => { s[0] = { ...s[0], pageBreak: "before" }; });
+      return [...capa, ...sumario, ...secoes.flat()];
     })(),
   };
 }
