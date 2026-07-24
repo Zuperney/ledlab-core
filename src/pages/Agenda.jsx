@@ -67,7 +67,7 @@ export default function Agenda({ nav }) {
   };
 
   const segBox = { display: "flex", gap: 4, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 3 };
-  const segBtn = (active) => ({ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "8px 12px" : "6px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });
+  const segBtn = (active) => ({ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "8px 12px" : "6px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: active ? T.acc : "transparent", color: active ? T.accInk : T.mut });
 
   return (
     <div>

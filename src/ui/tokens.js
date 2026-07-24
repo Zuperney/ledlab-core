@@ -10,70 +10,73 @@
 // cabos) redesenham no remount. PRINT (relatório) não muda com o tema.
 // ─────────────────────────────────────────────────────────────
 
-// tema padrão: Dark/Roxo
+// tema PALCO (escuro, padrão) — a MARCA: fundos quase-pretos NEUTROS, ação
+// primária LIME com tinta PRETA (accInk). Ver docs/marca/manual.md §2.2.
 const DARK = {
-  bg: "#0d0d1a", // fundo do app
-  sb: "#11112a", // sidebar / painéis
-  card: "#1a1a2e",
-  card2: "#12122a",
-  bd: "#2d2d4e", // borda
-  bdA: "#3b1f6e", // borda de destaque
+  bg: "#0f0f0d", // fundo do app
+  sb: "#131311", // sidebar / painéis
+  card: "#191917",
+  card2: "#121210",
+  bd: "#2b2b26", // borda
+  bdA: "#5a5f14", // borda de destaque
 
-  acc: "#7c3aed", // acento primário (violeta)
-  acM: "#a78bfa", // acento médio
-  acL: "#c4b5fd", // acento claro
+  acc: "#ebf51e", // ação primária = Lime LedLab
+  accInk: "#111111", // tinta sobre acc (sobre lime, SEMPRE preto)
+  acM: "#e3ee45", // acento médio (texto/ícone de destaque)
+  acL: "#f2f877", // acento claro
 
-  txt: "#e5e7eb",
-  mut: "#9ca3af", // texto suave
-  dim: "#6b7280",
-  dim2: "#4b5563",
+  txt: "#ececea",
+  mut: "#a6a69c", // texto suave
+  dim: "#72726a",
+  dim2: "#4e4e47",
 
   grn: "#34d399",
-  amb: "#fbbf24",
+  amb: "#fb923c", // aviso é LARANJA (amarelo colava no lime da marca)
   red: "#f87171",
 
-  sel: "#2e1f5e", // fundo selecionado
-  strip: "#1a1040",
-  hero: "#150e2a",
-  ambBg: "#3b2a07",
-  grnBg: "#083d2a",
-  indBg: "#1e1040",
-  zebra: "#14142a", // linhas zebradas de tabela
+  sel: "#272b0d", // fundo selecionado
+  strip: "#1b1d10",
+  hero: "#191b0e",
+  ambBg: "#3b2408",
+  grnBg: "#0a3d2a",
+  indBg: "#20230d",
+  zebra: "#151513", // linhas zebradas de tabela
   overloadBg: "#3b0a0a", // fundo de badge de sobrecarga / cancelado
 };
 
-// tema SOL: claro de alto contraste (texto quase-preto, bordas fortes, acento
-// violeta ESCURECIDO pra passar de 4.5:1 sobre fundo claro). acM/acL viram
-// tons ESCUROS porque no app eles são usados como COR DE TEXTO de destaque.
+// tema SOL: claro de ALTO CONTRASTE pra ler ao ar livre — a marca INVERTE:
+// primária quase-preta com tinta LIME; acentos de texto em oliva (lime
+// escurecido). Bordas fortes (no sol, sombra não trabalha). Manual §2.3.
 const SOL = {
-  bg: "#f2f2ee",
-  sb: "#e8e8e1",
+  bg: "#f4f4ee",
+  sb: "#e9e9e1",
   card: "#ffffff",
-  card2: "#ebebf2",
-  bd: "#a9a9bd",
-  bdA: "#6d28d9",
+  card2: "#ecece4",
+  bd: "#a9a99b",
+  bdA: "#6b7500",
 
-  acc: "#6d28d9",
-  acM: "#5b21b6",
-  acL: "#4c1d95",
+  acc: "#161711", // primária preta (marca invertida)
+  accInk: "#ebf51e", // tinta lime sobre a primária preta
+  acM: "#5c6600", // acento de texto (oliva legível no claro)
+  acL: "#454d00",
 
-  txt: "#101018",
-  mut: "#333342",
-  dim: "#555566",
-  dim2: "#8a8a9a",
+  txt: "#141410",
+  mut: "#3c3c34",
+  dim: "#5c5c52",
+  dim2: "#8c8c80",
 
   grn: "#047857",
-  amb: "#8a5a06",
+  amb: "#b45309", // laranja escuro (aviso)
   red: "#b91c1c",
 
-  sel: "#ddd2f8",
-  strip: "#e9e1fb",
-  hero: "#efeafc",
-  ambBg: "#fbeecb",
-  grnBg: "#d3efe2",
-  indBg: "#e5dcfa",
-  zebra: "#ececec",
-  overloadBg: "#f8d9d9",
+  sel: "#e7ecc0",
+  strip: "#eef0d8",
+  hero: "#f0f2da",
+  ambBg: "#fdeacd",
+  grnBg: "#d2efe2",
+  indBg: "#e4e8c4",
+  zebra: "#ebebe4",
+  overloadBg: "#f8dada",
 };
 
 export const THEMES = { dark: DARK, sol: SOL };
@@ -96,13 +99,15 @@ export const PALETTE = [
 export const paletteColor = (i) => PALETTE[i % PALETTE.length];
 
 // Tokens claros para o documento de Relatório (impressão / PDF).
+// O Caderno NÃO é o app: acento OLIVA (lime é ilegível no papel — a capa é a
+// única área lime). Manual §2.4 e §10.
 export const PRINT = {
   ink: "#0f172a",
   mut: "#475569",
   dim: "#64748b",
   line: "#e2e8f0",
   head: "#f1f5f9",
-  acc: "#6d28d9",
+  acc: "#4d5500",
   grn: "#047857",
   red: "#b91c1c",
   amb: "#b45309",

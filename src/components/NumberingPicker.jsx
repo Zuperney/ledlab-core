@@ -34,7 +34,7 @@ export default function NumberingPicker({ value = "row-tb-lr", onChange }) {
         <div style={{ display: "inline-flex", background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 3, gap: 3 }}>
           {[["zig", "Zigzag"], ["serp", "Serpente"]].map(([m, label]) => (
             <button key={m} type="button" onClick={() => onChange(compose(base, m))} aria-pressed={mode === m}
-              style={{ padding: "5px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, background: mode === m ? T.acc : "transparent", color: mode === m ? "#fff" : T.mut }}>
+              style={{ padding: "5px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, background: mode === m ? T.acc : "transparent", color: mode === m ? T.accInk : T.mut }}>
               {label}
             </button>
           ))}

@@ -155,7 +155,7 @@ export default function Reembolso() {
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {[["lancamentos", "Lançamentos"], ["relatorio", "Relatório"]].map(([k, l]) => (
           <button key={k} onClick={() => setMode(k)}
-            style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${mode === k ? T.acc : T.bd}`, background: mode === k ? T.acc : "transparent", color: mode === k ? "#fff" : T.mut }}>{l}</button>
+            style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${mode === k ? T.acc : T.bd}`, background: mode === k ? T.acc : "transparent", color: mode === k ? T.accInk : T.mut }}>{l}</button>
         ))}
       </div>
 

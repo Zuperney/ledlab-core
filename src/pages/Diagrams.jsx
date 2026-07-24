@@ -177,7 +177,7 @@ function Seg({ label, options, value, onChange }) {
       <div style={{ display: "flex", gap: 4 }}>
         {options.map(([v, l]) => {
           const act = v === value;
-          return <button key={String(v)} onClick={() => onChange(v)} style={{ padding: "6px 12px", borderRadius: 7, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${act ? T.acc : T.bd}`, background: act ? T.acc : T.card2, color: act ? "#fff" : T.mut }}>{l}</button>;
+          return <button key={String(v)} onClick={() => onChange(v)} style={{ padding: "6px 12px", borderRadius: 7, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${act ? T.acc : T.bd}`, background: act ? T.acc : T.card2, color: act ? T.accInk : T.mut }}>{l}</button>;
         })}
       </div>
     </div>

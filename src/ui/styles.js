@@ -49,7 +49,7 @@ export const btn = (variant = "ghost", extra = {}) => {
     minWidth: 0,
   };
   const variants = {
-    primary: { background: T.acc, color: "#fff" },
+    primary: { background: T.acc, color: T.accInk },
     ghost: { background: T.card2, color: T.txt, borderColor: T.bd },
     subtle: { background: "transparent", color: T.mut, borderColor: T.bd },
     danger: { background: "transparent", color: T.red, borderColor: T.bd },

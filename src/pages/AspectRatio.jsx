@@ -87,7 +87,7 @@ export default function AspectRatio() {
   let ctW = pvW, ctH = pvW / srcAsp;
   if (ctH > pvH) { ctH = pvH; ctW = pvH * srcAsp; }
   const ctX = pvX + (pvW - ctW) / 2, ctY = pvY + (pvH - ctH) / 2;
-  const vizBtn = (on) => ({ padding: "5px 11px", borderRadius: 7, cursor: "pointer", fontSize: 12.5, fontWeight: 600, border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.acc : "transparent", color: on ? "#fff" : T.mut, fontFamily: "inherit" });
+  const vizBtn = (on) => ({ padding: "5px 11px", borderRadius: 7, cursor: "pointer", fontSize: 12.5, fontWeight: 600, border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.acc : "transparent", color: on ? T.accInk : T.mut, fontFamily: "inherit" });
 
   return (
     <div>
@@ -110,7 +110,7 @@ export default function AspectRatio() {
           <div><label style={lbl}>Gabinete</label><Select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={{ ...inp, width: 180 }}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select></div>
           <div><label style={lbl}>Colunas</label><NumField value={cols} onChange={(n) => setCols(Math.max(1, n))} style={{ ...inp, width: 78 }} /></div>
           <div><label style={lbl}>Linhas</label><NumField value={rows} onChange={(n) => setRows(Math.max(1, n))} style={{ ...inp, width: 78 }} /></div>
-          <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
+          <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: T.accInk, cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
         </div>
         )}
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>

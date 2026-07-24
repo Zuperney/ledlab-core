@@ -203,7 +203,7 @@ export default function App() {
             <SunToggle sol={theme === "sol"} onClick={toggleTheme} />
             <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
             <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{VERSION}</span>
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.acc, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>D</div>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.acc, color: T.accInk, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>D</div>
           </div>
         </header>
         <main style={{ flex: 1, overflowY: "auto", padding: 28 }}>
@@ -247,7 +247,7 @@ function UpdateModal({ info, onClose }) {
         </div>
         <div style={{ color: T.txt, fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>{info.whatsNew}</div>
         <button onClick={onClose} autoFocus
-          style={{ width: "100%", background: T.acc, color: "#fff", border: "none", borderRadius: 10, padding: "11px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
+          style={{ width: "100%", background: T.acc, color: T.accInk, border: "none", borderRadius: 10, padding: "11px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
           Entendi
         </button>
       </div>
@@ -292,7 +292,7 @@ function BackupReminder({ days, onBackup, onDismiss }) {
     <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.sel, border: `1px solid ${T.acc}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: T.txt }}>
       <TriangleAlert size={16} color={T.acM} style={{ flexShrink: 0 }} />
       <span style={{ flex: 1, minWidth: 0 }}>{txt} Seus dados vivem só neste navegador — <b>faça um backup</b> pra não perder.</span>
-      <button onClick={onBackup} style={{ flexShrink: 0, background: T.acc, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Fazer backup</button>
+      <button onClick={onBackup} style={{ flexShrink: 0, background: T.acc, color: T.accInk, border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Fazer backup</button>
       <button onClick={onDismiss} aria-label="Dispensar" style={{ flexShrink: 0, background: "none", border: "none", color: T.mut, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
     </div>
   );

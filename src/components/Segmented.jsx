@@ -13,7 +13,7 @@ export default function Segmented({ options, value, onChange, size = "md" }) {
         const Icon = o.Icon;
         return (
           <button key={String(o.value)} onClick={() => onChange(o.value)} aria-pressed={on} title={o.title || o.label}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: pad, borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: fs, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, background: on ? T.acc : "transparent", color: on ? "#fff" : T.mut }}>
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: pad, borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: fs, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, background: on ? T.acc : "transparent", color: on ? T.accInk : T.mut }}>
             {Icon && <Icon size={14} />}{o.label}
           </button>
         );

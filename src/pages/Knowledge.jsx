@@ -62,7 +62,7 @@ export default function Knowledge() {
     <div>
       <SectionHeader title="Base de Conhecimento" subtitle={`${KB_ARTICLES.length} artigos sobre energia, sinal, cabeamento e painéis.`} />
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        {cats.map((c) => <button key={c} onClick={() => setCat(c)} style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${cat === c ? T.acc : T.bd}`, background: cat === c ? T.acc : "transparent", color: cat === c ? "#fff" : T.mut }}>{c}</button>)}
+        {cats.map((c) => <button key={c} onClick={() => setCat(c)} style={{ padding: "6px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${cat === c ? T.acc : T.bd}`, background: cat === c ? T.acc : "transparent", color: cat === c ? T.accInk : T.mut }}>{c}</button>)}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px,1fr))", gap: 12 }}>
         {list.map((a) => (

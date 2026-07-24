@@ -139,7 +139,7 @@ export default function Financeiro() {
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {PRESETS.map((p) => (
             <button key={p.id} onClick={() => applyPreset(p.id)}
-              style={{ padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${preset === p.id ? T.acc : T.bd}`, background: preset === p.id ? T.acc : "transparent", color: preset === p.id ? "#fff" : T.mut }}>{p.label}</button>
+              style={{ padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${preset === p.id ? T.acc : T.bd}`, background: preset === p.id ? T.acc : "transparent", color: preset === p.id ? T.accInk : T.mut }}>{p.label}</button>
           ))}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
@@ -170,7 +170,7 @@ export default function Financeiro() {
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
         {[["planilha", "Planilha (p/ aprovar)"], ["recibo", "Recibo (validado)"]].map(([k, l]) => (
           <button key={k} onClick={() => setDocTipo(k)}
-            style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${docTipo === k ? T.acc : T.bd}`, background: docTipo === k ? T.acc : "transparent", color: docTipo === k ? "#fff" : T.mut }}>{l}</button>
+            style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${docTipo === k ? T.acc : T.bd}`, background: docTipo === k ? T.acc : "transparent", color: docTipo === k ? T.accInk : T.mut }}>{l}</button>
         ))}
         <span style={{ color: T.dim, fontSize: 12 }}>{docTipo === "planilha" ? "lista pra o cliente conferir e aprovar" : "recibo com quitação, após validado"}</span>
       </div>
