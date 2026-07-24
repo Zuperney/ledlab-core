@@ -42,6 +42,9 @@ function stampServiceWorker() {
 // funcionar carregado via file:// dentro do app Electron (janela própria).
 export default defineConfig({
   base: './',
+  // fonte ÚNICA da versão exibida no app (badge do topo, Configurações, aviso de
+  // atualização): release = bump só no package.json. Vale no vite E no vitest.
+  define: { __APP_VERSION__: JSON.stringify(`v${pkg.version}`) },
   plugins: [react(), stampServiceWorker()],
   // Honra a env PORT (usada pelo preview tool p/ alocar porta dinâmica).
   server: process.env.PORT ? { port: Number(process.env.PORT), strictPort: true } : undefined,
