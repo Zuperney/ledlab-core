@@ -112,14 +112,16 @@ function warnBox({ titulo, partes }) {
 const blocoH = (nRows, mapH) => 46 + (mapH || 0) + Math.ceil(nRows / 4) * 13 + 20;
 const bloco = (nodes, estH) => ({ stack: nodes, unbreakable: estH <= 460, _estH: estH, margin: [0, 0, 0, 4] });
 
-// gruda o cabeçalho da seção (e intro/aviso) no PRIMEIRO bloco quando couberem
-// juntos na página — senão a seção abre com o cabeçalho órfão numa página quase
-// vazia e o bloco inteiro na seguinte. ~90pt ≈ cabeçalho + intro + aviso.
+// o PRIMEIRO bloco de cada seção pode QUEBRAR de página: assim o cabeçalho da
+// seção nunca fica órfão numa página quase vazia (o bloco começa junto dele e a
+// tabela densa continua na página seguinte repetindo o header). Fundir cabeçalho
+// + bloco num unbreakable NÃO serve: mais alto que a página, o pdfmake DESCARTA
+// o conjunto inteiro — testado e perdeu a Screen do caderno. Os demais blocos
+// seguem indivisíveis; quando cabeçalho + 1º bloco cabem juntos, nada muda.
 function grudaCabecalho(nodes) {
   const i = nodes.findIndex((n) => n && n._estH != null);
-  if (i < 0 || !nodes[i].unbreakable || nodes[i]._estH + 90 > 460) return nodes;
-  // o unbreakable sobe pro conjunto (aninhado confundiria o layout do pdfmake)
-  return [{ stack: [...nodes.slice(0, i), { ...nodes[i], unbreakable: false }], unbreakable: true }, ...nodes.slice(i + 1)];
+  if (i >= 0) nodes[i] = { ...nodes[i], unbreakable: false };
+  return nodes;
 }
 
 // nó de mapa pro conteúdo: o gerador devolve {svg,width,height} ou null (sem células)
