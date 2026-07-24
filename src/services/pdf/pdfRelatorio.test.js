@@ -23,10 +23,10 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
   const doc = build("Completo");
   const json = JSON.stringify(doc.content);
 
-  it("é paisagem A4 com fontes standard e margens", () => {
+  it("é paisagem A4 com as fontes Plex embutidas (numeral tabular)", () => {
     expect(doc.pageOrientation).toBe("landscape");
     expect(doc.pageSize).toBe("A4");
-    expect(doc.defaultStyle.font).toBe("Helvetica");
+    expect(doc.defaultStyle.font).toBe("PlexSans");
   });
 
   it("capa: tag Caderno Técnico, nome, STATUS legível, datas do evento e quebra de página", () => {
@@ -52,7 +52,7 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("VISÃO GERAL");
     expect(json).toContain("Main");
     expect(json).toContain("Side");
-    expect(json).toContain('"Courier"');
+    expect(json).toContain('"PlexMono"'); // dado técnico em mono (manual §10.4)
     expect(json).toContain('"84"'); // total de gabinetes: 10×6 + 4×6
     expect(json).toContain("GABINETES UTILIZADOS");
     expect(json).toContain("ROE CB5");

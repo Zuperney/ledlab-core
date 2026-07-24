@@ -20,8 +20,10 @@ function stampServiceWorker() {
         // lista os assets do build (main + chunks lazy) p/ precache offline completo
         let assets = []
         try {
+          // js/css (main + chunks lazy) + ttf (fontes do PDF) + png (logo da capa):
+          // sem eles no precache, o "Baixar PDF" offline perderia fonte e logo
           assets = readdirSync(resolve(process.cwd(), 'dist/assets'))
-            .filter((f) => /\.(js|css)$/.test(f))
+            .filter((f) => /\.(js|css|ttf|png)$/.test(f))
             .map((f) => `./assets/${f}`)
         } catch { /* sem pasta assets — ignora */ }
         const sw = readFileSync(swPath, 'utf-8')

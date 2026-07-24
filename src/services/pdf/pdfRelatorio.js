@@ -25,7 +25,7 @@ const COVER_INK = "#14140e";
 const HAIR = "#dad9d0";
 const ZEBRA = "#f8f8f8";
 
-const mono = (text, extra = {}) => ({ text, font: "Courier", ...extra });
+const mono = (text, extra = {}) => ({ text, font: "PlexMono", ...extra });
 const ptBR = (n) => (n || 0).toLocaleString("pt-BR");
 
 // ── layout de tabela com ZEBRA (manual §10.3) ──
@@ -52,7 +52,7 @@ function sectionHead(n, titulo, tag, cor) {
     columns: [
       {
         width: "auto",
-        table: { body: [[{ text: String(n).padStart(2, "0"), bold: true, color: "#ffffff", fontSize: 10, font: "Courier", margin: [4, 2, 4, 2] }]] },
+        table: { body: [[{ text: String(n).padStart(2, "0"), bold: true, color: "#ffffff", fontSize: 10, font: "PlexMono", margin: [4, 2, 4, 2] }]] },
         layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => cor, paddingLeft: () => 2, paddingRight: () => 2, paddingTop: () => 0, paddingBottom: () => 0 },
       },
       { width: "auto", text: titulo.toUpperCase(), bold: true, fontSize: 12, color: PRINT.ink, margin: [8, 2, 0, 0], characterSpacing: 0.3 },
@@ -120,7 +120,7 @@ const coverRow = (label, value, { bold = false, first = false } = {}) => ({
   margin: [0, 0, 0, 0],
   stack: [
     ...(first ? [] : [{ canvas: [{ type: "line", x1: 0, y1: 0, x2: 300, y2: 0, lineWidth: 0.6, lineColor: HAIR }], margin: [0, 5, 0, 5] }]),
-    { text: label.toUpperCase(), font: "Courier", fontSize: 7, bold: true, characterSpacing: 1.1, color: "#8d8b7e" },
+    { text: label.toUpperCase(), font: "PlexMono", fontSize: 7, bold: true, characterSpacing: 1.1, color: "#8d8b7e" },
     { text: value || "—", fontSize: 13, bold, color: COVER_INK, margin: [0, 2, 0, 0] },
   ],
 });
@@ -207,14 +207,14 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
   const capa = [
     {
       columns: [
-        { width: "*", text: [{ text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "Courier", bold: true, fontSize: 9, characterSpacing: 1.8, color: COVER_INK, background: LIME }], margin: [0, 6, 0, 0] },
+        { width: "*", text: [{ text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 9, characterSpacing: 1.8, color: COVER_INK, background: LIME }], margin: [0, 6, 0, 0] },
         ...(logo ? [{ width: 54, image: logo, fit: [54, 54] }] : []),
       ],
     },
     // LLC-01: o título auto-encolhe pra caber numa linha — nome de 40+ caracteres
-    // não empurra a capa nem vaza pra uma página em branco (~1385 ≈ largura útil
-    // da paisagem ÷ avanço médio da Helvetica bold, em pt por caractere)
-    { text: project.name || "Sem nome", fontSize: Math.max(24, Math.min(58, Math.floor(1385 / Math.max((project.name || "Sem nome").length, 1)))), bold: true, characterSpacing: -1.2, color: COVER_INK, margin: [0, 26, 0, 0] },
+    // não empurra a capa nem vaza pra uma página em branco (~1320 ≈ largura útil
+    // da paisagem ÷ avanço médio da Plex Sans bold, em pt por caractere)
+    { text: project.name || "Sem nome", fontSize: Math.max(24, Math.min(58, Math.floor(1320 / Math.max((project.name || "Sem nome").length, 1)))), bold: true, characterSpacing: -1.2, color: COVER_INK, margin: [0, 26, 0, 0] },
     { canvas: [{ type: "rect", x: 0, y: 0, w: 170, h: 4, color: LIME }], margin: [0, 10, 0, 22] },
     {
       columns: [
@@ -229,8 +229,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
         { canvas: [{ type: "line", x1: 0, y1: 0, x2: 762, y2: 0, lineWidth: 0.6, lineColor: HAIR }], margin: [0, 0, 0, 6] },
         {
           columns: [
-            { text: [{ text: "Nº " }, { text: docNo, bold: true, color: COVER_INK }, { text: " · Rev " }, { text: "A", bold: true, color: COVER_INK }, { text: gerado ? ` · Gerado em ${gerado}` : "" }], font: "Courier", fontSize: 7.5, color: "#6c6a5d" },
-            { text: [{ text: "LEDLAB CORE", bold: true, color: COVER_INK }, { text: " · ENGENHARIA DE LED", color: "#9b998c" }], font: "Courier", fontSize: 7.5, alignment: "right", characterSpacing: 0.5 },
+            { text: [{ text: "Nº " }, { text: docNo, bold: true, color: COVER_INK }, { text: " · Rev " }, { text: "A", bold: true, color: COVER_INK }, { text: gerado ? ` · Gerado em ${gerado}` : "" }], font: "PlexMono", fontSize: 7.5, color: "#6c6a5d" },
+            { text: [{ text: "LEDLAB CORE", bold: true, color: COVER_INK }, { text: " · ENGENHARIA DE LED", color: "#9b998c" }], font: "PlexMono", fontSize: 7.5, alignment: "right", characterSpacing: 0.5 },
           ],
         },
       ],
@@ -512,7 +512,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     pageSize: "A4",
     pageOrientation: "landscape",
     pageMargins: [40, 36, 40, 44],
-    defaultStyle: { font: "Helvetica", fontSize: 9, color: PRINT.ink, lineHeight: 1.25 },
+    defaultStyle: { font: "PlexSans", fontSize: 9, color: PRINT.ink, lineHeight: 1.25 },
     info: { title: `${project.name || "Projeto"} — Caderno Técnico (${tipo})`, author: "LedLab Core" },
     // capa com fundo próprio (página 1 apenas)
     background: (page, pageSize) => (page === 1 ? { canvas: [{ type: "rect", x: 0, y: 0, w: pageSize.width, h: pageSize.height, color: COVER_BG }] } : null),
@@ -520,8 +520,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     footer: (current, total) => (current === 1 ? null : {
       margin: [40, 14, 40, 0],
       columns: [
-        { text: `${docNo} · REV A${gerado ? ` · GERADO EM ${gerado.toUpperCase()}` : ""}`, font: "Courier", fontSize: 6.5, color: PRINT.dim, characterSpacing: 0.5 },
-        { text: `PÁG ${current} DE ${total}`, font: "Courier", fontSize: 6.5, bold: true, color: PRINT.acc, alignment: "right", characterSpacing: 0.8 },
+        { text: `${docNo} · REV A${gerado ? ` · GERADO EM ${gerado.toUpperCase()}` : ""}`, font: "PlexMono", fontSize: 6.5, color: PRINT.dim, characterSpacing: 0.5 },
+        { text: `PÁG ${current} DE ${total}`, font: "PlexMono", fontSize: 6.5, bold: true, color: PRINT.acc, alignment: "right", characterSpacing: 0.8 },
       ],
     }),
     content: (() => {

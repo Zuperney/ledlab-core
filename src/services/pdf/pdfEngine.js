@@ -1,9 +1,14 @@
 // services/pdf/pdfEngine.js — o motor PESADO: pdfmake + fontes. Este módulo só
 // entra pelo import() dinâmico do botão "Baixar PDF" — vira chunk separado e
-// não pesa no boot do app (o precache do PWA o inclui pro offline).
+// não pesa no boot do app (o precache do PWA inclui chunk E fontes pro offline).
 //
-// F1 usa as fontes STANDARD do PDF (Helvetica + Courier — zero bytes embutidos,
-// Latin-1 cobre o PT-BR). A troca por IBM Plex embutida está no plano (F3).
+// Fontes EMBUTIDAS: IBM Plex Sans (texto) + IBM Plex Mono (dados) — numeral
+// tabular, PT-BR completo e o mesmo desenho em qualquer leitor de PDF. As TTFs
+// são as ESTÁTICAS do repo IBM/plex v6.4.1 — as do Google Fonts (variáveis) e as
+// woff2 do @ibm/plex-* QUEBRAM o subset do fontkit ("Offset is outside the
+// bounds of the DataView"); se atualizar, valide o embed antes. O pdfkit embute
+// só o SUBSET usado (~30-60 KB por caderno). Helvetica+Courier standard seguem
+// registradas (zero bytes) como fallback.
 // o bundle pré-compilado pro browser (o source ESM puxa builtins do Node)
 import pdfMake from "pdfmake/build/pdfmake.min.js";
 import Helvetica from "pdfmake/build/standard-fonts/Helvetica.js";
@@ -11,8 +16,18 @@ import Courier from "pdfmake/build/standard-fonts/Courier.js";
 import { buildRelatorioDoc } from "./pdfRelatorio.js";
 import { fileName } from "../filenames.js";
 import ledlabSquare from "../../assets/ledlab-square.png";
+import plexSans from "../../assets/fonts/IBMPlexSans-Regular.ttf";
+import plexSansBold from "../../assets/fonts/IBMPlexSans-Bold.ttf";
+import plexMono from "../../assets/fonts/IBMPlexMono-Regular.ttf";
+import plexMonoBold from "../../assets/fonts/IBMPlexMono-Bold.ttf";
 
-pdfMake.addFonts({ ...Helvetica, ...Courier });
+pdfMake.addFonts({
+  ...Helvetica,
+  ...Courier,
+  // o caderno não usa itálico — mapeia pro reto pra nunca faltar variante
+  PlexSans: { normal: plexSans, bold: plexSansBold, italics: plexSans, bolditalics: plexSansBold },
+  PlexMono: { normal: plexMono, bold: plexMonoBold, italics: plexMono, bolditalics: plexMonoBold },
+});
 
 // logo do asset → dataURL (pdfmake precisa de base64; o asset já está no precache)
 let logoCache = null;

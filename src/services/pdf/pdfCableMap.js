@@ -29,7 +29,7 @@ const numPos = (c, p, fs, corner) => ({
   br: { x: c.x + c.w - p, y: c.y + c.h - p, a: "end" },
 }[corner] || { x: c.x + p, y: c.y + c.h - p, a: "start" });
 
-const textAttrs = (fs, anchor) => `font-family="Helvetica" font-size="${r2(fs)}" font-weight="bold" text-anchor="${anchor}"`;
+const textAttrs = (fs, anchor) => `font-family="PlexSans" font-size="${r2(fs)}" font-weight="bold" text-anchor="${anchor}"`;
 
 // camada do mapa: células/portas já em coordenadas de desenho
 function layerSvg(cells, ports, colorOf, { portOffset = 0, showNumbers, arrows, numberSize, numberPos }) {
@@ -150,7 +150,7 @@ export function telasFilaSvg(telas, colorOf, { maxWidth = 500, maxHeight = 150 }
       const ty = y + (showRes ? h / 2 - fs * 0.2 : h / 2) + fs * 0.35; // baseline manual (sem dominant-baseline)
       out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty)}" ${textAttrs(fs, "middle")} fill="none" stroke="${BG}" stroke-width="${r2(fs * 0.14)}">${esc(nome)}</text>`);
       out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty)}" ${textAttrs(fs, "middle")} fill="#ffffff">${esc(nome)}</text>`);
-      if (showRes) out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty + fs * 1.05)}" font-family="Helvetica" font-size="${r2(fs * 0.72)}" text-anchor="middle" fill="#cbd5e1">${d.w} × ${d.h}</text>`);
+      if (showRes) out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty + fs * 1.05)}" font-family="PlexSans" font-size="${r2(fs * 0.72)}" text-anchor="middle" fill="#cbd5e1">${d.w} × ${d.h}</text>`);
     }
   });
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${r2(W)}" height="${r2(H)}" viewBox="0 0 ${r2(W)} ${r2(H)}">${out.join("")}</svg>`;
