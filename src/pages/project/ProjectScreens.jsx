@@ -24,6 +24,7 @@ import { makeScreen, unassignedTelas, screenTelas, screenSize, arrangeScreen, ad
 // cor por modelo de gabinete (estável no projeto): mesma cor = a corrente pode
 // encadear entre as telas. Numa Screen que mistura modelos, isso mostra o que junta.
 const MODEL_COLORS = [T.acM, T.grn, T.amb, "#60a5fa", "#f472b6", "#2dd4bf"];
+const iconBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, background: "transparent", border: `1px solid ${T.bd}`, color: T.mut, cursor: "pointer", padding: 0, flexShrink: 0 };
 
 const snap = (v, size, targets, thr) => {
   for (const tgt of targets) {
@@ -157,19 +158,32 @@ export default function ProjectScreens({ project, patch }) {
             </button>
           );
         })}
-        <button style={{ ...btn("ghost"), flexShrink: 0 }} onClick={createScreen}><Plus size={15} /> Nova</button>
+        {/* R1: criar a Screen é a razão da aba — primária roxa */}
+        <button style={{ ...btn("primary"), flexShrink: 0 }} onClick={createScreen}><Plus size={15} /> Nova</button>
       </div>
 
       <div style={card()}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+        {/* nome + auto-arrumar (ícone) + excluir NUMA linha (pedido do usuário) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <input value={active.nome} onChange={(e) => patchScreen(active.id, { nome: e.target.value })}
-            style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, color: T.txt, fontWeight: 600, fontSize: 15, padding: "6px 10px", minWidth: 140 }} />
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <span style={{ color: T.dim, fontSize: 12 }}>{size.w.toLocaleString("pt-BR")} × {size.h.toLocaleString("pt-BR")} px</span>
-            <button style={btn("ghost")} onClick={arrangeActive} disabled={!membros.length} title="Sugere um arranjo: agrupa por modelo e empilha as faixas. Você ajusta arrastando."><Wand2 size={14} /> Auto-arrumar</button>
-            <button style={btn("ghost", { color: T.red })} onClick={() => deleteScreen(active.id)} title="Excluir esta Screen"><Trash2 size={14} /></button>
-          </div>
+            style={{ flex: 1, minWidth: 0, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, color: T.txt, fontWeight: 600, fontSize: 15, padding: "7px 10px" }} />
+          <button style={iconBtn} onClick={arrangeActive} disabled={!membros.length} title="Auto-arrumar: agrupa por modelo e empilha as faixas — você ajusta arrastando" aria-label="Auto-arrumar"><Wand2 size={15} /></button>
+          <button style={{ ...iconBtn, color: T.red }} onClick={() => deleteScreen(active.id)} title="Excluir esta Screen" aria-label="Excluir Screen"><Trash2 size={15} /></button>
         </div>
+        <div style={{ color: T.dim, fontSize: 11.5, marginBottom: 10 }}>{size.w.toLocaleString("pt-BR")} × {size.h.toLocaleString("pt-BR")} px</div>
+
+        {/* telas disponíveis ACIMA do canvas — embaixo elas somem quando entra tela grande */}
+        {disponiveis.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 10 }}>
+            <span style={{ color: T.dim, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Adicionar:</span>
+            {disponiveis.map((t) => (
+              <button key={t.id} onClick={() => addToActive(t.id)} title={`Adicionar ${t.nome} a ${active.nome}`}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "6px 10px", fontSize: 12, cursor: "pointer", color: T.txt }}>
+                <Plus size={13} color={T.acM} /> {t.nome} <span style={{ color: T.dim }}>{t.cols}×{t.rows}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {overlapIds.size > 0 && (
           <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: T.card2, border: `1px solid ${T.red}`, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
@@ -197,7 +211,7 @@ export default function ProjectScreens({ project, patch }) {
               })}
             </div>
           ) : (
-            <div style={{ color: T.dim, fontSize: 13, textAlign: "center", padding: "28px 12px" }}>Screen vazia — adicione telas abaixo.</div>
+            <div style={{ color: T.dim, fontSize: 13, textAlign: "center", padding: "28px 12px" }}>Screen vazia — adicione telas acima.</div>
           )}
         </div>
 
@@ -226,22 +240,6 @@ export default function ProjectScreens({ project, patch }) {
           </div>
         </div>
       )}
-
-      <div style={card()}>
-        <div style={{ ...lbl, marginBottom: 8 }}>Telas disponíveis {disponiveis.length ? `— ${disponiveis.length}` : ""}</div>
-        {disponiveis.length ? (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {disponiveis.map((t) => (
-              <button key={t.id} onClick={() => addToActive(t.id)} title={`Adicionar ${t.nome} a ${active.nome}`}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "6px 10px", fontSize: 12, cursor: "pointer", color: T.txt }}>
-                <Plus size={13} color={T.acM} /> {t.nome} <span style={{ color: T.dim }}>{t.cols}×{t.rows}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div style={{ color: T.dim, fontSize: 12 }}>Todas as telas já estão numa Screen.</div>
-        )}
-      </div>
 
       {/* didática sob demanda (o parágrafo fixo era teto permanente) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.dim, fontSize: 11 }}>
