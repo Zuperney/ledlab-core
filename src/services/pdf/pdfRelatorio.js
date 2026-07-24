@@ -177,21 +177,26 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
   // DOM) — todas as linhas, na fração da altura; zebra contínua. Acima de 36
   // linhas entra a 5ª coluna, pro bloco de uma Screen grande caber numa página.
   function densePortTable(rows, columns) {
+    const nCols = Math.min(rows.length > 36 ? 5 : 4, rows.length);
+    // 5 colunas = fonte 8 no corpo (senão a última coluna estoura a página);
+    // grupos em largura de CONTEÚDO ("auto") — a coluna Gabinetes esticada
+    // criava um vão entre o nº do cabo e a quantidade E empurrava o resto
+    const small = nCols >= 5;
+    const fit = (node) => (small ? { ...node, fontSize: 8 } : node);
     const build = (slice, start) => ({
       table: {
         headerRows: 1,
-        widths: columns.map((c) => c.width || "auto"),
-        body: [columns.map((c) => th(c.label, c.align)), ...slice.map((r, i) => columns.map((c) => c.cell(r, start + i)))],
+        widths: columns.map(() => "auto"),
+        body: [columns.map((c) => th(c.label, c.align)), ...slice.map((r, i) => columns.map((c) => fit(c.cell(r, start + i))))],
       },
       layout: zebraLayout(start),
-      width: "*",
+      width: "auto",
     });
-    const nCols = Math.min(rows.length > 36 ? 5 : 4, rows.length);
     if (nCols <= 1 || rows.length < 3) return build(rows, 0);
     const base = Math.floor(rows.length / nCols), rem = rows.length % nCols;
     const groups = []; let idx = 0;
     for (let i = 0; i < nCols; i++) { const size = base + (i < rem ? 1 : 0); groups.push(build(rows.slice(idx, idx + size), idx)); idx += size; }
-    return { columns: groups, columnGap: 14 };
+    return { columns: groups, columnGap: small ? 10 : 14 };
   }
 
   const telas = project.telas || [];
@@ -466,7 +471,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
             ...mapNode(mapa),
             densePortTable(s.ports, [
               { label: "Porta", cell: (p) => portCell(p.n - 1, p.n) },
-              { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
             ]),
           ]);
@@ -518,7 +523,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
             ...mapNode(mapa),
             densePortTable(rows, [
               { label: "Porta", cell: (p) => portCell(p.idx, p.n) },
-              { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
             ]),
           ]),
@@ -596,7 +601,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
             ...mapNode(mapa),
             densePortTable(s.ports, [
               { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
-              { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : PRINT.ink }) },
             ]),
           ]);
@@ -650,7 +655,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           ...mapNode(mapa),
           densePortTable(rows, [
             { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
-            { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+            { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
             { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
           ]),
         ]);
@@ -712,5 +717,6 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     })(),
   };
 }
+
 
 
