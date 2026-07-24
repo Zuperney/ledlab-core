@@ -30,6 +30,22 @@ const PRESETS = [
   { id: "30d", label: "Últimos 30 dias" },
 ];
 
+// máscara progressiva de CPF (000.000.000-00) / CNPJ (00.000.000/0000-00) — LLC-06
+const maskDoc = (v) => {
+  const d = (v || "").replace(/\D/g, "").slice(0, 14);
+  if (!d) return "";
+  if (d.length <= 11) {
+    let out = d.slice(0, 3);
+    if (d.length > 3) out += "." + d.slice(3, 6);
+    if (d.length > 6) out += "." + d.slice(6, 9);
+    if (d.length > 9) out += "-" + d.slice(9, 11);
+    return out;
+  }
+  let out = d.slice(0, 2) + "." + d.slice(2, 5) + "." + d.slice(5, 8) + "/" + d.slice(8, 12);
+  if (d.length > 12) out += "-" + d.slice(12, 14);
+  return out;
+};
+
 // largura fixa "de impressão": no mobile o recibo é montado nessa largura (layout igual
 // ao do desktop/PDF) e escalado com zoom p/ caber na tela — mini-preview fiel, não reflow.
 const DOC_W = 800;
@@ -132,6 +148,15 @@ export default function Financeiro() {
   };
   const abrirWhats = () => window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
 
+  // LLC-06: "próximo" no teclado — Enter pula pro campo seguinte do formulário
+  const nextOnEnter = (e) => {
+    if (e.key !== "Enter") return;
+    const form = e.currentTarget.closest("[data-recibo-form]");
+    const inputs = [...(form?.querySelectorAll('input:not([type="checkbox"])') || [])];
+    const i = inputs.indexOf(e.currentTarget);
+    if (i >= 0 && inputs[i + 1]) { e.preventDefault(); inputs[i + 1].focus(); }
+  };
+
   const th = { textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" };
   const td = { padding: "6px 8px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink, fontSize: 12.5 };
   const footRow = { display: "flex", justifyContent: "space-between", color: PRINT.mut, fontSize: 13, padding: "3px 0" };
@@ -145,8 +170,8 @@ export default function Financeiro() {
     <div>
       <SectionHeader title="Recibos" subtitle="Recibo / planilha de mão de obra por período (PDF ou WhatsApp)." />
 
-      {/* filtros */}
-      <div style={card({ maxWidth: 860, marginBottom: 16 })}>
+      {/* filtros — ordem de preenchimento: Período → Cliente → Pagador → Opções (LLC-06) */}
+      <div data-recibo-form style={card({ maxWidth: 860, marginBottom: 16 })}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {PRESETS.map((p) => (
             <button key={p.id} onClick={() => applyPreset(p.id)}
@@ -163,11 +188,12 @@ export default function Financeiro() {
               {clientes.map((c) => <option key={c} value={c}>{c}</option>)}
             </Select>
           </div>
-          <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} placeholder="Ex.: seu nome ou empresa" style={input()} /></div>
+          <div><div style={lbl}>Seu nome (no recibo)</div><input value={prefs.tecnico || ""} onChange={(e) => setPrefs({ ...prefs, tecnico: e.target.value })} onKeyDown={nextOnEnter} enterKeyHint="next" autoComplete="name" placeholder="Ex.: seu nome ou empresa" style={input()} /></div>
         </div>
         <div className="m-grid1" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginTop: 12 }}>
-          <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} placeholder="Nome / razão social do cliente" style={input()} /></div>
-          <div><div style={lbl}>CPF / CNPJ do pagador</div><input value={pagDoc} onChange={(e) => savePagador(pagNome, e.target.value)} placeholder="Opcional" style={input()} /></div>
+          <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} onKeyDown={nextOnEnter} enterKeyHint="next" placeholder="Nome / razão social do cliente" style={input()} /></div>
+          {/* CPF/CNPJ: teclado numérico + máscara progressiva (LLC-06) */}
+          <div><div style={lbl}>CPF / CNPJ do pagador</div><input value={pagDoc} onChange={(e) => savePagador(pagNome, maskDoc(e.target.value))} onKeyDown={nextOnEnter} enterKeyHint="done" inputMode="numeric" placeholder="Opcional" style={input()} /></div>
         </div>
         {fixoAplicavel && (
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: T.txt, fontSize: 14, cursor: "pointer" }}>
@@ -191,11 +217,15 @@ export default function Financeiro() {
         <span style={{ color: T.dim, fontSize: 12 }}>{docTipo === "planilha" ? "lista pra o cliente conferir e aprovar" : "recibo com quitação, após validado"}</span>
       </div>
 
-      {/* ações */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <button style={btn("primary")} onClick={() => printAs(fileName(["recibo", cliente]))} disabled={!temConteudo}><Printer size={15} /> Imprimir / Salvar PDF</button>
-        <button style={btn("ghost")} onClick={copiar} disabled={!temConteudo}><Copy size={15} /> Copiar texto</button>
-        <button style={btn("ghost")} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
+      {/* ações de SAÍDA — no mobile ficam FIXAS no rodapé, acima da bottom nav
+          (LLC-06): sempre à mão, sem rolar procurando botão. No papel some via
+          o @media print global (só o .report-doc imprime). */}
+      <div style={isMobile
+        ? { position: "fixed", left: 0, right: 0, bottom: "calc(62px + env(safe-area-inset-bottom))", zIndex: 40, display: "flex", gap: 8, padding: "10px 12px", background: T.sb, borderTop: `1px solid ${T.bd}` }
+        : { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <button style={btn("primary", isMobile ? { flex: 1, justifyContent: "center" } : {})} onClick={() => printAs(fileName(["recibo", cliente]))} disabled={!temConteudo}><Printer size={15} /> {isMobile ? "PDF" : "Imprimir / Salvar PDF"}</button>
+        <button style={btn("ghost", isMobile ? { flex: 1, justifyContent: "center" } : {})} onClick={copiar} disabled={!temConteudo}><Copy size={15} /> Copiar</button>
+        <button style={btn("ghost", isMobile ? { flex: 1, justifyContent: "center" } : {})} onClick={abrirWhats} disabled={!temConteudo}><MessageCircle size={15} /> WhatsApp</button>
       </div>
 
       {/* recibo imprimível — no mobile, montado em DOC_W e escalado (zoom) p/ caber, virando
@@ -319,6 +349,8 @@ export default function Financeiro() {
         )}
       </div>
       </div>
+      {/* espaço pro fim do documento rolar acima da barra fixa de saída (mobile) */}
+      {isMobile && <div style={{ height: 66 }} />}
     </div>
   );
 }
