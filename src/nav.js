@@ -48,6 +48,6 @@ export const MOBILE_SECTIONS = [
 ];
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.7.1";
+export const VERSION = "v1.8.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🪟 Ajustes agora abrem num modal leve e centrado em todo o app (mapa de cabos, test card, avançado da Screen), o seletor de predefinição ficou igual no Test Card e na Composição, e o Test Card ganhou os mesmos chips de tela do Cabeamento — tudo mais compacto e no mesmo padrão.";
+export const WHATS_NEW = "🟡 O app vestiu a marca: tema escuro neutro com o LIME led/lab nas ações, modo sol repaginado (primária preta com tinta lime), avisos em laranja e o relatório com acento oliva + tabelas zebradas. Nasceu também o Manual de Marca — daqui pra frente, tudo novo segue a mesma lei.";
