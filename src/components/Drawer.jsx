@@ -19,9 +19,10 @@ export default function Drawer({ open, title, onClose, children, footer, width =
           display: "flex", flexDirection: "column",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottom: `1px solid ${T.bd}` }}>
+        {/* safe-area no topo: no iOS (PWA) o cabeçalho sumia atrás da barra de status */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 16, paddingTop: "calc(16px + env(safe-area-inset-top))", borderBottom: `1px solid ${T.bd}` }}>
           <h3 style={{ color: T.txt, margin: 0, fontSize: 16 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: T.mut, cursor: "pointer" }}>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: "none", border: "none", color: T.mut, cursor: "pointer", padding: 8, margin: -8, display: "flex" }}>
             <X size={20} />
           </button>
         </div>

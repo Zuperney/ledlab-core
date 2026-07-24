@@ -69,7 +69,7 @@ export default function ProjectDetail({ project, onBack }) {
             // rótulo SEMPRE visível (mobile inclusive): ícone sem rótulo não tem "cheiro
             // de informação" — quem não decorou não acha a aba (NN/g; M3 proíbe remover)
             <button key={t.id} onClick={() => setTab(t.id)} title={t.label}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "11px 10px" : "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: isMobile ? 13 : 14, whiteSpace: "nowrap", flexShrink: 0 }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "11px 10px" : "10px 14px", minHeight: isMobile ? 44 : 0, background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: isMobile ? 13 : 14, whiteSpace: "nowrap", flexShrink: 0 }}>
               <Icon size={isMobile ? 15 : 16} /><span>{t.label}</span>
             </button>
           );

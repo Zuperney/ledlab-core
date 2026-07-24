@@ -1,10 +1,17 @@
 // ui/tokens.js
 // ─────────────────────────────────────────────────────────────
-// "UI Tokens" — a fonte única de cores do LedLab Core (tema Dark/Roxo).
+// "UI Tokens" — a fonte única de cores do LedLab Core.
 // Componentes e páginas importam T e usam via style inline (ex: color: T.txt).
+//
+// DOIS temas: Dark/Roxo (padrão) e SOL — claro de ALTO CONTRASTE pra operar
+// ao ar livre (contra o sol não se ganha com brilho, se ganha com contraste).
+// T é um objeto MUTÁVEL: applyTheme() troca os valores in-place e o App força
+// um remount (key) pra todo style inline reler — os canvas (test card, mapa de
+// cabos) redesenham no remount. PRINT (relatório) não muda com o tema.
 // ─────────────────────────────────────────────────────────────
 
-export const T = {
+// tema padrão: Dark/Roxo
+const DARK = {
   bg: "#0d0d1a", // fundo do app
   sb: "#11112a", // sidebar / painéis
   card: "#1a1a2e",
@@ -34,6 +41,51 @@ export const T = {
   zebra: "#14142a", // linhas zebradas de tabela
   overloadBg: "#3b0a0a", // fundo de badge de sobrecarga / cancelado
 };
+
+// tema SOL: claro de alto contraste (texto quase-preto, bordas fortes, acento
+// violeta ESCURECIDO pra passar de 4.5:1 sobre fundo claro). acM/acL viram
+// tons ESCUROS porque no app eles são usados como COR DE TEXTO de destaque.
+const SOL = {
+  bg: "#f2f2ee",
+  sb: "#e8e8e1",
+  card: "#ffffff",
+  card2: "#ebebf2",
+  bd: "#a9a9bd",
+  bdA: "#6d28d9",
+
+  acc: "#6d28d9",
+  acM: "#5b21b6",
+  acL: "#4c1d95",
+
+  txt: "#101018",
+  mut: "#333342",
+  dim: "#555566",
+  dim2: "#8a8a9a",
+
+  grn: "#047857",
+  amb: "#8a5a06",
+  red: "#b91c1c",
+
+  sel: "#ddd2f8",
+  strip: "#e9e1fb",
+  hero: "#efeafc",
+  ambBg: "#fbeecb",
+  grnBg: "#d3efe2",
+  indBg: "#e5dcfa",
+  zebra: "#ececec",
+  overloadBg: "#f8d9d9",
+};
+
+export const THEMES = { dark: DARK, sol: SOL };
+
+export const T = { ...DARK };
+
+// troca o tema IN-PLACE (quem chama força o re-render — ver App.jsx)
+export function applyTheme(name) {
+  Object.assign(T, THEMES[name] || DARK);
+  // o body tem background próprio no index.css (dark); acompanha o tema
+  if (typeof document !== "undefined") document.body.style.background = T.bg;
+}
 
 // Paleta categórica (cores de cabos, blocos de portas, etc.)
 export const PALETTE = [
