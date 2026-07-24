@@ -1,6 +1,6 @@
 // pages/project/ProjectTestCard.jsx — gerador de test card (canvas + export PNG).
 import { useRef, useEffect, useState } from "react";
-import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Download, Monitor, Save, Shapes, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useToast, usePrompt, useConfirm } from "../../store/UIContext.jsx";
 import { telaPortSlices } from "../../services/screenCabling.js";
@@ -14,6 +14,7 @@ import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 import Select from "../../components/Select.jsx";
 import BottomSheet from "../../components/BottomSheet.jsx";
+import ZoomTrio from "../../components/ZoomTrio.jsx";
 import { fileName } from "../../services/filenames.js";
 
 export default function ProjectTestCard({ project }) {
@@ -86,18 +87,6 @@ export default function ProjectTestCard({ project }) {
       a.click();
     }, "image/png");
   };
-
-  const zbtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 7, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };
-
-  // resumo do que está ativo (chip no mobile — informa sem ocupar; toque abre a folha)
-  const SCHEME_LBL = { cores: "Cores", arcoiris: "Arco-íris", cinza: "Cinza", solida: "Sólida" };
-  const resumo = [
-    SCHEME_LBL[o.scheme] || o.scheme,
-    !locked && `${elCount} elemento${elCount === 1 ? "" : "s"}`,
-    !locked && (o.info ? `caixa ${o.infoPos}` : "sem caixa"),
-    !locked && o.colorBar !== "off" && "color bar",
-    !locked && o.cableMap !== "off" && `cabos (${o.cableMap})`,
-  ].filter(Boolean).join(" · ");
 
   // controles (formato mobile) — moram na folha de Ajustes
   const controlesMobile = (
@@ -187,13 +176,6 @@ export default function ProjectTestCard({ project }) {
         <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} />{!isMobile && " PNG"}</button>
       </div>
 
-      {/* chip-resumo (mobile): o que está ativo, sem ocupar a tela — toque abre a folha */}
-      {isMobile && (
-        <button onClick={() => setAjustesOpen(true)}
-          style={{ display: "block", maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 999, color: T.mut, fontSize: 12, padding: "5px 12px", margin: "-6px 0 12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-          {resumo}
-        </button>
-      )}
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
         {/* DESKTOP: painel lateral fixo. No mobile os controles moram na folha de Ajustes. */}
@@ -263,11 +245,7 @@ export default function ProjectTestCard({ project }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: T.dim, fontSize: 12, marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
             <b style={{ color: T.acM }}>{tela.nome}</b>
             <span>{W}×{H} px · {tela.cols * tela.rows} gab{pitchMm ? ` · pitch ${pitchMm.toFixed(2)} mm` : ""}</span>
-            <span style={{ display: "inline-flex", gap: 6 }}>
-              <button style={zbtn} title="Diminuir" onClick={() => setZoom((z) => Math.max(0.25, z * 0.8))}><ZoomOut size={15} /></button>
-              <button style={zbtn} title="Enquadrar" onClick={() => setZoom(1)}><Maximize size={15} /></button>
-              <button style={zbtn} title="Aumentar" onClick={() => setZoom((z) => Math.min(4, z * 1.25))}><ZoomIn size={15} /></button>
-            </span>
+            <ZoomTrio onOut={() => setZoom((z) => Math.max(0.25, z * 0.8))} onFit={() => setZoom(1)} onIn={() => setZoom((z) => Math.min(4, z * 1.25))} />
           </div>
           <div style={{ overflow: "auto", background: "repeating-conic-gradient(#1a1a2e 0% 25%, #12122a 0% 50%) 50% / 24px 24px", borderRadius: 6, maxHeight: "70vh" }} className="tbl-scroll">
             <canvas ref={canvasRef} style={{ width: `${zoom * 100}%`, height: "auto", display: "block", imageRendering: "pixelated" }} />

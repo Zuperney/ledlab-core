@@ -6,7 +6,7 @@
 import { useRef, useState, useMemo, useEffect } from "react";
 import { Download, LayoutGrid, Move } from "lucide-react";
 import HelpTip from "../../components/HelpTip.jsx";
-import { IconNumeros, IconInfoBox, IconLadoALado, IconRegioes } from "../../components/icons/LedIcons.jsx";
+import { IconLadoALado, IconRegioes } from "../../components/icons/LedIcons.jsx";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useToast } from "../../store/UIContext.jsx";
@@ -217,18 +217,10 @@ export default function ProjectComposicao({ project, patch }) {
             <option value="cabsig">Mapa de cabos (sinal)</option>
             {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Select>
-          <Select value={style.scheme} onChange={(e) => setStyle({ scheme: e.target.value })} title="Padrão" style={{ ...selSty, flex: "1 1 110px", minWidth: 0 }}>
-            <option value="cores">Cores (blocos)</option>
-            <option value="arcoiris">Arco-íris</option>
-            <option value="cinza">Escala de cinza</option>
-            <option value="solida">Cor sólida</option>
-          </Select>
-          {/* os 3 juntos num grupo: quebram de linha JUNTOS (não um a um) */}
-          <span style={{ display: "inline-flex", gap: 8, flexShrink: 0 }}>
-            <button style={togBtn(style.numbers)} onClick={() => setStyle({ numbers: !style.numbers })} title="Numerar gabinetes" aria-pressed={!!style.numbers}><IconNumeros /></button>
-            <button style={togBtn(style.info)} onClick={() => setStyle({ info: !style.info })} title="Caixa de info" aria-pressed={!!style.info}><IconInfoBox /></button>
-            <button style={togBtn(false)} onClick={tile} title="Dispor lado a lado" aria-label="Dispor lado a lado"><IconLadoALado /></button>
-          </span>
+          {/* enxuto (pedido do usuário): o VISUAL vem inteiro da predefinição — controle
+              fino se monta no Test Card e se salva como predefinição (deletável lá e nas
+              Configurações › Dados) */}
+          <button style={togBtn(false)} onClick={tile} title="Dispor lado a lado" aria-label="Dispor lado a lado"><IconLadoALado /></button>
           <button style={btn("primary", { padding: "0 13px", height: 38, fontSize: 13, marginLeft: "auto" })} onClick={exportPng} title="Exportar PNG"><Download size={15} />{!isMobile && " PNG"}</button>
         </div>
         <div style={{ color: T.dim, fontSize: 12, marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
