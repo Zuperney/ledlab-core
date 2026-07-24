@@ -11,6 +11,7 @@
 // Screen igual o sinal — o modo LIVRE parte os circuitos como a energia realmente
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
 import { cableMeta, cablePorts, balancedChunks, buildAuto } from "./cabling.js";
+import { acTone } from "./electricalCalc.js";
 import { canvasCells, snakeCells, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
 import { screenTelas, screenOfTela, unassignedTelas, screenSize } from "./screens.js";
 
@@ -119,7 +120,9 @@ export function screenPortSummary(screen, telas, kind = "sinal", numbering = "ro
     };
     if (kind === "ac") {
       const load = port.length * m.ampCab;
-      return { ...base, load, pct: m.connRating ? Math.round((load / m.connRating) * 100) : 0, over: m.connRating ? load > m.connRating + 0.001 : false };
+      const pct = m.connRating ? Math.round((load / m.connRating) * 100) : 0;
+      // regra dos 80% (carga contínua): warn = passou da margem, over = estourou o conector
+      return { ...base, load, pct, over: m.connRating ? load > m.connRating + 0.001 : false, warn: acTone(pct) === "warn" };
     }
     const usoPx = m.sinalRule === "px" ? port.length * m.pxPerCab : portBboxPx(port);
     return { ...base, pct: m.pxPort ? Math.round((usoPx / m.pxPort) * 100) : 0, over: m.pxPort ? usoPx > m.pxPort + 1 : false };

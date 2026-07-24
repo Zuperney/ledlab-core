@@ -169,10 +169,10 @@ export default function Settings({ embedded = false }) {
 
         <div style={{ ...subLabel, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.bd}` }}>Margem de segurança do cabo AC</div>
         <div style={subDesc}>Regra dos 80% pra carga contínua (show longo). 100% = sem margem.</div>
-        <Select value={String(prefs.acMargin ?? 1)} title="Margem do cabo AC" onChange={(e) => setPrefs({ ...prefs, acMargin: Number(e.target.value) })} style={selStyle}>
-          <option value="1">100% — sem margem (padrão)</option>
+        <Select value={String(prefs.acMargin ?? 0.8)} title="Margem do cabo AC" onChange={(e) => setPrefs({ ...prefs, acMargin: Number(e.target.value) })} style={selStyle}>
+          <option value="0.8">80% — carga contínua (padrão)</option>
           <option value="0.9">90% — margem leve</option>
-          <option value="0.8">80% — carga contínua</option>
+          <option value="1">100% — sem margem</option>
         </Select>
       </Section>
 

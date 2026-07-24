@@ -110,7 +110,9 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const cells = screenCells(active, telas);
   const faltam = mode === "livre" ? unassignedCount(active, telas, kind) : 0;
   const anyOver = summary.some((p) => p.over);
-  const status = faltam ? { l: `Faltam ${faltam}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
+  // regra dos 80%: cabo AC acima da margem de carga contínua = atenção (laranja)
+  const anyWarn = summary.some((p) => p.warn);
+  const status = faltam ? { l: `Faltam ${faltam}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : anyWarn ? { l: "Acima de 80%", c: T.amb } : { l: "OK", c: T.grn };
 
   const clickCell = (cell) => {
     if (mode !== "livre" || drag.current?.moved) return;
@@ -236,10 +238,10 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                 const isAct = mode === "livre" && i === activeCable;
                 return (
                   <div key={i} onClick={mode === "livre" ? () => setActiveCable(activeCable === i ? null : i) : undefined}
-                    style={{ display: "flex", alignItems: "center", gap: 8, background: isAct ? T.sel : T.card2, border: `1px solid ${p.over ? T.red : isAct ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: mode === "livre" ? "pointer" : "default" }}>
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: isAct ? T.sel : T.card2, border: `1px solid ${p.over ? T.red : p.warn ? T.amb : isAct ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: mode === "livre" ? "pointer" : "default" }}>
                     <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(i), flexShrink: 0 }} />
                     <span style={{ color: T.txt, fontWeight: 600 }}>{word} {p.n}</span>
-                    <span style={{ color: p.over ? T.red : T.mut }}>{isAc ? `${p.load.toFixed(1)} A (${p.pct}%)` : `${p.pct}%`}</span>
+                    <span style={{ color: p.over ? T.red : p.warn ? T.amb : T.mut }}>{isAc ? `${p.load.toFixed(1)} A (${p.pct}%)` : `${p.pct}%`}</span>
                     <span style={{ color: T.dim }}>· {p.count} gab{p.cruza ? ` · ${p.telas.join(" → ")}` : ""}</span>
                     {mode === "livre" && <X size={13} color={T.dim} onClick={(e) => { e.stopPropagation(); removerCabo(i); }} style={{ cursor: "pointer" }} />}
                   </div>

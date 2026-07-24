@@ -22,6 +22,16 @@ export const VOLT = {
   "380_tri":  { div: 380 * SQRT3, dl: "380 × √3", label: "Trifásico (F+F+F+N)", note: "",                  ph: 3, g: "380", s: "380V·3F+N" },
 };
 
+// ── Regra dos 80% (carga contínua) ──
+// Circuito carregado por horas (painel de LED em show) não deve passar de 80%
+// da capacidade nominal do conector/proteção (prática NBR 5410/NEC p/ carga
+// contínua — o mesmo racional do disjuntor × 1.25 logo abaixo, visto do outro
+// lado). Acima de 80% = ATENÇÃO (laranja); acima de 100% = ESTOURO (vermelho).
+export const AC_WARN_PCT = 80;
+export function acTone(pct) {
+  return pct > 100 ? "over" : pct > AC_WARN_PCT ? "warn" : "ok";
+}
+
 // Escada de disjuntores IEC. Escolhe o 1º padrão >= corrente × 1.25 (margem 25%).
 const BREAKER_LADDER = [10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125];
 
