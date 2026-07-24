@@ -146,9 +146,17 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
 
   it("F3: sinal e AC levam o mapa de cabos VISUAL (nó svg por tela)", () => {
     const j = JSON.stringify(build("Completo").content);
-    // 2 telas × (sinal + AC) = 4 mapas
-    expect((j.match(/"svg":"<svg/g) || []).length).toBe(4);
+    // esquema das telas em fila + 2 telas × (sinal + AC) = 5 svgs
+    expect((j.match(/"svg":"<svg/g) || []).length).toBe(5);
     expect(j).toContain("#0d0d1a"); // fundo do mapa (identidade visual v1.5.3)
+  });
+
+  it("F3: Vídeo abre com o esquema das telas em fila + legenda da resolução linear", () => {
+    const j = JSON.stringify(build("Completo").content);
+    expect(j).toContain("As telas em fila");
+    expect(j).toContain("resolução linear ");
+    // 10×104 + 4×104 = 1.456 px de largura linear · altura 6×104
+    expect(j).toContain("1.456 × 624 px");
   });
 
   it("numeração de seção segue a ordem exibida (Completo começa em 01)", () => {

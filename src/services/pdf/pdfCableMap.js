@@ -16,6 +16,8 @@ const NSIZE = { sm: 0.26, md: 0.34, lg: 0.42 }; // fração do gabinete → font
 const CELL = 40; // tamanho da célula no modo legado (como o CableMap do DOM)
 
 const r2 = (n) => Math.round(n * 100) / 100;
+// nome de tela é texto LIVRE — escapa o que quebraria o XML do SVG
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const cx = (c) => c.x + c.w / 2;
 const cy = (c) => c.y + c.h / 2;
 
@@ -112,6 +114,47 @@ export function screenMapSvg(screen, telas, kind, numbering, colorOf, cr, opts) 
     ports.map((port) => port.map((c) => ({ k: cellKey(c), x: c.x, y: c.y, w: c.w, h: c.h }))),
     colorOf, cr, opts
   );
+}
+
+// ESQUEMA DAS TELAS EM FILA (seção Vídeo) — espelho do ReportTelasCanvas do DOM:
+// cada tela é um bloco na cor do MODELO (mesma sequência dos chips "Gabinetes
+// utilizados"), nome dentro, base alinhada no chão; a largura somada é a
+// resolução linear do projeto. Devolve também a resolução linear pra legenda.
+export function telasFilaSvg(telas, colorOf, { maxWidth = 500, maxHeight = 150 } = {}) {
+  if (!telas?.length) return null;
+  const dimOf = (t) => ({
+    w: (t.cols || 1) * (parseFloat(t.gabinete?.resX) || 128),
+    h: (t.rows || 1) * (parseFloat(t.gabinete?.resY) || 128),
+  });
+  const models = [...new Set(telas.filter((t) => t.gabinete?.nome).map((t) => t.gabinete.nome))];
+  const colOf = (t) => colorOf(Math.max(0, models.indexOf(t.gabinete?.nome)));
+
+  const dims = telas.map(dimOf);
+  const maxH = Math.max(...dims.map((d) => d.h), 1);
+  const totalW = dims.reduce((s, d) => s + d.w, 0) || 1;
+  const scale = Math.min(maxWidth / totalW, maxHeight / maxH);
+  const W = totalW * scale, H = maxH * scale;
+
+  const out = [`<rect x="0" y="0" width="${r2(W)}" height="${r2(H)}" rx="6" fill="${BG}"/>`];
+  let xAcc = 0;
+  telas.forEach((t, i) => {
+    const d = dims[i];
+    const x = xAcc * scale, y = (maxH - d.h) * scale, w = d.w * scale, h = d.h * scale;
+    xAcc += d.w;
+    const col = colOf(t);
+    const nome = String(t.nome || "Tela");
+    const fs = Math.max(5, Math.min(14, Math.min(h * 0.26, w / (Math.max(4, nome.length) * 0.62))));
+    const showRes = w > 56 && h > fs * 3.4; // resolução só quando cabe no bloco
+    out.push(`<rect x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" fill="${col}" fill-opacity="0.2" stroke="${col}" stroke-width="1.5"/>`);
+    if (w > 20) {
+      const ty = y + (showRes ? h / 2 - fs * 0.2 : h / 2) + fs * 0.35; // baseline manual (sem dominant-baseline)
+      out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty)}" ${textAttrs(fs, "middle")} fill="none" stroke="${BG}" stroke-width="${r2(fs * 0.14)}">${esc(nome)}</text>`);
+      out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty)}" ${textAttrs(fs, "middle")} fill="#ffffff">${esc(nome)}</text>`);
+      if (showRes) out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty + fs * 1.05)}" font-family="Helvetica" font-size="${r2(fs * 0.72)}" text-anchor="middle" fill="#cbd5e1">${d.w} × ${d.h}</text>`);
+    }
+  });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${r2(W)}" height="${r2(H)}" viewBox="0 0 ${r2(W)} ${r2(H)}">${out.join("")}</svg>`;
+  return { svg, width: r2(W), height: r2(H), linW: Math.round(totalW), linH: Math.round(maxH) };
 }
 
 // mapa de uma TELA (modo legado) — grade cols×rows, numeração global via offset

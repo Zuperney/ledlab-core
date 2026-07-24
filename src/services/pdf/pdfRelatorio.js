@@ -14,7 +14,7 @@ import { aggregateElectrical, projectRollup, screenRollup } from "../projectCalc
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../cabling.js";
 import { hasScreens, projectScreenReport, telasSemScreen } from "../screenCabling.js";
 import { pixelMapPorts } from "../pixelMap.js";
-import { screenMapSvg, telaMapSvg } from "./pdfCableMap.js";
+import { screenMapSvg, telaMapSvg, telasFilaSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, portLabel, videoOf } from "../reportContent.js";
 
@@ -289,8 +289,14 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
   })();
 
   // ── VÍDEO / RESOLUÇÃO ──
+  const fila = showVideo ? telasFilaSvg(telas, colorOf) : null;
   const video = !showVideo ? [] : [
     sectionHead(sec(), "Vídeo / Resolução", "Sinal e proporção", DISC.video),
+    { text: "As telas em fila (nome de cada uma no seu bloco) — a largura somada é a resolução linear do projeto, pela altura da tela maior.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
+    ...(fila ? [
+      { svg: fila.svg, width: fila.width, margin: [0, 0, 0, 4] },
+      { text: [{ text: "Telas em fila — resolução linear " }, { text: `${ptBR(fila.linW)} × ${ptBR(fila.linH)} px`, bold: true, color: PRINT.ink }], fontSize: 8, color: PRINT.dim, margin: [0, 0, 0, 8] },
+    ] : []),
     {
       table: {
         headerRows: 1,
