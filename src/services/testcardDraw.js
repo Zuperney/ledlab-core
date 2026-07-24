@@ -16,6 +16,17 @@ export const PRESETS = {
   cabsig: { scheme: "cores", numbers: true, junctions: true, circle: false, cross: false, corner: false, side: false, colorBar: "off", cableMap: "sinal", info: true },
 };
 
+// rótulos das predefinições do SISTEMA (uma fonte só pros selects do Test Card,
+// da Composição e das Configurações — que também permitem OCULTÁ-las via
+// prefs.tcHiddenPresets)
+export const PRESET_LABELS = {
+  map: "Mapa de gabinetes",
+  align: "Alinhamento / geometria",
+  solid: "Cor sólida",
+  bars: "Barras de cor",
+  cabsig: "Mapa de cabos (sinal)",
+};
+
 function textOn(hex) {
   const h = (hex || "").replace("#", "");
   if (h.length < 6) return "#fff";

@@ -2,7 +2,7 @@
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
 import { useRef, useState, useEffect } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard, Cable } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard, Cable, EyeOff } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { VERSION } from "../nav.js";
 import { useAuth } from "../store/AuthContext.jsx";
@@ -10,6 +10,7 @@ import { useSync } from "../store/SyncContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
 import { isPersisted, requestPersist, storageUsage } from "../services/storage.js";
 import { VOLT } from "../services/electricalCalc.js";
+import { PRESET_LABELS } from "../services/testcardDraw.js";
 import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
 import Select from "../components/Select.jsx";
@@ -197,16 +198,32 @@ export default function Settings({ embedded = false }) {
       </>)}
 
       {group === "dados" && (<>
-      {tcPresets.length > 0 && (
-        <Section icon={Monitor} title="Test Card" subtitle={`${tcPresets.length} predefiniç${tcPresets.length === 1 ? "ão" : "ões"} salva${tcPresets.length === 1 ? "" : "s"}`} defaultOpen={open}>
+      <Section icon={Monitor} title="Predefinições de test card" subtitle="Do sistema (ocultáveis) e as suas salvas" defaultOpen={open}>
+        <div style={subLabel}>Do sistema</div>
+        <div style={subDesc}>Aparecem nos seletores do Test Card e da Composição. Oculte as que você não usa — dá pra restaurar quando quiser.</div>
+        {Object.entries(PRESET_LABELS).map(([k, l]) => {
+          const hidden = (prefs.tcHiddenPresets || []).includes(k);
+          return (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "9px 0", borderTop: `1px solid ${T.bd}` }}>
+              <span style={{ color: hidden ? T.dim : T.txt, fontSize: 14, textDecoration: hidden ? "line-through" : "none" }}>{l}</span>
+              <button style={btn("ghost")} onClick={() => {
+                const cur = prefs.tcHiddenPresets || [];
+                setPrefs({ ...prefs, tcHiddenPresets: hidden ? cur.filter((x) => x !== k) : [...cur, k] });
+                toast(hidden ? "Predefinição restaurada" : "Predefinição ocultada");
+              }}>{hidden ? <><RotateCcw size={14} /> Restaurar</> : <><EyeOff size={14} /> Ocultar</>}</button>
+            </div>
+          );
+        })}
+        {tcPresets.length > 0 && (<>
+          <div style={{ ...subLabel, marginTop: 18, paddingTop: 14, borderTop: `1px solid ${T.bd}` }}>Salvas por você</div>
           {tcPresets.map((p) => (
-            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderTop: `1px solid ${T.bd}` }}>
+            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "9px 0", borderTop: `1px solid ${T.bd}` }}>
               <span style={{ color: T.txt, fontSize: 14 }}>{p.name}</span>
               <button style={btn("danger")} onClick={async () => { if (await confirm({ title: "Excluir predefinição?", message: `"${p.name}" será removida.` })) { setTcPresets(tcPresets.filter((x) => x.id !== p.id)); toast("Predefinição excluída"); } }}><Trash2 size={14} /> Excluir</button>
             </div>
           ))}
-        </Section>
-      )}
+        </>)}
+      </Section>
 
       <Section icon={Cloud} title="Conta & sincronização" subtitle="Acesse seus dados de qualquer aparelho (opcional)" defaultOpen={false}>
         <AccountSection />

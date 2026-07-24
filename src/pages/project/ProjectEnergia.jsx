@@ -18,9 +18,10 @@ export default function ProjectEnergia({ project, patch }) {
   return (
     <div>
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        {/* mobile: os 3 controles NUMA linha (pedido do usuário) — a tensão encolhe, os chips não */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: isMobile ? "nowrap" : "wrap" }}>
           <Select value={cfg.vk} onChange={(e) => setCfg({ vk: e.target.value })} title="Tensão do evento"
-            style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, fontWeight: 600 }}>
+            style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, fontWeight: 600, ...(isMobile ? { flex: "1 1 0", minWidth: 0, overflow: "hidden" } : {}) }}>
             {Object.entries(VOLT).map(([k, v]) => <option key={k} value={k}>{v.g}V · {v.label}</option>)}
           </Select>
           <ValueChip label="Brilho" pct={Math.round(cfg.brilho * 100)} active={open === "brilho"} onClick={() => setOpen((o) => (o === "brilho" ? null : "brilho"))} />

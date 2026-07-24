@@ -6,7 +6,7 @@
 // segurança do powerCON. Numeração 1..N por Screen. Estouro em vermelho: mostra, não
 // bloqueia (sinal = px/porta; AC = corrente do conector).
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, TriangleAlert, Settings2 } from "lucide-react";
+import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, TriangleAlert } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
 import Select from "../../components/Select.jsx";
@@ -27,7 +27,7 @@ const key = (c) => `${c.telaId}:${c.c},${c.r}`;
 const ibtn = (extra = {}) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 8, border: `1px solid ${T.bd}`, background: T.card2, color: T.txt, cursor: "pointer", ...extra });
 const sep = { width: 1, height: 22, background: T.bd, margin: "0 2px" };
 
-export default function ScreenCabling({ project, patch, kind = "sinal" }) {
+export default function ScreenCabling({ project, patch, kind = "sinal", advOpen = false, onAdvClose }) {
   const isAc = kind === "ac";
   const word = isAc ? "Cabo" : "Porta";
   const telas = project.telas || [];
@@ -46,7 +46,6 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [grabbing, setGrabbing] = useState(false);
-  const [advOpen, setAdvOpen] = useState(false); // Avançado da Screen — abre em modal LEVE
   const stageRef = useRef(null);
   const drag = useRef(null);
 
@@ -145,12 +144,11 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
     : rule === "px"
       ? [["auto", "Automática"], ["livre", "Livre"]]
       : [["area", "Área"], ["linha", "Linha"], ["coluna", "Coluna"], ["livre", "Livre"]];
-  const dispLabel = (dispOpts.find(([v]) => v === disp) || [])[1] || disp;
-  const resumo = [isAc ? null : (rule === "px" ? "Pixels reais" : "Área"), dispLabel, isAc ? null : `${cfg.bits === 10 ? 10 : 8}-bit`].filter(Boolean).join(" · ");
 
   return (
     <div>
-      {/* F2/F3: chips de Screen (contexto criável) + status + Avançado (ícone → modal leve) */}
+      {/* F3: chips de Screen (contexto criável) + status SÓ quando há problema — o "OK"
+          verde permanente era ruído (feedback do usuário); silêncio = tudo certo */}
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 12 }}>
         <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", alignItems: "center", minWidth: 0, flex: 1 }}>
           {screens.map((s) => {
@@ -162,11 +160,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
             );
           })}
         </div>
-        <StatusPill color={status.c} label={status.l} />
-        <button onClick={() => setAdvOpen(true)} title={`Avançado — ${resumo}`} aria-label="Avançado da Screen"
-          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, cursor: "pointer", border: `1px solid ${advOpen ? T.acc : T.bd}`, background: advOpen ? T.sel : T.card2, color: advOpen ? T.acM : T.mut, flexShrink: 0, padding: 0 }}>
-          <Settings2 size={16} />
-        </button>
+        {status.c !== T.grn && <StatusPill color={status.c} label={status.l} />}
       </div>
 
       {!screenTelas(active, telas).length ? (
@@ -257,9 +251,10 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
         </>
       )}
 
-      {/* Avançado da Screen: modal LEVE (não preenche a tela) — pedido do usuário */}
+      {/* Avançado da Screen: modal LEVE (não preenche a tela) — botão mora na linha
+          das sub-abas (ProjectCabeamento); o modal fica aqui, onde vive o contexto */}
       {advOpen && (
-        <LightModal title={`Avançado · ${active.nome} · ${isAc ? "AC" : "Sinal"}`} onClose={() => setAdvOpen(false)}>
+        <LightModal title={`Avançado · ${active.nome} · ${isAc ? "AC" : "Sinal"}`} onClose={onAdvClose}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {!isAc && <Drop fluid label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função)." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
             <Drop fluid label="Disposição" title="Como a corrente é cortada em cabos" options={dispOpts} value={disp} onChange={setDisp} />

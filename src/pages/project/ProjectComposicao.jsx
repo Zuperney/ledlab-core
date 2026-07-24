@@ -17,7 +17,7 @@ import NumField from "../../components/NumField.jsx";
 import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { telaPortSlices } from "../../services/screenCabling.js";
-import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
+import { draw, DEFAULTS, PRESETS, PRESET_LABELS } from "../../services/testcardDraw.js";
 import { fileName } from "../../services/filenames.js";
 import { overlappingIds } from "../../services/layout.js";
 
@@ -210,11 +210,8 @@ export default function ProjectComposicao({ project, patch }) {
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} title="Predefinição" style={{ ...selSty, flex: "1 1 130px", minWidth: 0 }}>
             <option value="">Predefinição…</option>
-            <option value="map">Mapa de gabinetes</option>
-            <option value="align">Alinhamento / geometria</option>
-            <option value="solid">Cor sólida</option>
-            <option value="bars">Barras de cor</option>
-            <option value="cabsig">Mapa de cabos (sinal)</option>
+            {/* as do sistema podem ser OCULTADAS nas Configurações › Dados › Test Card */}
+            {Object.entries(PRESET_LABELS).filter(([k]) => !(prefs.tcHiddenPresets || []).includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Select>
           {/* enxuto (pedido do usuário): o VISUAL vem inteiro da predefinição — controle
