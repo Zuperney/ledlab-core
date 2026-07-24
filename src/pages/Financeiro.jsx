@@ -71,12 +71,23 @@ export default function Financeiro() {
   const setFrom = (v) => { setPreset("custom"); setRange((r) => ({ ...r, from: v })); };
   const setTo = (v) => { setPreset("custom"); setRange((r) => ({ ...r, to: v })); };
 
-  const clientes = useMemo(() => [...new Set(worklog.map((e) => e.clienteLivre).filter(Boolean))].sort(), [worklog]);
+  // cliente é texto livre nos lançamentos: compara ignorando caixa/espaço, senão
+  // "Mega Led" ≠ "MEGA LED" e o fixo mensal some do recibo (LLC-03)
+  const cliEq = (a, b) => (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
+  const fixoCfg = prefs.fixo || { valor: 0, cliente: "" };
+  const fixoConfigurado = (Number(fixoCfg.valor) || 0) > 0;
+
+  const clientes = useMemo(() => {
+    const list = [...new Set(worklog.map((e) => e.clienteLivre).filter(Boolean))];
+    // o cliente do fixo entra mesmo sem cachê no período — recibo só do fixo existe
+    if (fixoConfigurado && fixoCfg.cliente && !list.some((c) => cliEq(c, fixoCfg.cliente))) list.push(fixoCfg.cliente);
+    return list.sort();
+  }, [worklog, fixoConfigurado, fixoCfg.cliente]);
 
   const grupos = useMemo(() => {
     const filtered = worklog.filter((e) =>
       (e.dataRef || "") >= range.from && (e.dataRef || "") <= range.to &&
-      (cliente === "" || (e.clienteLivre || "") === cliente)
+      (cliente === "" || cliEq(e.clienteLivre, cliente))
     );
     return porDia(filtered);
   }, [worklog, range.from, range.to, cliente, porDia]);
@@ -86,10 +97,10 @@ export default function Financeiro() {
   const nCaches = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.cobrado ? (it.breakdown.cachês || 0) : 0), 0), 0);
   const totalMin = grupos.reduce((s, g) => s + g.itens.reduce((a, it) => a + (it.breakdown.duracaoMin ?? 0), 0), 0);
 
-  // fixo mensal (retainer): só quando configurado e o filtro de cliente casa (ou é "Todos")
-  const fixoCfg = prefs.fixo || { valor: 0, cliente: "" };
-  const fixoAtivo = (Number(fixoCfg.valor) || 0) > 0 && (cliente === "" || cliente === fixoCfg.cliente);
-  const fixoValor = fixoAtivo && incluirFixo ? Number(fixoCfg.valor) : 0;
+  // fixo mensal (retainer): desacoplado do filtro — aplicável com "Todos" ou com o
+  // PRÓPRIO cliente do fixo; com outro cliente, avisa que ficou de fora (LLC-03)
+  const fixoAplicavel = fixoConfigurado && (cliente === "" || cliEq(cliente, fixoCfg.cliente));
+  const fixoValor = fixoAplicavel && incluirFixo ? Number(fixoCfg.valor) : 0;
   const grandTotal = total + fixoValor;
   const temConteudo = nDias > 0 || fixoValor > 0;
 
@@ -158,11 +169,16 @@ export default function Financeiro() {
           <div><div style={lbl}>Pagador — quem paga (Recebi de)</div><input value={pagNome} onChange={(e) => savePagador(e.target.value, pagDoc)} placeholder="Nome / razão social do cliente" style={input()} /></div>
           <div><div style={lbl}>CPF / CNPJ do pagador</div><input value={pagDoc} onChange={(e) => savePagador(pagNome, e.target.value)} placeholder="Opcional" style={input()} /></div>
         </div>
-        {fixoAtivo && (
+        {fixoAplicavel && (
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: T.txt, fontSize: 14, cursor: "pointer" }}>
             <input type="checkbox" checked={incluirFixo} onChange={(e) => setIncluirFixo(e.target.checked)} style={{ width: 16, height: 16, accentColor: T.acc, cursor: "pointer" }} />
             Incluir fixo mensal{fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} — <b>{brl(fixoCfg.valor)}</b>
           </label>
+        )}
+        {fixoConfigurado && !fixoAplicavel && (
+          <div style={{ marginTop: 12, color: T.amb, fontSize: 12.5 }}>
+            Fixo mensal{fixoCfg.cliente ? ` (${fixoCfg.cliente})` : ""} não incluído — o recibo é de outro cliente.
+          </div>
         )}
       </div>
 
