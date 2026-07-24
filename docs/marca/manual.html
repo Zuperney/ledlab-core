@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual de Marca — LedLab Core</title>
+<style>
+  /* ── a paleta NOVA, vestida pelo próprio manual ── */
+  :root {
+    --bg:#0f0f0d; --sb:#131311; --card:#191917; --card2:#121210;
+    --bd:#2b2b26; --bdA:#5a5f14;
+    --acc:#ebf51e; --accInk:#111111; --acM:#e3ee45; --acL:#f2f877;
+    --txt:#ececea; --mut:#a6a69c; --dim:#72726a; --dim2:#4e4e47;
+    --sel:#272b0d; --strip:#1b1d10; --zebra:#151513;
+    --grn:#34d399; --amb:#fb923c; --red:#f87171;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,sans-serif; line-height:1.55; font-size:15px; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 40px 18px 90px; }
+
+  .logo { display:inline-flex; flex-direction:column; background:var(--acc); color:var(--accInk); font-weight:800; line-height:.95; padding:10px 12px; border-radius:10px; font-size:22px; letter-spacing:-.02em; }
+  h1 { font-size: clamp(1.6rem, 5vw, 2.3rem); margin: 18px 0 6px; letter-spacing:-.015em; }
+  .lede { color:var(--mut); max-width:64ch; margin:0 0 4px; }
+  .meta { color:var(--dim); font-size:.78rem; }
+
+  section { margin-top: 56px; }
+  .eyebrow { color:var(--acM); font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-bottom:6px; }
+  h2 { font-size:1.35rem; margin:0 0 6px; }
+  h3 { font-size:1rem; margin:26px 0 8px; }
+  p { max-width: 70ch; margin: 0 0 12px; }
+  .quiet { color:var(--mut); font-size:.92rem; }
+  .lei { border-left:3px solid var(--acc); background:var(--strip); padding:10px 14px; border-radius:0 10px 10px 0; color:var(--mut); font-size:.92rem; margin:14px 0; }
+  .lei b { color:var(--txt); }
+  code { background:var(--card2); border:1px solid var(--bd); border-radius:5px; padding:1px 6px; font-size:.85em; font-family:ui-monospace,Consolas,monospace; }
+
+  /* swatches */
+  .swatches { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-top:14px; }
+  .sw { border:1px solid var(--bd); border-radius:10px; overflow:hidden; background:var(--card); }
+  .sw .chip { height:52px; }
+  .sw .info { padding:8px 10px; font-size:.75rem; }
+  .sw .info b { display:block; font-size:.8rem; }
+  .sw .info span { color:var(--dim); font-family:ui-monospace,monospace; }
+
+  /* demo widgets */
+  .demo { background:var(--card); border:1px solid var(--bd); border-radius:12px; padding:16px; margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .btn { display:inline-flex; align-items:center; gap:7px; border-radius:9px; padding:9px 15px; font-weight:700; font-size:13.5px; border:1px solid transparent; cursor:default; }
+  .btn.primary { background:var(--acc); color:var(--accInk); }
+  .btn.ghost { background:var(--card2); color:var(--mut); border-color:var(--bd); }
+  .btn.danger { background:transparent; color:var(--red); border-color:var(--bd); }
+  .seg { display:inline-flex; gap:3px; background:var(--card2); border:1px solid var(--bd); border-radius:10px; padding:3px; }
+  .seg span { padding:7px 13px; border-radius:7px; font-size:13px; font-weight:600; color:var(--mut); }
+  .seg .on { background:var(--acc); color:var(--accInk); }
+  .pill { padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700; }
+  .chip-p { background:var(--card2); border:1px solid var(--bd); border-radius:999px; color:var(--mut); font-size:12px; padding:4px 11px; }
+  .chip-c { background:var(--sel); border:1px solid var(--acc); border-radius:8px; color:var(--txt); font-size:13px; font-weight:600; padding:6px 12px; }
+  .toast { background:var(--card); border:1px solid var(--bd); border-left:3px solid var(--grn); border-radius:10px; padding:10px 14px; font-size:13.5px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+  .qm { width:22px; height:22px; border-radius:50%; border:1px solid var(--bd); background:var(--card2); color:var(--dim); font-size:12px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+
+  /* tables */
+  .scroll { overflow-x:auto; border:1px solid var(--bd); border-radius:10px; margin-top:12px; }
+  table { border-collapse:collapse; width:100%; min-width:560px; font-size:.85rem; background:var(--card); }
+  th,td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--bd); vertical-align:top; }
+  th { font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); background:var(--card2); }
+  tr:nth-child(even) td { background:var(--zebra); }
+  td:first-child { font-family:ui-monospace,monospace; font-size:.8rem; color:var(--acM); white-space:nowrap; }
+  td:nth-child(2) { color:var(--mut); }
+
+  /* sol preview */
+  .sol { background:#f4f4ee; color:#141410; border-radius:12px; border:1px solid #a9a99b; padding:16px; margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .sol .btn.primary { background:#161711; color:#ebf51e; }
+  .sol .btn.ghost { background:#ecece4; color:#3c3c34; border-color:#a9a99b; }
+  .sol .chip-p { background:#ecece4; border-color:#a9a99b; color:#3c3c34; }
+  .sol .pill.warn { background:#fdeacd; color:#b45309; }
+
+  svg.ic { vertical-align:-3px; }
+  .icgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; margin-top:12px; }
+  .icitem { display:flex; gap:10px; align-items:center; background:var(--card); border:1px solid var(--bd); border-radius:10px; padding:9px 12px; font-size:.82rem; color:var(--mut); }
+  .icitem b { color:var(--txt); display:block; font-size:.85rem; }
+  .icbox { width:34px; height:34px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); display:flex; align-items:center; justify-content:center; color:var(--acM); flex-shrink:0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="logo">led<span>lab</span></span>
+  <h1>Manual de Marca &amp; Sistema</h1>
+  <p class="lede">A lei da interface do LedLab Core. <b>Regra zero: não inventa</b> — antes de criar qualquer coisa nova, lê o manual e implementa o que ele manda. Caso novo? O manual absorve o caso (proposta → aprovação → commit), nunca uma exceção solta.</p>
+  <p class="meta">docs/marca/manual.md (a lei, lida pela IA) · manual.html (esta, visual) · CLAUDE.md aponta pra cá</p>
+
+  <!-- ═══ MARCA ═══ -->
+  <section>
+    <div class="eyebrow">01 · A marca</div>
+    <h2>led/lab — lime e preto, empilhado</h2>
+    <p class="quiet">Tinta preta sobre bloco lime, cantos arredondados. Respiro mínimo = altura do "l"; nunca menor que 24px; nunca recolorido, esticado ou sombreado. Escreve-se <b>LedLab Core</b> (produto), <b>led/lab</b> (marca).</p>
+    <div class="lei"><b>O lime nunca significa estado.</b> Aviso, OK e erro têm as suas cores (§04). Lime = identidade e ação — só.</div>
+  </section>
+
+  <!-- ═══ COR ═══ -->
+  <section>
+    <div class="eyebrow">02 · Cor — tema escuro "Palco" (padrão)</div>
+    <h2>Quase-preto neutro + lime de ação</h2>
+    <p class="quiet">Morre o roxo-azulado: os fundos viram quase-pretos neutros e a <b>ação primária veste a marca</b> — lime com tinta preta. Este documento já está vestido na paleta.</p>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#ebf51e"></div><div class="info"><b>acc — Lime LedLab</b><span>#ebf51e · tinta #111</span></div></div>
+      <div class="sw"><div class="chip" style="background:#0f0f0d"></div><div class="info"><b>bg</b><span>#0f0f0d</span></div></div>
+      <div class="sw"><div class="chip" style="background:#191917"></div><div class="info"><b>card</b><span>#191917</span></div></div>
+      <div class="sw"><div class="chip" style="background:#121210"></div><div class="info"><b>card2</b><span>#121210</span></div></div>
+      <div class="sw"><div class="chip" style="background:#2b2b26"></div><div class="info"><b>bd</b><span>#2b2b26</span></div></div>
+      <div class="sw"><div class="chip" style="background:#e3ee45"></div><div class="info"><b>acM — acento</b><span>#e3ee45</span></div></div>
+      <div class="sw"><div class="chip" style="background:#272b0d"></div><div class="info"><b>sel — selecionado</b><span>#272b0d</span></div></div>
+      <div class="sw"><div class="chip" style="background:#ececea"></div><div class="info"><b>txt</b><span>#ececea</span></div></div>
+      <div class="sw"><div class="chip" style="background:#a6a69c"></div><div class="info"><b>mut</b><span>#a6a69c</span></div></div>
+      <div class="sw"><div class="chip" style="background:#34d399"></div><div class="info"><b>grn — OK</b><span>#34d399</span></div></div>
+      <div class="sw"><div class="chip" style="background:#fb923c"></div><div class="info"><b>amb — aviso (LARANJA)</b><span>#fb923c · saiu o amarelo</span></div></div>
+      <div class="sw"><div class="chip" style="background:#f87171"></div><div class="info"><b>red — estouro</b><span>#f87171</span></div></div>
+    </div>
+    <h3>Os controles na paleta nova</h3>
+    <div class="demo">
+      <span class="btn primary">⬇ Exportar PNG</span>
+      <span class="seg"><span class="on">Sinal</span><span>Energia (AC)</span></span>
+      <span class="chip-c">Screen 1 · 2</span>
+      <span class="chip-p">2.496 × 2.912 px · 12 portas</span>
+      <span class="pill" style="background:rgba(248,113,113,.14); color:var(--red)">Alerta</span>
+      <span class="pill" style="background:rgba(251,146,60,.14); color:var(--amb)">Faltam 3</span>
+      <span class="qm">?</span>
+      <span class="btn ghost">Importar do auto</span>
+      <span class="btn danger">Excluir</span>
+      <span class="toast">✓ Backup exportado</span>
+    </div>
+
+    <div class="eyebrow" style="margin-top:26px">02b · Tema SOL (claro de alto contraste)</div>
+    <p class="quiet">Existe pra ler ao ar livre. A marca aparece <b>invertida</b>: primária preta com tinta lime; acentos de texto em oliva <code>#5c6600</code>; bordas fortes.</p>
+    <div class="sol">
+      <span class="btn primary">⬇ Exportar PNG</span>
+      <span class="btn ghost">Importar do auto</span>
+      <span class="chip-p">2.496 × 2.912 px</span>
+      <span class="pill warn">Faltam 3</span>
+      <b style="font-family:ui-monospace,monospace">PICO 31.200 W · disj 125 A</b>
+    </div>
+    <div class="lei"><b>Contraste é lei:</b> texto ≥ 4.5:1, ícone ≥ 3:1. Lime sobre branco NUNCA (não lê). Sobre lime, tinta sempre preta (<code>accInk</code>). PRINT (relatório) tem paleta própria — acc vira oliva <code>#4d5500</code>. Cores de cabo são funcionais, fora da marca.</div>
+  </section>
+
+  <!-- ═══ TIPOGRAFIA ═══ -->
+  <section>
+    <div class="eyebrow">03 · Tipografia</div>
+    <h2>System-ui pro texto, mono pro dado</h2>
+    <p class="quiet"><b>Todo dado técnico é mono</b>: <code>2.496 × 2.912 px</code> · <code>34.67 kVA</code> · <code>disj 125 A</code>. Número técnico sem mono é erro. Escala: 10-11 legendas CAPS espaçadas · 12-13.5 apoio e controles · 14 corpo · 15 título de cartão · 17-20 títulos. Pesos 400/600/700/800. <b>100% PT-BR.</b></p>
+  </section>
+
+  <!-- ═══ ÍCONES ═══ -->
+  <section>
+    <div class="eyebrow">04 · Ícones</div>
+    <h2>1 ícone = 1 significado</h2>
+    <p class="quiet">O catálogo é contrato: não reusar ícone pra outro conceito, nem dois ícones pro mesmo. Genéricos vêm do lucide; os de DOMÍNIO nascem no <code>LedIcons.jsx</code> (viewBox 24 · stroke 1.8 · currentColor). Botão só-ícone sempre com <code>title</code>+<code>aria-label</code>. Em navegação, ícone NUNCA anda sem rótulo.</p>
+
+    <h3>A tríade dos ajustes (a distinção mais importante)</h3>
+    <div class="icgrid">
+      <div class="icitem"><span class="icbox"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="21" y1="6" x2="10" y2="6"/><line x1="6" y1="6" x2="3" y2="6"/><circle cx="8" cy="6" r="2"/><line x1="21" y1="14" x2="16" y2="14"/><line x1="12" y1="14" x2="3" y2="14"/><circle cx="14" cy="14" r="2"/></svg></span><div><b>SlidersHorizontal</b>ajustes de VISUALIZAÇÃO → LightModal</div></div>
+      <div class="icitem"><span class="icbox"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg></span><div><b>Settings2</b>avançado do CONTEXTO (a Screen) → LightModal</div></div>
+      <div class="icitem"><span class="icbox"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></span><div><b>Settings</b>Configurações GLOBAIS → Drawer</div></div>
+    </div>
+
+    <h3>Catálogo (significados fixos)</h3>
+    <div class="scroll"><table>
+      <tr><th>Grupo</th><th>Ícone → significado</th></tr>
+      <tr><td>Navegação</td><td>LayoutDashboard Visão Geral · CalendarDays Agenda · FolderOpen Projetos · Coins Cachês · Receipt Recibos · Wallet Reembolso/Financeiro · Package Gabinetes · <b>Cpu Equipamentos/controladora</b> · <b>GitBranch sinal</b> (Cabeamento, Diagramação) · Monitor Test Card · Ratio Aspect · BookOpen Conhecimento · Home Início · Boxes Gestão · Wrench Ferramentas/Mais</td></tr>
+      <tr><td>Abas do projeto</td><td>Folder Dados · <b>Zap Energia/AC</b> (elétrica em geral) · <b>Layers Screens</b> · GitBranch Cabeamento · FileText Relatório · Monitor Test Card · LayoutGrid Composição</td></tr>
+      <tr><td>Ações</td><td>Plus criar · Trash2 excluir · Pencil editar · Copy copiar · Download exportar · Upload importar · Save salvar predef. · Printer imprimir · Eraser limpar · Undo2 desfazer · Repeat2 inverter · RotateCcw restaurar · <b>Wand2 automático/sugerir</b> · X fechar · Check confirmado · Search buscar · GripVertical arrastar · ArrowLeft voltar</td></tr>
+      <tr><td>Estado</td><td>TriangleAlert aviso · CircleCheck ok · CircleX erro · Clock pendente · Activity andamento · Info informação · ShieldCheck/ShieldAlert armazenamento · Sparkles novidades · Gauge certificado</td></tr>
+      <tr><td>Tema/privacidade</td><td>Sun/Moon modo sol/escuro · Eye/EyeOff valores em R$</td></tr>
+      <tr><td>Campo</td><td>MapPin GPS · Play/Square abrir/fechar turno · Camera comprovante · Cloud sincronização</td></tr>
+      <tr><td>Domínio (LedIcons)</td><td><b>IconNumeros</b> numeração de gabinetes · <b>IconInfoBox</b> caixa de info · <b>IconLadoALado</b> lado a lado · <b>IconRegioes</b> regiões do canvas · <b>NumberingIcon</b> as 8 ordens (zigzag/serpente)</td></tr>
+    </table></div>
+    <p class="quiet" style="margin-top:10px">Tamanhos: 13-14 inline · 15-16 em botões · 18-22 navegação · maior só em vazios. Toggle de exibição = ícone com estado (<code>aria-pressed</code>, aceso = sel+acM).</p>
+  </section>
+
+  <!-- ═══ SUPERFÍCIES ═══ -->
+  <section>
+    <div class="eyebrow">05 · Superfícies</div>
+    <h2>Modal leve é o padrão dos ajustes</h2>
+    <div class="scroll"><table>
+      <tr><th>Superfície</th><th>Quando</th></tr>
+      <tr><td>LightModal</td><td><b>Ajustes de contexto, pickers, "?" no mobile.</b> Card centrado que NÃO cobre a tela. Nunca: conteúdo longo/multi-etapa</td></tr>
+      <tr><td>BottomSheet</td><td>SÓ a lista do Select no mobile + menus da bottom nav</td></tr>
+      <tr><td>Drawer</td><td>Configurações globais e painéis página-inteira</td></tr>
+      <tr><td>confirm()</td><td>TODA ação destrutiva — sempre nomeando o alvo ("\"AD Summit\" será removido. Não pode ser desfeito.")</td></tr>
+      <tr><td>prompt()</td><td>Pedir um texto curto (nome de predefinição)</td></tr>
+      <tr><td>UpdateModal</td><td>Novidades — uma vez por versão, nunca outro anúncio</td></tr>
+    </table></div>
+    <p class="quiet" style="margin-top:10px">Z-order: fab 55 &lt; bottomNav 60 &lt; sheet/lightModal 90 &lt; drawer 95 &lt; <b>dialog 100</b> (confirmação por cima de tudo). Todos fecham com X, fundo e Esc; safe-area no iOS.</p>
+  </section>
+
+  <!-- ═══ COMPONENTES ═══ -->
+  <section>
+    <div class="eyebrow">06 · Componentes</div>
+    <h2>Cada átomo tem um papel — e um anti-uso</h2>
+    <div class="scroll"><table>
+      <tr><th>Átomo</th><th>Papel / anti-uso</th></tr>
+      <tr><td>Segmented</td><td>escolha EXCLUSIVA de modo · nunca listas &gt;7 nem itens criáveis</td></tr>
+      <tr><td>Select</td><td>1 de N itens · nunca modo exclusivo (Segmented) nem número (NumField)</td></tr>
+      <tr><td>NumField</td><td>entrada numérica (zero só no blur) · NUNCA input number cru</td></tr>
+      <tr><td>chips de contexto</td><td>item criável/gerenciável ali (Screens, telas) · nunca escolha fixa</td></tr>
+      <tr><td>chip passivo</td><td>resumo; no máximo abre a folha · nunca controle disfarçado</td></tr>
+      <tr><td>StatusPill</td><td>veredito — <b>só aparece quando há problema</b> (OK = silêncio)</td></tr>
+      <tr><td>HelpTip "?"</td><td>TODA didática · parágrafo fixo na tela é proibido</td></tr>
+      <tr><td>PresetPicker</td><td>predefinições (Test Card + Composição) · não duplicar seletor</td></tr>
+      <tr><td>ZoomTrio</td><td>zoom de canvas, sempre o mesmo trio 34px</td></tr>
+      <tr><td>Placeholder</td><td>TODO estado vazio</td></tr>
+      <tr><td>btn("primary")</td><td><b>UMA por aba</b> (a razão da aba), à direita, tamanho normal — nunca full-width</td></tr>
+    </table></div>
+  </section>
+
+  <!-- ═══ TOASTS ═══ -->
+  <section>
+    <div class="eyebrow">07 · Toasts &amp; feedback</div>
+    <h2>Toast fala no passado e some sozinho</h2>
+    <div class="demo" style="flex-direction:column; align-items:flex-start; gap:8px">
+      <span class="toast">✓ Predefinição salva</span>
+      <span class="toast" style="border-left-color:var(--acM)">ⓘ Digite seu e-mail</span>
+    </div>
+    <p class="quiet" style="margin-top:10px">Confirma ação JÁ FEITA, curto, sem botão, ~2.8s, 1 por ação. <code>info</code> orienta erro recuperável com instrução. Toast NUNCA: valida formulário (inline), anuncia futuro, substitui confirmação destrutiva, aparece sem ação do usuário. Estado contínuo (sync) é texto de status, não toast.</p>
+  </section>
+
+  <!-- ═══ GRAMÁTICA / VOZ ═══ -->
+  <section>
+    <div class="eyebrow">08-09 · Gramática &amp; voz</div>
+    <h2>5 faixas, 6 regras, uma voz</h2>
+    <p class="quiet"><b>Toda tela:</b> F1 Modo (Segmented) → F2 Ferramentas (primária à direita) → F3 Contexto (chips + StatusPill + "?") → F4 Conteúdo → F5 Ajustes (LightModal). Regras R1-R6 no CLAUDE.md.</p>
+    <p class="quiet"><b>Voz:</b> técnico falando com técnico, 100% PT-BR, botão diz o que FAZ, número sempre com unidade em mono, vocabulário fixo (Tela · Screen · Gabinete · Porta · Predefinição). Pode ter personalidade ("a queridinha do rental"), nunca gordura.</p>
+    <p class="quiet"><b>Movimento:</b> 0.15-0.25s, só pra comunicar estado, reduced-motion respeitado. <b>Acessibilidade:</b> alvos 38-44px, dois temas sempre, cor nunca é o único sinal, aria em tudo que é só-ícone.</p>
+  </section>
+
+  <!-- ═══ APLICAÇÃO ═══ -->
+  <section>
+    <div class="eyebrow">10 · Aplicação da paleta</div>
+    <h2>O que falta pra vestir o app</h2>
+    <p class="quiet">A paleta §02 substitui o roxo em <code>ui/tokens.js</code> (escuro + sol). Exige: token novo <code>accInk</code> + troca dos <code>#fff</code> hardcoded sobre acc (botões primários, Segmented, chips); âmbar → laranja nos dois temas; <code>PRINT.acc</code> → oliva. Revisão tela a tela nos dois temas. <b>Status: aguardando aprovação pra aplicar.</b></p>
+  </section>
+
+  <p class="meta" style="margin-top:60px">LedLab Core · Manual de Marca &amp; Sistema · v1 — 2026-07-24 · muda por proposta → aprovação → commit</p>
+</div>
+</body>
+</html>
