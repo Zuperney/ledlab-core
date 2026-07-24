@@ -4,7 +4,9 @@
 // automático (envolve todas as telas) e a exportação gera UM PNG com o test card de cada
 // tela na sua posição — ótimo pra telas pequenas (vê todas juntas num render só).
 import { useRef, useState, useMemo, useEffect } from "react";
-import { Download, LayoutGrid, Move, Copy } from "lucide-react";
+import { Download, LayoutGrid, Move } from "lucide-react";
+import HelpTip from "../../components/HelpTip.jsx";
+import { IconLadoALado, IconRegioes } from "../../components/icons/LedIcons.jsx";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useToast } from "../../store/UIContext.jsx";
@@ -15,7 +17,7 @@ import NumField from "../../components/NumField.jsx";
 import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { telaPortSlices } from "../../services/screenCabling.js";
-import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
+import { draw, DEFAULTS, PRESETS, PRESET_LABELS } from "../../services/testcardDraw.js";
 import { fileName } from "../../services/filenames.js";
 import { overlappingIds } from "../../services/layout.js";
 
@@ -197,37 +199,33 @@ export default function ProjectComposicao({ project, patch }) {
     else toast("Copiar indisponível neste navegador");
   };
 
-  const styleBtn = (on) => ({ ...btn(on ? "primary" : "ghost", { padding: "7px 12px", fontSize: 13 }) });
+  // toggle de EXIBIÇÃO = ícone com estado (aceso = ativo) — botão grande roxo fica
+  // reservado pra AÇÃO principal (feedback dos prints: "poluição visual")
+  const togBtn = (on) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: 8, cursor: "pointer", border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.sel : T.card2, color: on ? T.acM : T.mut, flexShrink: 0, padding: 0 });
 
   return (
     <div>
-      {/* controles: estilo do test card + ações */}
+      {/* toolbar de 1 linha: seleções + toggles de exibição + export */}
       <div style={card({ marginBottom: 14, padding: 12 })}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} title="Predefinição" style={{ ...selSty, flex: "1 1 160px" }}>
+          <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} title="Predefinição" style={{ ...selSty, flex: "1 1 130px", minWidth: 0 }}>
             <option value="">Predefinição…</option>
-            <option value="map">Mapa de gabinetes</option>
-            <option value="align">Alinhamento / geometria</option>
-            <option value="solid">Cor sólida</option>
-            <option value="bars">Barras de cor</option>
-            <option value="cabsig">Mapa de cabos (sinal)</option>
+            {/* as do sistema podem ser OCULTADAS nas Configurações › Dados › Test Card */}
+            {Object.entries(PRESET_LABELS).filter(([k]) => !(prefs.tcHiddenPresets || []).includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Select>
-          <Select value={style.scheme} onChange={(e) => setStyle({ scheme: e.target.value })} title="Padrão" style={{ ...selSty, flex: "1 1 140px" }}>
-            <option value="cores">Cores (blocos)</option>
-            <option value="arcoiris">Arco-íris</option>
-            <option value="cinza">Escala de cinza</option>
-            <option value="solida">Cor sólida</option>
-          </Select>
-          <button style={styleBtn(style.numbers)} onClick={() => setStyle({ numbers: !style.numbers })}>Números</button>
-          <button style={styleBtn(style.info)} onClick={() => setStyle({ info: !style.info })}>Info</button>
-          <div style={{ flex: 1 }} />
-          <button style={btn("ghost", { padding: "7px 12px", fontSize: 13 })} onClick={tile}><LayoutGrid size={15} /> Lado a lado</button>
-          <button style={btn("primary", { padding: "7px 12px", fontSize: 13 })} onClick={exportPng}><Download size={15} /> Exportar PNG</button>
+          {/* enxuto (pedido do usuário): o VISUAL vem inteiro da predefinição — controle
+              fino se monta no Test Card e se salva como predefinição (deletável lá e nas
+              Configurações › Dados) */}
+          <button style={togBtn(false)} onClick={tile} title="Dispor lado a lado" aria-label="Dispor lado a lado"><IconLadoALado /></button>
+          <button style={btn("primary", { padding: "0 13px", height: 38, fontSize: 13, marginLeft: "auto" })} onClick={exportPng} title="Exportar PNG"><Download size={15} />{!isMobile && " PNG"}</button>
         </div>
-        <div style={{ color: T.dim, fontSize: 12, marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
-          <Move size={13} /> Arraste as telas pra posicionar (encaixam nas bordas). Canvas: <b style={{ color: T.mut }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px</b>
-          {overlapIds.size > 0 && <span style={{ color: T.red, fontWeight: 700, marginLeft: 6 }}>⚠ telas sobrepostas</span>}
+        <div style={{ color: T.dim, fontSize: 12, marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 999, padding: "3px 10px" }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px · {telas.length} tela{telas.length === 1 ? "" : "s"}</span>
+          {overlapIds.size > 0 && <span style={{ color: T.red, fontWeight: 700 }}>⚠ telas sobrepostas</span>}
+          <HelpTip title="Como funciona a composição" align="left">
+            <b style={{ color: T.txt }}><Move size={12} style={{ verticalAlign: "-1px" }} /> Arraste as telas</b> pra posicionar — elas encaixam nas bordas umas das outras (snap). O canvas é automático: envolve todas as telas. A exportação gera UM PNG com o test card de cada tela na sua posição, e as regiões (x · y · largura × altura) servem pro mapeamento no processador/media server.
+          </HelpTip>
         </div>
       </div>
 
@@ -271,10 +269,13 @@ export default function ProjectComposicao({ project, patch }) {
       {/* posição das telas */}
       <div style={card({ marginTop: 14, padding: 12 })}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-          <div style={lbl}>Posição das telas</div>
-          <button onClick={copyRegions} style={btn("ghost", { padding: "6px 11px", fontSize: 12.5 })}><Copy size={14} /> Copiar regiões</button>
+          <div style={{ ...lbl, display: "inline-flex", alignItems: "center", gap: 8 }}>Posição das telas
+            <HelpTip title="Pra que servem as regiões" align="left">
+              Canvas de fonte <b style={{ color: T.txt }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px</b>. Cada tela é uma região (x · y · largura × altura) pra usar no mapeamento do processador/media server — o "Copiar" leva tudo pronto pra colar.
+            </HelpTip>
+          </div>
+          <button onClick={copyRegions} style={btn("ghost", { padding: "6px 11px", fontSize: 12.5 })}><IconRegioes size={14} /> Copiar</button>
         </div>
-        <div style={{ color: T.dim, fontSize: 12, marginBottom: 10 }}>Canvas de fonte <b style={{ color: T.mut }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px</b>. Cada tela é uma região (x · y · largura × altura) pra usar no processador/media server.</div>
         <div style={{ display: "grid", gap: 8 }}>
           {telas.map((t) => {
             const p = positions[t.id], d = dimOf(t);

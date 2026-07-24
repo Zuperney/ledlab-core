@@ -2,6 +2,24 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.7.0] — 2026-07-24
+
+**A interface repaginada — especialmente no celular.** Um mês de teste de campo virou um refino completo, guiado por pesquisa (NN/g, Material 3, Apple HIG) e pelos apontamentos reais de uso.
+
+- **Toda aba com nome**: as abas do projeto mostram rótulo sempre (ícone mudo não navega).
+- **Ajustes no lugar onde você usa**: Cabeamento ganhou o botão de **Ajustes do mapa** (numeração, setas, cores — as mesmas preferências das Configurações, sem viagem) e o **Avançado da Screen** virou modal leve, os dois na linha das sub-abas Sinal/AC. Test Card ganhou a folha **Ajustes do test card** (controles em 2 colunas, salvar/excluir predefinição junto).
+- **Barra de baixo nova**: **Projetos a um toque** · Início · Financeiro · Gestão · Mais.
+- **Modo SOL ☀️**: tema claro de alto contraste pra operar ao ar livre — toggle no topo, vale pro app inteiro e sincroniza entre aparelhos.
+- **Energia em lista compacta**: cada tela fechada mostra kVA + disjuntor; toque expande. Tensão, brilho e conteúdo numa linha.
+- **Screens**: telas disponíveis acima do canvas, nome + auto-arrumar + excluir numa linha, "Nova" em destaque.
+- **Composição enxuta**: o visual vem da predefinição; predefinições do sistema agora podem ser **ocultadas** em Configurações › Dados.
+- **Relatório no celular**: só os tipos de consulta (Completo, Resumido, Mapa de cabos); a dica do PDF virou "?".
+- **Explicações sob demanda**: os textos didáticos viraram "?" em todo o app.
+- **Uma língua só**: a "gramática" da interface (modo → ferramentas → contexto → conteúdo → ajustes) agora vale pra todas as abas — e ficou documentada pro que vier.
+- Miudezas de campo: alvos de toque maiores, correção do menu de Configurações atrás da barra de status no iOS, versão do app agora no rodapé das Configurações.
+
+197 testes. Nenhum cálculo mudou.
+
 ## [1.6.0] — 2026-07-24
 
 **Nova página Equipamentos (Gestão, no desktop).** Caminho próprio, separado das abas do projeto.

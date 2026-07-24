@@ -1,12 +1,12 @@
 // App.jsx — shell: sidebar, topbar e navegação principal orientada por rota.
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, TriangleAlert, Eye, EyeOff, Sparkles, X, Settings as SettingsIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, TriangleAlert, Eye, EyeOff, Sparkles, X, Settings as SettingsIcon, Sun, Moon } from "lucide-react";
 import { useLocation } from "wouter";
 import logo from "./assets/logo.png";
 import { NAV, SECTIONS, LABELS, VERSION, WHATS_NEW } from "./nav.js";
 import { useToast } from "./store/UIContext.jsx";
 import { useAuth } from "./store/AuthContext.jsx";
-import { T, FONT } from "./ui/tokens.js";
+import { T, FONT, applyTheme } from "./ui/tokens.js";
 import { Z } from "./config/uiConfig.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useLedLabContext } from "./store/AppContext.jsx";
@@ -65,12 +65,23 @@ export default function App() {
   // eslint-disable-next-line react-hooks/purity -- relógio de parede só p/ exibição (granularidade de dias); cada render mantém fresco
   const daysNoBackup = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 86400000 : Infinity;
   const hasUserData = (projects?.length || 0) > 0 || (worklog?.length || 0) > 0;
-  // não incomoda com backup local se está logado — a nuvem já é o backup
-  const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff && !user;
+  // não incomoda com backup local se está logado — a nuvem já é o backup.
+  // Só na Visão Geral: banner em TODA tela vira teto permanente (~100px de moldura
+  // por página no mobile) — o lembrete numa página basta.
+  const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff && !user && page === "dashboard";
   const doBackup = () => { exportBackup(); toast("Backup exportado"); };
   // privacidade: esconde os valores em R$ (dashboard + diárias). Toggle no topbar (olho).
   const ocultarValores = !!prefs.dashOcultarValor;
   const toggleOcultar = () => setPrefs({ ...prefs, dashOcultarValor: !ocultarValores });
+
+  // MODO SOL: claro de alto contraste pra operar ao ar livre (toggle no topbar —
+  // em campo é ajuste frequente, não mora em Configurações). Os tokens T são
+  // trocados in-place e o key={theme} remonta a árvore pra tudo reler as cores.
+  // troca determinística dos tokens ANTES dos filhos renderizarem; o key={theme}
+  // remonta a árvore no mesmo render, então todo style inline relê as cores novas
+  const theme = prefs.theme === "sol" ? "sol" : "dark";
+  applyTheme(theme);
+  const toggleTheme = () => setPrefs({ ...prefs, theme: theme === "sol" ? "dark" : "sol" });
 
   // marca a versão atual como "vista" (o modal já foi decidido no initializer acima)
   useEffect(() => {
@@ -111,19 +122,21 @@ export default function App() {
   // ── Shell mobile: topbar compacta + conteúdo + bottom navigation ──
   if (isMobile) {
     return (
-      <div className="app-mobile-shell" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
+      <div key={theme} className="app-mobile-shell" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
         <header className="app-mobile-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "calc(9px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 9px calc(14px + env(safe-area-inset-left))", borderBottom: `1px solid ${T.bd}`, background: T.bg, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <img src={logo} alt="" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }} />
             <h1 style={{ margin: 0, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{LABELS[page] || "LedLab Core"}</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
+            {/* alvos de 38px no mobile (thumb zone; NN/g pede ~1cm) — desktop segue 30 */}
+            <SunToggle sol={theme === "sol"} onClick={toggleTheme} size={38} />
+            <PrivacyEye on={ocultarValores} onClick={toggleOcultar} size={38} />
             <button onClick={() => setSettingsOpen(true)} aria-label="Configurações" title="Configurações"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, background: settingsOpen ? T.sel : "transparent", border: `1px solid ${settingsOpen ? T.acc : T.bd}`, color: settingsOpen ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
-              <SettingsIcon size={16} />
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: 8, background: settingsOpen ? T.sel : "transparent", border: `1px solid ${settingsOpen ? T.acc : T.bd}`, color: settingsOpen ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
+              <SettingsIcon size={17} />
             </button>
-            <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
+            {/* badge de versão saiu do topbar mobile (respiro) — mora nas Configurações */}
           </div>
         </header>
         <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 12, paddingBottom: "calc(66px + env(safe-area-inset-bottom))" }}>
@@ -150,7 +163,7 @@ export default function App() {
   );
 
   return (
-    <div style={{ display: "flex", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
+    <div key={theme} style={{ display: "flex", height: "100%", width: "100%", background: T.bg, color: T.txt, fontFamily: FONT, fontSize: 14 }}>
       {/* sidebar */}
       <aside style={{ width: collapsed ? 60 : 220, flexShrink: 0, background: T.sb, borderRight: `1px solid ${T.bd}`, display: "flex", flexDirection: "column", padding: 12, transition: "width 0.15s" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: "8px 4px 16px" }}>
@@ -187,6 +200,7 @@ export default function App() {
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", borderBottom: `1px solid ${T.bd}` }}>
           <h1 style={{ margin: 0, fontSize: 18 }}>{LABELS[page]}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <SunToggle sol={theme === "sol"} onClick={toggleTheme} />
             <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
             <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{VERSION}</span>
             <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.acc, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>D</div>
@@ -241,11 +255,21 @@ function UpdateModal({ info, onClose }) {
   );
 }
 
+// MODO SOL no topbar — alterna o tema claro de alto contraste pra ler ao ar livre
+function SunToggle({ sol, onClick, size = 30 }) {
+  return (
+    <button onClick={onClick} aria-label={sol ? "Voltar ao tema escuro" : "Modo sol (alto contraste)"} title={sol ? "Voltar ao tema escuro" : "Modo sol — claro de alto contraste pra ler no sol"}
+      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: size, height: size, borderRadius: 8, background: sol ? T.sel : "transparent", border: `1px solid ${sol ? T.acc : T.bd}`, color: sol ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
+      {sol ? <Moon size={16} /> : <Sun size={16} />}
+    </button>
+  );
+}
+
 // olho de privacidade no topbar — esconde/mostra os valores em R$ (dashboard + diárias)
-function PrivacyEye({ on, onClick }) {
+function PrivacyEye({ on, onClick, size = 30 }) {
   return (
     <button onClick={onClick} aria-label={on ? "Mostrar valores" : "Ocultar valores"} title={on ? "Mostrar valores em R$" : "Ocultar valores em R$"}
-      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, background: on ? T.sel : "transparent", border: `1px solid ${on ? T.acc : T.bd}`, color: on ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
+      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: size, height: size, borderRadius: 8, background: on ? T.sel : "transparent", border: `1px solid ${on ? T.acc : T.bd}`, color: on ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
       {on ? <EyeOff size={16} /> : <Eye size={16} />}
     </button>
   );

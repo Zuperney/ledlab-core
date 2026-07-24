@@ -3,6 +3,7 @@ import {
   LayoutDashboard, CalendarDays, Receipt, Wallet, Coins, Package, FolderOpen,
   GitBranch, Monitor, Ratio, BookOpen, Settings, Home, Boxes, Wrench, Cpu,
 } from "lucide-react";
+// (Wrench segue em uso no agrupamento mobile "Mais")
 
 export const NAV = [
   { id: "dashboard",  label: "Visão Geral",          Icon: LayoutDashboard, sec: "INÍCIO" },
@@ -35,7 +36,18 @@ export const SECTION_META = {
   INFORMATIVO: { label: "Informativo", tab: "Info",        Icon: BookOpen },
 };
 
+// agrupamento próprio da BOTTOM NAV (mobile) — o desktop mantém SECTIONS na sidebar.
+// PROJETOS é o coração do app → destino DIRETO de 1 toque (a bottom nav aguenta até
+// 5 destinos com rótulo — M3); Ferramentas+Informativo (uso raro) fundem em "Mais".
+export const MOBILE_SECTIONS = [
+  { sec: "INÍCIO",     label: "Início",     tab: "Início",     Icon: Home,       ids: ["dashboard", "agenda"] },
+  { sec: "PROJETOS",   label: "Projetos",   tab: "Projetos",   Icon: FolderOpen, ids: ["projects"] },
+  { sec: "FINANCEIRO", label: "Financeiro", tab: "Financeiro", Icon: Wallet,     ids: ["diarias", "financeiro", "reembolso"] },
+  { sec: "GESTÃO",     label: "Gestão",     tab: "Gestão",     Icon: Boxes,      ids: ["inventory", "equipamentos"] },
+  { sec: "MAIS",       label: "Mais",       tab: "Mais",       Icon: Wrench,     ids: ["diagrams", "testcards", "aspect", "knowledge"] },
+];
+
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.6.0";
+export const VERSION = "v1.7.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🎛️ Nova página Equipamentos (Gestão, no desktop): catálogo certificado de controladoras NovaStar — séries VX e MX (COEX) — e verificação por projeto: escolha a controladora de cada Screen e o app confere portas, carga do dispositivo e resolução, com a dica de Hz quando não cabe.";
+export const WHATS_NEW = "📱 Interface repaginada no celular: todas as abas com nome, ajustes no lugar onde você usa (folhas e modais leves, sem viagem às Configurações), Projetos a um toque na barra de baixo, modo SOL ☀️ de alto contraste pra ler ao ar livre, Energia em lista compacta e telas mais limpas do Test Card à Composição — o app inteiro falando uma língua só.";

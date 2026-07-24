@@ -1,6 +1,6 @@
 // pages/project/ProjectEnergia.jsx — aba Energia (AC): pico + típico por tela e total.
 import { useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useElectrical } from "../../hooks/useElectrical.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
@@ -13,13 +13,15 @@ export default function ProjectEnergia({ project, patch }) {
   const { cfg, agg, VOLT } = useElectrical(project);
   const setCfg = (partial) => patch({ config: { ...cfg, ...partial } });
   const [open, setOpen] = useState(null); // "brilho" | "conteudo" | null — qual slider está aberto
+  const [telaOpen, setTelaOpen] = useState(null); // mobile: qual card de tela está expandido
 
   return (
     <div>
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        {/* mobile: os 3 controles NUMA linha (pedido do usuário) — a tensão encolhe, os chips não */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: isMobile ? "nowrap" : "wrap" }}>
           <Select value={cfg.vk} onChange={(e) => setCfg({ vk: e.target.value })} title="Tensão do evento"
-            style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, fontWeight: 600 }}>
+            style={{ background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, fontWeight: 600, ...(isMobile ? { flex: "1 1 0", minWidth: 0, overflow: "hidden" } : {}) }}>
             {Object.entries(VOLT).map(([k, v]) => <option key={k} value={k}>{v.g}V · {v.label}</option>)}
           </Select>
           <ValueChip label="Brilho" pct={Math.round(cfg.brilho * 100)} active={open === "brilho"} onClick={() => setOpen((o) => (o === "brilho" ? null : "brilho"))} />
@@ -29,18 +31,33 @@ export default function ProjectEnergia({ project, patch }) {
         {open === "conteudo" && <SliderRow label="Conteúdo (fração da potência)" value={cfg.conteudo} onChange={(v) => setCfg({ conteudo: v })} />}
       </div>
 
-      {agg.perTela.map(({ tela, peak, typ }) => (
-        <div key={tela.id} style={card({ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 10, flexWrap: "wrap", gap: 10, flexDirection: isMobile ? "column" : "row" })}>
-          <div>
-            <div style={{ color: T.txt, fontWeight: 600 }}>{tela.nome}</div>
-            <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace" }}>{tela.gabinete?.nome} · {tela.cols}×{tela.rows} = {tela.cols * tela.rows} gab · {tela.gabinete?.pwrMax}W máx.</div>
+      {/* MOBILE: cards por tela RECOLHIDOS (pedido do usuário) — a linha fechada mostra o
+          que manda no campo (disjuntor); toque expande. Desktop segue tudo aberto. */}
+      {agg.perTela.map(({ tela, peak, typ }) => {
+        const aberto = !isMobile || telaOpen === tela.id;
+        return (
+          <div key={tela.id} style={card({ marginBottom: 10, padding: isMobile ? "4px 14px" : undefined })}>
+            <div onClick={isMobile ? () => setTelaOpen((o) => (o === tela.id ? null : tela.id)) : undefined}
+              role={isMobile ? "button" : undefined}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, cursor: isMobile ? "pointer" : "default", minHeight: isMobile ? 44 : 0 }}>
+              <div style={{ color: T.txt, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tela.nome}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                {isMobile && !aberto && <span style={{ fontSize: 12.5, fontFamily: "ui-monospace,monospace", color: T.mut }}>{peak.kVA} kVA · <b style={{ color: T.red }}>disj {peak.breaker} A</b></span>}
+                {isMobile && (aberto ? <ChevronUp size={16} color={T.dim} /> : <ChevronDown size={16} color={T.dim} />)}
+              </div>
+            </div>
+            {aberto && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", flexWrap: "wrap", gap: 10, flexDirection: isMobile ? "column" : "row", paddingBottom: isMobile ? 10 : 0 }}>
+                <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace" }}>{tela.gabinete?.nome} · {tela.cols}×{tela.rows} = {tela.cols * tela.rows} gab · {tela.gabinete?.pwrMax}W máx.</div>
+                <div style={{ textAlign: isMobile ? "left" : "right", fontSize: 13, fontFamily: "ui-monospace,monospace" }}>
+                  <div><span style={{ color: T.mut }}>PICO </span><b style={{ color: T.acM }}>{peak.W.toLocaleString()} W</b> · <b style={{ color: T.grn }}>{peak.kVA} kVA</b> · <b style={{ color: T.amb }}>{peak.I} A</b> · <b style={{ color: T.red }}>disj {peak.breaker} A</b></div>
+                  <div style={{ color: T.dim }}>TÍP. {Math.round(typ.W).toLocaleString()} W · {typ.kVA} kVA · {typ.I} A</div>
+                </div>
+              </div>
+            )}
           </div>
-          <div style={{ textAlign: isMobile ? "left" : "right", fontSize: 13, fontFamily: "ui-monospace,monospace" }}>
-            <div><span style={{ color: T.mut }}>PICO </span><b style={{ color: T.acM }}>{peak.W.toLocaleString()} W</b> · <b style={{ color: T.grn }}>{peak.kVA} kVA</b> · <b style={{ color: T.amb }}>{peak.I} A</b> · <b style={{ color: T.red }}>disj {peak.breaker} A</b></div>
-            <div style={{ color: T.dim }}>TÍP. {Math.round(typ.W).toLocaleString()} W · {typ.kVA} kVA · {typ.I} A</div>
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       <div style={card({ marginTop: 6 })}>
         <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 12 }}>Total do projeto · {agg.vc.label}</div>

@@ -1,30 +1,32 @@
 // pages/project/ProjectTestCard.jsx — gerador de test card (canvas + export PNG).
 import { useRef, useEffect, useState } from "react";
-import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, Monitor, Save, Shapes, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
-import { useToast, usePrompt } from "../../store/UIContext.jsx";
+import { useToast, usePrompt, useConfirm } from "../../store/UIContext.jsx";
 import { telaPortSlices } from "../../services/screenCabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
-import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
+import { draw, DEFAULTS, PRESETS, PRESET_LABELS } from "../../services/testcardDraw.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 import Select from "../../components/Select.jsx";
+import BottomSheet from "../../components/BottomSheet.jsx";
+import ZoomTrio from "../../components/ZoomTrio.jsx";
 import { fileName } from "../../services/filenames.js";
 
 export default function ProjectTestCard({ project }) {
   const { tcPresets, setTcPresets, prefs } = useLedLabContext();
   const isMobile = useIsMobile();
   const { palette } = useCablePalette();
-  const [controlsOpen, setControlsOpen] = useState(!isMobile); // no mobile começa fechado
-  // desktop↔mobile mudou: reajusta o padrão DURANTE o render (sem setState em effect)
-  const [prevMobile, setPrevMobile] = useState(isMobile);
-  if (prevMobile !== isMobile) { setPrevMobile(isMobile); setControlsOpen(!isMobile); }
+  // MOBILE: os controles moram na folha "Ajustes do test card" (padrão do Cabeamento) —
+  // a tela fica pra o que importa: o card. Desktop mantém o painel lateral fixo.
+  const [ajustesOpen, setAjustesOpen] = useState(false);
   const toast = useToast();
   const prompt = usePrompt();
+  const confirm = useConfirm();
   const numbering = prefs.cableNumbering || "row-tb-lr";
   const telas = project.telas || [];
   const [telaId, setTelaId] = useState(telas[0]?.id);
@@ -67,6 +69,15 @@ export default function ProjectTestCard({ project }) {
     setTcPresets([...tcPresets, { id: `tc-${Date.now()}`, name: name.trim(), opts: { ...o } }]);
     toast("Predefinição salva");
   };
+  // gerenciar preset NO CONTEXTO (antes só nas Configurações): selecionou um salvo → pode excluir aqui
+  const savedSel = tcPresets.find((x) => x.id === presetSel);
+  const deletePreset = async () => {
+    if (!savedSel) return;
+    if (!(await confirm({ title: "Excluir predefinição?", message: `"${savedSel.name}" será removida.` }))) return;
+    setTcPresets(tcPresets.filter((x) => x.id !== savedSel.id));
+    setPresetSel("");
+    toast("Predefinição excluída");
+  };
 
   const exportPng = () => {
     canvasRef.current.toBlob((blob) => {
@@ -77,98 +88,97 @@ export default function ProjectTestCard({ project }) {
     }, "image/png");
   };
 
-  const zbtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 7, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer" };
+  // controles (formato mobile) — moram na folha de Ajustes
+  const controlesMobile = (
+    <>
+      <GroupRow top>
+        <Cell label="Esquema de cor" flex="1 1 130px">
+          <Select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={cellSel}>
+            <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
+          </Select>
+        </Cell>
+        {o.scheme === "arcoiris" && (
+          <Cell label="Direção" flex="1 1 110px">
+            <Select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={cellSel}>
+              <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
+            </Select>
+          </Cell>
+        )}
+        {o.scheme === "solida" && (
+          <>
+            <Cell label="Cor sólida" flex="0 0 auto"><input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 48, height: 34, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer", padding: 0 }} /></Cell>
+            <Cell label="Transparente" flex="0 0 auto"><Switch on={o.solidAlpha} onClick={() => toggle("solidAlpha")} /></Cell>
+          </>
+        )}
+      </GroupRow>
+      {locked ? (
+        <div style={{ margin: "10px 0", color: T.dim, fontSize: 12, background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 10 }}>
+          Predefinição de calibração (preto→branco por coluna). Sem edições.
+        </div>
+      ) : (
+        <>
+          <GroupRow>
+            <Cell label="Elementos" flex="1 1 130px">
+              <DropdownMenu triggerLabel={`${elCount} ativo${elCount === 1 ? "" : "s"}`} Icon={Shapes} align="left"
+                items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
+            </Cell>
+            <Cell label="Tamanho do nº" flex="1 1 150px"><NumScaleInline value={o.numScale} onChange={(n) => set({ numScale: n })} /></Cell>
+          </GroupRow>
+          <GroupRow>
+            <Cell label="Color bar" flex="1 1 140px">
+              <Select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={cellSel}>
+                <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
+              </Select>
+            </Cell>
+            <Cell label="Mapa de cabos" flex="1 1 140px">
+              <Select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={cellSel}>
+                <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
+              </Select>
+            </Cell>
+          </GroupRow>
+          <GroupRow>
+            <Cell label="Caixa de info" flex="0 0 auto"><Switch on={o.info} onClick={() => toggle("info")} /></Cell>
+            {o.info && <Cell label="Info em linha" flex="0 0 auto"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Cell>}
+            {o.info && (
+              <Cell label="Posição" flex="1 1 130px">
+                <Select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={cellSel}>
+                  <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
+                </Select>
+              </Cell>
+            )}
+          </GroupRow>
+        </>
+      )}
+    </>
+  );
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <Select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: "2 1 130px", minWidth: 0 }}>
+        <Select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: isMobile ? "1 1 100px" : "2 1 130px", minWidth: 0 }}>
           {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </Select>
-        <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: "2 1 150px", minWidth: 0 }}>
+        <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: isMobile ? "1 1 110px" : "2 1 150px", minWidth: 0 }}>
           <option value="">Predefinição…</option>
-          <option value="map">Mapa de gabinetes</option>
-          <option value="align">Alinhamento / geometria</option>
-          <option value="solid">Cor sólida</option>
-          <option value="bars">Barras de cor</option>
-          <option value="cabsig">Mapa de cabos (sinal)</option>
+          {/* as do sistema podem ser OCULTADAS nas Configurações › Dados › Test Card */}
+          {Object.entries(PRESET_LABELS).filter(([k]) => !(prefs.tcHiddenPresets || []).includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </Select>
-        <button style={tbBtn} title="Salvar predefinição" onClick={savePreset}><Save size={16} /></button>
+        {isMobile ? (
+          <button style={{ ...tbBtn, ...(ajustesOpen ? { background: T.sel, borderColor: T.acc, color: T.acM } : {}) }} title="Ajustes do test card" aria-label="Ajustes do test card" onClick={() => setAjustesOpen(true)}><SlidersHorizontal size={16} /></button>
+        ) : (<>
+          <button style={tbBtn} title="Salvar predefinição" onClick={savePreset}><Save size={16} /></button>
+          {savedSel && <button style={tbBtn} title={`Excluir predefinição "${savedSel.name}"`} onClick={deletePreset}><Trash2 size={16} /></button>}
+        </>)}
         <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} />{!isMobile && " PNG"}</button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
-        <div style={card({ padding: isMobile ? "4px 14px 10px" : "4px 16px" })}>
-          {isMobile && (
-            <button onClick={() => setControlsOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "6px 2px", background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>
-              Controles
-              {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          )}
-          {(!isMobile || controlsOpen) && (isMobile ? (
-            /* MOBILE: controles pareados em linhas compactas (rótulo em cima, controle embaixo) */
-            <>
-              <GroupRow top>
-                <Cell label="Esquema de cor" flex="1 1 130px">
-                  <Select value={o.scheme} onChange={(e) => set({ scheme: e.target.value })} style={cellSel}>
-                    <option value="cores">Cores</option><option value="arcoiris">Arco-íris</option><option value="cinza">Escala de cinza</option><option value="solida">Sólida</option>
-                  </Select>
-                </Cell>
-                {o.scheme === "arcoiris" && (
-                  <Cell label="Direção" flex="1 1 110px">
-                    <Select value={o.rainbowDir} onChange={(e) => set({ rainbowDir: e.target.value })} style={cellSel}>
-                      <option value="h">Horizontal</option><option value="v">Vertical</option><option value="d">Diagonal</option>
-                    </Select>
-                  </Cell>
-                )}
-                {o.scheme === "solida" && (
-                  <>
-                    <Cell label="Cor sólida" flex="0 0 auto"><input type="color" value={o.solidColor} onChange={(e) => set({ solidColor: e.target.value })} style={{ width: 48, height: 34, background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, cursor: "pointer", padding: 0 }} /></Cell>
-                    <Cell label="Transparente" flex="0 0 auto"><Switch on={o.solidAlpha} onClick={() => toggle("solidAlpha")} /></Cell>
-                  </>
-                )}
-              </GroupRow>
-              {locked ? (
-                <div style={{ margin: "10px 0", color: T.dim, fontSize: 12, background: T.strip, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 10 }}>
-                  Predefinição de calibração (preto→branco por coluna). Sem edições.
-                </div>
-              ) : (
-                <>
-                  <GroupRow>
-                    <Cell label="Elementos" flex="1 1 130px">
-                      <DropdownMenu triggerLabel={`${elCount} ativo${elCount === 1 ? "" : "s"}`} Icon={Shapes} align="left"
-                        items={[["numbers", "Numerar gabinetes"], ["junctions", "Junções"], ["circle", "Círculo"], ["cross", "Cruz"], ["corner", "Círc. cantos"], ["side", "Semicírc. laterais"]].map(([k, l]) => ({ label: l, active: o[k], onClick: () => toggle(k) }))} />
-                    </Cell>
-                    <Cell label="Tamanho do nº" flex="1 1 150px"><NumScaleInline value={o.numScale} onChange={(n) => set({ numScale: n })} /></Cell>
-                  </GroupRow>
-                  <GroupRow>
-                    <Cell label="Color bar" flex="1 1 140px">
-                      <Select value={o.colorBar} onChange={(e) => set({ colorBar: e.target.value })} style={cellSel}>
-                        <option value="off">Off</option><option value="topo">Topo</option><option value="centro">Centro</option><option value="base">Base</option>
-                      </Select>
-                    </Cell>
-                    <Cell label="Mapa de cabos" flex="1 1 140px">
-                      <Select value={o.cableMap} onChange={(e) => set({ cableMap: e.target.value })} style={cellSel}>
-                        <option value="off">Off</option><option value="sinal">Sinal</option><option value="ac">AC</option>
-                      </Select>
-                    </Cell>
-                  </GroupRow>
-                  <GroupRow>
-                    <Cell label="Caixa de info" flex="0 0 auto"><Switch on={o.info} onClick={() => toggle("info")} /></Cell>
-                    {o.info && <Cell label="Info em linha" flex="0 0 auto"><Switch on={o.infoInline} onClick={() => toggle("infoInline")} /></Cell>}
-                    {o.info && (
-                      <Cell label="Posição" flex="1 1 130px">
-                        <Select value={o.infoPos} onChange={(e) => set({ infoPos: e.target.value })} style={cellSel}>
-                          <option value="sup-esq">Sup. esq</option><option value="sup-dir">Sup. dir</option><option value="centro">Centro</option><option value="inf-esq">Inf. esq</option><option value="inf-dir">Inf. dir</option>
-                        </Select>
-                      </Cell>
-                    )}
-                  </GroupRow>
-                </>
-              )}
-            </>
-          ) : (
+
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "250px 1fr", gap: 16, alignItems: "start" }} className="m-grid1">
+        {/* DESKTOP: painel lateral fixo. No mobile os controles moram na folha de Ajustes. */}
+        {!isMobile && (
+        <div style={card({ padding: "4px 16px" })}>
+          {(
             /* DESKTOP: lista linear (rótulo à esquerda, controle à direita) */
             <>
               <Row label="Esquema de cor" top>
@@ -224,18 +234,15 @@ export default function ProjectTestCard({ project }) {
                 </>
               )}
             </>
-          ))}
+          )}
         </div>
+        )}
 
         <div style={card()}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: T.dim, fontSize: 12, marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
             <b style={{ color: T.acM }}>{tela.nome}</b>
             <span>{W}×{H} px · {tela.cols * tela.rows} gab{pitchMm ? ` · pitch ${pitchMm.toFixed(2)} mm` : ""}</span>
-            <span style={{ display: "inline-flex", gap: 6 }}>
-              <button style={zbtn} title="Diminuir" onClick={() => setZoom((z) => Math.max(0.25, z * 0.8))}><ZoomOut size={15} /></button>
-              <button style={zbtn} title="Enquadrar" onClick={() => setZoom(1)}><Maximize size={15} /></button>
-              <button style={zbtn} title="Aumentar" onClick={() => setZoom((z) => Math.min(4, z * 1.25))}><ZoomIn size={15} /></button>
-            </span>
+            <ZoomTrio onOut={() => setZoom((z) => Math.max(0.25, z * 0.8))} onFit={() => setZoom(1)} onIn={() => setZoom((z) => Math.min(4, z * 1.25))} />
           </div>
           <div style={{ overflow: "auto", background: "repeating-conic-gradient(#1a1a2e 0% 25%, #12122a 0% 50%) 50% / 24px 24px", borderRadius: 6, maxHeight: "70vh" }} className="tbl-scroll">
             <canvas ref={canvasRef} style={{ width: `${zoom * 100}%`, height: "auto", display: "block", imageRendering: "pixelated" }} />
@@ -243,6 +250,17 @@ export default function ProjectTestCard({ project }) {
           <div style={{ color: T.dim, fontSize: 11, marginTop: 8 }}>O preview é escalado; o PNG sai na resolução nativa ({W}×{H} px). Fundo xadrez = área transparente (alpha).</div>
         </div>
       </div>
+
+      {/* folha de ajustes (mobile) — todos os controles + salvar/excluir predefinição */}
+      {isMobile && ajustesOpen && (
+        <BottomSheet title="Ajustes do test card" onClose={() => setAjustesOpen(false)}>
+          {controlesMobile}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: `1px solid ${T.bd}`, paddingTop: 12, marginTop: 4 }}>
+            {savedSel && <button style={tbBtn} onClick={deletePreset}><Trash2 size={15} /> Excluir predef.</button>}
+            <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} onClick={savePreset}><Save size={15} /> Salvar predefinição</button>
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 }

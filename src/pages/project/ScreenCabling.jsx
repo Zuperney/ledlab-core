@@ -6,11 +6,14 @@
 // segurança do powerCON. Numeração 1..N por Screen. Estouro em vermelho: mostra, não
 // bloqueia (sinal = px/porta; AC = corrente do conector).
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, ZoomIn, ZoomOut, Maximize, TriangleAlert, ChevronDown, ChevronUp } from "lucide-react";
+import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, TriangleAlert } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
 import Select from "../../components/Select.jsx";
 import CablingLayer from "../../components/CablingLayer.jsx";
+import LightModal from "../../components/LightModal.jsx";
+import StatusPill from "../../components/StatusPill.jsx";
+import ZoomTrio from "../../components/ZoomTrio.jsx";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
@@ -21,11 +24,10 @@ import { oneScreenPerTela, screenTelas } from "../../services/screens.js";
 import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV } from "../../services/screenCabling.js";
 
 const key = (c) => `${c.telaId}:${c.c},${c.r}`;
-const zb = { width: 34, height: 34, borderRadius: 8, background: T.card, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
 const ibtn = (extra = {}) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 8, border: `1px solid ${T.bd}`, background: T.card2, color: T.txt, cursor: "pointer", ...extra });
 const sep = { width: 1, height: 22, background: T.bd, margin: "0 2px" };
 
-export default function ScreenCabling({ project, patch, kind = "sinal" }) {
+export default function ScreenCabling({ project, patch, kind = "sinal", advOpen = false, onAdvClose }) {
   const isAc = kind === "ac";
   const word = isAc ? "Cabo" : "Porta";
   const telas = project.telas || [];
@@ -44,7 +46,6 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [grabbing, setGrabbing] = useState(false);
-  const [advOpen, setAdvOpen] = useState(false); // controles avançados recolhidos por padrão
   const stageRef = useRef(null);
   const drag = useRef(null);
 
@@ -143,20 +144,23 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
     : rule === "px"
       ? [["auto", "Automática"], ["livre", "Livre"]]
       : [["area", "Área"], ["linha", "Linha"], ["coluna", "Coluna"], ["livre", "Livre"]];
-  const dispLabel = (dispOpts.find(([v]) => v === disp) || [])[1] || disp;
-  const resumo = [isAc ? null : (rule === "px" ? "Pixels reais" : "Área"), dispLabel, isAc ? null : `${cfg.bits === 10 ? 10 : 8}-bit`].filter(Boolean).join(" · ");
 
   return (
     <div>
-      <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", alignItems: "center", marginBottom: 12 }}>
-        {screens.map((s) => {
-          const on = s.id === active.id;
-          return (
-            <button key={s.id} onClick={() => setActiveId(s.id)} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, cursor: "pointer", background: on ? T.sel : T.card2, border: `1px solid ${on ? T.acc : T.bd}`, color: on ? T.txt : T.mut, fontWeight: 600, fontSize: 13 }}>
-              {s.nome} <span style={{ color: T.dim, fontWeight: 400 }}>· {(s.telaIds || []).length}</span>
-            </button>
-          );
-        })}
+      {/* F3: chips de Screen (contexto criável) + status SÓ quando há problema — o "OK"
+          verde permanente era ruído (feedback do usuário); silêncio = tudo certo */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 12 }}>
+        <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", alignItems: "center", minWidth: 0, flex: 1 }}>
+          {screens.map((s) => {
+            const on = s.id === active.id;
+            return (
+              <button key={s.id} onClick={() => setActiveId(s.id)} style={{ flexShrink: 0, padding: "6px 12px", minHeight: 36, borderRadius: 8, cursor: "pointer", background: on ? T.sel : T.card2, border: `1px solid ${on ? T.acc : T.bd}`, color: on ? T.txt : T.mut, fontWeight: 600, fontSize: 13 }}>
+                {s.nome} <span style={{ color: T.dim, fontWeight: 400 }}>· {(s.telaIds || []).length}</span>
+              </button>
+            );
+          })}
+        </div>
+        {status.c !== T.grn && <StatusPill color={status.c} label={status.l} />}
       </div>
 
       {!screenTelas(active, telas).length ? (
@@ -165,27 +169,6 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
         </div>
       ) : (
         <>
-          <div style={card({ marginBottom: mode === "livre" ? 8 : 16 })}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <button onClick={() => setAdvOpen((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: T.txt, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
-                {advOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />} Avançado
-              </button>
-              <span style={{ color: T.dim, fontSize: 12 }}>{resumo}</span>
-              <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
-            </div>
-            {advOpen && (
-              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.bd}` }}>
-                {!isAc && <Drop label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função). Veja Base de Conhecimento › Sinal." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
-                <Drop label="Disposição" title="Como a corrente é cortada em cabos" options={dispOpts} value={disp} onChange={setDisp} />
-                {mode === "auto" && <>
-                  <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={cfg.routing || "updown"} onChange={(v) => setCfg({ routing: v })} />
-                  <Drop label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
-                </>}
-                {!isAc && <Drop label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
-                <span style={{ color: T.dim, fontSize: 11, flexBasis: "100%" }}>{isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal." : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."}</span>
-              </div>
-            )}
-          </div>
 
           {mode === "livre" && (
             <div style={card({ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
@@ -212,7 +195,8 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
                   {mode === "sinal" ? " · seguindo a rota do sinal" : " · a corrente atravessa as telas do mesmo modelo"}
                 </div>
               </div>
-              {!isAc && (
+              {/* CSV é fluxo de BANCADA (NovaLCT/Tessera no PC) — no celular sai da frente */}
+              {!isAc && !isMobile && (
                 <button onClick={exportCSV} title="Baixa o mapa de pixels desta Screen (gabinete → porta → X/Y) em CSV pro NovaLCT / Tessera"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, borderRadius: 8, padding: "7px 11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
                   <Download size={14} /> Mapa de pixels
@@ -242,10 +226,8 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
                     activeCable={mode === "livre" ? activeCable : null} />
                 </g>
               </svg>
-              <div style={{ position: "absolute", right: 12, bottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-                <button title="Aumentar" onClick={() => zoomBy(1.2)} style={zb}><ZoomIn size={16} /></button>
-                <button title="Enquadrar" onClick={fit} style={zb}><Maximize size={16} /></button>
-                <button title="Diminuir" onClick={() => zoomBy(0.8)} style={zb}><ZoomOut size={16} /></button>
+              <div style={{ position: "absolute", right: 12, bottom: 12 }}>
+                <ZoomTrio onOut={() => zoomBy(0.8)} onFit={fit} onIn={() => zoomBy(1.2)} />
               </div>
             </div>
 
@@ -268,6 +250,23 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
           </div>
         </>
       )}
+
+      {/* Avançado da Screen: modal LEVE (não preenche a tela) — botão mora na linha
+          das sub-abas (ProjectCabeamento); o modal fica aqui, onde vive o contexto */}
+      {advOpen && (
+        <LightModal title={`Avançado · ${active.nome} · ${isAc ? "AC" : "Sinal"}`} onClose={onAdvClose}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {!isAc && <Drop fluid label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função)." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
+            <Drop fluid label="Disposição" title="Como a corrente é cortada em cabos" options={dispOpts} value={disp} onChange={setDisp} />
+            {mode === "auto" && <>
+              <Drop fluid label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={cfg.routing || "updown"} onChange={(v) => setCfg({ routing: v })} />
+              <Drop fluid label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
+            </>}
+            {!isAc && <Drop fluid label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
+          </div>
+          <div style={{ color: T.dim, fontSize: 11, marginTop: 12, lineHeight: 1.5 }}>{isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal." : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."}</div>
+        </LightModal>
+      )}
     </div>
   );
 }
@@ -283,11 +282,12 @@ function Info({ text }) {
 }
 
 const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
-function Drop({ label, options, value, onChange, title }) {
+function Drop({ label, options, value, onChange, title, fluid }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }} title={title}>
+    // `fluid` (células do grid mobile): rótulo em cima e select na largura toda da célula
+    <span style={{ display: fluid ? "flex" : "inline-flex", flexDirection: fluid ? "column" : "row", alignItems: fluid ? "stretch" : "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600, minWidth: 0 }} title={title}>
       {label}
-      <Select value={String(value)} title={title || label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={dropSel}>
+      <Select value={String(value)} title={title || label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={{ ...dropSel, ...(fluid ? { width: "100%", minWidth: 0 } : {}) }}>
         {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
       </Select>
     </span>

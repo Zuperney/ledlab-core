@@ -3,7 +3,9 @@
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState, useRef, useEffect } from "react";
-import { Printer, Info, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
+import { Printer, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
+import HelpTip from "../../components/HelpTip.jsx";
+import Segmented from "../../components/Segmented.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
@@ -22,6 +24,8 @@ import { btn } from "../../ui/styles.js";
 import { fileName, printAs } from "../../services/filenames.js";
 
 const TYPES = ["Completo", "Resumido", "Elétrico", "Mapa de cabos", "Estrutural", "Design", "Gabinetes"];
+// no CELULAR só o essencial de consulta (pedido do usuário): imprimir/tipos finos é fluxo de PC
+const TYPES_MOBILE = ["Completo", "Resumido", "Mapa de cabos"];
 // largura fixa "de impressão": no mobile o relatório é montado nela e escalado (zoom) p/ caber
 const DOC_W = 800;
 
@@ -118,17 +122,16 @@ export default function ProjectRelatorio({ project }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {TYPES.map((t) => (
-            <button key={t} onClick={() => setType(t)} style={{ padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${type === t ? T.acc : T.bd}`, background: type === t ? T.acc : "transparent", color: type === t ? "#fff" : T.mut }}>{t}</button>
-          ))}
-        </div>
-        <button style={btn("primary")} onClick={() => printAs(fileName([project.name, "relatorio", type]))}><Printer size={15} /> Imprimir / Salvar PDF</button>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, padding: "9px 12px", borderRadius: 10, background: T.card2, border: `1px solid ${T.bd}`, fontSize: 12.5, color: T.mut }}>
-        <Info size={15} style={{ flexShrink: 0, color: T.acc }} />
-        <span>Ao salvar o PDF, ative <b style={{ color: T.txt }}>“Gráficos de segundo plano”</b> na janela de impressão — sem isso a capa e as cores dos cabos saem apagadas.</span>
+        {/* F1: tipo do relatório = Segmented (rolável); mobile mostra só os 3 de consulta */}
+        <Segmented value={type} onChange={setType} size="sm"
+          options={(isMobile ? TYPES_MOBILE : TYPES).map((t) => ({ value: t, label: t }))} />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <button style={btn("primary")} onClick={() => printAs(fileName([project.name, "relatorio", type]))}><Printer size={15} /> Imprimir / Salvar PDF</button>
+          {/* o aviso do PDF virou "?" ao lado do botão que ele explica (era um box fixo) */}
+          <HelpTip title="Dica pro PDF sair certo">
+            Ao salvar o PDF, ative <b style={{ color: T.txt }}>“Gráficos de segundo plano”</b> na janela de impressão — sem isso a capa e as cores dos cabos saem apagadas.
+          </HelpTip>
+        </span>
       </div>
 
       <div ref={docWrapRef} style={{ overflow: "hidden" }}>

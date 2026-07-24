@@ -7,6 +7,7 @@ import SectionHeader from "../components/SectionHeader.jsx";
 import ProjectTestCard from "./project/ProjectTestCard.jsx";
 import Select from "../components/Select.jsx";
 import NumField from "../components/NumField.jsx";
+import Segmented from "../components/Segmented.jsx";
 
 export default function TestCards() {
   const { projects, cabs } = useLedLabContext();
@@ -29,9 +30,9 @@ export default function TestCards() {
     <div>
       <SectionHeader title="Test Cards" subtitle="Gere cartões de teste a partir de um projeto ou de uma grade manual." />
       <div style={card({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
-        {[["projeto", "De um projeto"], ["manual", "Grade manual"]].map(([v, l]) => (
-          <button key={v} onClick={() => setMode(v)} style={{ padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, border: `1px solid ${mode === v ? T.acc : T.bd}`, background: mode === v ? T.acc : T.card2, color: mode === v ? "#fff" : T.mut }}>{l}</button>
-        ))}
+        {/* F1: escolha exclusiva = Segmented (gramática R2) */}
+        <Segmented value={mode} onChange={setMode}
+          options={[{ value: "projeto", label: "De um projeto" }, { value: "manual", label: "Grade manual" }]} />
         {mode === "projeto" ? (
           <Select value={projId} onChange={(e) => setProjId(e.target.value)} style={inp}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>
         ) : (

@@ -66,7 +66,8 @@ export default function ProjectDados({ project, patch, patchTela }) {
       <div ref={listRef} style={card({ minWidth: 0 })}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
           <span style={{ textTransform: "uppercase", fontSize: 11, letterSpacing: "0.06em", color: T.mut }}>Telas — {telas.length}</span>
-          <button style={btn("primary", isMobile ? { width: "100%", justifyContent: "center" } : {})} onClick={addTela}><Plus size={15} /> Adicionar tela</button>
+          {/* R1: primária de tamanho normal, à direita — o full-width virava um "banner" */}
+          <button style={btn("primary")} onClick={addTela}><Plus size={15} /> Adicionar tela</button>
         </div>
         {telas.length === 0 && <div style={{ color: T.dim, fontSize: 13 }}>Nenhuma tela ainda.</div>}
         {telas.map((t) => {
