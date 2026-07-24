@@ -3,6 +3,16 @@
 App PWA offline-first (React + Vite) pra técnicos de LED: projetos (telas, Screens,
 cabeamento de sinal/AC, relatório, test card), cachês e gestão. 100% PT-BR na UI.
 
+## ⚠️ REGRA ZERO: o Manual de Marca
+
+**Antes de criar QUALQUER coisa nova de interface — cor, ícone, modal, toast,
+componente, texto — leia `docs/marca/manual.md` e implemente o que ele manda.
+Não inventa.** O manual cobre: marca e paleta (lime #ebf51e + preto), catálogo
+de ícones com significado fixo, regras de superfícies (LightModal/BottomSheet/
+Drawer/confirm), toasts, átomos e anti-usos, voz e texto. Caso não coberto →
+o manual absorve o caso (proposta → aprovação do dono → commit lá), nunca uma
+exceção solta no código.
+
 ## A GRAMÁTICA DA INTERFACE (obrigatória em toda aba/página nova)
 
 Toda tela de trabalho são **5 faixas**, nesta ordem (faixa sem conteúdo some, mas

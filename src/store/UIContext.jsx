@@ -4,6 +4,7 @@
 //   const toast = useToast();      toast("Item excluído");
 import { createContext, useContext, useState, useCallback } from "react";
 import { TriangleAlert, CircleCheck, Info } from "lucide-react";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 import { T } from "../ui/tokens.js";
 import { btn } from "../ui/styles.js";
 
@@ -56,7 +57,7 @@ function PromptDialog({ dialog, onClose }) {
           style={{ width: "100%", background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 16, outline: "none" }} />
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
           <button style={btn("subtle")} onClick={() => onClose(null)}>Cancelar</button>
-          <button style={btn("ghost", { background: T.acc, color: "#fff", borderColor: T.acc })} onClick={() => onClose(val)}>OK</button>
+          <button style={btn("ghost", { background: T.acc, color: T.accInk, borderColor: T.acc })} onClick={() => onClose(val)}>OK</button>
         </div>
       </div>
     </div>
@@ -90,8 +91,14 @@ function ConfirmDialog({ dialog, onClose }) {
 }
 
 function ToastStack({ toasts }) {
+  const isMobile = useIsMobile();
+  // manual §9.3: desktop no canto inferior-direito; MOBILE centro-inferior,
+  // ACIMA da bottom nav (nunca atrás dela)
+  const pos = isMobile
+    ? { left: "50%", transform: "translateX(-50%)", bottom: "calc(74px + env(safe-area-inset-bottom))", width: "max-content", maxWidth: "92vw" }
+    : { right: 20, bottom: 20 };
   return (
-    <div style={{ position: "fixed", right: 20, bottom: 20, zIndex: 110, display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ position: "fixed", ...pos, zIndex: 110, display: "flex", flexDirection: "column", gap: 8 }}>
       {toasts.map((t) => {
         const Icon = t.type === "success" ? CircleCheck : Info;
         const color = t.type === "success" ? T.grn : T.acM;

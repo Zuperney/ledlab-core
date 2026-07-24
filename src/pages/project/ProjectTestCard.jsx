@@ -177,7 +177,7 @@ export default function ProjectTestCard({ project }) {
           <button style={tbBtn} title="Salvar predefinição" onClick={savePreset}><Save size={16} /></button>
           {savedSel && <button style={tbBtn} title={`Excluir predefinição "${savedSel.name}"`} onClick={deletePreset}><Trash2 size={16} /></button>}
         </>)}
-        <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} />{!isMobile && " PNG"}</button>
+        <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: T.accInk }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} />{!isMobile && " PNG"}</button>
       </div>
 
 
@@ -264,7 +264,7 @@ export default function ProjectTestCard({ project }) {
           {controlesMobile}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: `1px solid ${T.bd}`, paddingTop: 10, marginTop: 4 }}>
             {savedSel && <button style={{ ...tbBtn, height: 32, fontSize: 12 }} onClick={deletePreset}><Trash2 size={13} /> Excluir</button>}
-            <button style={{ ...tbBtn, height: 32, fontSize: 12, background: T.acc, borderColor: T.acc, color: "#fff" }} onClick={savePreset}><Save size={13} /> Salvar predefinição</button>
+            <button style={{ ...tbBtn, height: 32, fontSize: 12, background: T.acc, borderColor: T.acc, color: T.accInk }} onClick={savePreset}><Save size={13} /> Salvar predefinição</button>
           </div>
         </LightModal>
       )}

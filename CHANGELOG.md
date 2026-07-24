@@ -2,6 +2,19 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.8.0] — 2026-07-24
+
+**O app vestiu a marca.** Nasceu o Manual de Marca & Sistema (`docs/marca/`) — a lei da interface — e a paleta saiu do roxo pra identidade led/lab.
+
+- **Tema escuro "Palco"**: fundos quase-pretos neutros e o **lime `#ebf51e` nas ações** — botão primário é a marca (lime com tinta preta).
+- **Modo sol repaginado**: a marca invertida — primária preta com tinta lime, acentos oliva, bordas fortes. Corrigido o bug que deixava pedaços da interface presos no escuro (barra das Configurações, badges); alternar o tema agora recarrega a página (é o esperado).
+- **Avisos em laranja** (saiu o amarelo — confundia com o lime). Verde e vermelho seguem os mesmos.
+- **Caderno Técnico**: interior com acento **oliva** (conversa com a capa lime) e **tabelas zebradas** nas listas longas de circuito.
+- Toast no celular agora aparece no centro-inferior, acima da barra de navegação.
+- **Manual de Marca & Sistema**: marca, 3 ecossistemas de cor, catálogo de ícones com significado fixo, regras de modais/toasts/componentes, leis de densidade e do papel. Toda feature nova nasce lendo o manual.
+
+197 testes. Nenhum cálculo mudou.
+
 ## [1.7.1] — 2026-07-24
 
 **O modal leve virou o padrão dos ajustes.** Refino em cima do feedback de campo da v1.7.0.

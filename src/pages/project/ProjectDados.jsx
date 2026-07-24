@@ -120,7 +120,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
                       const disabled = k === "m" && !dW;
                       return (
                         <button key={k} onClick={() => !disabled && setDimMode(k)}
-                          style={{ flex: 1, minWidth: 120, padding: "8px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : T.card2, color: active ? "#fff" : T.mut, opacity: disabled ? 0.55 : 1 }}>
+                          style={{ flex: 1, minWidth: 120, padding: "8px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", border: `1px solid ${active ? T.acc : T.bd}`, background: active ? T.acc : T.card2, color: active ? T.accInk : T.mut, opacity: disabled ? 0.55 : 1 }}>
                           {l}
                         </button>
                       );

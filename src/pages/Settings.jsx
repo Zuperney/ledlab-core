@@ -413,7 +413,7 @@ const GROUPS = [
   { id: "dados", label: "Dados", Icon: Database },
 ];
 const tabsWrap = { display: "flex", gap: 6, marginBottom: 14, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 4 };
-const tabBtn = (active) => ({ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 8px", borderRadius: 7, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, border: "none", background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });
+const tabBtn = (active) => ({ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 8px", borderRadius: 7, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, border: "none", background: active ? T.acc : "transparent", color: active ? T.accInk : T.mut });
 
 const mTitle = { color: T.txt, fontWeight: 600, fontSize: 14 };
 const mDesc = { color: T.dim, fontSize: 12 };

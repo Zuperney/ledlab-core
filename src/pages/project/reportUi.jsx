@@ -168,8 +168,11 @@ export function DenseTable({ columns, data, maxCols = 2, minSplit = 3, gap = 20 
   const one = (rows, start, key) => (
     <table key={key} style={{ flex: 1, minWidth: 0, borderCollapse: "collapse" }}>
       <thead><tr>{columns.map((c) => <th key={c.key} style={{ ...th, textAlign: c.align || "left" }}>{c.label}</th>)}</tr></thead>
+      {/* zebrado obrigatório (manual §10.3): tabela de circuito tem dezenas de
+          linhas — sem a zebra a linha visual se perde. Índice GLOBAL (start+i)
+          mantém a alternância consistente entre as colunas divididas. */}
       <tbody>{rows.map((r, i) => (
-        <tr key={start + i}>{columns.map((c) => <td key={c.key} style={{ ...td, textAlign: c.align || "left", whiteSpace: c.wrap ? "normal" : "nowrap", ...(c.tdStyle ? c.tdStyle(r) : null) }}>{c.render(r)}</td>)}</tr>
+        <tr key={start + i} style={{ background: (start + i) % 2 ? "#f8f8f8" : "transparent" }}>{columns.map((c) => <td key={c.key} style={{ ...td, textAlign: c.align || "left", whiteSpace: c.wrap ? "normal" : "nowrap", ...(c.tdStyle ? c.tdStyle(r) : null) }}>{c.render(r)}</td>)}</tr>
       ))}</tbody>
     </table>
   );

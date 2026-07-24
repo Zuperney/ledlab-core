@@ -74,14 +74,21 @@ export default function App() {
   const ocultarValores = !!prefs.dashOcultarValor;
   const toggleOcultar = () => setPrefs({ ...prefs, dashOcultarValor: !ocultarValores });
 
-  // MODO SOL: claro de alto contraste pra operar ao ar livre (toggle no topbar —
-  // em campo é ajuste frequente, não mora em Configurações). Os tokens T são
-  // trocados in-place e o key={theme} remonta a árvore pra tudo reler as cores.
-  // troca determinística dos tokens ANTES dos filhos renderizarem; o key={theme}
-  // remonta a árvore no mesmo render, então todo style inline relê as cores novas
-  const theme = prefs.theme === "sol" ? "sol" : "dark";
+  // MODO SOL: claro de alto contraste pra operar ao ar livre (toggle no topbar).
+  // O tema LOCAL manda (flag no localStorage, lida também no boot do tokens.js):
+  // muitas consts de estilo capturam T no import, então ALTERNAR o tema exige
+  // reload — é ocasional, e é o único jeito de TODA a UI renascer na cor certa.
+  const theme = (() => {
+    try { const f = localStorage.getItem("ledlab.theme"); if (f === "sol" || f === "dark") return f; } catch { /* ok */ }
+    return prefs.theme === "sol" ? "sol" : "dark";
+  })();
   applyTheme(theme);
-  const toggleTheme = () => setPrefs({ ...prefs, theme: theme === "sol" ? "dark" : "sol" });
+  const toggleTheme = () => {
+    const next = theme === "sol" ? "dark" : "sol";
+    try { localStorage.setItem("ledlab.theme", next); } catch { /* ok */ }
+    setPrefs({ ...prefs, theme: next }); // segue no prefs (backup/sync como padrão de outros aparelhos)
+    setTimeout(() => window.location.reload(), 120); // deixa o persist gravar antes
+  };
 
   // marca a versão atual como "vista" (o modal já foi decidido no initializer acima)
   useEffect(() => {
@@ -203,7 +210,7 @@ export default function App() {
             <SunToggle sol={theme === "sol"} onClick={toggleTheme} />
             <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
             <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{VERSION}</span>
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.acc, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>D</div>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.acc, color: T.accInk, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>D</div>
           </div>
         </header>
         <main style={{ flex: 1, overflowY: "auto", padding: 28 }}>
@@ -247,7 +254,7 @@ function UpdateModal({ info, onClose }) {
         </div>
         <div style={{ color: T.txt, fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>{info.whatsNew}</div>
         <button onClick={onClose} autoFocus
-          style={{ width: "100%", background: T.acc, color: "#fff", border: "none", borderRadius: 10, padding: "11px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
+          style={{ width: "100%", background: T.acc, color: T.accInk, border: "none", borderRadius: 10, padding: "11px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
           Entendi
         </button>
       </div>
@@ -292,7 +299,7 @@ function BackupReminder({ days, onBackup, onDismiss }) {
     <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.sel, border: `1px solid ${T.acc}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: T.txt }}>
       <TriangleAlert size={16} color={T.acM} style={{ flexShrink: 0 }} />
       <span style={{ flex: 1, minWidth: 0 }}>{txt} Seus dados vivem só neste navegador — <b>faça um backup</b> pra não perder.</span>
-      <button onClick={onBackup} style={{ flexShrink: 0, background: T.acc, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Fazer backup</button>
+      <button onClick={onBackup} style={{ flexShrink: 0, background: T.acc, color: T.accInk, border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Fazer backup</button>
       <button onClick={onDismiss} aria-label="Dispensar" style={{ flexShrink: 0, background: "none", border: "none", color: T.mut, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
     </div>
   );

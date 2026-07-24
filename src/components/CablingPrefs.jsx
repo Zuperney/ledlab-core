@@ -109,7 +109,7 @@ function CornerPicker({ value, onChange }) {
         return (
           <button key={k} type="button" onClick={() => onChange(k)} title={label} aria-label={label}
             style={{ position: "relative", width: 36, height: 36, borderRadius: 6, cursor: "pointer", background: active ? T.sel : T.card2, border: `1px solid ${active ? T.acc : T.bd}` }}>
-            <span style={{ position: "absolute", ...at[k], width: 11, height: 11, borderRadius: 3, background: active ? T.acc : T.dim2, color: "#fff", fontSize: 8, fontWeight: 700, display: "grid", placeItems: "center" }}>1</span>
+            <span style={{ position: "absolute", ...at[k], width: 11, height: 11, borderRadius: 3, background: active ? T.acc : T.dim2, color: active ? T.accInk : "#fff", fontSize: 8, fontWeight: 700, display: "grid", placeItems: "center" }}>1</span>
           </button>
         );
       })}
@@ -120,4 +120,4 @@ function CornerPicker({ value, onChange }) {
 const subLabel = { color: T.txt, fontWeight: 600, fontSize: 12, marginBottom: 4 };
 const subDesc = { color: T.dim, fontSize: 11.5, marginBottom: 6, lineHeight: 1.45 };
 const segRow = { display: "inline-flex", background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 3, gap: 3 };
-const segBtn = (active) => ({ width: 30, padding: "6px 0", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });
+const segBtn = (active) => ({ width: 30, padding: "6px 0", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, background: active ? T.acc : "transparent", color: active ? T.accInk : T.mut });

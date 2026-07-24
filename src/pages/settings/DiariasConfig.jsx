@@ -159,7 +159,7 @@ const SUBS = [
   { id: "tipos", label: "Tipos", Icon: Tags },
 ];
 const subTabsWrap = { display: "flex", gap: 6, marginBottom: 16, background: T.bg, border: `1px solid ${T.bd}`, borderRadius: 9, padding: 4 };
-const subTabBtn = (active) => ({ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 6px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, border: "none", background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });
+const subTabBtn = (active) => ({ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 6px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, border: "none", background: active ? T.acc : "transparent", color: active ? T.accInk : T.mut });
 
 function Toggle({ on, onClick, titulo, desc }) {
   return (
