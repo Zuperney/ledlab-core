@@ -13,6 +13,7 @@ import { DateField } from "../../components/PickerField.jsx";
 import Select from "../../components/Select.jsx";
 import NumField from "../../components/NumField.jsx";
 import { reorder } from "../../services/layout.js";
+import { dropTela } from "../../services/screens.js";
 
 export default function ProjectDados({ project, patch, patchTela }) {
   const { cabs, favCab } = useCabinets();
@@ -68,7 +69,9 @@ export default function ProjectDados({ project, patch, patchTela }) {
   };
   const delTela = async (t) => {
     if (await confirm({ title: "Excluir tela?", message: `"${t.nome || "tela"}" será removida deste projeto.` })) {
-      patch({ telas: telas.filter((x) => x.id !== t.id) });
+      // limpa a tela também das Screens — telaId órfão numa Screen quebra o
+      // Relatório (Screen 0×0 e telas "fora de qualquer Screen"; LLC-11)
+      patch({ telas: telas.filter((x) => x.id !== t.id), ...(project.screens ? { screens: dropTela(project.screens, t.id) } : {}) });
       toast("Tela excluída");
     }
   };
