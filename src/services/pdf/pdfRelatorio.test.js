@@ -131,6 +131,19 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(curto.fontSize).toBe(58);
   });
 
+  it("um tópico por página: toda seção depois da 1ª abre página nova (manual §10.6)", () => {
+    // Completo sem Screens = 6 seções (VG, vídeo, elétrica, sinal, AC, glossário) → 5 quebras
+    const completo = JSON.stringify(build("Completo").content);
+    expect(completo.match(/"pageBreak":"before"/g)?.length).toBe(5);
+    // Elétrico = 1 seção só → nenhuma quebra "before" (senão nasceria página em branco)
+    const eletrico = JSON.stringify(build("Elétrico").content);
+    expect(eletrico.match(/"pageBreak":"before"/g)).toBeNull();
+  });
+
+  it("bloco de tela/Screen é indivisível (unbreakable, como o rp-block do DOM)", () => {
+    expect(JSON.stringify(build("Completo").content)).toContain('"unbreakable":true');
+  });
+
   it("numeração de seção segue a ordem exibida (Completo começa em 01)", () => {
     const j = JSON.stringify(build("Completo").content);
     expect(j).toContain('"01"');

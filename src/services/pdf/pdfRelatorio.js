@@ -103,6 +103,12 @@ function warnBox({ titulo, partes }) {
   };
 }
 
+// bloco INDIVISÍVEL de uma Screen/tela (subtítulo + specs + tabela): não quebra no
+// meio da página — como o breakInside:avoid do .rp-block no DOM. Blocos gigantes
+// (mais de ~28 linhas por coluna na tabela de 4) deixam de ser unbreakable, senão
+// o pdfmake move o bloco inteiro pra uma página onde ele não cabe e corta o fim.
+const bloco = (nodes, nRows) => ({ stack: nodes, unbreakable: nRows <= 112, margin: [0, 0, 0, 4] });
+
 // linha rotulada da capa (label mono caps + valor), com hairline entre linhas
 const coverRow = (label, value, { bold = false, first = false } = {}) => ({
   margin: [0, 0, 0, 0],
@@ -356,9 +362,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     if (usaScreens) {
       return [
         head,
-        ...screenReport.flatMap((s, i) => {
+        ...screenReport.map((s, i) => {
           const sp = screenSpec(s);
-          return [
+          return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
               ["Resolução da Screen", `${ptBR(s.size.w)} × ${ptBR(s.size.h)} px`],
@@ -372,7 +378,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
               { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
             ]),
-          ];
+          ], s.ports.length);
         }),
         ...(semScreen.length ? [{
           text: [{ text: `${semScreen.length} tela(s) fora de qualquer Screen `, bold: true }, { text: `(${semScreen.map((t) => t.nome).join(", ")}) — não entraram em nenhum sistema, então não têm cabeamento de sinal.` }],
@@ -389,12 +395,14 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
         const off = portOffset(telas, t.id, "sinal", numbering);
         const rows = ports.map((p, pi) => ({ n: off + pi + 1, idx: off + pi, count: p.length, pct: Math.round(((sinalRule === "px" ? p.length : bboxArea(p)) / sinalBudget) * 100) }));
         return [
-          subHead(`${S}.${i + 1}`, t.nome, `${portLabel(off, ports.length, "porta")} · máx ${sinalBudget} gabinetes/porta · ${sinalRule === "px" ? `pixels reais: ${ptBR(pxPort)} px (${sinalBits}-bit)` : "área quadrada"}`),
-          densePortTable(rows, [
-            { label: "Porta", cell: (p) => portCell(p.idx, p.n) },
-            { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-            { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
-          ]),
+          bloco([
+            subHead(`${S}.${i + 1}`, t.nome, `${portLabel(off, ports.length, "porta")} · máx ${sinalBudget} gabinetes/porta · ${sinalRule === "px" ? `pixels reais: ${ptBR(pxPort)} px (${sinalBits}-bit)` : "área quadrada"}`),
+            densePortTable(rows, [
+              { label: "Porta", cell: (p) => portCell(p.idx, p.n) },
+              { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
+            ]),
+          ], rows.length),
           ...(tipo === "Mapa de cabos" ? [
             { text: "Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) para transcrever no processador (NovaLCT / Tessera).", fontSize: 8, color: PRINT.mut, margin: [0, 6, 0, 3] },
             {
@@ -425,14 +433,14 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
       return [
         ...head,
         { text: "Cabos de energia por Screen, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 4] },
-        ...screenReportAc.flatMap((s, i) => [
+        ...screenReportAc.map((s, i) => bloco([
           subHead(`${S}.${i + 1}`, s.nome, `${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`),
           densePortTable(s.ports, [
             { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
             { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
             { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)} A · ${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : PRINT.ink }) },
           ]),
-        ]),
+        ], s.ports.length)),
       ];
     }
     return [
@@ -446,14 +454,14 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           const load = p.length * ampCab;
           return { n: off + pi + 1, idx: off + pi, count: p.length, load, pct: Math.round((load / connRating) * 100) };
         });
-        return [
+        return bloco([
           subHead(`${S}.${i + 1}`, t.nome, `${portLabel(off, ports.length, "cabo")} · máx ${acBudget} gabinetes/cabo · ${ampCab.toFixed(2)} A/gabinete · conector ${connRating} A`),
           densePortTable(rows, [
             { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
             { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
             { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)} A · ${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
           ]),
-        ];
+        ], rows.length);
       }),
     ];
   })();
@@ -492,6 +500,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
         { text: `PÁG ${current} DE ${total}`, font: "Courier", fontSize: 6.5, bold: true, color: PRINT.acc, alignment: "right", characterSpacing: 0.8 },
       ],
     }),
-    content: [...capa, ...visaoGeral, ...video, ...eletrica, ...sinal, ...ac, ...gloss],
+    content: (() => {
+      // UM TÓPICO POR PÁGINA (manual §10.6, como no print do DOM): toda seção
+      // depois da 1ª abre página nova. A 1ª já nasce em página limpa — a capa
+      // termina com pageBreak "after"; dar "before" nela criaria página em branco.
+      const secoes = [visaoGeral, video, eletrica, sinal, ac, gloss].filter((s) => s.length);
+      secoes.slice(1).forEach((s) => { s[0] = { ...s[0], pageBreak: "before" }; });
+      return [...capa, ...secoes.flat()];
+    })(),
   };
 }
