@@ -70,16 +70,18 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("Típico por gabinete = base + (pico − base) × brilho × conteúdo");
   });
 
-  it("Sinal (legado, sem Screens): seção por tela com faixa de portas", () => {
+  it("Sinal (legado, sem Screens): seção por tela com ficha de specs", () => {
     expect(json).toContain("CABEAMENTO DE SINAL");
-    expect(json).toContain("gabinetes/porta");
+    expect(json).toContain("MÁX POR PORTA");
+    expect(json).toContain("RÉGUA");
   });
 
-  it("AC: aviso de energização (laranja) + carga por cabo", () => {
+  it("AC: aviso de energização (laranja) + ficha de specs por tela", () => {
     expect(json).toContain("ENERGIA — CABEAMENTO AC");
     expect(json).toContain("ATENÇÃO — ENERGIZAÇÃO");
     expect(json).toContain("powerCON azuis");
-    expect(json).toContain("gabinetes/cabo");
+    expect(json).toContain("MÁX POR CABO");
+    expect(json).toContain("A/gabinete");
   });
 
   it("Glossário em duas colunas fecha o caderno Completo", () => {
@@ -131,13 +133,22 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(curto.fontSize).toBe(58);
   });
 
-  it("um tópico por página: toda seção abre página nova (manual §10.6)", () => {
-    // Completo sem Screens = sumário na página pós-capa + 6 seções → 6 quebras
+  it("um tópico por página + uma página por Screen/tela no sinal e no AC", () => {
+    // Completo sem Screens: 6 seções (com sumário, todas quebram) + 4 blocos
+    // (2 telas × sinal e AC, cada um na própria página) → 10 quebras "before"
     const completo = JSON.stringify(build("Completo").content);
-    expect(completo.match(/"pageBreak":"before"/g)?.length).toBe(6);
-    // Elétrico = 1 seção só, sem sumário → nenhuma quebra "before" (senão nasceria página em branco)
+    expect(completo.match(/"pageBreak":"before"/g)?.length).toBe(10);
+    // Elétrico = 1 seção só, sem sumário e sem blocos → nenhuma quebra "before"
     const eletrico = JSON.stringify(build("Elétrico").content);
     expect(eletrico.match(/"pageBreak":"before"/g)).toBeNull();
+  });
+
+  it("abertura de seção: 04 e 05 têm resumo geral (stats + tabela de Screens/telas)", () => {
+    const j = JSON.stringify(build("Completo").content);
+    expect(j).toContain("PORTAS DE SINAL"); // stat da abertura do sinal (legado)
+    expect(j).toContain("CIRCUITOS AC"); // stat da abertura do AC
+    expect(j).toContain('"fontSize":19'); // números grandes da statRow
+    expect(j).toContain('"fontSize":11.5'); // specs por Screen/tela em fonte maior
   });
 
   it("SUMÁRIO só no Completo: nó toc + entradas coloridas por disciplina", () => {

@@ -85,17 +85,38 @@ function subHead(num, title, right) {
 
 // box de especificações (fundo neutro) — pares rótulo/valor numa linha corrida
 function specBox(pairs) {
-  const parts = [];
-  pairs.forEach(([l, v], i) => {
-    if (i) parts.push({ text: "   ·   ", color: PRINT.line });
-    parts.push({ text: `${l} `, color: PRINT.mut }, { text: v, bold: true, color: PRINT.ink });
-  });
   return {
-    margin: [0, 0, 0, 6],
-    table: { widths: ["*"], body: [[{ text: parts, fontSize: 8.5, margin: [8, 5, 8, 5] }]] },
+    margin: [0, 2, 0, 10],
+    table: {
+      widths: ["*"],
+      body: [[{
+        columns: pairs.map(([l, v]) => ({
+          width: "auto",
+          stack: [
+            { text: l.toUpperCase(), fontSize: 7.5, color: PRINT.dim, characterSpacing: 0.7 },
+            { text: v, bold: true, fontSize: 11.5, color: PRINT.ink, margin: [0, 2, 0, 0] },
+          ],
+        })),
+        columnGap: 22,
+        margin: [10, 7, 10, 8],
+      }]],
+    },
     layout: { hLineWidth: () => 0.6, vLineWidth: () => 0.6, hLineColor: () => PRINT.line, vLineColor: () => PRINT.line, fillColor: () => PRINT.head },
   };
 }
+
+// linha de STATS da página de abertura de seção (rótulo caps + número grande)
+const statRow = (items) => ({
+  columns: items.map(([l, v]) => ({
+    width: "auto",
+    stack: [
+      { text: String(l).toUpperCase(), fontSize: 7.5, color: PRINT.dim, characterSpacing: 0.8 },
+      { text: String(v), bold: true, fontSize: 19, color: PRINT.ink, margin: [0, 2, 0, 0] },
+    ],
+  })),
+  columnGap: 34,
+  margin: [0, 4, 0, 14],
+});
 
 // box de AVISO de segurança (manual: aviso é LARANJA) — borda forte + título caps
 function warnBox({ titulo, partes }) {
@@ -115,25 +136,15 @@ function warnBox({ titulo, partes }) {
   };
 }
 
-// bloco INDIVISÍVEL de uma Screen/tela (subtítulo + specs + mapa + tabela): não
-// quebra no meio da página — como o breakInside:avoid do .rp-block no DOM. A
-// válvula é por ALTURA estimada: bloco maior que a área útil da paisagem deixa
-// de ser unbreakable, senão o pdfmake o move pra uma página onde não cabe e
-// corta o fim. estH ≈ cabeçalhos + mapa + linhas da tabela densa (4 colunas).
-const blocoH = (nRows, mapH) => 46 + (mapH || 0) + Math.ceil(nRows / 4) * 13 + 20;
-const bloco = (nodes, estH) => ({ stack: nodes, unbreakable: estH <= 460, _estH: estH, margin: [0, 0, 0, 4] });
-
-// o PRIMEIRO bloco de cada seção pode QUEBRAR de página: assim o cabeçalho da
-// seção nunca fica órfão numa página quase vazia (o bloco começa junto dele e a
-// tabela densa continua na página seguinte repetindo o header). Fundir cabeçalho
-// + bloco num unbreakable NÃO serve: mais alto que a página, o pdfmake DESCARTA
-// o conjunto inteiro — testado e perdeu a Screen do caderno. Os demais blocos
-// seguem indivisíveis; quando cabeçalho + 1º bloco cabem juntos, nada muda.
-function grudaCabecalho(nodes) {
-  const i = nodes.findIndex((n) => n && n._estH != null);
-  if (i >= 0) nodes[i] = { ...nodes[i], unbreakable: false };
-  return nodes;
-}
+// bloco de uma Screen/tela (subtítulo + specs + mapa + tabela): abre SEMPRE em
+// página própria (pageBreak) e é INDIVISÍVEL — a seção 04/05 tem uma página de
+// ABERTURA com o resumo geral e cada subseção ganha a sua, sem quebrar em duas.
+// A válvula por ALTURA estimada existe porque bloco maior que a página útil não
+// pode ser unbreakable: o pdfmake DESCARTA o conjunto inteiro (testado — perdeu
+// a Screen do caderno); acima do teto ele volta a poder quebrar, com a tabela
+// densa repetindo o header na continuação.
+const blocoH = (nRows, mapH) => 60 + (mapH || 0) + Math.ceil(nRows / 4) * 14 + 22;
+const bloco = (nodes, estH) => ({ stack: nodes, unbreakable: estH <= 480, pageBreak: "before", margin: [0, 0, 0, 4] });
 
 // nó de mapa pro conteúdo: o gerador devolve {svg,width,height} ou null (sem células)
 const mapNode = (m) => (m ? [{ svg: m.svg, width: m.width, margin: [0, 0, 0, 6] }] : []);
@@ -397,10 +408,50 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     const sn = sec(); const S = String(sn).padStart(2, "0");
     const head = sectionHead(sn, "Cabeamento de Sinal", "Portas de dados", DISC.video);
     if (usaScreens) {
-      return grudaCabecalho([
+      // telas VIVAS de uma Screen (ids órfãos fora — LLC-11)
+      const telasDe = (sid) => (screensById[sid]?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean);
+      const specsDe = Object.fromEntries(screenReport.map((s) => [s.id, screenSpec(s)]));
+      const totCabos = screenReport.reduce((n, s) => n + s.ports.length, 0);
+      const totTelas = screenReport.reduce((n, s) => n + telasDe(s.id).length, 0);
+      const hzs = [...new Set(screenReport.map((s) => specsDe[s.id].hz))].join(" · ");
+      return [
+        // ── página de ABERTURA da seção: o resumo geral do sinal ──
         head,
+        { text: "Cabos de dados organizados por Screen — cada sistema abre na própria página, com o mapa e a tabela de portas.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+        statRow([
+          ["Screens", screenReport.length],
+          ["Telas", totTelas],
+          ["Cabos de sinal", totCabos],
+          ["Frequência", `${hzs} Hz`],
+        ]),
+        {
+          table: {
+            headerRows: 1,
+            widths: ["auto", "*", "auto", "auto", "auto"],
+            body: [
+              [th("Screen"), th("Telas"), th("Resolução"), th("Frequência", "right"), th("Cabos", "right")],
+              ...screenReport.map((s, i) => {
+                const sp = specsDe[s.id];
+                const nomes = telasDe(s.id).map((t) => t.nome || "sem nome");
+                return [
+                  { text: `${S}.${i + 1}  ${s.nome}`, bold: true },
+                  { text: nomes.join(", "), fontSize: 8.5, color: PRINT.mut },
+                  mono(`${ptBR(s.size.w)} × ${ptBR(s.size.h)} px`),
+                  mono(`${sp.hz} Hz`, { alignment: "right" }),
+                  mono(String(s.ports.length), { alignment: "right", bold: true }),
+                ];
+              }),
+            ],
+          },
+          layout: zebraLayout(),
+        },
+        ...(semScreen.length ? [{
+          text: [{ text: `${semScreen.length} tela(s) fora de qualquer Screen `, bold: true }, { text: `(${semScreen.map((t) => t.nome).join(", ")}) — não entraram em nenhum sistema, então não têm cabeamento de sinal.` }],
+          fontSize: 8.5, color: PRINT.amb, margin: [0, 8, 0, 0],
+        }] : []),
+        // ── uma página por Screen ──
         ...screenReport.map((s, i) => {
-          const sp = screenSpec(s);
+          const sp = specsDe[s.id];
           const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "sinal", numbering, colorOf, cr) : null;
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
@@ -419,15 +470,35 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
             ]),
           ], blocoH(s.ports.length, mapa?.height));
         }),
-        ...(semScreen.length ? [{
-          text: [{ text: `${semScreen.length} tela(s) fora de qualquer Screen `, bold: true }, { text: `(${semScreen.map((t) => t.nome).join(", ")}) — não entraram em nenhum sistema, então não têm cabeamento de sinal.` }],
-          fontSize: 8.5, color: PRINT.amb, margin: [0, 6, 0, 0],
-        }] : []),
-      ]);
+      ];
     }
-    return grudaCabecalho([
+    const portasDe = Object.fromEntries(telas.map((t) => [t.id, cablePorts(t, "sinal", numbering).length]));
+    const totPortas = telas.reduce((n, t) => n + portasDe[t.id], 0);
+    return [
+      // ── página de ABERTURA da seção (modo legado, por tela) ──
       head,
-      { text: "Portas de dados por tela — régua de pixels reais (processadores VX/série A/Colorlight) ou de área retangular (controlador básico), conforme a configuração da tela.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 4] },
+      { text: "Portas de dados por tela — régua de pixels reais (processadores VX/série A/Colorlight) ou de área retangular (controlador básico), conforme a configuração da tela. Cada tela abre na própria página.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+      statRow([["Telas", telas.length], ["Portas de sinal", totPortas]]),
+      {
+        table: {
+          headerRows: 1,
+          widths: ["auto", "*", "auto", "auto"],
+          body: [
+            [th("Tela"), th("Gabinete"), th("Resolução"), th("Portas", "right")],
+            ...telas.map((t, i) => {
+              const v = videoOf(t);
+              return [
+                { text: `${S}.${i + 1}  ${t.nome || "sem nome"}`, bold: true },
+                { text: t.gabinete?.nome || "—", fontSize: 8.5, color: PRINT.mut },
+                mono(`${ptBR(v.pxW)} × ${ptBR(v.pxH)} px`),
+                mono(String(portasDe[t.id]), { alignment: "right", bold: true }),
+              ];
+            }),
+          ],
+        },
+        layout: zebraLayout(),
+      },
+      // ── uma página por tela ──
       ...telas.flatMap((t, i) => {
         const { sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(t);
         const ports = cablePorts(t, "sinal", numbering);
@@ -436,7 +507,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
         const mapa = telaMapSvg(t, "sinal", numbering, off, colorOf, cr);
         return [
           bloco([
-            subHead(`${S}.${i + 1}`, t.nome, `${portLabel(off, ports.length, "porta")} · máx ${sinalBudget} gabinetes/porta · ${sinalRule === "px" ? `pixels reais: ${ptBR(pxPort)} px (${sinalBits}-bit)` : "área quadrada"}`),
+            subHead(`${S}.${i + 1}`, t.nome),
+            specBox([
+              ["Portas", portLabel(off, ports.length, "porta")],
+              ["Máx por porta", `${sinalBudget} gabinetes`],
+              ["Régua", sinalRule === "px" ? `${ptBR(pxPort)} px (${sinalBits}-bit)` : "área quadrada"],
+              ["Grade", `${t.cols} × ${t.rows} gabinetes`],
+            ]),
             ...mapNode(mapa),
             densePortTable(rows, [
               { label: "Porta", cell: (p) => portCell(p.idx, p.n) },
@@ -463,7 +540,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           ] : []),
         ];
       }),
-    ]);
+    ];
   })();
 
   // ── ENERGIA — CABEAMENTO AC ──
@@ -471,26 +548,87 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     const sn = sec(); const S = String(sn).padStart(2, "0");
     const head = [sectionHead(sn, "Energia — Cabeamento AC", "Circuitos de força", DISC.elec), warnBox(AVISO_AC)];
     if (usaScreens) {
-      return grudaCabecalho([
+      const totCirc = screenReportAc.reduce((n, s) => n + s.ports.length, 0);
+      const cargaMax = (ports) => ports.reduce((m, p) => (p.load > m.load ? p : m), { load: 0, pct: 0 });
+      const pior = cargaMax(screenReportAc.flatMap((s) => s.ports));
+      const temEstouro = screenReportAc.some((s) => s.ports.some((p) => p.over));
+      return [
+        // ── página de ABERTURA da seção: aviso de segurança + resumo geral do AC ──
         ...head,
-        { text: "Cabos de energia por Screen, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 4] },
+        { text: "Cabos de energia por Screen, na mesma organização do sinal — carga por cabo × corrente do conector. Cada sistema abre na própria página, com circuitos numerados 1..N.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+        statRow([
+          ["Screens", screenReportAc.length],
+          ["Circuitos AC", totCirc],
+          ["Maior carga por cabo", `${pior.load.toFixed(1)} A · ${pior.pct}%`],
+        ]),
+        {
+          table: {
+            headerRows: 1,
+            widths: ["auto", "*", "auto", "auto"],
+            body: [
+              [th("Screen"), th("Telas"), th("Cabos", "right"), th("Maior carga", "right")],
+              ...screenReportAc.map((s, i) => {
+                const nomes = ((screensById[s.id]?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)).map((t) => t.nome || "sem nome");
+                const m = cargaMax(s.ports);
+                return [
+                  { text: `${S}.${i + 1}  ${s.nome}`, bold: true },
+                  { text: nomes.join(", "), fontSize: 8.5, color: PRINT.mut },
+                  mono(String(s.ports.length), { alignment: "right", bold: true }),
+                  mono(`${m.load.toFixed(1)} A · ${m.pct}%`, { alignment: "right", bold: true, color: m.over ? PRINT.red : PRINT.ink }),
+                ];
+              }),
+            ],
+          },
+          layout: zebraLayout(),
+        },
+        ...(temEstouro ? [{ text: "Há circuito ACIMA da capacidade do conector — confira as linhas em vermelho antes de energizar.", fontSize: 8.5, bold: true, color: PRINT.red, margin: [0, 8, 0, 0] }] : []),
+        // ── uma página por Screen ──
         ...screenReportAc.map((s, i) => {
           const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr) : null;
           return bloco([
-            subHead(`${S}.${i + 1}`, s.nome, `${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`),
+            subHead(`${S}.${i + 1}`, s.nome),
+            specBox([
+              ["Circuitos", String(s.ports.length)],
+              ["Maior carga por cabo", `${cargaMax(s.ports).load.toFixed(1)} A · ${cargaMax(s.ports).pct}%`],
+              ["Gabinetes", String(s.ports.reduce((n, p) => n + p.count, 0))],
+            ]),
             ...mapNode(mapa),
             densePortTable(s.ports, [
               { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
               { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)} A · ${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : PRINT.ink }) },
             ]),
-          ], blocoH(s.ports.length, mapa?.height));
+          ], blocoH(s.ports.length, (mapa?.height || 0) + 44));
         }),
-      ]);
+      ];
     }
-    return grudaCabecalho([
+    const cabosDe = Object.fromEntries(telas.map((t) => [t.id, cablePorts(t, "ac", numbering).length]));
+    const totCabosAc = telas.reduce((n, t) => n + cabosDe[t.id], 0);
+    return [
+      // ── página de ABERTURA da seção (modo legado, por tela) ──
       ...head,
-      { text: "Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 4] },
+      { text: "Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo. Cada tela abre na própria página.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+      statRow([["Telas", telas.length], ["Circuitos AC", totCabosAc]]),
+      {
+        table: {
+          headerRows: 1,
+          widths: ["auto", "*", "auto", "auto"],
+          body: [
+            [th("Tela"), th("Gabinete"), th("Conector"), th("Cabos", "right")],
+            ...telas.map((t, i) => {
+              const m = cableMeta(t);
+              return [
+                { text: `${S}.${i + 1}  ${t.nome || "sem nome"}`, bold: true },
+                { text: t.gabinete?.nome || "—", fontSize: 8.5, color: PRINT.mut },
+                mono(`${m.connRating} A`),
+                mono(String(cabosDe[t.id]), { alignment: "right", bold: true }),
+              ];
+            }),
+          ],
+        },
+        layout: zebraLayout(),
+      },
+      // ── uma página por tela ──
       ...telas.flatMap((t, i) => {
         const { ampCab, connRating, acBudget } = cableMeta(t);
         const ports = cablePorts(t, "ac", numbering);
@@ -501,7 +639,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
         });
         const mapa = telaMapSvg(t, "ac", numbering, off, colorOf, cr);
         return bloco([
-          subHead(`${S}.${i + 1}`, t.nome, `${portLabel(off, ports.length, "cabo")} · máx ${acBudget} gabinetes/cabo · ${ampCab.toFixed(2)} A/gabinete · conector ${connRating} A`),
+          subHead(`${S}.${i + 1}`, t.nome),
+          specBox([
+            ["Cabos", portLabel(off, ports.length, "cabo")],
+            ["Máx por cabo", `${acBudget} gabinetes`],
+            ["Corrente", `${ampCab.toFixed(2)} A/gabinete`],
+            ["Conector", `${connRating} A`],
+          ]),
           ...mapNode(mapa),
           densePortTable(rows, [
             { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
@@ -510,7 +654,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           ]),
         ], blocoH(rows.length, mapa?.height));
       }),
-    ]);
+    ];
   })();
 
   // ── GLOSSÁRIO ──
