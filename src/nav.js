@@ -48,6 +48,6 @@ export const MOBILE_SECTIONS = [
 ];
 
 export const LABELS = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-export const VERSION = "v1.8.0";
+export const VERSION = "v1.9.0";
 // resumo curto do que mudou (aparece no aviso pós-atualização)
-export const WHATS_NEW = "🟡 O app vestiu a marca: tema escuro neutro com o LIME led/lab nas ações, modo sol repaginado (primária preta com tinta lime), avisos em laranja e o relatório com acento oliva + tabelas zebradas. Nasceu também o Manual de Marca — daqui pra frente, tudo novo segue a mesma lei.";
+export const WHATS_NEW = "📄 O Caderno Técnico agora sai em PDF direto do app (botão Baixar PDF): capa, sumário, mapas de cabos desenhados e uma página por Screen — funciona no celular e offline, sem depender do Imprimir. E a rodada de refino: fixo mensal não some mais dos Recibos, teclado numérico com máscara de CPF/CNPJ, período \"Esta semana\", tensão legível na Energia, arrastar telas com Desfazer e Ajustes do mapa dentro da Diagramação.";
