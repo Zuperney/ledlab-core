@@ -9,7 +9,8 @@ import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
-import { draw, DEFAULTS, PRESETS, PRESET_LABELS } from "../../services/testcardDraw.js";
+import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
+import PresetPicker from "../../components/PresetPicker.jsx";
 import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 import Select from "../../components/Select.jsx";
@@ -154,16 +155,22 @@ export default function ProjectTestCard({ project }) {
 
   return (
     <div>
+      {/* seletor de TELA em chips — mesmo padrão das Screens do Cabeamento (consistência) */}
+      {telas.length > 1 && (
+        <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", alignItems: "center", marginBottom: 10 }}>
+          {telas.map((t) => {
+            const on = t.id === tela.id;
+            return (
+              <button key={t.id} onClick={() => setTelaId(t.id)} style={{ flexShrink: 0, padding: "6px 12px", minHeight: 36, borderRadius: 8, cursor: "pointer", background: on ? T.sel : T.card2, border: `1px solid ${on ? T.acc : T.bd}`, color: on ? T.txt : T.mut, fontWeight: 600, fontSize: 13 }}>
+                {t.nome}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <Select value={telaId} onChange={(e) => setTelaId(e.target.value)} style={{ ...sel, flex: isMobile ? "1 1 100px" : "2 1 130px", minWidth: 0 }}>
-          {telas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-        </Select>
-        <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} style={{ ...sel, flex: isMobile ? "1 1 110px" : "2 1 150px", minWidth: 0 }}>
-          <option value="">Predefinição…</option>
-          {/* as do sistema podem ser OCULTADAS nas Configurações › Dados › Test Card */}
-          {Object.entries(PRESET_LABELS).filter(([k]) => !(prefs.tcHiddenPresets || []).includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </Select>
+        <PresetPicker value={presetSel} onSelect={applyPreset} style={{ flex: "1 1 140px" }} />
         {isMobile ? (
           <button style={{ ...tbBtn, ...(ajustesOpen ? { background: T.sel, borderColor: T.acc, color: T.acM } : {}) }} title="Ajustes do test card" aria-label="Ajustes do test card" onClick={() => setAjustesOpen(true)}><SlidersHorizontal size={16} /></button>
         ) : (<>
@@ -265,7 +272,6 @@ export default function ProjectTestCard({ project }) {
   );
 }
 
-const sel = { flex: 1, background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13 };
 const tbBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 36, padding: "0 11px", borderRadius: 8, border: `1px solid ${T.bd}`, background: T.card2, color: T.txt, cursor: "pointer", fontSize: 13, fontWeight: 600, flexShrink: 0 };
 const rsel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer", maxWidth: 190 };
 

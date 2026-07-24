@@ -6,7 +6,7 @@
 import { useRef, useState, useMemo, useEffect } from "react";
 import { Download, LayoutGrid, Move } from "lucide-react";
 import HelpTip from "../../components/HelpTip.jsx";
-import LightModal from "../../components/LightModal.jsx";
+import PresetPicker from "../../components/PresetPicker.jsx";
 import { IconLadoALado, IconRegioes } from "../../components/icons/LedIcons.jsx";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
@@ -17,7 +17,7 @@ import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { telaPortSlices } from "../../services/screenCabling.js";
-import { draw, DEFAULTS, PRESETS, PRESET_LABELS } from "../../services/testcardDraw.js";
+import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
 import { fileName } from "../../services/filenames.js";
 import { overlappingIds } from "../../services/layout.js";
 
@@ -52,7 +52,6 @@ export default function ProjectComposicao({ project, patch }) {
   const [drag, setDrag] = useState(null); // { id, x, y } durante o arraste
   const [sel, setSel] = useState(null); // tela selecionada (frente + destaque)
   const [presetSel, setPresetSel] = useState(""); // predefinição escolhida no seletor
-  const [presetOpen, setPresetOpen] = useState(false); // modal leve do seletor
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -209,14 +208,7 @@ export default function ProjectComposicao({ project, patch }) {
       {/* toolbar de 1 linha: seleções + toggles de exibição + export */}
       <div style={card({ marginBottom: 14, padding: 12 })}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {/* seletor em modal LEVE (pedido do usuário — mesmo padrão do Avançado) */}
-          <button onClick={() => setPresetOpen(true)} title="Predefinição"
-            style={{ ...selSty, flex: "1 1 130px", minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "space-between", gap: 8, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {PRESET_LABELS[presetSel] || tcPresets.find((p) => p.id === presetSel)?.name || "Predefinição…"}
-            </span>
-            <span style={{ color: T.dim, flexShrink: 0 }}>▾</span>
-          </button>
+          <PresetPicker value={presetSel} onSelect={applyPreset} style={{ flex: "1 1 130px" }} />
           {/* enxuto (pedido do usuário): o VISUAL vem inteiro da predefinição — controle
               fino se monta no Test Card e se salva como predefinição (deletável lá e nas
               Configurações › Dados) */}
@@ -269,24 +261,6 @@ export default function ProjectComposicao({ project, patch }) {
         </div>
       </div>
 
-      {/* seletor de predefinição — modal leve com sistema (filtradas) + salvas */}
-      {presetOpen && (
-        <LightModal title="Predefinição" onClose={() => setPresetOpen(false)} width={340}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {[...Object.entries(PRESET_LABELS).filter(([k]) => !(prefs.tcHiddenPresets || []).includes(k)),
-              ...tcPresets.map((p) => [p.id, p.name])].map(([k, l]) => {
-              const on = presetSel === k;
-              return (
-                <button key={k} onClick={() => { applyPreset(k); setPresetOpen(false); }}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", background: on ? T.sel : T.card2, border: `1px solid ${on ? T.acc : T.bd}`, borderRadius: 8, padding: "10px 12px", color: on ? T.txt : T.mut, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  {l}{on && <span style={{ color: T.acM, fontSize: 12 }}>✓</span>}
-                </button>
-              );
-            })}
-          </div>
-        </LightModal>
-      )}
-
       {/* posição das telas */}
       <div style={card({ marginTop: 14, padding: 12 })}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
@@ -316,5 +290,4 @@ export default function ProjectComposicao({ project, patch }) {
   );
 }
 
-const selSty = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 14, fontWeight: 600 };
 const numSty = { width: 74, background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 16, fontFamily: "ui-monospace, monospace" };
