@@ -136,7 +136,7 @@ export default function App() {
               style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: 8, background: settingsOpen ? T.sel : "transparent", border: `1px solid ${settingsOpen ? T.acc : T.bd}`, color: settingsOpen ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
               <SettingsIcon size={17} />
             </button>
-            <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 600 }}>{VERSION}</span>
+            {/* badge de versão saiu do topbar mobile (respiro) — mora nas Configurações */}
           </div>
         </header>
         <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 12, paddingBottom: "calc(66px + env(safe-area-inset-bottom))" }}>

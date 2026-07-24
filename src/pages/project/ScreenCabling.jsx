@@ -174,15 +174,16 @@ export default function ScreenCabling({ project, patch, kind = "sinal" }) {
               <span style={{ marginLeft: "auto", background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
             </div>
             {advOpen && (
-              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.bd}` }}>
-                {!isAc && <Drop label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função). Veja Base de Conhecimento › Sinal." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
-                <Drop label="Disposição" title="Como a corrente é cortada em cabos" options={dispOpts} value={disp} onChange={setDisp} />
+              // mobile: GRID de 2 colunas (metade da altura do empilhado); desktop segue em linha
+              <div style={{ display: isMobile ? "grid" : "flex", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.bd}` }}>
+                {!isAc && <Drop fluid={isMobile} label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função). Veja Base de Conhecimento › Sinal." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
+                <Drop fluid={isMobile} label="Disposição" title="Como a corrente é cortada em cabos" options={dispOpts} value={disp} onChange={setDisp} />
                 {mode === "auto" && <>
-                  <Drop label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={cfg.routing || "updown"} onChange={(v) => setCfg({ routing: v })} />
-                  <Drop label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
+                  <Drop fluid={isMobile} label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={cfg.routing || "updown"} onChange={(v) => setCfg({ routing: v })} />
+                  <Drop fluid={isMobile} label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
                 </>}
-                {!isAc && <Drop label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
-                <span style={{ color: T.dim, fontSize: 11, flexBasis: "100%" }}>{isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal." : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."}</span>
+                {!isAc && <Drop fluid={isMobile} label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
+                <span style={{ color: T.dim, fontSize: 11, flexBasis: "100%", gridColumn: "1 / -1" }}>{isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal." : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."}</span>
               </div>
             )}
           </div>
@@ -283,11 +284,12 @@ function Info({ text }) {
 }
 
 const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
-function Drop({ label, options, value, onChange, title }) {
+function Drop({ label, options, value, onChange, title, fluid }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600 }} title={title}>
+    // `fluid` (células do grid mobile): rótulo em cima e select na largura toda da célula
+    <span style={{ display: fluid ? "flex" : "inline-flex", flexDirection: fluid ? "column" : "row", alignItems: fluid ? "stretch" : "center", gap: 6, fontSize: 11, textTransform: "uppercase", color: T.mut, fontWeight: 600, minWidth: 0 }} title={title}>
       {label}
-      <Select value={String(value)} title={title || label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={dropSel}>
+      <Select value={String(value)} title={title || label} onChange={(e) => { const o = options.find(([v]) => String(v) === e.target.value); onChange(o ? o[0] : e.target.value); }} style={{ ...dropSel, ...(fluid ? { width: "100%", minWidth: 0 } : {}) }}>
         {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
       </Select>
     </span>

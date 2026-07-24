@@ -4,6 +4,7 @@
 import { useRef, useState, useEffect } from "react";
 import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard, Cable } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
+import { VERSION } from "../nav.js";
 import { useAuth } from "../store/AuthContext.jsx";
 import { useSync } from "../store/SyncContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
@@ -232,6 +233,9 @@ export default function Settings({ embedded = false }) {
         </div>
       </Section>
       </>)}
+
+      {/* versão do app (o badge saiu do topbar mobile pra cá) */}
+      <div style={{ color: T.dim, fontSize: 11.5, textAlign: "center", padding: "14px 0 4px" }}>LedLab Core <b style={{ color: T.mut }}>{VERSION}</b></div>
     </div>
   );
 }

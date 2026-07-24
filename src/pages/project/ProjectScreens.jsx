@@ -15,6 +15,7 @@ import { T } from "../../ui/tokens.js";
 import { card, btn, label as lbl } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
+import HelpTip from "../../components/HelpTip.jsx";
 import { genId } from "../../services/ids.js";
 import { overlappingIds } from "../../services/layout.js";
 import { dimOf, modelKey } from "../../services/canvasCabling.js";
@@ -242,8 +243,12 @@ export default function ProjectScreens({ project, patch }) {
         )}
       </div>
 
-      <div style={{ color: T.dim, fontSize: 11, lineHeight: 1.5 }}>
-        Você monta as Screens do jeito que configuraria no controlador — junte só o que vai no mesmo sistema. O cabeamento de cada Screen fica na aba Cabos. A montagem física fica no galpão; o canvas de conteúdo, na aba Composição.
+      {/* didática sob demanda (o parágrafo fixo era teto permanente) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.dim, fontSize: 11 }}>
+        Screens do jeito do controlador
+        <HelpTip title="Como montar as Screens" align="left">
+          Você monta as Screens do jeito que configuraria no controlador — junte só o que vai no <b style={{ color: T.txt }}>mesmo sistema</b>. O cabeamento de cada Screen fica na aba Cabeamento. A montagem física fica no galpão; o canvas de conteúdo, na aba Composição.
+        </HelpTip>
       </div>
     </div>
   );

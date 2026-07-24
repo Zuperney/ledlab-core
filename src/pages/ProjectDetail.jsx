@@ -46,6 +46,8 @@ export default function ProjectDetail({ project, onBack }) {
           <button style={btn("ghost", isMobile ? { padding: "9px 11px" } : {})} onClick={onBack}><ArrowLeft size={15} />{!isMobile && " Projetos"}</button>
           {!isMobile && <span style={{ color: T.dim }}>›</span>}
           <h2 style={{ color: T.txt, margin: 0, fontSize: isMobile ? 17 : 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{project.name || "Sem nome"}</h2>
+          {/* mobile: stats NA LINHA do nome (menos uma linha de teto) */}
+          {isMobile && <span style={{ color: T.dim, fontSize: 11.5, whiteSpace: "nowrap", flexShrink: 0 }}>· {roll.telas}t · <b style={{ color: T.acM }}>{roll.gab}</b> gab · {Math.round(roll.area_m2)} m²</span>}
           {!isMobile && <StatusBadge s={project.status} />}
         </div>
         {/* dados gravam sozinhos a cada edição (AppContext persiste em localStorage); selo só reforça isso */}
@@ -54,12 +56,14 @@ export default function ProjectDetail({ project, onBack }) {
         </span>
       </div>
 
-      {/* teto compacto no mobile: stats menores e menos respiro (cada px de moldura custa conteúdo) */}
-      <div style={{ display: "flex", gap: isMobile ? 14 : 20, color: T.mut, fontSize: isMobile ? 12 : 13, marginBottom: isMobile ? 8 : 16 }}>
-        <span><b style={{ color: T.txt }}>{roll.telas}</b> telas</span>
-        <span><b style={{ color: T.acM }}>{roll.gab}</b> gab</span>
-        <span><b style={{ color: T.grn }}>{roll.area_m2.toFixed(2)}</b> m²</span>
-      </div>
+      {/* desktop: linha de stats completa; no mobile ela sobe pra linha do nome */}
+      {!isMobile && (
+        <div style={{ display: "flex", gap: 20, color: T.mut, fontSize: 13, marginBottom: 16 }}>
+          <span><b style={{ color: T.txt }}>{roll.telas}</b> telas</span>
+          <span><b style={{ color: T.acM }}>{roll.gab}</b> gab</span>
+          <span><b style={{ color: T.grn }}>{roll.area_m2.toFixed(2)}</b> m²</span>
+        </div>
+      )}
 
       <div className="no-scrollbar" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: isMobile ? 14 : 20, overflowX: "auto", flexWrap: "nowrap" }}>
         {TABS.map((t) => {
