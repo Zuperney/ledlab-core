@@ -162,8 +162,10 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(JSON.stringify(build("Elétrico").content)).not.toContain('"toc"');
   });
 
-  it("bloco de tela/Screen é indivisível (unbreakable, como o rp-block do DOM)", () => {
-    expect(JSON.stringify(build("Completo").content)).toContain('"unbreakable":true');
+  it("bloco de tela/Screen NÃO usa unbreakable — o pdfmake descarta bloco maior que a página", () => {
+    // regressão do caderno real: unbreakable no fio da página gerou páginas em
+    // branco e a Screen 2 sumiu; o bloco abre em página própria e pode fluir
+    expect(JSON.stringify(build("Completo").content)).not.toContain('"unbreakable"');
   });
 
   it("F3: sinal e AC levam o mapa de cabos VISUAL (nó svg por tela)", () => {

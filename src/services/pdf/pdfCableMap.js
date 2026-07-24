@@ -84,7 +84,7 @@ function layerSvg(cells, ports, colorOf, { portOffset = 0, showNumbers, arrows, 
 }
 
 // normaliza células/portas pro retângulo do documento e fecha o <svg> com fundo
-function wrapSvg(cells, ports, colorOf, cr, { portOffset = 0, maxWidth = 480, maxHeight = 200 } = {}) {
+function wrapSvg(cells, ports, colorOf, cr, { portOffset = 0, maxWidth = 480, maxHeight = 160 } = {}) {
   if (!cells.length) return null;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const c of cells) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); maxX = Math.max(maxX, c.x + c.w); maxY = Math.max(maxY, c.y + c.h); }

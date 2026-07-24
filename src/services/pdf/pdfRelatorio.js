@@ -1,4 +1,4 @@
-// services/pdf/pdfRelatorio.js — monta a docDefinition do Caderno Técnico pro
+﻿// services/pdf/pdfRelatorio.js — monta a docDefinition do Caderno Técnico pro
 // motor pdfmake. F2: paridade de CONTEÚDO com o Caderno do DOM — capa Folha
 // Técnica, Visão Geral (+ gabinetes utilizados), Vídeo/Resolução, Elétrica,
 // Sinal (por Screen ou legado por tela), AC (aviso de energização + tabelas),
@@ -36,8 +36,8 @@ const zebraLayout = (start = 0) => ({
   hLineColor: (i) => (i === 1 ? PRINT.ink : PRINT.line),
   vLineWidth: () => 0,
   fillColor: (row) => (row > 0 && (start + row - 1) % 2 === 1 ? ZEBRA : null),
-  paddingTop: () => 3.5,
-  paddingBottom: () => 3.5,
+  paddingTop: () => 2.5,
+  paddingBottom: () => 2.5,
   paddingLeft: () => 6,
   paddingRight: () => 6,
 });
@@ -97,8 +97,8 @@ function specBox(pairs) {
             { text: v, bold: true, fontSize: 11.5, color: PRINT.ink, margin: [0, 2, 0, 0] },
           ],
         })),
-        columnGap: 22,
-        margin: [10, 7, 10, 8],
+        columnGap: 18,
+        margin: [9, 5, 9, 6],
       }]],
     },
     layout: { hLineWidth: () => 0.6, vLineWidth: () => 0.6, hLineColor: () => PRINT.line, vLineColor: () => PRINT.line, fillColor: () => PRINT.head },
@@ -136,15 +136,15 @@ function warnBox({ titulo, partes }) {
   };
 }
 
-// bloco de uma Screen/tela (subtítulo + specs + mapa + tabela): abre SEMPRE em
-// página própria (pageBreak) e é INDIVISÍVEL — a seção 04/05 tem uma página de
-// ABERTURA com o resumo geral e cada subseção ganha a sua, sem quebrar em duas.
-// A válvula por ALTURA estimada existe porque bloco maior que a página útil não
-// pode ser unbreakable: o pdfmake DESCARTA o conjunto inteiro (testado — perdeu
-// a Screen do caderno); acima do teto ele volta a poder quebrar, com a tabela
-// densa repetindo o header na continuação.
-const blocoH = (nRows, mapH) => 60 + (mapH || 0) + Math.ceil(nRows / 4) * 14 + 22;
-const bloco = (nodes, estH) => ({ stack: nodes, unbreakable: estH <= 480, pageBreak: "before", margin: [0, 0, 0, 4] });
+// bloco de Screen/tela (subtítulo + specs + mapa + tabela): abre SEMPRE em
+// página própria. SEM unbreakable, de
+// propósito — unbreakable que não cabe na página vira PÁGINA EM BRANCO e o
+// pdfmake DESCARTA o conteúdo (aconteceu 2× com a Screen 2 do caderno real,
+// com estimativa de altura sempre no fio). Em vez disso o bloco é COMPACTO o
+// bastante pra caber numa página (tabela densa vira 5 colunas quando há muitos
+// cabos, mapa com teto de altura); se um dia passar, ele FLUI pra página
+// seguinte com o header da tabela repetindo — nunca some, nunca deixa buraco.
+const bloco = (nodes) => ({ stack: nodes, pageBreak: "before", margin: [0, 0, 0, 4] });
 
 // nó de mapa pro conteúdo: o gerador devolve {svg,width,height} ou null (sem células)
 const mapNode = (m) => (m ? [{ svg: m.svg, width: m.width, margin: [0, 0, 0, 6] }] : []);
@@ -173,8 +173,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     columnGap: 2,
   });
 
-  // tabela densa de portas: divide em até 4 grupos lado a lado (como o DenseTable
-  // do DOM) — todas as linhas, na metade/quarto da altura; zebra contínua
+  // tabela densa de portas: divide em grupos lado a lado (como o DenseTable do
+  // DOM) — todas as linhas, na fração da altura; zebra contínua. Acima de 36
+  // linhas entra a 5ª coluna, pro bloco de uma Screen grande caber numa página.
   function densePortTable(rows, columns) {
     const build = (slice, start) => ({
       table: {
@@ -185,7 +186,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
       layout: zebraLayout(start),
       width: "*",
     });
-    const nCols = Math.min(4, rows.length);
+    const nCols = Math.min(rows.length > 36 ? 5 : 4, rows.length);
     if (nCols <= 1 || rows.length < 3) return build(rows, 0);
     const base = Math.floor(rows.length / nCols), rem = rows.length % nCols;
     const groups = []; let idx = 0;
@@ -468,7 +469,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
               { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
             ]),
-          ], blocoH(s.ports.length, mapa?.height));
+          ]);
         }),
       ];
     }
@@ -520,7 +521,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
               { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
             ]),
-          ], blocoH(rows.length, mapa?.height)),
+          ]),
           ...(tipo === "Mapa de cabos" ? [
             { text: "Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) para transcrever no processador (NovaLCT / Tessera).", fontSize: 8, color: PRINT.mut, margin: [0, 6, 0, 3] },
             {
@@ -596,9 +597,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
             densePortTable(s.ports, [
               { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
               { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-              { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)} A · ${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : PRINT.ink }) },
+              { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : PRINT.ink }) },
             ]),
-          ], blocoH(s.ports.length, (mapa?.height || 0) + 44));
+          ]);
         }),
       ];
     }
@@ -650,9 +651,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           densePortTable(rows, [
             { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
             { label: "Gabinetes", align: "right", width: "*", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-            { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)} A · ${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
+            { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
           ]),
-        ], blocoH(rows.length, mapa?.height));
+        ]);
       }),
     ];
   })();
@@ -711,3 +712,5 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     })(),
   };
 }
+
+
