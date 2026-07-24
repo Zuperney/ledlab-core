@@ -65,8 +65,10 @@ export default function App() {
   // eslint-disable-next-line react-hooks/purity -- relógio de parede só p/ exibição (granularidade de dias); cada render mantém fresco
   const daysNoBackup = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 86400000 : Infinity;
   const hasUserData = (projects?.length || 0) > 0 || (worklog?.length || 0) > 0;
-  // não incomoda com backup local se está logado — a nuvem já é o backup
-  const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff && !user;
+  // não incomoda com backup local se está logado — a nuvem já é o backup.
+  // Só na Visão Geral: banner em TODA tela vira teto permanente (~100px de moldura
+  // por página no mobile) — o lembrete numa página basta.
+  const showBackupNag = storageOk && hasUserData && daysNoBackup > 7 && !backupNagOff && !user && page === "dashboard";
   const doBackup = () => { exportBackup(); toast("Backup exportado"); };
   // privacidade: esconde os valores em R$ (dashboard + diárias). Toggle no topbar (olho).
   const ocultarValores = !!prefs.dashOcultarValor;

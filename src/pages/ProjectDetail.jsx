@@ -54,20 +54,23 @@ export default function ProjectDetail({ project, onBack }) {
         </span>
       </div>
 
-      <div style={{ display: "flex", gap: 20, color: T.mut, fontSize: 13, marginBottom: 16 }}>
+      {/* teto compacto no mobile: stats menores e menos respiro (cada px de moldura custa conteúdo) */}
+      <div style={{ display: "flex", gap: isMobile ? 14 : 20, color: T.mut, fontSize: isMobile ? 12 : 13, marginBottom: isMobile ? 8 : 16 }}>
         <span><b style={{ color: T.txt }}>{roll.telas}</b> telas</span>
         <span><b style={{ color: T.acM }}>{roll.gab}</b> gab</span>
         <span><b style={{ color: T.grn }}>{roll.area_m2.toFixed(2)}</b> m²</span>
       </div>
 
-      <div className="no-scrollbar" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: 20, overflowX: "auto", flexWrap: "nowrap" }}>
+      <div className="no-scrollbar" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: isMobile ? 14 : 20, overflowX: "auto", flexWrap: "nowrap" }}>
         {TABS.map((t) => {
           const active = tab === t.id;
           const Icon = t.Icon;
           return (
+            // rótulo SEMPRE visível (mobile inclusive): ícone sem rótulo não tem "cheiro
+            // de informação" — quem não decorou não acha a aba (NN/g; M3 proíbe remover)
             <button key={t.id} onClick={() => setTab(t.id)} title={t.label}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", flexShrink: 0 }}>
-              <Icon size={16} />{(!isMobile || active) && <span>{t.label}</span>}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "11px 10px" : "10px 14px", background: "none", border: "none", borderBottom: `2px solid ${active ? T.acc : "transparent"}`, color: active ? T.txt : T.mut, cursor: "pointer", fontWeight: 600, fontSize: isMobile ? 13 : 14, whiteSpace: "nowrap", flexShrink: 0 }}>
+              <Icon size={isMobile ? 15 : 16} /><span>{t.label}</span>
             </button>
           );
         })}

@@ -1,8 +1,8 @@
 // pages/project/ProjectTestCard.jsx — gerador de test card (canvas + export PNG).
 import { useRef, useEffect, useState } from "react";
-import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, Monitor, ZoomIn, ZoomOut, Maximize, Save, Shapes, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useLedLabContext } from "../../store/AppContext.jsx";
-import { useToast, usePrompt } from "../../store/UIContext.jsx";
+import { useToast, usePrompt, useConfirm } from "../../store/UIContext.jsx";
 import { telaPortSlices } from "../../services/screenCabling.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
@@ -25,6 +25,7 @@ export default function ProjectTestCard({ project }) {
   if (prevMobile !== isMobile) { setPrevMobile(isMobile); setControlsOpen(!isMobile); }
   const toast = useToast();
   const prompt = usePrompt();
+  const confirm = useConfirm();
   const numbering = prefs.cableNumbering || "row-tb-lr";
   const telas = project.telas || [];
   const [telaId, setTelaId] = useState(telas[0]?.id);
@@ -67,6 +68,15 @@ export default function ProjectTestCard({ project }) {
     setTcPresets([...tcPresets, { id: `tc-${Date.now()}`, name: name.trim(), opts: { ...o } }]);
     toast("Predefinição salva");
   };
+  // gerenciar preset NO CONTEXTO (antes só nas Configurações): selecionou um salvo → pode excluir aqui
+  const savedSel = tcPresets.find((x) => x.id === presetSel);
+  const deletePreset = async () => {
+    if (!savedSel) return;
+    if (!(await confirm({ title: "Excluir predefinição?", message: `"${savedSel.name}" será removida.` }))) return;
+    setTcPresets(tcPresets.filter((x) => x.id !== savedSel.id));
+    setPresetSel("");
+    toast("Predefinição excluída");
+  };
 
   const exportPng = () => {
     canvasRef.current.toBlob((blob) => {
@@ -95,6 +105,7 @@ export default function ProjectTestCard({ project }) {
           {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </Select>
         <button style={tbBtn} title="Salvar predefinição" onClick={savePreset}><Save size={16} /></button>
+        {savedSel && <button style={tbBtn} title={`Excluir predefinição "${savedSel.name}"`} onClick={deletePreset}><Trash2 size={16} /></button>}
         <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} title={`Exportar PNG (${W}×${H})`} onClick={exportPng}><Download size={16} />{!isMobile && " PNG"}</button>
       </div>
 
