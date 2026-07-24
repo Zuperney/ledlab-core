@@ -6,8 +6,10 @@
 // dos cabos ficam CONSISTENTES em todo o app. Ferramenta avulsa: escolhe um
 // gabinete e uma grade, sem precisar de projeto (não persiste).
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import ZoomTrio from "../components/ZoomTrio.jsx";
+import LightModal from "../components/LightModal.jsx";
+import { NumeracaoPrefs, MapaCabosPrefs, CoresPrefs } from "../components/CablingPrefs.jsx";
 import { T } from "../ui/tokens.js";
 import { useCablePalette } from "../hooks/useCablePalette.js";
 import CablingLayer from "../components/CablingLayer.jsx";
@@ -38,6 +40,7 @@ export default function Diagrams() {
   const [routing, setRouting] = useState("updown");
   const [corner, setCorner] = useState("bl"); // canto de início da serpentina
   const [controlsOpen, setControlsOpen] = useState(!isMobile);
+  const [ajustes, setAjustes] = useState(false); // LLC-10: ajustes do mapa com o diagrama à vista
 
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -120,7 +123,16 @@ export default function Diagrams() {
             <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{cab?.nome || "—"} · Sinal</div>
             <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>{cols * rows} gabinetes · máx {sinalBudget} gab/porta {rule === "px" ? `· ${pxPort.toLocaleString("pt-BR")} px (${bits}-bit)` : "(área quadrada)"} · {ports.length} portas</div>
           </div>
-          <span style={{ background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* LLC-10: numeração/serpente/setas/cores editados AQUI, com o diagrama
+                atualizando ao vivo — mesmas prefs (CablingPrefs) da aba Cabeamento
+                e das Configurações, no mesmo modal leve */}
+            <button onClick={() => setAjustes(true)} title="Ajustes do mapa (numeração, setas, cores)" aria-label="Ajustes do mapa"
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", minHeight: 40, borderRadius: 8, cursor: "pointer", fontSize: 13.5, fontWeight: 600, border: `1px solid ${ajustes ? T.acc : T.bd}`, background: ajustes ? T.sel : T.card2, color: ajustes ? T.acM : T.mut, flexShrink: 0 }}>
+              <SlidersHorizontal size={15} />{!isMobile && " Ajustes"}
+            </button>
+            <span style={{ background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
+          </div>
         </div>
 
         {/* CANVAS */}
@@ -166,9 +178,31 @@ export default function Diagrams() {
           })}
         </div>
       </div>
+
+      {/* modal LEVE — o mesmo "Ajustes do mapa" da aba Cabeamento (padrão v1.7.1) */}
+      {ajustes && (
+        <LightModal title="Ajustes do mapa" onClose={() => setAjustes(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <div style={grpLabel}>Numeração</div>
+              <NumeracaoPrefs />
+            </div>
+            <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 12 }}>
+              <div style={grpLabel}>Mapa</div>
+              <MapaCabosPrefs />
+            </div>
+            <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 12 }}>
+              <div style={grpLabel}>Cores</div>
+              <CoresPrefs />
+            </div>
+          </div>
+        </LightModal>
+      )}
     </div>
   );
 }
+
+const grpLabel = { color: T.txt, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 };
 
 function Seg({ label, options, value, onChange }) {
   return (
