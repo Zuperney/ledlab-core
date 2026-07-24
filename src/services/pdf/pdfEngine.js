@@ -21,12 +21,17 @@ import plexSansBold from "../../assets/fonts/IBMPlexSans-Bold.ttf";
 import plexMono from "../../assets/fonts/IBMPlexMono-Regular.ttf";
 import plexMonoBold from "../../assets/fonts/IBMPlexMono-Bold.ttf";
 
+// o vite devolve o asset como caminho RELATIVO ("/src/..." no dev, "./assets/..."
+// no build com base './') — o pdfmake só busca por rede quando a URL é ABSOLUTA;
+// relativa ele procura num "virtual file system" e explode. Resolve contra a página.
+const abs = (u) => new URL(u, document.baseURI).href;
+
 pdfMake.addFonts({
   ...Helvetica,
   ...Courier,
   // o caderno não usa itálico — mapeia pro reto pra nunca faltar variante
-  PlexSans: { normal: plexSans, bold: plexSansBold, italics: plexSans, bolditalics: plexSansBold },
-  PlexMono: { normal: plexMono, bold: plexMonoBold, italics: plexMono, bolditalics: plexMonoBold },
+  PlexSans: { normal: abs(plexSans), bold: abs(plexSansBold), italics: abs(plexSans), bolditalics: abs(plexSansBold) },
+  PlexMono: { normal: abs(plexMono), bold: abs(plexMonoBold), italics: abs(plexMono), bolditalics: abs(plexMonoBold) },
 });
 
 // logo do asset → dataURL (pdfmake precisa de base64; o asset já está no precache)
