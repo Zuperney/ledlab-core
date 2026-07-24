@@ -17,7 +17,7 @@ export function NumeracaoPrefs() {
   const { prefs, setPrefs } = useLedLabContext();
   return (
     <div>
-      <div style={subDesc}><b>Zigzag</b> recomeça toda faixa do mesmo lado; <b>Serpente</b> flui contínuo, invertendo o sentido a cada faixa (padrão do NovaLCT).</div>
+      <div style={subDesc}><b>Zigzag</b> recomeça do mesmo lado; <b>Serpente</b> inverte a cada faixa (NovaLCT).</div>
       <NumberingPicker value={prefs.cableNumbering || "row-tb-lr"} onChange={(v) => setPrefs({ ...prefs, cableNumbering: v })} />
     </div>
   );
@@ -30,19 +30,25 @@ export function MapaCabosPrefs() {
   const setCr = (patch) => setPrefs({ ...prefs, cablingRender: { ...cr, ...patch } });
   return (
     <div>
-      <PrefToggle on={cr.arrows} onClick={() => setCr({ arrows: !cr.arrows })} titulo="Setas de direção" desc="Mostra pra onde a corrente corre em cada cabo." />
-      <div style={{ height: 8 }} />
-      <PrefToggle on={cr.numbers} onClick={() => setCr({ numbers: !cr.numbers })} titulo="Numerar gabinetes" desc="Número da ordem no cabo dentro de cada gabinete (some quando fica miúdo no zoom)." />
-      {cr.numbers && (<>
-        <div style={{ ...subLabel, marginTop: 16 }}>Tamanho do número</div>
-        <div style={segRow}>
-          {[["sm", "Pequeno"], ["md", "Médio"], ["lg", "Grande"]].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => setCr({ numberSize: k })} style={segBtn(cr.numberSize === k)}>{l}</button>
-          ))}
+      <PrefToggle on={cr.arrows} onClick={() => setCr({ arrows: !cr.arrows })} titulo="Setas de direção" desc="O sentido da corrente no cabo." />
+      <div style={{ height: 6 }} />
+      <PrefToggle on={cr.numbers} onClick={() => setCr({ numbers: !cr.numbers })} titulo="Numerar gabinetes" desc="Ordem no cabo, dentro do gabinete." />
+      {cr.numbers && (
+        <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap", marginTop: 12 }}>
+          <div>
+            <div style={subLabel}>Tamanho</div>
+            <div style={segRow}>
+              {[["sm", "P"], ["md", "M"], ["lg", "G"]].map(([k, l]) => (
+                <button key={k} type="button" onClick={() => setCr({ numberSize: k })} title={{ sm: "Pequeno", md: "Médio", lg: "Grande" }[k]} style={segBtn(cr.numberSize === k)}>{l}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={subLabel}>Posição</div>
+            <CornerPicker value={cr.numberPos} onChange={(v) => setCr({ numberPos: v })} />
+          </div>
         </div>
-        <div style={{ ...subLabel, marginTop: 16 }}>Posição no gabinete</div>
-        <CornerPicker value={cr.numberPos} onChange={(v) => setCr({ numberPos: v })} />
-      </>)}
+      )}
     </div>
   );
 }
@@ -58,25 +64,25 @@ export function CoresPrefs() {
   const resetPalette = () => setPrefs({ ...prefs, cablePalette: undefined });
   return (
     <div>
-      <div style={subDesc}>Cor de cada cabo/porta na ordem (1, 2, 3…). Toque num quadrado pra trocar.</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, margin: "12px 0 14px" }}>
+      <div style={subDesc}>Um quadrado por cabo, na ordem — toque pra trocar.</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "10px 0 10px", alignItems: "flex-start" }}>
         {palette.map((c, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
             <div style={{ position: "relative" }}>
               <input type="color" value={c} onChange={(e) => setColor(i, e.target.value)} title={`Cabo ${i + 1}`}
-                style={{ width: 42, height: 42, border: `1px solid ${T.bd}`, borderRadius: 8, background: "none", cursor: "pointer", padding: 2 }} />
+                style={{ width: 34, height: 34, border: `1px solid ${T.bd}`, borderRadius: 7, background: "none", cursor: "pointer", padding: 2 }} />
               {palette.length > 2 && (
                 <button onClick={() => removeColor(i)} title="Remover cor"
-                  style={{ position: "absolute", top: -7, right: -7, width: 20, height: 20, borderRadius: "50%", background: T.card, border: `1px solid ${T.bd}`, color: T.mut, cursor: "pointer", fontSize: 13, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>×</button>
+                  style={{ position: "absolute", top: -6, right: -6, width: 17, height: 17, borderRadius: "50%", background: T.card, border: `1px solid ${T.bd}`, color: T.mut, cursor: "pointer", fontSize: 11, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>×</button>
               )}
             </div>
-            <span style={{ color: T.dim, fontSize: 10 }}>{i + 1}</span>
+            <span style={{ color: T.dim, fontSize: 9 }}>{i + 1}</span>
           </div>
         ))}
         <button onClick={addColor} title="Adicionar cor"
-          style={{ width: 42, height: 42, marginTop: 1, borderRadius: 8, border: `1px dashed ${T.bd}`, background: "transparent", color: T.mut, cursor: "pointer", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+          style={{ width: 34, height: 34, borderRadius: 7, border: `1px dashed ${T.bd}`, background: "transparent", color: T.mut, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+        <button style={{ ...btn("subtle", { padding: "7px 10px", fontSize: 12 }), marginLeft: "auto" }} onClick={resetPalette} title="Restaurar paleta padrão"><RotateCcw size={13} /> Padrão</button>
       </div>
-      <button style={btn("subtle")} onClick={resetPalette}><RotateCcw size={14} /> Restaurar padrão</button>
     </div>
   );
 }
@@ -85,9 +91,9 @@ export function CoresPrefs() {
 export function PrefToggle({ on, onClick, titulo, desc }) {
   return (
     <button onClick={onClick} role="switch" aria-checked={on}
-      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%", textAlign: "left", background: T.card2, border: `1px solid ${on ? T.acc : T.bd}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", fontFamily: "inherit" }}>
-      <span><span style={{ color: T.txt, fontWeight: 600, fontSize: 14 }}>{titulo}</span><br /><span style={{ color: T.dim, fontSize: 12 }}>{desc}</span></span>
-      <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: on ? T.acM : T.mut }}>{on ? "SIM" : "NÃO"}</span>
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%", textAlign: "left", background: T.card2, border: `1px solid ${on ? T.acc : T.bd}`, borderRadius: 8, padding: "8px 11px", cursor: "pointer", fontFamily: "inherit" }}>
+      <span><span style={{ color: T.txt, fontWeight: 600, fontSize: 13 }}>{titulo}</span>{desc && <><br /><span style={{ color: T.dim, fontSize: 11 }}>{desc}</span></>}</span>
+      <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: on ? T.acM : T.mut }}>{on ? "SIM" : "NÃO"}</span>
     </button>
   );
 }
@@ -95,15 +101,15 @@ export function PrefToggle({ on, onClick, titulo, desc }) {
 // seletor visual do canto do número (2×2): um mini-gabinete com o "1" no canto escolhido
 function CornerPicker({ value, onChange }) {
   const corners = [["tl", "Sup-esq"], ["tr", "Sup-dir"], ["bl", "Inf-esq"], ["br", "Inf-dir"]];
-  const at = { tl: { top: 6, left: 6 }, tr: { top: 6, right: 6 }, bl: { bottom: 6, left: 6 }, br: { bottom: 6, right: 6 } };
+  const at = { tl: { top: 5, left: 5 }, tr: { top: 5, right: 5 }, bl: { bottom: 5, left: 5 }, br: { bottom: 5, right: 5 } };
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 46px)", gap: 8 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 36px)", gap: 6 }}>
       {corners.map(([k, label]) => {
         const active = value === k;
         return (
           <button key={k} type="button" onClick={() => onChange(k)} title={label} aria-label={label}
-            style={{ position: "relative", width: 46, height: 46, borderRadius: 6, cursor: "pointer", background: active ? T.sel : T.card2, border: `1px solid ${active ? T.acc : T.bd}` }}>
-            <span style={{ position: "absolute", ...at[k], width: 13, height: 13, borderRadius: 3, background: active ? T.acc : T.dim2, color: "#fff", fontSize: 9, fontWeight: 700, display: "grid", placeItems: "center" }}>1</span>
+            style={{ position: "relative", width: 36, height: 36, borderRadius: 6, cursor: "pointer", background: active ? T.sel : T.card2, border: `1px solid ${active ? T.acc : T.bd}` }}>
+            <span style={{ position: "absolute", ...at[k], width: 11, height: 11, borderRadius: 3, background: active ? T.acc : T.dim2, color: "#fff", fontSize: 8, fontWeight: 700, display: "grid", placeItems: "center" }}>1</span>
           </button>
         );
       })}
@@ -111,7 +117,7 @@ function CornerPicker({ value, onChange }) {
   );
 }
 
-const subLabel = { color: T.txt, fontWeight: 600, fontSize: 13.5, marginBottom: 2 };
-const subDesc = { color: T.dim, fontSize: 12.5, marginBottom: 8 };
+const subLabel = { color: T.txt, fontWeight: 600, fontSize: 12, marginBottom: 4 };
+const subDesc = { color: T.dim, fontSize: 11.5, marginBottom: 6, lineHeight: 1.45 };
 const segRow = { display: "inline-flex", background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: 3, gap: 3 };
-const segBtn = (active) => ({ padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });
+const segBtn = (active) => ({ width: 30, padding: "6px 0", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, background: active ? T.acc : "transparent", color: active ? "#fff" : T.mut });

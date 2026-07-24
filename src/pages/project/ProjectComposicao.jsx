@@ -6,6 +6,7 @@
 import { useRef, useState, useMemo, useEffect } from "react";
 import { Download, LayoutGrid, Move } from "lucide-react";
 import HelpTip from "../../components/HelpTip.jsx";
+import PresetPicker from "../../components/PresetPicker.jsx";
 import { IconLadoALado, IconRegioes } from "../../components/icons/LedIcons.jsx";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
@@ -14,10 +15,9 @@ import { T } from "../../ui/tokens.js";
 import { card, btn, label as lbl } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
-import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { telaPortSlices } from "../../services/screenCabling.js";
-import { draw, DEFAULTS, PRESETS, PRESET_LABELS } from "../../services/testcardDraw.js";
+import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
 import { fileName } from "../../services/filenames.js";
 import { overlappingIds } from "../../services/layout.js";
 
@@ -208,12 +208,7 @@ export default function ProjectComposicao({ project, patch }) {
       {/* toolbar de 1 linha: seleções + toggles de exibição + export */}
       <div style={card({ marginBottom: 14, padding: 12 })}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <Select value={presetSel} onChange={(e) => applyPreset(e.target.value)} title="Predefinição" style={{ ...selSty, flex: "1 1 130px", minWidth: 0 }}>
-            <option value="">Predefinição…</option>
-            {/* as do sistema podem ser OCULTADAS nas Configurações › Dados › Test Card */}
-            {Object.entries(PRESET_LABELS).filter(([k]) => !(prefs.tcHiddenPresets || []).includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            {tcPresets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </Select>
+          <PresetPicker value={presetSel} onSelect={applyPreset} style={{ flex: "1 1 130px" }} />
           {/* enxuto (pedido do usuário): o VISUAL vem inteiro da predefinição — controle
               fino se monta no Test Card e se salva como predefinição (deletável lá e nas
               Configurações › Dados) */}
@@ -295,5 +290,4 @@ export default function ProjectComposicao({ project, patch }) {
   );
 }
 
-const selSty = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 14, fontWeight: 600 };
 const numSty = { width: 74, background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 16, fontFamily: "ui-monospace, monospace" };
