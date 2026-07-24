@@ -300,4 +300,5 @@ direita) → F3 Contexto (chips passivos + StatusPill + "?") → F4 Conteúdo
 5. Zebra: conferir DenseTable/tabelas longas do Caderno (§10.3).
 6. Revisão visual tela a tela nos DOIS temas + smoke no Caderno impresso.
 
-**Status: aguardando aprovação do dono para aplicar.**
+**Status: ✅ APLICADA (2026-07-24, commit `41362f5`)** — o app veste a marca nos
+três ecossistemas. Esta seção fica como registro do que a aplicação envolveu.
