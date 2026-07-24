@@ -3,7 +3,7 @@
 // aba, com os itens da seção — ou navega direto se a seção só tem 1 item. Configurações
 // fica na engrenagem do topo (header), fora das seções.
 import { useState } from "react";
-import { NAV, SECTIONS, SECTION_META } from "../nav.js";
+import { NAV, MOBILE_SECTIONS } from "../nav.js";
 import { T } from "../ui/tokens.js";
 import { Z, TOUCH_MIN } from "../config/uiConfig.js";
 import SectionMenu from "./SectionMenu.jsx";
@@ -11,10 +11,11 @@ import SectionMenu from "./SectionMenu.jsx";
 export default function BottomNav({ page, onNavigate }) {
   const [menu, setMenu] = useState(null); // { sec, title, items, anchor } | null
 
-  const sections = SECTIONS.map((sec) => ({
-    sec,
-    ...SECTION_META[sec],
-    items: NAV.filter((n) => n.sec === sec && !n.desktopOnly), // desktop-only fora do mobile
+  // agrupamento próprio do mobile (MOBILE_SECTIONS): Projetos direto, "Mais" agrupa
+  // o uso raro; itens desktop-only ficam fora
+  const sections = MOBILE_SECTIONS.map(({ ids, ...meta }) => ({
+    ...meta,
+    items: ids.map((id) => NAV.find((n) => n.id === id)).filter((n) => n && !n.desktopOnly),
   })).filter((s) => s.items.length); // ignora seção sem itens
 
   const go = (id) => { setMenu(null); onNavigate(id); };

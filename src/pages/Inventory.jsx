@@ -123,11 +123,13 @@ export default function Inventory() {
       <div style={card({ padding: 0, overflow: "hidden" })}>
         <div style={{ overflowX: "auto" }} className="tbl-scroll">
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            {/* cabeçalho FIXO no scroll (NN/g: tabela com mais de uma tela precisa
+                de sticky header pra você saber o que está olhando) */}
             <thead>
               <tr style={{ textAlign: "left", color: T.mut, fontSize: 11, textTransform: "uppercase" }}>
-                <th style={{ padding: "12px 16px" }}>Modelo</th>
-                {COLS.filter((c) => cols[c.key]).map((c) => <th key={c.key} style={{ padding: "12px 16px" }}>{c.label}</th>)}
-                <th />
+                <th style={{ padding: "12px 16px", position: "sticky", top: 0, background: T.card, zIndex: 1 }}>Modelo</th>
+                {COLS.filter((c) => cols[c.key]).map((c) => <th key={c.key} style={{ padding: "12px 16px", position: "sticky", top: 0, background: T.card, zIndex: 1 }}>{c.label}</th>)}
+                <th style={{ position: "sticky", top: 0, background: T.card, zIndex: 1 }} />
               </tr>
             </thead>
             <tbody>
