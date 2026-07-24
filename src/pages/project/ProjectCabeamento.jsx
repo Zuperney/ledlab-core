@@ -12,8 +12,7 @@ import { useState } from "react";
 import { GitBranch, Zap, SlidersHorizontal, Settings2 } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
-import BottomSheet from "../../components/BottomSheet.jsx";
-import Drawer from "../../components/Drawer.jsx";
+import LightModal from "../../components/LightModal.jsx";
 import Segmented from "../../components/Segmented.jsx";
 import { NumeracaoPrefs, MapaCabosPrefs, CoresPrefs } from "../../components/CablingPrefs.jsx";
 import ScreenCabling from "./ScreenCabling.jsx";
@@ -25,17 +24,17 @@ export default function ProjectCabeamento({ project, patch }) {
   const isMobile = useIsMobile();
 
   const painel = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
-        <div style={grpLabel}>Numeração dos cabos</div>
+        <div style={grpLabel}>Numeração</div>
         <NumeracaoPrefs />
       </div>
-      <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 14 }}>
-        <div style={grpLabel}>Mapa de cabos</div>
+      <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 12 }}>
+        <div style={grpLabel}>Mapa</div>
         <MapaCabosPrefs />
       </div>
-      <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 14 }}>
-        <div style={grpLabel}>Cores dos cabos</div>
+      <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 12 }}>
+        <div style={grpLabel}>Cores</div>
         <CoresPrefs />
       </div>
     </div>
@@ -59,13 +58,10 @@ export default function ProjectCabeamento({ project, patch }) {
 
       <ScreenCabling project={project} patch={patch} kind={view} advOpen={adv} onAdvClose={() => setAdv(false)} />
 
-      {/* mobile = folha de baixo (padrão M3 pra ajustes contextuais); desktop = drawer */}
-      {ajustes && (isMobile
-        ? <BottomSheet title="Ajustes do mapa" onClose={() => setAjustes(false)}>{painel}</BottomSheet>
-        : <Drawer open title="Ajustes do mapa" onClose={() => setAjustes(false)} width={420}>{painel}</Drawer>
-      )}
+      {/* modal LEVE — mesmo padrão do Avançado (ele aprovou; replica pra cá) */}
+      {ajustes && <LightModal title="Ajustes do mapa" onClose={() => setAjustes(false)}>{painel}</LightModal>}
     </div>
   );
 }
 
-const grpLabel = { color: T.txt, fontWeight: 700, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 };
+const grpLabel = { color: T.txt, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 };

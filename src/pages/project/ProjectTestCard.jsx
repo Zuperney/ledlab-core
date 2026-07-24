@@ -13,7 +13,7 @@ import { draw, DEFAULTS, PRESETS, PRESET_LABELS } from "../../services/testcardD
 import Placeholder from "../../components/Placeholder.jsx";
 import DropdownMenu from "../../components/DropdownMenu.jsx";
 import Select from "../../components/Select.jsx";
-import BottomSheet from "../../components/BottomSheet.jsx";
+import LightModal from "../../components/LightModal.jsx";
 import ZoomTrio from "../../components/ZoomTrio.jsx";
 import { fileName } from "../../services/filenames.js";
 
@@ -251,15 +251,15 @@ export default function ProjectTestCard({ project }) {
         </div>
       </div>
 
-      {/* folha de ajustes (mobile) — todos os controles + salvar/excluir predefinição */}
+      {/* ajustes (mobile): modal LEVE — mesmo padrão do Avançado do Cabeamento */}
       {isMobile && ajustesOpen && (
-        <BottomSheet title="Ajustes do test card" onClose={() => setAjustesOpen(false)}>
+        <LightModal title="Ajustes do test card" onClose={() => setAjustesOpen(false)}>
           {controlesMobile}
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: `1px solid ${T.bd}`, paddingTop: 12, marginTop: 4 }}>
-            {savedSel && <button style={tbBtn} onClick={deletePreset}><Trash2 size={15} /> Excluir predef.</button>}
-            <button style={{ ...tbBtn, background: T.acc, borderColor: T.acc, color: "#fff" }} onClick={savePreset}><Save size={15} /> Salvar predefinição</button>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: `1px solid ${T.bd}`, paddingTop: 10, marginTop: 4 }}>
+            {savedSel && <button style={{ ...tbBtn, height: 32, fontSize: 12 }} onClick={deletePreset}><Trash2 size={13} /> Excluir</button>}
+            <button style={{ ...tbBtn, height: 32, fontSize: 12, background: T.acc, borderColor: T.acc, color: "#fff" }} onClick={savePreset}><Save size={13} /> Salvar predefinição</button>
           </div>
-        </BottomSheet>
+        </LightModal>
       )}
     </div>
   );
