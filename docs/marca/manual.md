@@ -1,253 +1,303 @@
 # Manual de Marca & Sistema — LedLab Core
 
-> **Regra zero: não inventa.** Antes de criar qualquer coisa nova de interface —
-> cor, ícone, modal, toast, componente, texto — **leia este manual e implemente
-> o que ele manda**. Se o caso não está coberto, o manual é que ganha o caso
-> novo (proposta → aprovação do dono → commit aqui) — nunca uma exceção solta
-> no código. Versão viva: `docs/marca/manual.md` (esta) + `manual.html` (visual).
+> **Regra zero (uso): não inventa.** Antes de criar qualquer coisa nova de
+> interface — cor, ícone, modal, toast, componente, espaçamento, texto — **leia
+> este manual e implemente o que ele manda**. Caso não coberto → o manual
+> absorve o caso (proposta → aprovação do dono → commit aqui), nunca uma
+> exceção solta no código.
+>
+> **Regra zero (projeto): o domínio acima da estética.** O LedLab não é app de
+> consumo; é ferramenta técnica. Densidade de informação importa mais que
+> espaço em branco generoso — mas precisão de toque num evento ao vivo é
+> inegociável. **Tudo o que se toca respira; tudo o que se lê pode ser adensado.**
+
+Arquivos: `docs/marca/manual.md` (esta — a lei, lida pela IA) ·
+`manual.html` (visual) · `CLAUDE.md` aponta pra cá.
 
 ---
 
 ## 1 · A marca
 
-- **Logo**: "led/lab" empilhado (led sobre lab), tinta **preta** sobre bloco
-  **lime**, cantos arredondados. Arquivos: `src/assets/logo.png` (app) e
-  `src/assets/ledlab-square.png` (capa do relatório).
-- **Área de respiro**: margem mínima ao redor = altura da letra "l" do logo.
-- **Tamanho mínimo**: 24 px de altura em tela; nunca menor que isso.
-- **Não fazer**: não recolorir o logo; não esticar; não aplicar sombra; não
-  colocar o bloco lime sobre fundo claro sem borda/contraste; não usar o lime
-  da marca como cor de STATUS (aviso/ok/erro têm as suas cores — §2.4).
-- **Nome**: escreve-se **LedLab Core** (produto) e **led/lab** (marca gráfica).
+- **Logo**: "led/lab" empilhado, tinta **preta** sobre bloco **lime**, cantos
+  arredondados. `src/assets/logo.png` (app) · `ledlab-square.png` (relatório).
+- Respiro mínimo = altura do "l". Tamanho mínimo 24 px. Nunca: recolorir,
+  esticar, sombrear, lime sobre claro sem contraste.
+- Escreve-se **LedLab Core** (produto), **led/lab** (marca gráfica).
 
-## 2 · Cor
+## 2 · Cor — três ecossistemas independentes
+
+O app opera em TRÊS temas de cor que não se misturam: **Palco** (escuro,
+padrão), **Sol** (claro de alto contraste) e **Print** (o Caderno Técnico no
+papel). Mais as **paletas funcionais** (cabos, disciplinas), que são de
+engenharia e ficam fora da marca.
 
 ### 2.1 Cores da marca
 | Nome | Hex | Uso |
 |---|---|---|
-| **Lime LedLab** | `#ebf51e` | A cor da identidade. Ação primária (dark), acentos, capa do relatório |
-| **Preto LedLab** | `#111111` | A tinta da marca. Texto sobre lime, primária no tema claro |
+| **Lime LedLab** | `#ebf51e` | identidade + ação primária (Palco) |
+| **Preto LedLab** | `#111111` | tinta da marca; primária no Sol |
 
-**Regra de tinta**: sobre lime, a tinta é SEMPRE preta (`accInk`). Lime nunca
-vira texto pequeno sobre fundo claro (não lê). No claro, a marca aparece
-invertida: **preto com detalhe lime**.
+**Leis do lime**: sobre lime a tinta é SEMPRE preta (`accInk`). Lime nunca é
+texto sobre fundo claro. Lime **nunca significa estado** — estado tem cor
+própria (§2.5). No papel, lime vira **oliva** (§2.4).
 
-### 2.2 Paleta funcional — tema ESCURO ("Palco", padrão)
-Fundos quase-pretos NEUTROS (morre o azul-roxo da era anterior).
+### 2.2 Tema PALCO (escuro, padrão) — tokens `T`
+Feito pra operar na house mix. Fundos quase-pretos **neutros** (nunca
+azulados/roxos — fadigam menos).
 
-| Token | Hex | Papel |
-|---|---|---|
-| `bg` | `#0f0f0d` | fundo do app |
-| `sb` | `#131311` | sidebar / painéis |
-| `card` | `#191917` | cartão |
-| `card2` | `#121210` | campo/controle dentro de cartão |
-| `bd` | `#2b2b26` | borda |
-| `bdA` | `#5a5f14` | borda de destaque |
-| `acc` | `#ebf51e` | **ação primária** (tinta `accInk` #111) |
-| `accInk` | `#111111` | tinta sobre `acc` |
-| `acM` | `#e3ee45` | acento médio (texto/ícone de destaque) |
-| `acL` | `#f2f877` | acento claro (realce fino) |
-| `txt` | `#ececea` | texto principal |
-| `mut` | `#a6a69c` | texto suave |
-| `dim` | `#72726a` | texto apagado |
-| `dim2` | `#4e4e47` | quase invisível (guias) |
-| `sel` | `#272b0d` | fundo selecionado |
-| `strip` | `#1b1d10` | faixa informativa |
-| `hero` | `#191b0e` | destaque de bloco |
-| `indBg` | `#20230d` | fundo indicador |
-| `zebra` | `#151513` | linha zebrada |
-
-### 2.3 Paleta funcional — tema SOL (claro, alto contraste)
-Existe pra LER NO SOL: contraste máximo, não estética.
-
-| Token | Hex | Papel |
-|---|---|---|
-| `bg` | `#f4f4ee` · `sb` `#e9e9e1` · `card` `#ffffff` · `card2` `#ecece4` | fundos |
-| `bd` | `#a9a99b` | borda FORTE (sol lava borda fraca) |
-| `acc` | `#161711` | **primária preta** (tinta `accInk` = lime `#ebf51e`) |
-| `acM` | `#5c6600` | acento de texto (lime escurecido/oliva) |
-| `acL` | `#454d00` | acento profundo |
-| `txt` | `#141410` · `mut` `#3c3c34` · `dim` `#5c5c52` | textos quase-pretos |
-| `sel` | `#e7ecc0` | seleção lime-clara |
-
-### 2.4 Semânticas (INTOCÁVEIS — engenharia)
-| Papel | Escuro | Sol | Regra |
+| Token | Hex | Papel | equivalente Material |
 |---|---|---|---|
-| OK / dentro do limite | `#34d399` | `#047857` | verde é veredito, nunca decoração |
-| Aviso / atenção | `#fb923c` | `#b45309` | **LARANJA** (saiu o amarelo: confundia com o lime da marca) |
-| Estouro / perigo / destrutivo | `#f87171` | `#b91c1c` | vermelho só pra problema real |
+| `bg` | `#0f0f0d` | fundo do app | background |
+| `sb` | `#131311` | sidebar/painéis | surface-container-low |
+| `card` | `#191917` | cartão | surface |
+| `card2` | `#121210` | campo/controle em cartão | surface-variant |
+| `bd` | `#2b2b26` | borda | outline |
+| `bdA` | `#5a5f14` | borda de destaque | outline-variant |
+| `acc` | `#ebf51e` | **ação primária** | primary |
+| `accInk` | `#111111` | tinta sobre acc | on-primary |
+| `acM` | `#e3ee45` | acento de texto/ícone | on-primary-container |
+| `acL` | `#f2f877` | realce fino | — |
+| `sel` | `#272b0d` | fundo selecionado | primary-container |
+| `txt` | `#ececea` | texto principal | on-surface |
+| `mut` | `#a6a69c` | texto suave | on-surface-variant |
+| `dim` | `#72726a` | apagado | on-surface-dim |
+| `dim2` | `#4e4e47` | guias | — |
+| `strip` `#1b1d10` · `hero` `#191b0e` · `indBg` `#20230d` · `zebra` `#151513` | | faixas/fundos | — |
 
-O lime **nunca** significa estado — significa identidade e ação.
+> A nomenclatura no CÓDIGO segue `T.*` (não renomear pra md-sys — o mapeamento
+> acima existe pra raciocinar em papéis, não pra refatorar).
 
-### 2.5 Outras paletas
-- **PRINT** (relatório impresso): documento claro próprio; `acc` do print vira
-  **oliva `#4d5500`** na aplicação da marca (capa já é lime + preto). Não segue tema.
-- **Cores de cabo** (`PALETTE`): funcional, configurável pelo usuário — fora da marca.
-- **Cores por disciplina do relatório** (produção/vídeo/elétrica): mantidas.
+### 2.3 Tema SOL (claro, alto contraste)
+Feito pra montagem de dia no pátio. O lime como fundo no claro fica cego —
+**a marca INVERTE**: primária quase-preta `#161711` com tinta LIME.
 
-### 2.6 Contraste (lei)
-Texto normal ≥ 4.5:1; texto grande/ícone ≥ 3:1. Lime sobre `bg` escuro passa;
-lime sobre branco NUNCA. No sol, tudo se resolve em quase-preto sobre claro.
+| Token | Hex |
+|---|---|
+| `bg` `#f4f4ee` · `sb` `#e9e9e1` · `card` `#ffffff` · `card2` `#ecece4` | fundos |
+| `bd` `#a9a99b` | borda FORTE (no sol, sombra não existe — borda trabalha) |
+| `acc` `#161711` / `accInk` `#ebf51e` | primária preta, tinta lime |
+| `acM` `#5c6600` · `acL` `#454d00` | acentos oliva |
+| `txt` `#141410` · `mut` `#3c3c34` · `dim` `#5c5c52` · `dim2` `#8c8c80` | textos |
+| `sel` `#e7ecc0` · `strip` `#eef0d8` · `zebra` `#ebebe4` | fundos lime-claros |
+
+### 2.4 Tema PRINT (o Caderno Técnico) — tokens `PRINT`
+**O Caderno não é o app.** Papel branco, tinta preta, acento **oliva**.
+
+| Token | Valor | Nota |
+|---|---|---|
+| `ink` `#0f172a` · `mut` `#475569` · `dim` `#64748b` | tintas | |
+| `line` `#e2e8f0` · `head` `#f1f5f9` | réguas/cabeçalhos | |
+| `acc` | **`#4d5500` (oliva)** | era roxo; oliva encontra a capa lime |
+| `grn` `#047857` · `amb` `#b45309` · `red` `#b91c1c` | semânticas de papel | |
+
+**Leis do Print** (§10 detalha): zebrado obrigatório em tabela longa; aviso de
+segurança é LARANJA (nunca vermelho — vermelho no papel = falha, não
+precaução); dado técnico em mono; a capa é a ÚNICA área lime do papel.
+
+### 2.5 Semânticas (INTOCÁVEIS — engenharia)
+| Papel | Palco | Sol | Print | Regra |
+|---|---|---|---|---|
+| OK / dentro do limite | `#34d399` | `#047857` | `#047857` | verde é veredito |
+| Aviso / precaução | `#fb923c` | `#b45309` | `#b45309` | **LARANJA** (saiu o amarelo: colava no lime) |
+| Estouro / falha / destrutivo | `#f87171` | `#b91c1c` | `#b91c1c` | vermelho SÓ problema real |
+| "Info" | — | — | — | **não existe cor info** (sem azul avulso); informação usa neutros + acento |
+
+### 2.6 Paletas funcionais (fora da marca)
+- **Cores de cabo** (`PALETTE`): identificação técnica policromática das portas
+  1..N nos diagramas — configurável pelo usuário. Default atual mantido por
+  continuidade de campo (os mapas reais já usam). Não segue tema.
+- **Disciplinas do relatório** (produção slate / vídeo azul / elétrica laranja):
+  mantidas — são sinalização editorial do Caderno.
+
+### 2.7 Contraste (lei)
+Texto ≥ 4.5:1 · texto grande/ícone ≥ 3:1 · lime sobre branco NUNCA · no Sol,
+tudo se resolve em quase-preto sobre claro; sem sombras (borda forte no lugar).
 
 ## 3 · Tipografia
 
-- **Família**: `system-ui` (FONT em tokens) — o app é PWA, a fonte é a do sistema.
-- **Mono** (`ui-monospace`): TODO dado técnico — medidas, px, W/kVA/A, specs de
-  gabinete, coordenadas. Número técnico sem mono é erro.
-- **Escala** (px): 10/11 legendas caps · 12/12.5 apoio · 13/13.5 controles ·
-  14 corpo · 15 título de cartão · 17 título de página (mobile) · 18-20 desktop.
-- **Rótulos de seção**: MAIÚSCULAS, 10-12 px, `letter-spacing` 0.04-0.08em, `mut`/`dim`.
-- **Pesos**: 400 corpo · 600 controles/ênfase · 700 títulos/valores · 800 marca.
-- **Idioma**: 100% PT-BR. Zero rótulo em inglês na UI (§9).
+- **UI**: `system-ui` (o app é PWA; a fonte é a do sistema).
+- **Mono** (`ui-monospace`): **TODO dado técnico** — px, W/kVA/A, grades
+  (`24×14`), coordenadas, specs. Número técnico fora do mono é erro. A leitura
+  cruzada de matrizes (tabelas de porta, planilhas) depende do alinhamento mono.
+- **Escala** (px): 10-11 legendas CAPS (spacing 0.04-0.08em) · 12-12.5 apoio ·
+  13-13.5 controles · 14 corpo · 15 título de cartão · 17 título de página
+  mobile · 18-20 desktop. Pesos 400 / 600 / 700 / 800 (marca).
+- Inputs mobile ≥16px (anti-zoom iOS). 100% PT-BR (§12).
 
-## 4 · Ícones
+## 4 · Espaçamento, densidade e toque
 
-### 4.1 Regras
-1. **1 ícone = 1 significado.** O catálogo (§4.2) é contrato: não reusar um
-   ícone pra outro conceito, não usar dois ícones pro mesmo conceito.
-2. Ícone novo de DOMÍNIO nasce em `components/icons/LedIcons.jsx` — viewBox 24,
-   stroke 1.8, `currentColor` (theme-aware de graça).
-3. Genérico vem do lucide; se o lucide não conta a história, desenha no LedIcons.
-4. **Tamanhos**: 13-14 inline no texto · 15-16 em botões · 18-22 em navegação ·
-   maior só em Placeholder/vazios.
-5. Botão só-ícone **sempre** com `title` + `aria-label`. Ícone mudo é proibido
-   em NAVEGAÇÃO (aba/menu tem rótulo sempre).
-6. Toggle de exibição = ícone com estado (`aria-pressed`, aceso = `sel`+`acM`).
+- **Escala de espaço** (px): `2 · 4 · 6 · 8 · 10 · 12 · 16 · 24 · 32`. Valores
+  fora da escala não nascem.
+- **Raios**: 6-8 controles · 8 botões/inputs · 10-12 cartões · 14-16 modais ·
+  999 pills. Nada além.
+- **Espremível (alta densidade)**: matrizes numéricas, tabelas, grids de specs,
+  formulários em lote — gap 4-8, células com padding mínimo, inputs 36px.
+- **INTOCÁVEL (respiro tátil — Lei de Fitts)**: navegação, primárias, toggles,
+  lixeiras. **Área de toque real ≥ 44×44** (abas/navegação) e ≥ 38px (toolbar
+  densa) — se o desenho é menor, EXPANDE a área clicável (padding/minHeight;
+  em CSS de classe, pseudo-elemento de hitbox).
+- Regra-síntese: **o que se toca respira; o que se lê adensa.**
 
-### 4.2 Catálogo (significados fixos)
+## 5 · Ícones
 
-**A tríade dos ajustes (lei):**
-| Ícone | Significado |
-|---|---|
-| `SlidersHorizontal` | ajustes de **VISUALIZAÇÃO** (como se vê) — abre LightModal |
-| `Settings2` | **avançado do CONTEXTO** (config da Screen/item atual) — abre LightModal |
-| `Settings` | **Configurações GLOBAIS** — abre o Drawer |
+### 5.1 Regras
+1. **1 ícone = 1 significado** (o catálogo é contrato; sem reuso, sem duplicata).
+2. **Inegociável (domínio)**: conceito do negócio (numeração, regiões, ordens
+   zigzag/serpente…) mora em `LedIcons.jsx` — viewBox 24, stroke 1.8,
+   `currentColor`. **Negociável (utilitário)**: ações genéricas vêm do lucide.
+3. Tamanhos: 13-14 inline · 15-16 botões · 18-22 navegação · maior só em vazios.
+4. Botão só-ícone SEMPRE com `title` + `aria-label`. Em navegação, ícone nunca
+   anda sem rótulo.
+5. Toggle de exibição = ícone com estado (`aria-pressed`; aceso = `sel`+`acM`).
 
-**Navegação (sidebar/bottom nav):** `LayoutDashboard` Visão Geral · `CalendarDays`
-Agenda · `FolderOpen` Projetos · `Coins` Cachês · `Receipt` Recibos · `Wallet`
-Reembolso/seção Financeiro · `Package` Gabinetes · `Cpu` Equipamentos/controladora ·
-`GitBranch` sinal (Cabeamento, Diagramação) · `Monitor` Test Card · `Ratio` Aspect
-Ratio · `BookOpen` Base de Conhecimento · `Home` Início · `Boxes` Gestão · `Wrench`
-Ferramentas/Mais.
+### 5.2 A tríade dos ajustes (lei)
+| Ícone | Significado | Abre |
+|---|---|---|
+| `SlidersHorizontal` | ajustes de **VISUALIZAÇÃO** (como se vê) | LightModal |
+| `Settings2` | **avançado do CONTEXTO** (a Screen/item atual) | LightModal |
+| `Settings` | **Configurações GLOBAIS** | Drawer |
+
+### 5.3 Catálogo (significados fixos)
+**Navegação:** `LayoutDashboard` Visão Geral · `CalendarDays` Agenda ·
+`FolderOpen` Projetos · `Coins` Cachês · `Receipt` Recibos · `Wallet`
+Reembolso/Financeiro · `Package` Gabinetes · `Cpu` Equipamentos/controladora ·
+`GitBranch` sinal (Cabeamento, Diagramação) · `Monitor` Test Card · `Ratio`
+Aspect Ratio · `BookOpen` Conhecimento · `Home` Início · `Boxes` Gestão ·
+`Wrench` Ferramentas/Mais.
 
 **Abas do projeto:** `Folder` Dados · `Zap` Energia/AC (elétrica em geral) ·
 `Layers` Screens · `GitBranch` Cabeamento · `FileText` Relatório · `Monitor`
 Test Card · `LayoutGrid` Composição.
 
-**Ações:** `Plus` criar · `Trash2` excluir · `Pencil` editar · `Copy` copiar
-texto · `Download` exportar/baixar · `Upload` importar · `Save` salvar
-predefinição · `Printer` imprimir · `Eraser` limpar tudo · `Undo2` desfazer ·
-`Repeat2` inverter · `RotateCcw` restaurar padrão · `Wand2` automático/sugerir ·
-`X` fechar/remover · `Check` confirmado · `Search` buscar · `GripVertical`
-alça de arrastar · `ArrowLeft` voltar · `Columns3`/`Rows3` layout de lista.
+**Ações:** `Plus` criar · `Trash2` excluir · `Pencil` editar · `Copy` copiar ·
+`Download` exportar/baixar · `Upload` importar · `Save` salvar predefinição ·
+`Printer` imprimir · `Eraser` limpar tudo · `Undo2` desfazer · `Repeat2`
+inverter · `RotateCcw` restaurar padrão · `Wand2` automático/sugerir · `X`
+fechar/remover · `Check` confirmado · `Search` buscar · `GripVertical` arrastar ·
+`ArrowLeft` voltar · `Columns3`/`Rows3` layout de lista.
 
-**Estado & feedback:** `TriangleAlert` aviso · `CircleCheck` ok/sucesso ·
-`CircleX` erro/cancelado · `Clock` pendente/horário · `Activity` em andamento ·
-`Info` informação · `ShieldCheck`/`ShieldAlert` armazenamento protegido/não ·
-`Sparkles` novidades de versão · `Gauge` certificado/conferido.
+**Estado:** `TriangleAlert` aviso · `CircleCheck` ok · `CircleX` erro/cancelado ·
+`Clock` pendente · `Activity` andamento · `Info` informação · `ShieldCheck`/
+`ShieldAlert` armazenamento · `Sparkles` novidades · `Gauge` certificado.
 
-**Tema & privacidade:** `Sun`/`Moon` modo sol/escuro · `Eye`/`EyeOff` valores R$.
+**Tema/privacidade:** `Sun`/`Moon` · `Eye`/`EyeOff` (valores R$).
+**Campo:** `MapPin` GPS · `Play`/`Square` abrir/fechar turno · `Camera`
+comprovante · `Cloud` sync.
+**Domínio (LedIcons):** `IconNumeros` · `IconInfoBox` · `IconLadoALado` ·
+`IconRegioes` · `NumberingIcon` (8 ordens zigzag/serpente).
 
-**Campo:** `MapPin` GPS/local · `Play`/`Square` abrir/fechar turno · `Camera`
-comprovante · `Cloud` sincronização.
+## 6 · Superfícies (modais, folhas, drawers)
 
-**Domínio (LedIcons.jsx):** `IconNumeros` numeração de gabinetes · `IconInfoBox`
-caixa de info do test card · `IconLadoALado` dispor lado a lado · `IconRegioes`
-regiões do canvas (copiar) · `NumberingIcon` as 8 ordens de numeração
-(zigzag/serpente — usado no NumberingPicker).
-
-## 5 · Superfícies (modais, folhas, drawers)
-
-| Superfície | Componente | Quando | Nunca |
-|---|---|---|---|
-| **Modal leve** | `LightModal` | Ajustes de contexto, pickers (predefinição), "?" no mobile. Card centrado, NÃO cobre a tela | Conteúdo longo, fluxo multi-etapa |
-| **Folha de baixo** | `BottomSheet` | SÓ a lista do `Select` no mobile (e menus de seção da bottom nav) | Ajustes (migrado p/ LightModal) |
-| **Drawer** | `Drawer` | Configurações globais e painéis página-inteira (recibo, tipos) | Ajuste rápido de contexto |
-| **Diálogo de confirmação** | `useConfirm` | TODA ação destrutiva — **sempre nomeando o alvo** ("\"AD Summit\" será removido") | Confirmar ação reversível |
-| **Prompt** | `usePrompt` | Pedir um texto (nome de predefinição) | Formulários |
-| **Modal de novidades** | `UpdateModal` | Uma vez por versão | Qualquer outro anúncio |
-
-**Z-order (lei)**: `fab 55 < bottomNav 60 < sheet/lightModal 90 < drawer 95 <
-dialog 100`. Confirmação destrutiva fica por cima de tudo.
-Todos fecham com: X, toque no fundo e Esc. Drawer/LightModal respeitam
-`safe-area-inset` no iOS.
-
-## 6 · Componentes (átomos) — quando usar cada um
-
-| Componente | Papel | Anti-uso |
+| Superfície | Quando | Nunca |
 |---|---|---|
-| `Segmented` | escolha EXCLUSIVA de modo (F1) | listas longas (>7), itens criáveis |
-| `Select` | escolher 1 de N itens | modo exclusivo (é Segmented), número (é NumField) |
-| `NumField` | entrada numérica (rascunho, zero só no blur) | NUNCA `<input type=number>` cru |
-| chips de contexto | item CRIÁVEL/gerenciável ali (Screens, telas) | escolha fixa 1-de-N |
-| chip passivo | resumo/informação; no máx. abre a folha | virar controle disfarçado |
-| `StatusPill` | veredito OK/Alerta/Faltam — **só aparece quando há problema** | selo "OK" permanente (ruído) |
-| `PrefToggle` | liga/desliga com rótulo+desc curta | mais de ~2 linhas de descrição |
-| `Switch` | liga/desliga compacto em formulário | preferências com contexto (é PrefToggle) |
-| `ZoomTrio` | zoom de canvas (−/enquadrar/+, 34px) | qualquer outro conjunto de zoom |
-| `HelpTip` ("?") | TODA didática — popover (desktop) / LightModal (mobile) | parágrafo fixo na tela |
-| `PresetPicker` | predefinições de test card (Test Card + Composição) | duplicar seletor próprio |
+| **LightModal** | ajustes de contexto, pickers, "?" no mobile. Card centrado, NÃO cobre a tela — o projeto continua visível atrás | conteúdo longo, multi-etapa |
+| **BottomSheet** | SÓ a lista do `Select` no mobile + menus da bottom nav | ajustes |
+| **Drawer** | Configurações globais, painéis página-inteira | ajuste rápido |
+| **confirm()** | TODA ação destrutiva — **nomeando o alvo e o efeito** ("\"AD Summit\" será removido. Não pode ser desfeito.") | ação reversível |
+| **prompt()** | pedir um texto curto | formulários |
+| **UpdateModal** | novidades, 1× por versão | outro anúncio |
+
+- **Scrim**: `rgba(0,0,0,.55)` (dialogs) / `.35-.5` (superfícies leves); o
+  dialog destrutivo usa o scrim mais denso.
+- **Z-order (lei)**: `fab 55 < bottomNav 60 < sheet/lightModal 90 < drawer 95 <
+  dialog 100 < toast 110`. Toast fica ACIMA de tudo (confirma por cima do modal
+  que fechou).
+- Todos fecham com X, toque no fundo e Esc; `safe-area-inset` no iOS.
+
+## 7 · Componentes (átomos) — papel e anti-uso
+
+| Átomo | Papel | Anti-uso |
+|---|---|---|
+| `Segmented` | escolha EXCLUSIVA de modo (F1) | listas >7; itens criáveis |
+| `Select` | 1 de N itens | modo exclusivo; números |
+| `NumField` | numérico (zero só no blur) | `<input type=number>` cru |
+| chips de contexto | item CRIÁVEL/gerenciável ali | escolha fixa |
+| chip passivo | resumo; no máx. abre a folha | controle disfarçado |
+| `StatusPill` | veredito — **só aparece com problema** | "OK" permanente |
+| `PrefToggle` | liga/desliga com rótulo+desc curta | descrições longas |
+| `Switch` | liga/desliga compacto | preferências com contexto |
+| `ZoomTrio` | zoom de canvas (34px) | outro conjunto de zoom |
+| `HelpTip` "?" | TODA didática (popover desktop / LightModal mobile) | parágrafo fixo |
+| `PresetPicker` | predefinições (Test Card + Composição) | seletor duplicado |
 | `Placeholder` | TODO estado vazio | card de texto avulso |
-| `DropdownMenu` | menu de opções marcáveis | navegação |
 
-**Botões**: `btn("primary")` = **UMA por aba** (R1), a razão da aba, tamanho
-normal à direita da toolbar — nunca full-width. `ghost` ação secundária ·
-`subtle` terciária · `danger` só destrutiva. Botão-ícone 36-40px com borda.
-FAB (`+`) apenas em listas de criação (Projetos).
+**Botões** (`btn()` em `ui/styles.js`): `primary` (acc+accInk) — **UMA por
+aba** (R1), a razão da aba, tamanho normal à direita da toolbar, nunca
+full-width · `ghost` (card2+borda) secundária · `subtle` (transparente)
+terciária · `danger` só destrutiva **e sempre seguida de confirm()**.
+Botão-ícone 36-40px com borda. FAB só em lista de criação.
 
-## 7 · Toasts & feedback
+## 8 · Navegação e overflow
 
-1. Toast confirma ação **já feita**, no passado: "Backup exportado",
-   "Predefinição salva". Curto (≤ 6 palavras no ideal).
-2. Auto-some em ~2.8s. **Sem botão**, sem ação, não empilha por gosto — 1 por ação.
-3. `type="success"` (padrão) confirma; `type="info"` orienta ou reporta erro
-   recuperável **com instrução** ("Digite seu e-mail").
-4. Toast NUNCA: valida formulário (isso é inline), anuncia futuro, substitui
-   confirmação destrutiva, aparece sem ação do usuário.
-5. Erro que impede o fluxo = mensagem inline no lugar; catástrofe = ErrorBoundary.
-6. Progresso/estado contínuo (sync) = texto de status no lugar, não toast.
+- Barra rolável horizontal (abas, chips) **DEVE sinalizar o transbordo**: ou o
+  último item aparece CORTADO no viewport (nosso padrão atual), ou fade-out na
+  borda (mask-image). O usuário nunca adivinha que existe mais conteúdo.
+- Scrollbar escondida (`no-scrollbar`) só quando o corte/fade sinaliza.
+- Bottom nav: 5 destinos com rótulo; seções com 1 item navegam direto.
+- Rótulo em navegação é OBRIGATÓRIO (ícone mudo não navega).
 
-## 8 · A gramática (estrutura de toda tela)
+## 9 · Toasts & feedback
 
-Toda aba/página de trabalho = **5 faixas** na ordem: **F1** Modo (Segmented) →
-**F2** Ferramentas (1 linha; primária à direita) → **F3** Contexto (chips
-passivos + StatusPill + "?") → **F4** Conteúdo (cards, Placeholder, ZoomTrio) →
-**F5** Ajustes (LightModal). Regras R1-R6 completas no `CLAUDE.md` (raiz).
+1. Toast fala **no passado** — confirma ação resolvida: "Backup exportado".
+2. Curto, sem botão, some sozinho em **~2.8s**, 1 por ação, empilha no máximo o
+   inevitável. **Sem "Desfazer"** (não há rollback assíncrono — a proteção vem
+   ANTES, no confirm()).
+3. Posição: **desktop** canto inferior-direito · **mobile** centro-inferior,
+   ACIMA da bottom nav (nunca atrás dela).
+4. `success` (padrão) confirma · `info` orienta/erro recuperável com instrução.
+5. Toast NUNCA: valida formulário (inline), anuncia futuro, substitui confirm,
+   aparece sem ação do usuário, mostra progresso (estado contínuo = texto de
+   status no lugar; catástrofe = ErrorBoundary).
 
-## 9 · Voz e texto
+## 10 · O Caderno Técnico (Print) — leis do papel
 
-- **PT-BR, 100%.** Sem inglês em rótulo ("Início", nunca "Home").
-- Tom: **técnico falando com técnico** — direto, sem enrolação, sem jargão de
-  marketing. Pode ter personalidade ("a queridinha do rental"), nunca gordura.
-- Botão diz o que FAZ: "Exportar PNG", "Salvar predefinição". Toast diz o que FEZ.
-- Números sempre com unidade (`px`, `W`, `kVA`, `A`, `m²`, `Hz`) em mono.
-- Formato pt-BR: `2.496 × 2.912 px`, vírgula decimal, `·` como separador de fatos.
-- **Vocabulário fixo**: Tela (bloco de gabinetes, conceito nosso) · Screen (o
+1. **O Caderno não é o app.** Público: cliente, produção, campo, locadora.
+   Sem referência ao app, sem abreviação, papel branco, tinta preta.
+2. **Acento oliva `#4d5500`** — o lime fluorescente é ilegível no papel; a capa
+   (Folha Técnica, lime + preto) é a única área de marca saturada.
+3. **Zebrado obrigatório** em tabela longa (portas 1..48, circuitos AC):
+   linhas pares com cinza levíssimo — sem isso a linha visual se perde.
+4. **Dado técnico em mono**, colunas alinhadas (kW/kVA/A, resoluções, matrizes).
+5. **Aviso de segurança = LARANJA** (borda `#b45309` + fundo claro âmbar).
+   NUNCA vermelho: no papel, vermelho significa falha/incêndio, não precaução.
+6. Paisagem por padrão · um tópico por página · cor+ícone por disciplina ·
+   glossário no fim (padrões da v1.5.4-1.5.5, mantidos).
+
+## 11 · A gramática (estrutura de toda tela)
+
+**5 faixas**: F1 Modo (Segmented) → F2 Ferramentas (1 linha; primária à
+direita) → F3 Contexto (chips passivos + StatusPill + "?") → F4 Conteúdo
+(cards/Placeholder/ZoomTrio) → F5 Ajustes (LightModal). Regras R1-R6 no
+`CLAUDE.md`.
+
+## 12 · Voz e texto
+
+- **PT-BR 100%**; tom técnico-pra-técnico, direto, sem jargão de marketing.
+  Personalidade cabe ("a queridinha do rental"); gordura não.
+- Botão diz o que FAZ; toast diz o que FEZ; confirm nomeia o alvo e o efeito.
+- Número sempre com unidade, em mono; formato pt-BR (`2.496 × 2.912 px`,
+  vírgula decimal, `·` separa fatos).
+- **Vocabulário fixo**: Tela (bloco de gabinetes — conceito nosso) · Screen (o
   sistema do NovaLCT) · Gabinete (receiving card) · Porta (saída Gigabit) ·
-  Cachê · Predefinição (não "preset" na UI).
-- Destrutivo pede confirmação nomeando o alvo e o efeito ("Não pode ser desfeito").
+  Predefinição (nunca "preset" na UI) · Cachê.
 
-## 10 · Movimento
+## 13 · Movimento & acessibilidade
 
-- Transições: 0.15s (estados de controle), 0.2-0.25s (superfícies). Nada acima de 0.3s.
-- Zero animação decorativa. Movimento só comunica mudança de estado.
-- Respeitar `prefers-reduced-motion` em qualquer animação nova.
+- Transições 0.15s (controles) a 0.25s (superfícies); nada >0.3s; movimento só
+  comunica estado; `prefers-reduced-motion` respeitado.
+- Dois temas SEMPRE; cor nunca é o único sinal; `aria-label`/`aria-pressed`/
+  `role="switch"` onde couber; `env(safe-area-inset-*)` nos extremos.
 
-## 11 · Acessibilidade
+## 14 · Aplicação da paleta (pendências de implementação)
 
-- Alvos: ≥38px topbar mobile, ≥44px navegação/abas, 34px aceitável em toolbar densa.
-- Dois temas SEMPRE (escuro + sol); cor nunca é o único sinal (ícone/texto junto).
-- `aria-label` em todo botão-ícone; `aria-pressed` em toggle; `role="switch"` em switch.
-- Inputs mobile com fonte ≥16px (anti-zoom iOS). `env(safe-area-inset-*)` nos extremos.
+1. `ui/tokens.js`: DARK e SOL trocam pros valores §2.2-2.3; **token novo
+   `accInk`**; todo `color:"#fff"` hardcoded sobre `T.acc` → `T.accInk`
+   (btn primary, Segmented ativo, tabBtn das Configurações, CornerPicker,
+   NumberingPicker, chips ativos…).
+2. `amb` amarelo → **laranja** nos dois temas (+ `ambBg`).
+3. `PRINT.acc` roxo → **oliva `#4d5500`** (revisar SectionHead/chips do Caderno).
+4. Toast mobile: mover pra centro-inferior acima da bottom nav (§9.3).
+5. Zebra: conferir DenseTable/tabelas longas do Caderno (§10.3).
+6. Revisão visual tela a tela nos DOIS temas + smoke no Caderno impresso.
 
-## 12 · Aplicação da paleta (nota de implementação)
-
-A paleta §2 substitui o roxo em `ui/tokens.js` (DARK e SOL). A aplicação exige:
-1. Token novo `accInk` (tinta sobre acc) e troca de TODO `color:"#fff"`
-   hardcoded sobre `T.acc` → `T.accInk` (botões primários, Segmented ativo,
-   tabBtn, chips ativos, CornerPicker, NumberingPicker…).
-2. `amb` muda de amarelo → laranja nos DOIS temas (afastar do lime).
-3. `PRINT.acc` roxo → oliva `#4d5500` (o interior do relatório encontra a capa).
-4. Revisão visual tela a tela nos dois temas (o modo sol já ajuda: tokens certos
-   = telas certas).
-Status: **aguardando aprovação do dono para aplicar** (mudança visual total).
+**Status: aguardando aprovação do dono para aplicar.**
