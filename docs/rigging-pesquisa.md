@@ -8,6 +8,11 @@
 > Inclui o cruzamento com uma **pesquisa paralela feita no Gemini** pelo dono
 > (§6): o que foi aceito, o que foi rejeitado e por quê.
 >
+> 📖 **Vocabulário:** este documento cita o mercado, que fala em *"ponto"* (point
+> load, hoist point). No **nosso** produto isso se chama **ancoragem** — o que a viga
+> oferece pra pendurar. "Ponto" fica reservado ao ponto de talha da produção, que o
+> app não calcula. Ver [`rigging-spec.md`](./rigging-spec.md) §1.
+>
 > ⚠️ Nada aqui autoriza montagem. Carga suspensa é responsabilidade do **rigger
 > habilitado** e, no Brasil, de **engenheiro com ART** (CONFEA). O app é
 > planejamento de referência — mesma postura do box de segurança AC.
@@ -84,7 +89,7 @@ Quatro consequências práticas:
 
 ```
 carga da tela   = cols × rows × peso do gabinete
-carga do ponto  = carga que a viga entrega ali + peso do bumper + acessórios
+carga da ancoragem = carga que a viga entrega ali + peso do bumper + acessórios
 ```
 Regra de bolso da indústria pra fechar a conta quando falta dado: **ferragem ≈ 15%
 do peso dos painéis, cabos ≈ 5%**. Serve como *sanity check* do nosso total, não
@@ -157,7 +162,7 @@ Essa é a ideia central do produto. A parede tem uma **cadeia de elos**, e o app
 deve dizer **qual elo trava primeiro**, não só cuspir um número:
 
 ```
-gabinete/trava  →  bumper  →  ponto (talha, manilha, cinta)  →  truss/estrutura  →  chão
+gabinete/trava  →  bumper  →  ancoragem (talha, manilha, cinta)  →  truss/estrut.  →  chão
    (fabricante)    (fabricante)        (WLL)                    (tabela de vão)   (kg/m²)
 ```
 
@@ -279,7 +284,7 @@ rigging: {
 
 **Sem dado → o app não estima.** Ele diz *"o fabricante não publica limite de
 empilhamento pra este gabinete — confirme no manual"* e segue calculando só o que
-sabe (peso e carga por ponto). Isso é a diferença entre uma ferramenta que o
+sabe (peso e carga por ancoragem). Isso é a diferença entre uma ferramenta que o
 técnico confia e uma que ele aprende a ignorar. Mesma escolha que a gente já fez
 no elétrico ao não inflar `pwrMax`.
 
@@ -288,8 +293,8 @@ no elétrico ao não inflar `pwrMax`.
 Por Screen/tela, o Caderno mostra:
 
 1. **Peso** — por coluna, por tela, total do projeto (em kg e t).
-2. **Bumpers e pontos** — quantos, e a carga **no pior ponto** (com a nota de que
-   não é peso÷pontos, e por quê).
+2. **Bumpers e ancoragens** — quantos, e a carga **na pior ancoragem** (com a nota
+   de que não é peso÷ancoragens, e por quê).
 3. **Talha** — carga vs WLL em %, com o mesmo semáforo do elétrico
    (**>80% laranja, >100% vermelho**).
 4. **Premissa do ângulo** — declarada ("içamento a prumo"), e aplicada quando o
@@ -307,7 +312,7 @@ Por Screen/tela, o Caderno mostra:
 | **R1** | campos de rigging no gabinete **com procedência** + UI de preenchimento na biblioteca pessoal | Q5 (seed × pessoal) |
 | **R2** | motor: cadeia de verificação (limite do fabricante por modo, por barra e por coluna) — hoje ele só olha a talha | R1 |
 | **R3** | seção **Rigging** no Caderno Técnico + PDF | Q2a/Q2b/Q4 |
-| **R4** | painel no app (bumper/fixação/pontos/**ângulo** por Screen) | R3 |
+| **R4** | painel no app (bumper/fixação/ancoragens/**ângulo** por Screen) | R3 |
 | **R5** | empilhado/ground: limite em metros, área de vela + semáforo de vento, lembrete de contrapeso (**sem** número de lastro) | R2 |
 | **R6** | pitch × distância no Aspect Ratio (independente, pode furar fila) | — |
 

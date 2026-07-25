@@ -19,18 +19,19 @@
 | --- | --- |
 | **Coluna** | pilha vertical de gabinetes (a tela tem `cols` colunas de `rows` gabinetes). |
 | **Bumper** | viga no topo da parede que recebe 1..N colunas penduradas nela. |
-| **Ponto** | onde o bumper pendura: talha de corrente, spanset na truss, olhal. |
+| **Ancoragem** | onde a VIGA oferece pra pendurar (olhal, ilhó, garra). É o que o app conta. |
+| **Ponto** | no meio técnico, o **ponto de talha** que a produção entrega no teto. O app **não** calcula isso — uma ancoragem costuma subir numa talha, mas bridle e repartição são decisão do rigger. Por isso o app nunca escreve "ponto". |
 | **Talha** | a corrente que sobe a parede. **A frota é 100% talha MANUAL de 1 t** — não tem motor elétrico, a subida é na mão (afeta o texto do Caderno: não existe "descer no controle"). |
 | **WLL** | Working Load Limit — carga de trabalho da talha/acessório (o fator de projeto ~5:1 do fabricante **já está embutido** no WLL; nunca somar fator por cima do WLL, e nunca passar dele). |
 | **Trava (fast-lock)** | o fecho que prende gabinete em gabinete. **É o elo que quase sempre define o limite de empilhamento do fabricante** — não a talha. Dois tipos vistos em campo: **chaveta** (entra na ranhura) e **pino transversal** (gira e trava apoiando no fim de curso mecânico). |
 | **Enforcar a talha** | içar até o fim do curso, sem corrente livre entre o gancho de carga e o corpo. **Modo de falha real e observado** — ver §4.1. |
-| **Voado (flown)** | parede pendurada em pontos. É o escopo desta fase. |
+| **Voado (flown)** | parede pendurada em ancoragens. É o escopo desta fase. |
 | **Ground support** | parede apoiada no chão com torre/lastro — **fora do escopo** (§3.3). |
 
 ## 2 · O modelo (voado)
 
 ```
-      ponto        ponto        ponto
+     ancorag.     ancorag.     ancorag.
         │            │            │
    ┌────┴────┐  ┌────┴────┐  ┌────┴────┐
    │ bumper  │  │ bumper  │  │ bumper  │   ← colunasPorBumper (2 no exemplo)
@@ -43,29 +44,29 @@
 - `pesoColuna = rows × peso do gabinete`
 - **`colunasPorBumper` é DERIVADO**, não configurado: `floor(largura do bumper ÷ largura do gabinete)`, mínimo 1. Bumper de 100 cm com gabinete de 500 mm = 2 colunas; de 50 cm = 1. Gabinete mais largo que a viga = 1 coluna **com aviso**. Dá pra sobrescrever à mão.
 - `bumpers = ceil(cols / colunasPorBumper)` — o último pode ficar incompleto
-- `pontos = bumpers × pontosPorBumper`
-- **Carga por ponto = pior caso** (bumper cheio): `(colunasPorBumper × pesoColuna + pesoBumper) / pontosPorBumper + acessórios da fixação + extras`
-- **Checagem da talha**: `pctTalha = carga por ponto ÷ WLL`. `rigTone` espelha o elétrico — **> 80 % laranja, > 100 % vermelho**. Como a frota é só 1 t, não existe "escolher motor maior": ou cabe, ou divide a parede em mais pontos.
-- **Ângulo**: o motor assume içamento **a prumo** (θ = 0°). Fora da vertical a carga cresce por `1/cos θ` (45° = 1,41× · 60° = 2,00×). Enquanto não houver campo, o Caderno **declara a premissa**.
+- `ancoragens = bumpers × ancoragens do bumper`
+- **Carga por ancoragem = pior caso** (bumper cheio): `(colunasPorBumper × pesoColuna + pesoBumper) / ancoragens do bumper + acessórios da fixação + extras`
+- **Checagem da talha**: `pctTalha = carga por ancoragem ÷ WLL`. `rigTone` espelha o elétrico — **> 80 % laranja, > 100 % vermelho**. Como a frota é só 1 t, não existe "escolher motor maior": ou cabe, ou divide a parede em mais ancoragens.
+- **Ângulo**: o motor assume içamento **a prumo** (θ = 0°). Fora da vertical a carga na ancoragem cresce por `1/cos θ` (45° = 1,41× · 60° = 2,00×). Enquanto não houver campo, o Caderno **declara a premissa**.
 
 ### Catálogo de bumpers — semente, não verdade
 
-**`pontos` é propriedade do BUMPER, não da largura.** Isso ficou provado pela
-própria frota: existe bumper de 50 cm com 1 ponto **e** bumper de 50 cm com 2
-pontos (o do 2.9 RGB Share). E no mercado existe viga de **2 gabinetes de 64 cm
-(1,28 m) com um ponto só** — bumper robusto, gabinete de 12 kg (ISD Lumen P10
-outdoor). Qualquer regra que derive pontos da largura está errada.
+**`ancoragens` é propriedade do BUMPER, não da largura.** Isso ficou provado pela
+própria frota: existe bumper de 50 cm com 1 ancoragem **e** bumper de 50 cm com 2
+(o do 2.9 RGB Share). E no mercado existe viga de **2 gabinetes de 64 cm
+(1,28 m) com uma ancoragem só** — bumper robusto, gabinete de 12 kg (ISD Lumen P10
+outdoor). Qualquer regra que derive ancoragens da largura está errada.
 
 Por isso o catálogo é **semente**: o técnico cadastra o bumper dele
-(`cfg.bumper` aceita objeto solto com `larguraMm`, `pontos`, `pesoKg`).
+(`cfg.bumper` aceita objeto solto com `larguraMm`, `ancoragens`, `pesoKg`).
 
-| Bumper (semente) | Largura | Pontos | Colunas (gab. 500 mm) | Peso |
+| Bumper (semente) | Largura | Ancoragens | Colunas (gab. 500 mm) | Peso |
 | --- | --- | --- | --- | --- |
-| 50 cm · 1 ponto | 500 mm | 1 | 1 | ⚠️ 8 kg *(estimado)* |
-| 50 cm · 2 pontos | 500 mm | 2 | 1 | ⚠️ 8 kg *(estimado)* |
-| 100 cm · 2 pontos | 1000 mm | 2 | 2 | ⚠️ 14 kg *(estimado)* |
+| 50 cm · 1 ancoragem | 500 mm | 1 | 1 | ⚠️ 8 kg *(estimado)* |
+| 50 cm · 2 ancoragens | 500 mm | 2 | 1 | ⚠️ 8 kg *(estimado)* |
+| 100 cm · 2 ancoragens | 1000 mm | 2 | 2 | ⚠️ 14 kg *(estimado)* |
 
-| Fixação | Acessórios | Peso no ponto |
+| Fixação | Acessórios | Peso na ancoragem |
 | --- | --- | --- |
 | Algema/garra | garra | ⚠️ 3 kg *(estimado)* |
 | Ilhó + cinta + manilha | cinta de carga, manilha | ⚠️ 5 kg *(estimado)* |
@@ -126,7 +127,7 @@ Não por ser difícil de programar (as fórmulas estão na pesquisa §4), mas po
 - substituir o rigger habilitado / a ART do engenheiro.
 
 **O verbo do app é "confira", nunca "pode".** E a seção não se chama "Rigging" —
-chamar de rigging promete engenharia. Chama-se **"Peso e pontos"**: promete
+chamar de rigging promete engenharia. Chama-se **"Peso e ancoragens"**: promete
 aritmética e entrega aritmética impecável.
 
 ---
@@ -172,13 +173,13 @@ ASME B30.16, que também proíbe **enrolar a corrente de carga na carga**.
 ### 4.4 Nivelamento da viga **[manual]**
 
 Ajustar o nível do bumper (nas cintas) antes de subir a parede — o manual da
-Unilumin pede isso explicitamente. Parede desnivelada **redistribui carga entre os
-pontos** de um jeito que nenhuma conta prevê, e é a forma mais fácil de estourar
-o pior ponto sem saber.
+Unilumin pede isso explicitamente. Parede desnivelada **redistribui carga entre as
+ancoragens** de um jeito que nenhuma conta prevê, e é a forma mais fácil de estourar
+a pior ancoragem sem saber.
 
-### 4.5 Subir os pontos juntos **[prática]**
+### 4.5 Subir as ancoragens juntas **[prática]**
 
-Com talha manual, subir um ponto muito à frente do outro faz aquele ponto pegar
+Com talha manual, subir uma ancoragem muito à frente da outra faz aquela pegar
 uma fatia desproporcional da parede. Içar em incrementos, alternando.
 
 ### 4.6 Secundário quando houver gente embaixo **[prática]**
@@ -234,11 +235,11 @@ gabinete 500×500 mm · a regra dos conectores C acima de 8 de altura (MG6S).
 | Fase | Entrega | Trava |
 | --- | --- | --- |
 | **R0 ✅** | motor puro + testes; catálogo de bumper/fixação; talha 1 t manual | — |
-| **R0.5 ✅** | **Base de Conhecimento: categoria Estrutura** com "Peso e pontos — como a conta é feita" e "Checklist de montagem — parede voada" (§4). Conhecimento antes da calculadora: não dependia de decisão nenhuma. | — |
+| **R0.5 ✅** | **Base de Conhecimento: categoria Estrutura** com "Peso e ancoragens — como a conta é feita" e "Checklist de montagem — parede voada" (§4). Conhecimento antes da calculadora: não dependia de decisão nenhuma. | — |
 | **R2 ✅** | motor: **cadeia de verificação** — `limitesGabinete()` + `checaLimites()`, modo voado × empilhado, limite por barra, `elo` (quem trava primeiro), e **sem dado nunca vira "ok"** | — |
 | **R1** | **campos por tela preenchidos pelo técnico** (limites do fabricante, peso medido, ângulo) + biblioteca identificada por fabricante+pitch+dimensão, com `fonte`/`conferido` — a UI que alimenta a R2 | Q5 |
-| **R3** | seção **"Peso e pontos"** no Caderno + PDF: números, premissas declaradas, campos não informados, **checklist da §4** e box de segurança | Q2a/Q2b/Q4 |
-| **R4** | painel no app (bumper/fixação/pontos/ângulo por Screen) | R3 |
+| **R3** | seção **"Peso e ancoragens"** no Caderno + PDF: números, premissas declaradas, campos não informados, **checklist da §4** e box de segurança | Q2a/Q2b/Q4 |
+| **R4** | painel no app (bumper/fixação/ancoragens/ângulo por Screen) | R3 |
 | **R5** | ~~ground support~~ **FORA DE ESCOPO** (§3.3) — sobra só o limite de empilhamento do fabricante em metros | — |
 | **R6** | pitch × distância no Aspect Ratio (independente, pode furar fila) | — |
 
@@ -262,10 +263,10 @@ Motor trivial; o valor está na UI, junto do Aspect Ratio.
   lastro e estai **fora**. Sem backend — é aritmética sobre dado local.
 - **Q7 — Origem do dado (25/07):** o **técnico preenche**; o app não supõe; vazio
   imprime "não informado".
-- **Q2b — Pontos por bumper (25/07): É PROPRIEDADE DO BUMPER, e o bumper é
-  cadastrável.** Frota: 50 cm → 1 ponto · 100 cm → 2 pontos · 50 cm do 2.9 RGB
-  Share → 2 pontos. Mercado: viga de 2 gabinetes de 64 cm → 1 ponto. `pontos`
-  virou campo do catálogo; `pontosPorBumper` na config só sobrescreve à mão.
+- **Q2b — Ancoragens por bumper (25/07): É PROPRIEDADE DO BUMPER, e o bumper é
+  cadastrável.** Frota: 50 cm → 1 · 100 cm → 2 · 50 cm do 2.9 RGB
+  Share → 2. Mercado: viga de 2 gabinetes de 64 cm → 1. `ancoragens`
+  virou campo do catálogo; `ancoragensPorBumper` na config só sobrescreve à mão.
 
 ### ⏳ Ainda faltam
 
