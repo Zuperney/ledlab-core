@@ -134,10 +134,11 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
   });
 
   it("um tópico por página + uma página por Screen/tela no sinal e no AC", () => {
-    // Completo sem Screens: 6 seções (com sumário, todas quebram) + 4 blocos
-    // (2 telas × sinal e AC, cada um na própria página) → 10 quebras "before"
+    // Completo sem Screens: 7 seções (com sumário, todas quebram) + 4 blocos
+    // (2 telas × sinal e AC, cada um na própria página) → 11 quebras "before".
+    // A cadeia de Peso e ancoragens FLUI: não abre página por tela.
     const completo = JSON.stringify(build("Completo").content);
-    expect(completo.match(/"pageBreak":"before"/g)?.length).toBe(10);
+    expect(completo.match(/"pageBreak":"before"/g)?.length).toBe(11);
     // Elétrico = 1 seção só, sem sumário e sem blocos → nenhuma quebra "before"
     const eletrico = JSON.stringify(build("Elétrico").content);
     expect(eletrico.match(/"pageBreak":"before"/g)).toBeNull();
@@ -155,11 +156,62 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     const completo = JSON.stringify(build("Completo").content);
     expect(completo).toContain('"toc"');
     expect(completo).toContain("SUMÁRIO");
-    // 6 seções marcadas (marcador invisível com a linha "NN · TÍTULO")
-    expect(completo.match(/"tocItem":true/g)?.length).toBe(6);
+    // 7 seções marcadas (marcador invisível com a linha "NN · TÍTULO")
+    expect(completo.match(/"tocItem":true/g)?.length).toBe(7);
     expect(completo).toContain("01  ·  VISÃO GERAL");
     // Elétrico/Mapa de cabos: sem sumário (mas os marcadores são inofensivos)
     expect(JSON.stringify(build("Elétrico").content)).not.toContain('"toc"');
+  });
+
+  // ── R3: Peso e ancoragens ──
+  // O contrato do papel: a seção registra peso e ancoragens; nunca promete
+  // engenharia e nunca transforma ausência de dado em folga.
+  it("Peso e ancoragens: seção 02, logo depois da Visão Geral, na cor da Estrutura", () => {
+    const j = JSON.stringify(build("Completo").content);
+    expect(j).toContain("02  ·  PESO E ANCORAGENS");
+    expect(j).toContain("#0f766e"); // teal da disciplina Estrutura
+    expect(j).not.toContain("RIGGING"); // a seção nunca se chama assim
+  });
+
+  it("sai no Completo e no Estrutural; fica fora do Elétrico e do Resumido", () => {
+    expect(JSON.stringify(build("Estrutural").content)).toContain("PESO E ANCORAGENS");
+    expect(JSON.stringify(build("Elétrico").content)).not.toContain("PESO E ANCORAGENS");
+    expect(JSON.stringify(build("Resumido").content)).not.toContain("PESO E ANCORAGENS");
+  });
+
+  it("gabinete sem limite de fabricante: imprime NÃO INFORMADO, nunca 'dentro'", () => {
+    const j = JSON.stringify(build("Estrutural").content); // o gab do teste não tem rigging
+    expect(j).toContain("NÃO INFORMADO");
+    expect(j).toContain("LIMITE DE EMPILHAMENTO NÃO INFORMADO");
+    expect(j).toContain("sem dado de fabricante");
+    expect(j).not.toContain("DENTRO");
+  });
+
+  it("acima do limite: aviso VERMELHO que nomeia o elo e desarma a troca de talha", () => {
+    const gabLim = { ...gab, rigging: { voadoMaxM: 2, porBarraMaxQtd: 4, fonte: "Datasheet", conferido: true } };
+    const j = JSON.stringify(buildRelatorioDoc({ project: { ...project, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: gabLim }] }, tipo: "Estrutural", cfg, logo: null }));
+    expect(j).toContain("ACIMA DO LIMITE DO FABRICANTE");
+    expect(j).toContain("#b91c1c"); // borda vermelha do aviso (PRINT.red)
+    expect(j).toContain("trocar de talha não resolve");
+  });
+
+  it("gabinete sem peso: campos em branco e aviso — a seção não inventa um zero", () => {
+    const semPeso = { ...gab, peso: "" };
+    const doc = buildRelatorioDoc({ project: { ...project, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: semPeso }] }, tipo: "Estrutural", cfg, logo: null });
+    const j = JSON.stringify(doc.content);
+    expect(j).toContain("PESO DO GABINETE NÃO INFORMADO");
+    // peso e pior ancoragem saem como travessão na tabela, não como 0 kg
+    expect(j).toContain('{"text":"—","font":"PlexMono","alignment":"right"}');
+    // e o total avisa que é parcial em vez de fingir que fechou
+    expect(j).toContain("(parcial)");
+  });
+
+  it("o checklist de campo e o aviso de escopo viajam junto com os números", () => {
+    const j = JSON.stringify(build("Estrutural").content);
+    expect(j).toContain("ANTES DE SUBIR");
+    expect(j).toContain("1 m de corrente livre");
+    expect(j).toContain("PLANEJAMENTO DE REFERÊNCIA");
+    expect(j).toContain("rigger habilitado");
   });
 
   it("bloco de tela/Screen NÃO usa unbreakable — o pdfmake descarta bloco maior que a página", () => {

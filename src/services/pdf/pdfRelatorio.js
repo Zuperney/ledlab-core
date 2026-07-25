@@ -17,7 +17,12 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasFilaSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, portLabel, videoOf } from "../reportContent.js";
+import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigCadeia, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../reportContent.js";
+import { projectRigging } from "../rigging.js";
 import { acTone } from "../electricalCalc.js";
+
+// cor da pílula da cadeia: "sem dado" é CINZA, nunca verde (rigging-spec §3.2)
+const RIG_C = { ok: PRINT.grn, acima: PRINT.red, semDado: PRINT.dim };
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
 const LIME = "#ebf51e";
@@ -119,23 +124,52 @@ const statRow = (items) => ({
   margin: [0, 4, 0, 14],
 });
 
-// box de AVISO de segurança (manual: aviso é LARANJA) — borda forte + título caps
-function warnBox({ titulo, partes }) {
+// box de AVISO de segurança (manual: aviso é LARANJA) — borda forte + título caps.
+// tone "red" = ESTOURO (limite passado), reservado pro que impede a montagem.
+function warnBox({ titulo, partes }, tone = "amber") {
+  const c = tone === "red" ? { bd: PRINT.red, bg: "#fef2f2" } : { bd: PRINT.amb, bg: "#fffbeb" };
   return {
     margin: [0, 0, 0, 8],
     table: {
       widths: ["*"],
       body: [[{
         stack: [
-          { text: titulo.toUpperCase(), bold: true, color: PRINT.amb, fontSize: 8.5, characterSpacing: 0.5, margin: [0, 0, 0, 3] },
+          { text: titulo.toUpperCase(), bold: true, color: c.bd, fontSize: 8.5, characterSpacing: 0.5, margin: [0, 0, 0, 3] },
           { text: partes.map((p) => ({ text: p.t, bold: !!p.b })), fontSize: 9, color: PRINT.ink, lineHeight: 1.3 },
         ],
         margin: [10, 7, 10, 7],
       }]],
     },
-    layout: { hLineWidth: () => 1.5, vLineWidth: () => 1.5, hLineColor: () => PRINT.amb, vLineColor: () => PRINT.amb, fillColor: () => "#fffbeb" },
+    layout: { hLineWidth: () => 1.5, vLineWidth: () => 1.5, hLineColor: () => c.bd, vLineColor: () => c.bd, fillColor: () => c.bg },
   };
 }
+
+// box NEUTRO de nota (fundo cinza) — contexto/escopo, não alarme
+function noteBox({ titulo, partes }) {
+  return {
+    margin: [0, 8, 0, 0],
+    table: {
+      widths: ["*"],
+      body: [[{
+        stack: [
+          { text: titulo.toUpperCase(), bold: true, color: PRINT.ink, fontSize: 8, characterSpacing: 0.5, margin: [0, 0, 0, 3] },
+          { text: partes.map((p) => ({ text: p.t, bold: !!p.b })), fontSize: 7.5, color: PRINT.mut, lineHeight: 1.3 },
+        ],
+        margin: [8, 6, 8, 6],
+      }]],
+    },
+    layout: { hLineWidth: () => 0.6, vLineWidth: () => 0.6, hLineColor: () => PRINT.line, vLineColor: () => PRINT.line, fillColor: () => PRINT.head },
+  };
+}
+
+// linhas da CADEIA de verificação: sem cabeçalho, zebra contínua, pílula à direita
+const cadeiaLayout = {
+  hLineWidth: (i, node) => (i === 0 || i === node.table.body.length ? 0.6 : 0.4),
+  hLineColor: () => PRINT.line,
+  vLineWidth: () => 0,
+  fillColor: (row) => (row % 2 ? ZEBRA : null),
+  paddingTop: () => 4, paddingBottom: () => 4, paddingLeft: () => 8, paddingRight: () => 8,
+};
 
 // bloco de Screen/tela (subtítulo + specs + mapa + tabela): abre SEMPRE em
 // página própria. SEM unbreakable, de
@@ -213,6 +247,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
   const showSignal = ["Completo", "Mapa de cabos"].includes(tipo);
   const showAC = ["Completo", "Mapa de cabos"].includes(tipo);
   const showGloss = tipo === "Completo";
+  // ESTRUTURA (F2) — mesmos tipos do Caderno DOM
+  const showRig = ["Completo", "Estrutural"].includes(tipo) && telas.length > 0;
+  const rp = showRig ? projectRigging(project, project.rigging || {}) : null;
 
   const usaScreens = hasScreens(project);
   const screenReport = usaScreens && showSignal ? projectScreenReport(project, "sinal", numbering) : [];
@@ -326,6 +363,96 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           columnGap: 16,
         },
       ] : []),
+    ];
+  })();
+
+  // ── PESO E ANCORAGENS (Estrutura) ──
+  // ⚠️ Nunca "Rigging" (prometeria engenharia) e nunca "ponto" (é o ponto de
+  // talha da produção). Escopo: docs/rigging-spec.md §3.
+  const estrutura = !showRig ? [] : (() => {
+    const sn = sec(); const S = String(sn).padStart(2, "0");
+    const r0 = rp.telas[0].rig;
+    const linhas = rp.telas.map(({ tela: t, rig }) => [
+      { text: t.nome, bold: true },
+      mono(`${rig.cols}×${rig.rows}`),
+      { text: t.gabinete?.nome || "—" },
+      mono(rig.alturaM > 0 ? `${nRig(rig.alturaM)} m` : "—", { alignment: "right" }),
+      mono(rig.semPeso ? "—" : fmtPeso(rig.totalKg), { alignment: "right" }),
+      mono(String(rig.bumpers), { alignment: "right" }),
+      mono(String(rig.ancoragens), { alignment: "right" }),
+      mono(rig.semPeso ? "—" : `${Math.round(rig.cargaPorAncoragem)} kg`, { alignment: "right" }),
+      { text: RIG_PILL[rigStatusTela(rig)].toUpperCase(), bold: true, fontSize: 7.5, color: RIG_C[rigStatusTela(rig)], alignment: "right", characterSpacing: 0.4 },
+    ]);
+    return [
+      sectionHead(sn, "Peso e ancoragens", "Estrutura · parede voada", DISC.estr),
+      { text: "Peso da parede, quantas ancoragens ela pede e quanto carrega a pior delas — aritmética sobre a grade e o peso do gabinete. Vale sob as premissas abaixo; o que o fabricante não publica sai como NÃO INFORMADO, nunca estimado.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
+      specBox([
+        ["Modo", r0.modo],
+        ["Içamento", "a prumo (0°)"],
+        ["Talha", `manual ${nRig(r0.talhaWLL / 1000)} t`],
+        ["Bumper", r0.bumper.nome],
+        ["Fixação", r0.fixacao.nome],
+      ]),
+      statRow([
+        ["Peso total", rp.totalKg > 0 ? fmtPeso(rp.totalKg) : "—"],
+        ["Bumpers", rp.bumpers],
+        ["Ancoragens", rp.ancoragens],
+        ["Pior ancoragem", rp.piorAncoragem > 0 ? `${Math.round(rp.piorAncoragem)} kg · ${Math.round((rp.piorAncoragem / r0.talhaWLL) * 100)}% do WLL` : "—"],
+      ]),
+      ...(rp.algumSemPeso ? [warnBox(RIG_SEM_PESO)] : []),
+      {
+        table: {
+          headerRows: 1,
+          widths: ["*", "auto", "*", "auto", "auto", "auto", "auto", "auto", "auto"],
+          body: [
+            [th("Tela"), th("Grade"), th("Gabinete"), th("Altura", "right"), th("Peso", "right"), th("Bumpers", "right"), th("Ancoragens", "right"), th("Pior ancoragem", "right"), th("Limite do fabricante", "right")],
+            ...linhas,
+            [
+              { text: "Total", bold: true }, mono(`${roll.gab} gab.`, { bold: true }), "", "",
+              mono(rp.totalKg > 0 ? `${fmtPeso(rp.totalKg)}${rp.algumSemPeso ? " (parcial)" : ""}` : "—", { alignment: "right", bold: true }),
+              mono(String(rp.bumpers), { alignment: "right", bold: true }),
+              mono(String(rp.ancoragens), { alignment: "right", bold: true }), "", "",
+            ],
+          ],
+        },
+        layout: zebraLayout(),
+      },
+      // uma CADEIA por tela — o gabinete e a grade mudam, o elo que trava muda junto.
+      // SEM unbreakable: bloco alto que não cabe vira página em branco no pdfmake.
+      ...rp.telas.flatMap(({ tela: t, rig }, i) => {
+        const travaExtra = rig.limites.travaExtraAcima != null && rig.rows > rig.limites.travaExtraAcima;
+        return [
+          subHead(`${S}.${i + 1}`, t.nome, `${rig.cols}×${rig.rows} · ${t.gabinete?.nome || "sem gabinete"}`),
+          ...(rig.limiteAcima ? [warnBox({ titulo: "Acima do limite do fabricante", partes: rigTextoAcima(rig) }, "red")] : []),
+          ...(rig.limiteSemDado ? [warnBox(RIG_SEM_DADO)] : []),
+          ...(travaExtra ? [warnBox({
+            titulo: "Ferragem extra por altura",
+            partes: [
+              { t: `Acima de ${rig.limites.travaExtraAcima} gabinetes de altura este fabricante pede trava extra entre gabinetes.`, b: true },
+              { t: " É regra que muda a ferragem, não o número — confira o manual e o material separado pela locadora." },
+            ],
+          })] : []),
+          { text: "A CADEIA — O QUE TRAVA PRIMEIRO", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 6, 0, 3] },
+          {
+            table: {
+              widths: ["*", "auto", "auto"],
+              body: rigCadeia(rig, t.gabinete?.nome).map((e) => [
+                { stack: [{ text: e.titulo, bold: true, fontSize: 8.5 }, { text: e.sub, fontSize: 7, color: PRINT.dim, margin: [0, 1, 0, 0] }] },
+                mono(e.valor, { alignment: "right", fontSize: 8, color: PRINT.mut }),
+                { text: e.pill.toUpperCase(), bold: true, fontSize: 7.5, color: RIG_C[e.status], alignment: "right", characterSpacing: 0.4 },
+              ]),
+            },
+            layout: cadeiaLayout,
+          },
+        ];
+      }),
+      { text: "ANTES DE SUBIR", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 12, 0, 4] },
+      { ul: CHECK_SUBIR.map((c) => ({ text: [{ text: c.b, bold: true, color: PRINT.ink }, { text: c.t }] })), fontSize: 8, color: PRINT.mut, lineHeight: 1.3 },
+      ...(r0.bumper.estimado || r0.fixacao.estimado ? [{
+        text: [{ text: "Os pesos de bumper e acessórios de fixação ainda são estimativa da casa", bold: true }, { text: " — pese na balança de gancho e cadastre para fechar a conta." }],
+        fontSize: 8, color: PRINT.amb, margin: [0, 8, 0, 0],
+      }] : []),
+      noteBox(AVISO_RIG),
     ];
   })();
 
@@ -699,7 +826,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
       ],
     }),
     content: (() => {
-      const secoes = [visaoGeral, video, eletrica, sinal, ac, gloss].filter((s) => s.length);
+      const secoes = [visaoGeral, estrutura, video, eletrica, sinal, ac, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
       // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
       // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead

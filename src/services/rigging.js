@@ -177,6 +177,9 @@ export function riggingTela(tela, cfg = {}) {
   const pesoGab = num(tela?.gabinete?.peso);
   const larguraGab = num(tela?.gabinete?.dimW);
   const pesoColuna = rows * pesoGab;
+  // sem o peso do gabinete TUDO que vem depois é zero — e "0 kg" no papel lê como
+  // fato, não como lacuna. O Caderno imprime "não informado" no lugar do número.
+  const semPeso = cols > 0 && rows > 0 && !(pesoGab > 0);
 
   const colunasPorBumper = colunasNoBumper(bumper.larguraMm, larguraGab, c.colunasPorBumper);
   const bumpers = cols > 0 ? Math.ceil(cols / colunasPorBumper) : 0;
@@ -208,6 +211,7 @@ export function riggingTela(tela, cfg = {}) {
   const avisos = [];
   if (larguraGab > 0 && larguraGab > bumper.larguraMm)
     avisos.push(`Gabinete (${larguraGab} mm) é mais largo que o ${bumper.nome.toLowerCase()}`);
+  if (semPeso) avisos.push("Peso do gabinete não informado — sem ele não dá pra calcular a carga nas ancoragens");
   if (bumper.estimado || fix.estimado) avisos.push("Pesos de bumper/acessórios ainda são estimativa");
   if (limiteSemDado) avisos.push("O fabricante não publica o limite deste gabinete — confira no manual");
   // regra que muda a FERRAGEM, não o número (ex.: 3º conector C acima de 8 de altura)
@@ -220,7 +224,7 @@ export function riggingTela(tela, cfg = {}) {
   const elo = limiteAcima ? "fabricante" : talhaOver ? "talha" : null;
 
   return {
-    cols, rows, pesoGab, pesoColuna, alturaM,
+    cols, rows, pesoGab, pesoColuna, alturaM, semPeso,
     bumper, fixacao: fix, colunasPorBumper,
     bumpers, ancoragensPorBumper, ancoragens, gabPorBarra,
     cargaPorAncoragem, totalKg,
@@ -243,8 +247,11 @@ export function projectRigging(project, cfg = {}) {
   const algumOver = telas.some((r) => r.rig.over);
   const algumWarn = telas.some((r) => r.rig.tone !== "ok");
   const algumSemDado = telas.some((r) => r.rig.limiteSemDado);
+  const algumSemPeso = telas.some((r) => r.rig.semPeso);
+  // pior ancoragem do projeto: é ela que escolhe a talha, não a média
+  const piorAncoragem = telas.reduce((m, r) => Math.max(m, r.rig.cargaPorAncoragem), 0);
   return {
-    telas, totalKg, ancoragens, bumpers, algumOver, algumSemDado,
+    telas, totalKg, ancoragens, bumpers, algumOver, algumSemDado, algumSemPeso, piorAncoragem,
     tone: algumOver ? "over" : algumWarn ? "warn" : "ok",
   };
 }

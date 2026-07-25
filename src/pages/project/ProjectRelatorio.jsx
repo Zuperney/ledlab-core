@@ -3,7 +3,7 @@
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState, useRef, useEffect } from "react";
-import { Printer, Download, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
+import { Printer, Download, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen, Anchor } from "lucide-react";
 import { useToast } from "../../store/UIContext.jsx";
 import HelpTip from "../../components/HelpTip.jsx";
 import Segmented from "../../components/Segmented.jsx";
@@ -16,11 +16,13 @@ import { hasScreens, projectScreenReport, telasSemScreen } from "../../services/
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, fmtPeso, portLabel, videoOf } from "../../services/reportContent.js";
+import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigCadeia, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../../services/reportContent.js";
+import { projectRigging } from "../../services/rigging.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
 import ReportTelasCanvas from "../../components/ReportTelasCanvas.jsx";
-import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable, WarnBox } from "./reportUi.jsx";
+import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable, WarnBox, StatRow } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
@@ -77,11 +79,20 @@ export default function ProjectRelatorio({ project }) {
   const showSignal = ["Completo", "Mapa de cabos"].includes(type);
   const showAC = ["Completo", "Mapa de cabos"].includes(type); // AC saiu do Elétrico → foco em tabelas
   const showGloss = type === "Completo"; // glossário só no caderno completo (leitor leigo/cliente)
+  // ESTRUTURA (F2) — peso e ancoragens. Só no Completo e no Estrutural: é uma
+  // seção inteira com cadeia e checklist, não cabe num resumo. A config do
+  // içamento vem do projeto (a R4 é quem vai escrever `project.rigging`).
+  const showRig = ["Completo", "Estrutural"].includes(type) && telas.length > 0;
+  const rp = showRig ? projectRigging(project, project.rigging || {}) : null;
 
   const th = { textAlign: "left", padding: "6px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase" };
   const td = { padding: "6px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
   const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: colorOf(i), flexShrink: 0 });
+  // pílula de status da cadeia: "sem dado" é CINZA, nunca verde — ausência de
+  // limite publicado não é folga (docs/rigging-spec.md §3.2)
+  const RIG_C = { ok: PRINT.grn, acima: PRINT.red, semDado: PRINT.dim };
+  const rigPill = (status) => ({ display: "inline-block", padding: "1px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, border: `1px solid ${RIG_C[status]}`, color: RIG_C[status], whiteSpace: "nowrap" });
 
   // com Screens, o SINAL vem delas (uma seção por Screen, portas 1..N por Screen).
   // Sem Screens, segue por tela (legado). O AC não muda: segue o físico, por tela.
@@ -161,6 +172,109 @@ export default function ProjectRelatorio({ project }) {
             )}
           </section>
         )}
+
+        {showRig && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); const r0 = rp.telas[0].rig; return (
+          <section style={{ marginBottom: 22 }}>
+            <SectionHead n={sn} title="Peso e ancoragens" tag="Estrutura · parede voada" color={DISC.estr} Icon={Anchor} />
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>
+              Peso da parede, quantas <b style={{ color: PRINT.ink }}>ancoragens</b> ela pede e quanto carrega a pior delas — aritmética sobre a grade e o peso do gabinete.
+              Vale sob as premissas abaixo; o que o fabricante não publica sai como <b style={{ color: PRINT.ink }}>não informado</b>, nunca estimado.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 0 4px" }}>
+              {[["Modo", r0.modo], ["Içamento", "a prumo (0°)"], ["Talha", `manual ${nRig(r0.talhaWLL / 1000)} t`], ["Bumper", r0.bumper.nome], ["Fixação", r0.fixacao.nome]].map(([l, v]) => (
+                <span key={l} style={chip}>{l} <b style={{ marginLeft: 3 }}>{v}</b></span>
+              ))}
+            </div>
+
+            <StatRow items={[
+              { label: "Peso total", value: rp.totalKg > 0 ? fmtPeso(rp.totalKg) : "—" },
+              { label: "Bumpers", value: rp.bumpers },
+              { label: "Ancoragens", value: rp.ancoragens },
+              {
+                label: "Pior ancoragem",
+                value: rp.piorAncoragem > 0
+                  ? <>{Math.round(rp.piorAncoragem)} <span style={{ fontSize: 12, fontWeight: 600, color: PRINT.mut }}>kg · {Math.round((rp.piorAncoragem / r0.talhaWLL) * 100)}% do WLL</span></>
+                  : "—",
+              },
+            ]} />
+
+            {rp.algumSemPeso && <WarnBox title={RIG_SEM_PESO.titulo} tone="amber">{RIG_SEM_PESO.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>}
+
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Grade</th><th style={th}>Gabinete</th><th style={th}>Altura</th><th style={th}>Peso</th><th style={th}>Bumpers</th><th style={th}>Ancoragens</th><th style={th}>Pior ancoragem</th><th style={th}>Limite do fabricante</th></tr></thead>
+              <tbody>
+                {rp.telas.map(({ tela: t, rig }) => (
+                  <tr key={t.id}>
+                    <td style={td}>{t.nome}</td>
+                    <td style={td}>{rig.cols}×{rig.rows}</td>
+                    <td style={td}>{t.gabinete?.nome || "—"}</td>
+                    <td style={td}>{rig.alturaM > 0 ? `${nRig(rig.alturaM)} m` : "—"}</td>
+                    <td style={td}>{rig.semPeso ? "—" : fmtPeso(rig.totalKg)}</td>
+                    <td style={td}>{rig.bumpers}</td>
+                    <td style={td}>{rig.ancoragens}</td>
+                    <td style={td}>{rig.semPeso ? "—" : `${Math.round(rig.cargaPorAncoragem)} kg`}</td>
+                    <td style={td}><span style={rigPill(rigStatusTela(rig))}>{RIG_PILL[rigStatusTela(rig)]}</span></td>
+                  </tr>
+                ))}
+                <tr style={{ fontWeight: 700 }}>
+                  <td style={td}>Total</td><td style={td}>{roll.gab} gab.</td><td style={td}></td><td style={td}></td>
+                  <td style={td}>{rp.totalKg > 0 ? <>{fmtPeso(rp.totalKg)}{rp.algumSemPeso && <span style={{ fontWeight: 400, color: PRINT.amb }}> (parcial)</span>}</> : "—"}</td>
+                  <td style={td}>{rp.bumpers}</td><td style={td}>{rp.ancoragens}</td><td style={td}></td><td style={td}></td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* uma CADEIA por tela: o gabinete e a grade mudam, então o elo que trava muda junto */}
+            {rp.telas.map(({ tela: t, rig }, i) => {
+              const travaExtra = rig.limites.travaExtraAcima != null && rig.rows > rig.limites.travaExtraAcima;
+              return (
+                <div key={t.id} className="rp-block" style={telaBlock}>
+                  <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${rig.cols}×${rig.rows} · ${t.gabinete?.nome || "sem gabinete"}`} />
+                  {rig.limiteAcima && <WarnBox title="Acima do limite do fabricante" tone="red">{rigTextoAcima(rig).map((p, k) => (p.b ? <b key={k}>{p.t}</b> : <span key={k}>{p.t}</span>))}</WarnBox>}
+                  {rig.limiteSemDado && <WarnBox title={RIG_SEM_DADO.titulo} tone="amber">{RIG_SEM_DADO.partes.map((p, k) => (p.b ? <b key={k}>{p.t}</b> : <span key={k}>{p.t}</span>))}</WarnBox>}
+                  {travaExtra && (
+                    <WarnBox title="Ferragem extra por altura" tone="amber">
+                      <b>Acima de {rig.limites.travaExtraAcima} gabinetes de altura este fabricante pede trava extra entre gabinetes.</b> É regra que muda a ferragem, não o número — confira o manual e o material separado pela locadora.
+                    </WarnBox>
+                  )}
+                  <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", margin: "10px 0 6px" }}>A cadeia — o que trava primeiro</div>
+                  <div style={{ border: `1px solid ${PRINT.line}`, borderRadius: 8, overflow: "hidden" }}>
+                    {rigCadeia(rig, t.gabinete?.nome).map((e, k) => (
+                      <div key={e.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "7px 12px", borderTop: k ? `1px solid ${PRINT.line}` : undefined, background: k % 2 ? "#f8f8f8" : "transparent" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: PRINT.ink }}>{e.titulo}</div>
+                          <div style={{ fontSize: 10.5, color: PRINT.dim }}>{e.sub}</div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                          {e.valor && <span style={{ fontSize: 11.5, color: PRINT.mut, fontFamily: "ui-monospace, monospace" }}>{e.valor}</span>}
+                          <span style={rigPill(e.status)}>{e.pill}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            <div style={{ breakInside: "avoid", marginTop: 16 }}>
+              <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", marginBottom: 6 }}>Antes de subir</div>
+              <ul style={{ margin: 0, paddingLeft: 18, color: PRINT.mut, fontSize: 11.5, lineHeight: 1.6 }}>
+                {CHECK_SUBIR.map((c, i) => <li key={i}><b style={{ color: PRINT.ink }}>{c.b}</b>{c.t}</li>)}
+              </ul>
+            </div>
+
+            {(r0.bumper.estimado || r0.fixacao.estimado) && (
+              <p style={{ color: PRINT.amb, fontSize: 11, marginTop: 10 }}>
+                Os pesos de <b>bumper e acessórios de fixação</b> ainda são estimativa da casa — pese na balança de gancho e cadastre para fechar a conta.
+              </p>
+            )}
+
+            <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: PRINT.head, border: `1px solid ${PRINT.line}`, fontSize: 11, color: PRINT.mut, breakInside: "avoid" }}>
+              <div style={{ fontWeight: 800, color: PRINT.ink, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 10, marginBottom: 3 }}>{AVISO_RIG.titulo}</div>
+              {AVISO_RIG.partes.map((p, i) => (p.b ? <b key={i} style={{ color: PRINT.ink }}>{p.t}</b> : <span key={i}>{p.t}</span>))}
+            </div>
+          </section>
+        ); })()}
 
         {showVideo && (
           <section style={{ marginBottom: 22 }}>

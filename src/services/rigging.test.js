@@ -151,6 +151,21 @@ describe("riggingTela", () => {
     expect(riggingTela(TELA, { maxRows: 4 }).empilhaOk).toBe(false);
   });
 
+  // R3: sem o peso do gabinete a conta toda dá zero — e "0 kg" num documento
+  // datado lê como fato. Tem que sair marcado como AUSÊNCIA.
+  it("gabinete sem peso marca semPeso e avisa (nunca vira 0 kg silencioso)", () => {
+    const r = riggingTela({ cols: 5, rows: 5, gabinete: { dimW: "500", dimH: "500" } });
+    expect(r.semPeso).toBe(true);
+    expect(r.totalKg).toBe(14 * 3); // só o peso dos bumpers sobra
+    expect(r.avisos.some((a) => /Peso do gabinete não informado/.test(a))).toBe(true);
+  });
+  it("gabinete com peso não marca semPeso", () => {
+    expect(riggingTela(TELA).semPeso).toBe(false);
+  });
+  it("tela sem grade não é 'sem peso' — é tela vazia", () => {
+    expect(riggingTela({ cols: 0, rows: 0, gabinete: {} }).semPeso).toBe(false);
+  });
+
   it("tela vazia/sem gabinete não explode", () => {
     const r = riggingTela({ cols: 0, rows: 0 });
     expect(r).toMatchObject({ bumpers: 0, ancoragens: 0, cargaPorAncoragem: 0, totalKg: 0, over: false });
@@ -175,6 +190,19 @@ describe("projectRigging", () => {
   });
   it("projeto vazio", () => {
     expect(projectRigging({})).toMatchObject({ totalKg: 0, ancoragens: 0, algumOver: false, tone: "ok" });
+  });
+  // a talha se escolhe pela PIOR ancoragem do projeto, nunca pela média
+  it("pior ancoragem é o máximo entre as telas, não a média", () => {
+    const p = { telas: [TELA, { cols: 2, rows: 12, gabinete: GAB }] };
+    const r = projectRigging(p);
+    const cargas = r.telas.map((x) => x.rig.cargaPorAncoragem);
+    expect(r.piorAncoragem).toBe(Math.max(...cargas));
+    expect(r.piorAncoragem).toBeGreaterThan(cargas.reduce((a, b) => a + b, 0) / cargas.length);
+  });
+  it("uma tela sem peso contamina algumSemPeso (o total vira parcial)", () => {
+    const p = { telas: [TELA, { cols: 2, rows: 2, gabinete: { dimW: "500" } }] };
+    expect(projectRigging(p).algumSemPeso).toBe(true);
+    expect(projectRigging({ telas: [TELA] }).algumSemPeso).toBe(false);
   });
   it("catálogo e defaults batem com a frota do espeque", () => {
     expect(BUMPERS.map((b) => [b.larguraMm, b.ancoragens])).toEqual([[500, 1], [500, 2], [1000, 2]]);
