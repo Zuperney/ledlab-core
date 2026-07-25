@@ -1,17 +1,17 @@
 # Rigging & Estrutura — espeque da fase (F2)
 
-> **Status: GROUND (2026-07-24) · motor calibrado na frota da casa (2026-07-25).**
-> Domínio mapeado + motor puro (`services/rigging.js`) com testes. UI e relatório
-> vêm depois das decisões que ainda faltam (§6).
+> **Status: GROUND (2026-07-24) · motor calibrado na frota (2026-07-25) · escopo
+> CRAVADO (2026-07-25, ver §3).** Motor puro (`services/rigging.js`) com testes.
+> UI e Caderno vêm depois das decisões que faltam (§8).
 >
 > 📚 **Base de pesquisa:** [`rigging-pesquisa.md`](./rigging-pesquisa.md) — como o
 > mercado resolve, o que os fabricantes publicam (e em que unidade), regras de
-> cálculo e a proposta de fases revisada. **Leia antes de mexer no motor.**
+> cálculo, e a triagem da pesquisa paralela. **Leia antes de mexer no motor.**
 >
-> ⚠️ **Segurança:** tudo aqui é **planejamento de referência**. Carga suspensa sobre
-> pessoas é responsabilidade do **rigger habilitado** que dimensiona, monta e assina
-> o rigging do evento — o app nunca substitui esse papel (mesma postura do box de
-> segurança AC do Caderno).
+> ⚠️ **Segurança:** tudo aqui é **planejamento e registro de referência**. Carga
+> suspensa sobre pessoas é responsabilidade do **rigger habilitado** que dimensiona,
+> monta e assina o rigging do evento — o app nunca substitui esse papel (mesma
+> postura do box de segurança AC do Caderno).
 
 ## 1 · Vocabulário
 
@@ -22,8 +22,9 @@
 | **Ponto** | onde o bumper pendura: talha de corrente, spanset na truss, olhal. |
 | **Talha** | a corrente que sobe a parede. **A frota é 100% talha MANUAL de 1 t** — não tem motor elétrico, a subida é na mão (afeta o texto do Caderno: não existe "descer no controle"). |
 | **WLL** | Working Load Limit — carga de trabalho da talha/acessório (o fator de projeto ~5:1 do fabricante **já está embutido** no WLL; nunca somar fator por cima do WLL, e nunca passar dele). |
+| **Enforcar a talha** | içar até o fim do curso, sem corrente livre entre o gancho de carga e o corpo. **Modo de falha real e observado** — ver §4.1. |
 | **Voado (flown)** | parede pendurada em pontos. É o escopo desta fase. |
-| **Ground support** | parede apoiada no chão com torre/ballast — **fase seguinte** (entra vento, torre, contrapeso). |
+| **Ground support** | parede apoiada no chão com torre/lastro — **fora do escopo** (§3.3). |
 
 ## 2 · O modelo (voado)
 
@@ -39,14 +40,14 @@
 ```
 
 - `pesoColuna = rows × peso do gabinete`
-- **`colunasPorBumper` é DERIVADO**, não configurado: `floor(largura do bumper ÷ largura do gabinete)`, mínimo 1. Bumper de 100 cm com gabinete de 500 mm = 2 colunas; de 50 cm = 1. Gabinete mais largo que a viga (CB5 de 600 mm no bumper de 50 cm) = 1 coluna **com aviso**. Dá pra sobrescrever à mão.
+- **`colunasPorBumper` é DERIVADO**, não configurado: `floor(largura do bumper ÷ largura do gabinete)`, mínimo 1. Bumper de 100 cm com gabinete de 500 mm = 2 colunas; de 50 cm = 1. Gabinete mais largo que a viga = 1 coluna **com aviso**. Dá pra sobrescrever à mão.
 - `bumpers = ceil(cols / colunasPorBumper)` — o último pode ficar incompleto
 - `pontos = bumpers × pontosPorBumper`
 - **Carga por ponto = pior caso** (bumper cheio): `(colunasPorBumper × pesoColuna + pesoBumper) / pontosPorBumper + acessórios da fixação + extras`
 - **Checagem da talha**: `pctTalha = carga por ponto ÷ WLL`. `rigTone` espelha o elétrico — **> 80 % laranja, > 100 % vermelho**. Como a frota é só 1 t, não existe "escolher motor maior": ou cabe, ou divide a parede em mais pontos.
-- `utilizacao` = limite DURO opcional em fração do WLL (padrão 1 — o aviso de 80% já vem pelo tom)
+- **Ângulo**: o motor assume içamento **a prumo** (θ = 0°). Fora da vertical a carga cresce por `1/cos θ` (45° = 1,41× · 60° = 2,00×). Enquanto não houver campo, o Caderno **declara a premissa**.
 
-### Catálogo da casa (frota real, respostas de 25/07)
+### Catálogo da casa (frota real)
 
 | Bumper | Largura | Colunas (gab. 500 mm) | Peso |
 | --- | --- | --- | --- |
@@ -58,66 +59,208 @@
 | Algema/garra | garra | ⚠️ 3 kg *(estimado)* |
 | Ilhó + cinta + manilha | cinta de carga, manilha | ⚠️ 5 kg *(estimado)* |
 
-Os pesos marcados ⚠️ são **placeholder** (`estimado: true` no código) até a pesagem
-real da frota; enquanto estiverem assim, o motor devolve o aviso *"Pesos de
-bumper/acessórios ainda são estimativa"* e o Caderno tem que rotular como tal.
-A lista de acessórios por fixação já é o embrião da picking list da locadora.
+Os pesos ⚠️ são **placeholder** (`estimado: true`) até a pesagem real; enquanto
+estiverem assim o motor devolve aviso e o Caderno rotula como estimativa. A lista
+de acessórios por fixação é o embrião da picking list da locadora.
 
-Tudo mais já sai dos dados que o app tem hoje (`cols`, `rows`, `gabinete.peso`,
-`gabinete.dimW`); nenhuma migração é necessária pro motor.
+---
 
-## 3 · O que o motor NÃO cobre (ainda)
+## 3 · O ESCOPO — decisão de 25/07/2026
 
-- **Empilhamento máximo** do gabinete (datasheet: "max hanging 8 high"): precisa de
-  campo novo no gabinete (§6-Q5). O motor aceita `maxRows` opcional e avisa.
-- **Ground support / vento / ballast** — fase seguinte.
-- **Layout físico da montagem** (o 3º layout, telas posicionadas no palco): fica
-  adiado; esta fase calcula **por tela**, sem posições.
+### 3.1 A virada: o app é REGISTRO, não calculadora
 
-## 4 · Pitch × distância (a outra metade da fase)
+A pergunta não é *"a estrutura aguenta?"* — essa é do Braceworks/rigger, e não é o
+nosso páreo. A nossa é: **"o que foi montado, com que ferragem, sob quais
+premissas, e o que o técnico avisou?"**
 
-Recomendador simples, expande o Aspect Ratio:
-- distância mínima confortável ≈ `pitch(mm) × 1` em metros (regra de mercado 1×);
-- distância "retina" (pixel invisível, acuidade 20/20) ≈ `pitch(mm) × 3.438` m;
-- faixa recomendada exibida entre as duas, + inverso (distância → pitch máximo).
+Isso muda o produto de calculadora para **régua comprobatória**. Hoje o mercado
+trabalha por pressuposto: ninguém tem os dados do gabinete na mão, e quando algo
+dá errado quem estava na ponta do cabo é o culpado padrão. Um documento que
+registra o que foi declarado, o que faltou de informação e o que foi avisado
+**muda a posição do técnico na conversa** — e, mais importante, força essa conversa
+a acontecer *antes* do show.
 
-Motor trivial; o valor está na UI (onde mostrar: junto do Aspect Ratio, que já
-recebe "expansões" da F2). Implementa depois do rigging.
+**Honestidade sobre o alcance:** o Caderno **não transfere responsabilidade legal**
+e não substitui ART. O que ele faz é concreto e suficiente: datar e versionar o que
+foi projetado, deixar explícito **qual dado não existia**, e registrar os avisos
+emitidos. Vender como "blindagem jurídica" seria a mesma mentira do lastro sem
+geometria. É **prova de diligência**, não escudo.
 
-## 5 · Plano de fases
+### 3.2 Princípio: o app PERGUNTA, não supõe
 
-| Fase | Entrega | Depende de |
+Consequência direta e a regra mais importante desta fase:
+
+- **Campos preenchidos pelo técnico, por tela**, no projeto. Ele importa/monta a
+  tela e completa o que sabe daquele gabinete ali.
+- **Vazio é informação.** Sem dado, o app **não estima** — imprime *"não informado"*
+  no Caderno. Um campo em branco num documento datado vale mais que um número
+  inventado: ele registra que a informação não estava disponível.
+- **Identificação pelo que dá pra ver.** O técnico sabe o **pitch** e a **dimensão
+  do gabinete**; o código do modelo mora num manual que ninguém tem — *"não me
+  recordo exatamente qual o MG"* é a regra, não a exceção. A biblioteca tem que
+  funcionar identificada por **fabricante + pitch + dimensão**, com o modelo exato
+  como campo opcional.
+- **Peso: medir vale mais que datasheet.** Uma balança de gancho resolve o dado mais
+  importante da fase inteira, e vale pro gabinete, pro bumper e pra fixação.
+
+### 3.3 Fronteira dura — o que o app NUNCA faz
+
+Não por ser difícil de programar (as fórmulas estão na pesquisa §4), mas porque os
+**dados de entrada não existem no app** e o resultado teria cara de laudo:
+
+- dimensionar truss ou estrutura;
+- entregar quilos de lastro, tração de catraca, compressão de torre ou carga de vento;
+- dizer que uma montagem está **aprovada** ou que pode ficar sobre pessoas;
+- substituir o rigger habilitado / a ART do engenheiro.
+
+**O verbo do app é "confira", nunca "pode".** E a seção não se chama "Rigging" —
+chamar de rigging promete engenharia. Chama-se **"Peso e pontos"**: promete
+aritmética e entrega aritmética impecável.
+
+---
+
+## 4 · Checklist de campo — o conhecimento que não é conta
+
+Aqui mora metade do valor da fase, e não custa uma linha de cálculo. São
+condições de montagem que o Caderno **imprime junto** com os números. Cada item
+carrega o *porquê* — o técnico que entende o motivo não repete o erro.
+
+> Classificação: **[casa]** = prática da casa · **[prática]** = uso corrente da
+> indústria · **[manual]** = está escrito em manual de fabricante. Nenhum item aqui
+> é norma; tudo é confirmado com o rigger do evento.
+
+### 4.1 Corrente livre — não enforcar a talha **[casa]**
+
+**Regra: deixar no mínimo ~1 m de corrente livre** entre o gancho de carga e o
+corpo da talha. Nunca içar até o fim do curso.
+
+Por que importa (três falhas, uma causa):
+- içar até o batente joga a força no **fim de curso**, não na corrente — é aí que
+  o **parafuso do gancho de carga estoura** (visto 2× na prática da casa, **com
+  queda de painel numa delas**);
+- sem folga a talha **não se alinha** com a linha de carga e passa a trabalhar
+  de través — gancho carrega em linha, não de lado;
+- corrente esticada no limite **trava a roldana** e transforma qualquer solavanco
+  da montagem em choque direto na ferragem.
+
+É o item mais barato da lista e o que já custou material. Vai em destaque.
+
+### 4.2 Corrente sem torção **[prática]**
+
+Corrente de carga torcida ou enrolada trava o passo na roldana e força o elo de
+lado. Conferir o corrimento livre **antes** de pôr carga, com a talha pendurada
+solta.
+
+### 4.3 Gancho: trava fechada, carga no fundo **[prática]**
+
+Carga no berço do gancho, nunca na ponta; trava (latch) fechada. A trava é
+dispositivo secundário e **não substitui a amarração** — está explícito na
+ASME B30.16, que também proíbe **enrolar a corrente de carga na carga**.
+
+### 4.4 Nivelamento da viga **[manual]**
+
+Ajustar o nível do bumper (nas cintas) antes de subir a parede — o manual da
+Unilumin pede isso explicitamente. Parede desnivelada **redistribui carga entre os
+pontos** de um jeito que nenhuma conta prevê, e é a forma mais fácil de estourar
+o pior ponto sem saber.
+
+### 4.5 Subir os pontos juntos **[prática]**
+
+Com talha manual, subir um ponto muito à frente do outro faz aquele ponto pegar
+uma fatia desproporcional da parede. Içar em incrementos, alternando.
+
+### 4.6 Secundário quando houver gente embaixo **[prática]**
+
+Talha manual **não tem classificação D8+** (essas são de hoist elétrico), e a
+ASME B30.16 exclui içamento de pessoas do escopo. Carga parada sobre público ou
+artista pede **secundário (aço de segurança)** e decisão do rigger.
+
+### 4.7 Contenção contra balanço **[prática]**
+
+Parede voada é pêndulo. Amarração de contenção (tie-back) quando houver vão livre
+atrás, corredor de vento ou circulação embaixo.
+
+### 4.8 Ferragem específica por altura **[manual]**
+
+Regra de fabricante que **muda a ferragem**, não o número: na YES TECH MG6S,
+**abaixo de 8 gabinetes de altura usa 2 conectores C entre gabinetes; acima de 8,
+usa 3**. Se a tela do projeto passar do limiar, o Caderno tem que dizer isso na
+cara — é o tipo de detalhe que só aparece no manual que ninguém leu.
+
+---
+
+## 5 · A frota real de gabinetes
+
+O parque que ele monta é **YES TECH (série MG)**, em três pitches: **P2.6 · P3.9 ·
+P5.9**. O modelo exato não é lembrado em campo — o que confirma a §3.2.
+
+| Pitch | Provável | Ambiente | Status |
+| --- | --- | --- | --- |
+| 2.6 | MG6S (indoor) | indoor | ⏳ confirmar |
+| 3.9 | MG7S | outdoor | ⏳ confirmar |
+| 5.9 | MG7S / MG9 | outdoor | ⏳ confirmar |
+
+**Caminho pro dado real (barato e definitivo):** fotografar a **etiqueta do
+gabinete** no próximo trabalho. Resolve modelo, série e muitas vezes peso, sem
+depender de manual. Enquanto não vier, a biblioteca carrega o que o manual público
+da série diz, marcado `conferido: false`.
+
+Dados já levantados da série MG (ver pesquisa §2): içamento até **10 m** (MG7S) ·
+gabinete 500×500 mm · a regra dos conectores C acima de 8 de altura (MG6S).
+
+---
+
+## 6 · O que o motor ainda NÃO cobre
+
+- **Limite do fabricante** por modo (voado × empilhado), por barra e por coluna —
+  hoje o motor só compara com a talha. É a R2.
+- **Ângulo** fora do prumo (§2) — premissa declarada hoje, campo na R4.
+- **Layout físico** (telas posicionadas no palco): adiado; a fase calcula por tela.
+
+## 7 · Plano de fases (revisado 25/07)
+
+| Fase | Entrega | Trava |
 | --- | --- | --- |
-| **R0 ✅** | motor puro `services/rigging.js` + testes (este ground) | — |
-| **R1** | seção **Rigging** no Caderno Técnico (disciplina "estrutura", peso por tela → bumpers/pontos/motor por tela + total do projeto) | Q1–Q4 |
-| **R2** | painel no app (onde morar — §6-Q4) com os controles finos | R1 |
-| **R3** | campos de datasheet no gabinete (`maxRows` voado) + validação | Q5 |
-| **R4** | pitch×distância no Aspect Ratio | — |
-| **R5+** | ground support (torre/ballast/vento) | tudo acima |
+| **R0 ✅** | motor puro + testes; catálogo de bumper/fixação; talha 1 t manual | — |
+| **R1** | **campos por tela preenchidos pelo técnico** (limites do fabricante, peso medido, ângulo) + biblioteca identificada por fabricante+pitch+dimensão, com `fonte`/`conferido` | Q5 |
+| **R2** | motor: **cadeia de verificação** (limite por modo/barra/coluna) + avisos | R1 |
+| **R3** | seção **"Peso e pontos"** no Caderno + PDF: números, premissas declaradas, campos não informados, **checklist da §4** e box de segurança | Q2a/Q2b/Q4 |
+| **R4** | painel no app (bumper/fixação/pontos/ângulo por Screen) | R3 |
+| **R5** | ~~ground support~~ **FORA DE ESCOPO** (§3.3) — sobra só o limite de empilhamento do fabricante em metros | — |
+| **R6** | pitch × distância no Aspect Ratio (independente, pode furar fila) | — |
 
-## 6 · Decisões de produto (pro dono)
+### Pitch × distância (R6)
 
-### ✅ Respondidas (25/07/2026)
+- distância mínima confortável ≈ `pitch(mm) × 1` em metros (regra de mercado 1×);
+- distância "retina" (acuidade 20/20) ≈ `pitch(mm) × 3.438` m;
+- faixa recomendada entre as duas + inverso (distância → pitch máximo).
 
-- **Q1 — Bumper = CATÁLOGO** (`BUMPERS` em `rigging.js`): 2 tamanhos, 50 cm e
-  100 cm, com 2 tipos de fixação (algema/garra · ilhó + cinta de carga + manilha).
-  Como a largura da viga está no catálogo, `colunasPorBumper` virou **derivado** —
-  o técnico não digita mais esse número.
-- **Q2 (parte) — Talhas:** todas de **1 t e MANUAIS**. `TALHAS_KG = [1000]`, e a
-  saída do motor deixou de ser "qual motor" pra ser "cabe na talha de 1 t?".
-  O termo "motor" saiu do domínio (`sugereMotor` → `sugereTalha`).
+Motor trivial; o valor está na UI, junto do Aspect Ratio.
+
+## 8 · Decisões de produto
+
+### ✅ Respondidas
+
+- **Q1 — Bumper = CATÁLOGO**: 2 tamanhos (50/100 cm) × 2 fixações (algema/garra ·
+  ilhó + cinta + manilha). `colunasPorBumper` virou **derivado** da largura.
+- **Q2 (parte) — Talhas:** todas **1 t e MANUAIS**. A saída deixou de ser "qual
+  motor" e virou "cabe na talha de 1 t?".
+- **Q6 — Escopo (25/07):** registro, não engenharia (§3). Ground support, vento,
+  lastro e estai **fora**. Sem backend — é aritmética sobre dado local.
+- **Q7 — Origem do dado (25/07):** o **técnico preenche**; o app não supõe; vazio
+  imprime "não informado".
 
 ### ⏳ Ainda faltam
 
-- **Q2a — Pesos reais:** quanto pesa o bumper de 50 cm e o de 100 cm? E o conjunto
-  de fixação (garra / cinta+manilha)? Hoje são estimativas marcadas no código.
-- **Q2b — Pontos por bumper:** o de 100 cm sobe em 1 ponto ou 2? (o de 50 cm
-  presumo 1). Isso muda a carga por ponto pela metade — é o número mais sensível.
-- **Q3 — Utilização do WLL:** proposta implementada = **limite duro no WLL cheio +
-  laranja acima de 80%**, idêntico ao elétrico. Confirma, ou quer 80% como teto duro?
-- **Q4 — Onde mora a UI:** as abas do projeto estão "infladas" (palavra dele).
-  Opções: (a) card na aba Dados por tela; (b) seção só no Relatório/Caderno;
-  (c) página de Gestão desktop-only (como Equipamentos). Sugestão: começar por
-  (b) — o Caderno é onde a locadora/produção lê peso hoje.
-- **Q5 — Campo novo no gabinete:** `maxRows` voado (datasheet). Entra no seed
-  certificado ou só na biblioteca pessoal?
+- **Q2a — Pesos reais:** bumper de 50 e de 100 cm, e o conjunto de fixação.
+  Balança de gancho resolve.
+- **Q2b — Pontos por bumper:** o de 100 cm sobe em 1 ponto ou 2? Corta a carga por
+  ponto pela metade — é o número mais sensível da fase.
+- **Q3 — Utilização do WLL:** implementado = teto duro no WLL cheio + laranja acima
+  de 80%. Confirmar, ou 80% como teto duro?
+- **Q4 — Onde mora a UI:** abas do projeto estão "infladas". Sugestão: começar pelo
+  Caderno (R3) e só depois o painel (R4).
+- **Q5 — Campos de fabricante:** entram no seed certificado ou só na biblioteca
+  pessoal? Com a frota sendo uma marca só, o seed fica viável.
+- **Q8 — Checklist (§4):** os itens conferem com a prática dele? Falta algum que já
+  deu problema? A lista é dele, eu só organizei.
