@@ -237,8 +237,8 @@ gabinete 500×500 mm · a regra dos conectores C acima de 8 de altura (MG6S).
 | **R0 ✅** | motor puro + testes; catálogo de bumper/fixação; talha 1 t manual | — |
 | **R0.5 ✅** | **Base de Conhecimento: categoria Estrutura** com "Peso e ancoragens — como a conta é feita" e "Checklist de montagem — parede voada" (§4). Conhecimento antes da calculadora: não dependia de decisão nenhuma. | — |
 | **R2 ✅** | motor: **cadeia de verificação** — `limitesGabinete()` + `checaLimites()`, modo voado × empilhado, limite por barra, `elo` (quem trava primeiro), e **sem dado nunca vira "ok"** | — |
-| **R1** | **campos por tela preenchidos pelo técnico** (limites do fabricante, peso medido, ângulo) + biblioteca identificada por fabricante+pitch+dimensão, com `fonte`/`conferido` — a UI que alimenta a R2 | Q5 |
-| **R3** | seção **"Peso e ancoragens"** no Caderno + PDF: números, premissas declaradas, campos não informados, **checklist da §4** e box de segurança | Q2a/Q2b/Q4 |
+| **R1 ✅** | **campos do fabricante em "Especificações Avançadas" da Biblioteca de gabinetes** (`Inventory.jsx`): altura voada/empilhada, gabinetes por barra, trava extra acima de N, tipo de trava e procedência (`fonte` + `conferido`) | — |
+| **R3** | seção **"Peso e ancoragens"** no Caderno + PDF: números, premissas declaradas, campos não informados, **checklist da §4** e box de segurança. Desenho aprovado — ver o mockup dos 3 estados. | Q2a/Q4 |
 | **R4** | painel no app (bumper/fixação/ancoragens/ângulo por Screen) | R3 |
 | **R5** | ~~ground support~~ **FORA DE ESCOPO** (§3.3) — sobra só o limite de empilhamento do fabricante em metros | — |
 | **R6** | pitch × distância no Aspect Ratio (independente, pode furar fila) | — |
@@ -282,4 +282,44 @@ Motor trivial; o valor está na UI, junto do Aspect Ratio.
 - **Q5 — Campos de fabricante:** entram no seed certificado ou só na biblioteca
   pessoal? Com a frota sendo uma marca só, o seed fica viável.
 - **Q8 — Checklist (§4):** os itens conferem com a prática dele? Falta algum que já
-  deu problema? A lista é dele, eu só organizei.
+  deu problema? A lista é dele, eu só organizei. *(Ele vai anotando conforme lembrar.)*
+
+---
+
+## 9 · Estado ao fim da sessão de 25/07/2026
+
+Tudo vive na branch **`feat/rigging`** (empurrada pro GitHub). **Nada foi pra
+produção** — prod segue na v1.9.1. `npm test` 273 verdes, `eslint` limpo.
+
+### O que já está construído
+
+| Onde | O quê |
+| --- | --- |
+| `src/services/rigging.js` | motor puro: peso, bumpers, ancoragens, carga na pior ancoragem, checagem contra a talha, **cadeia de limites do fabricante** (modo voado × empilhado, por barra, por altura), `elo` (quem trava primeiro), avisos de procedimento. 37 testes. |
+| `src/pages/Inventory.jsx` | os 6 campos de limite do fabricante no **Avançado** do gabinete, com procedência. |
+| `src/data/knowledge.js` | categoria **Estrutura** com 2 artigos (a conta + o checklist de montagem). |
+| `docs/rigging-pesquisa.md` | a pesquisa de base e a triagem da pesquisa paralela. |
+| este arquivo | vocabulário, modelo, escopo, checklist de campo, fases, decisões. |
+
+### Como retomar (a R3)
+
+A seção do Caderno é o próximo passo e **não depende de mais nenhuma decisão de
+arquitetura** — o desenho foi aprovado num mockup com 3 estados (com limites /
+sem limites / acima do limite) mais a tela de cadastro. Ordem sugerida:
+
+1. Ler §3 (escopo) e §4 (checklist) deste arquivo — são as regras que a seção
+   tem que obedecer.
+2. `projectRigging()` já devolve tudo que a seção precisa; falta só o componente
+   de apresentação em `ProjectRelatorio.jsx` + o espelho no PDF nativo.
+3. Cor da disciplina **Estrutura: teal `#0f766e`** (as existentes em
+   `reportContent.js` — prod `#475569`, vídeo `#1d4ed8`, elétrica `#c2410c`).
+4. A seção chama **"Peso e ancoragens"**. Nunca "Rigging" (prometeria engenharia),
+   nunca "ponto" (é o ponto de talha da produção).
+
+### O que destrava o resto
+
+- **Pesos reais** de bumper e fixação (balança de gancho) — hoje são placeholder
+  marcados `estimado`, e o motor avisa.
+- **Foto da etiqueta** de um gabinete YES TECH MG — resolve modelo, série e os
+  limites de fabricante de uma vez, sem depender de garimpar PDF.
+- **Mais itens de checklist** conforme ele for lembrando.
