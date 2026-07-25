@@ -1,5 +1,5 @@
 // data/knowledge.js — artigos da Base de Conhecimento.
-export const KB_CATEGORIES = ["Guia do App", "Energia", "Sinal", "Cabeamento AC", "Painéis"];
+export const KB_CATEGORIES = ["Guia do App", "Energia", "Sinal", "Cabeamento AC", "Painéis", "Estrutura"];
 
 export const KB_ARTICLES = [
   { id: "guia-inicio", category: "Guia do App", title: "Primeiros passos", summary: "Como o LedLab Core organiza gabinetes, projetos e ferramentas.",
@@ -142,6 +142,73 @@ export const KB_ARTICLES = [
       { h: "Tensão", blocks: [{ t: "note", text: "O cálculo de gabinetes por cabo assume 220 V. Em 110–127 V (F-N de praça 127 V) a corrente sobe ~73% e o nº de gabinetes por cabo cai pela metade." }] },
       { h: "Instalação temporária", blocks: [{ t: "ul", items: ["DR ≤ 30 mA obrigatório em área externa/molhada (NBR 5410)", "Aterre gerador e estrutura", "Corrente de fuga (~3 mA/painel) pode limitar a ~5 painéis por circuito com DR de 30 mA"] }] },
       { h: "Energização (inrush)", blocks: [{ t: "p", text: "Fontes SMPS puxam 50–100× a corrente nominal por alguns ms no cold start (~60 A por fonte). Ligue a tela por seções e prefira disjuntor curva C (ou D em telas grandes) para não desarmar." }] },
+    ] },
+  { id: "estrutura-peso-pontos", category: "Estrutura", title: "Peso e pontos — como a conta é feita", summary: "O que o app calcula na parede voada, por que o número não é peso ÷ pontos, e o mito do fator de segurança.",
+    sections: [
+      { h: "O que o app faz — e o que não faz", blocks: [
+        { t: "p", text: "O app responde uma pergunta só: quanto pesa a parede, quantos bumpers e pontos ela pede, e quanta carga cai no pior ponto. Isso é aritmética sobre dados do projeto." },
+        { t: "note", text: "O app NÃO dimensiona treliça, não calcula vento, lastro ou estaiamento, e nunca diz que uma montagem está aprovada. Quem dimensiona, monta e assina o rigging é o rigger habilitado — no Brasil, com ART de engenheiro. O verbo aqui é sempre CONFIRA." },
+      ] },
+      { h: "A conta", blocks: [
+        { t: "kv", rows: [
+          ["Peso da coluna", "linhas × peso do gabinete"],
+          ["Colunas por bumper", "largura do bumper ÷ largura do gabinete"],
+          ["Bumpers", "colunas da tela ÷ colunas por bumper (arredondando pra cima)"],
+          ["Pontos", "bumpers × pontos do bumper"],
+          ["Carga no ponto", "(bumper cheio + peso do bumper) ÷ pontos do bumper + acessórios"],
+        ] },
+        { t: "p", text: "Pontos é propriedade do bumper, não da largura: existe viga de 50 cm com 1 ponto e viga de 50 cm com 2 pontos, e existe viga de 1,28 m com um ponto só. Por isso o bumper é cadastrável." },
+      ] },
+      { h: "Por que o número é maior que peso ÷ pontos", blocks: [
+        { t: "p", text: "Dividir o peso total pelo número de pontos assume que todos carregam igual — e isso só vale pra dois pontos numa viga simétrica. Com três ou mais pontos numa viga rígida o sistema é estaticamente indeterminado: não existe solução única sem conhecer a flexibilidade da viga." },
+        { t: "p", text: "A prática de engenharia é dimensionar pelo pior caso. O app calcula a carga de um bumper CHEIO, mesmo que o último da fileira leve menos colunas — porque a ferragem se escolhe pelo pior ponto, não pela média." },
+      ] },
+      { h: "WLL: o fator de segurança já está dentro", blocks: [
+        { t: "p", text: "WLL (Working Load Limit) é a carga de trabalho JÁ dividida pelo fator de projeto do fabricante. Corrente de elevação trabalha com fator 8:1 sob DIN 56950-1 / EN 17206; um hoist C1 é projetado em 10:1." },
+        { t: "note", text: "Por isso NÃO se multiplica a carga por 5 para comparar com o WLL. É comum ver planilha e app pedindo WLL de 5× a carga — isso é fator sobre fator, equivale a exigir 25:1 até a ruptura. A conta certa é direta: carga no ponto ≤ WLL. E nunca passar do WLL." },
+        { t: "p", text: "É por isso que o número do app costuma ser MENOR que o da planilha da locadora. O nosso está certo; o dela conta o fator duas vezes." },
+      ] },
+      { h: "Ângulo: fora do prumo a carga sobe", blocks: [
+        { t: "p", text: "Enquanto a talha está a prumo sobre o ponto, a carga no cabo é a carga vertical. Assim que o cabo sai da vertical (bridle pra desviar de uma perna de treliça, ponto fora de cima do bumper), a força cresce por 1 ÷ cosseno do ângulo." },
+        { t: "table", cols: ["Ângulo da vertical", "Multiplicador"], rows: [["0° (a prumo)", "1,00×"], ["30°", "1,15×"], ["45°", "1,41×"], ["60°", "2,00×"]] },
+        { t: "note", text: "O cálculo do app assume içamento A PRUMO. Se a sua montagem tiver desvio, aplique o multiplicador acima na carga do ponto." },
+      ] },
+      { h: "O elo que trava primeiro", blocks: [
+        { t: "p", text: "A parede é uma corrente de elos: trava do gabinete → bumper → ponto (talha, manilha, cinta) → treliça/estrutura → chão. Com painel de evento e talha de 1 t, quem trava quase nunca é a talha — é o limite de empilhamento do fabricante (que na verdade é o limite da TRAVA entre gabinetes) ou a carga pontual admissível da treliça." },
+        { t: "note", text: "Uma parede pode estar folgadíssima de talha e ainda assim estar fora do limite do fabricante. Confira sempre o manual do gabinete, e a carga pontual da treliça com a produção." },
+      ] },
+    ] },
+  { id: "estrutura-checklist", category: "Estrutura", title: "Checklist de montagem — parede voada", summary: "Condições de campo que não aparecem em conta nenhuma: corrente livre, torção, gancho, nivelamento e içamento.",
+    sections: [
+      { h: "Como ler esta lista", blocks: [
+        { t: "p", text: "Nada aqui é norma. São práticas de campo e itens de manual de fabricante, reunidos porque cada um já custou material ou susto. Confirme sempre com o rigger do evento." },
+      ] },
+      { h: "A talha: corrente livre", blocks: [
+        { t: "note", text: "Deixe pelo menos ~1 m de corrente livre entre o gancho de carga e o corpo da talha. NUNCA ice até o fim do curso — o que a gíria chama de enforcar a talha." },
+        { t: "ul", items: [
+          "Içar até o batente joga a força no fim de curso, não na corrente — é aí que o parafuso do gancho de carga estoura.",
+          "Sem folga a talha não se alinha com a linha de carga e passa a trabalhar de través; gancho carrega em linha, não de lado.",
+          "Corrente esticada no limite trava a roldana e transforma qualquer solavanco da montagem em choque direto na ferragem.",
+        ] },
+      ] },
+      { h: "Antes de pôr carga", blocks: [
+        { t: "ul", items: [
+          "Corrente sem torção: com a talha pendurada solta, confira o corrimento livre. Corrente torcida trava o passo na roldana e força o elo de lado.",
+          "Gancho com a trava fechada e a carga no berço do gancho, nunca na ponta. A trava é dispositivo secundário e não substitui a amarração.",
+          "Não enrole a corrente de carga na carga (proibido pela ASME B30.16, que cobre talha manual).",
+          "Nivele o bumper nas cintas antes de subir a parede. Parede desnivelada redistribui carga entre os pontos de um jeito que nenhuma conta prevê.",
+        ] },
+      ] },
+      { h: "Durante o içamento", blocks: [
+        { t: "ul", items: [
+          "Suba os pontos juntos, em incrementos, alternando. Com talha manual, um ponto muito à frente do outro pega uma fatia desproporcional da parede.",
+          "Confira a ferragem exigida pela ALTURA: alguns fabricantes trocam a quantidade de travas entre gabinetes acima de certo empilhamento (na YES TECH MG6S, abaixo de 8 gabinetes usa 2 conectores C; acima de 8, usa 3).",
+          "Amarração de contenção quando houver vão livre atrás, corredor de vento ou circulação embaixo — parede voada é pêndulo.",
+        ] },
+      ] },
+      { h: "Com gente embaixo", blocks: [
+        { t: "note", text: "Talha manual não tem classificação D8+ (essas são de hoist elétrico), e a ASME B30.16 exclui içamento de pessoas do escopo. Carga parada sobre público ou artista pede secundário — aço de segurança — e decisão do rigger habilitado." },
+      ] },
     ] },
   { id: "pixel-pitch", category: "Painéis", title: "Pixel pitch", summary: "Relação entre resolução, dimensão e distância de visão.", sections: [{ h: "Cálculo", blocks: [{ t: "p", text: "Pitch (mm) = largura do gabinete (mm) ÷ resolução X." }] }] },
   { id: "resolucoes-padrao", category: "Painéis", title: "Resoluções padrão de vídeo", summary: "Referência de resoluções comuns — nome, pixels e aspecto.",
