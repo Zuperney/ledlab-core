@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  sugereTalha, riggingTela, projectRigging, colunasNoBumper, rigTone, resolveBumper,
+  sugereTalha, riggingTela, projectRigging, colunasNoBumper, rigTone, resolveBumper, limitesGabinete,
   BUMPERS, FIXACOES, TALHAS_KG, DEFAULT_RIG,
 } from "./rigging.js";
 
@@ -183,6 +183,73 @@ describe("projectRigging", () => {
     expect(DEFAULT_RIG.colunasPorBumper).toBeNull(); // derivado da largura
     expect(DEFAULT_RIG.pontosPorBumper).toBeNull(); // vem do bumper
     expect(DEFAULT_RIG.talhaWLL).toBe(1000);
+  });
+});
+
+describe("limites do fabricante (a cadeia)", () => {
+  // gabinete 500×500 com os limites da Unilumin UpadIV: voado 10 m, empilhado 6 m
+  const UNI = { peso: "8", dimW: "500", dimH: "500", rigging: { voadoMaxM: 10, empilhadoMaxM: 6, fonte: "Manual UpadIV cap. 2.2", conferido: true } };
+
+  it("dentro do limite voado: 12 gabinetes = 6 m", () => {
+    const r = riggingTela({ cols: 4, rows: 12, gabinete: UNI });
+    expect(r.alturaM).toBe(6);
+    expect(r.limiteAcima).toBe(false);
+    expect(r.elo).toBeNull();
+    expect(r.checks.find((k) => k.id === "voadoM")).toMatchObject({ status: "ok", limite: 10 });
+  });
+
+  it("acima do limite voado: 21 gabinetes = 10,5 m", () => {
+    const r = riggingTela({ cols: 4, rows: 21, gabinete: UNI });
+    expect(r.alturaM).toBe(10.5);
+    expect(r.limiteAcima).toBe(true);
+    expect(r.tone).toBe("over");
+    expect(r.elo).toBe("fabricante"); // trava no fabricante, não na talha
+    expect(r.talhaOver).toBe(false); // a talha estava folgada
+  });
+
+  it("empilhado é mais restrito que voado: 8 m passa voado e estoura no chão", () => {
+    const tela = { cols: 4, rows: 16, gabinete: UNI };
+    expect(riggingTela(tela).limiteAcima).toBe(false); // voado, limite 10 m
+    expect(riggingTela(tela, { modo: "empilhado" }).limiteAcima).toBe(true); // chão, limite 6 m
+  });
+
+  it("limite por barra (Absen: 20 painéis de 500×500 por barra)", () => {
+    const gab = { peso: "8", dimW: "500", dimH: "500", rigging: { porBarraMaxQtd: 20 } };
+    // bumper de 100 cm = 2 colunas; 11 de altura = 22 painéis na barra
+    const r = riggingTela({ cols: 6, rows: 11, gabinete: gab });
+    expect(r.gabPorBarra).toBe(22);
+    expect(r.checks.find((k) => k.id === "porBarra")).toMatchObject({ status: "acima", limite: 20 });
+    expect(r.elo).toBe("fabricante");
+  });
+
+  it("sem dado do fabricante NÃO vira ok — vira aviso", () => {
+    const r = riggingTela({ cols: 4, rows: 40, gabinete: { peso: "8", dimW: "500", dimH: "500" } });
+    expect(r.checks.every((k) => k.status === "semDado")).toBe(true);
+    expect(r.limiteAcima).toBe(false); // não podemos afirmar que estourou
+    expect(r.limiteSemDado).toBe(true);
+    expect(r.avisos.some((a) => a.includes("não publica"))).toBe(true);
+  });
+
+  it("trava extra por altura (YES TECH MG6S: 3º conector C acima de 8)", () => {
+    const gab = { peso: "8", dimW: "500", dimH: "500", rigging: { travaExtraAcima: 8 } };
+    expect(riggingTela({ cols: 2, rows: 8, gabinete: gab }).avisos.some((a) => a.includes("trava extra"))).toBe(false);
+    expect(riggingTela({ cols: 2, rows: 9, gabinete: gab }).avisos.some((a) => a.includes("trava extra"))).toBe(true);
+  });
+
+  it("sem altura do gabinete, avisa em vez de checar metro errado", () => {
+    const r = riggingTela({ cols: 2, rows: 5, gabinete: { peso: "8", dimW: "500", rigging: { voadoMaxM: 10 } } });
+    expect(r.alturaM).toBe(0);
+    expect(r.avisos.some((a) => a.includes("Altura do gabinete"))).toBe(true);
+  });
+
+  it("limitesGabinete normaliza vazio, zero e string", () => {
+    expect(limitesGabinete({ rigging: { voadoMaxM: "10", voadoMaxQtd: "", empilhadoMaxM: 0 } }))
+      .toMatchObject({ voadoMaxM: 10, voadoMaxQtd: null, empilhadoMaxM: null, conferido: false });
+    expect(limitesGabinete(undefined).fonte).toBe("");
+  });
+
+  it("tela vazia não gera checagem", () => {
+    expect(riggingTela({ cols: 0, rows: 0 }).checks).toEqual([]);
   });
 });
 

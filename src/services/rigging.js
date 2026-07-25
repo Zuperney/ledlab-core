@@ -106,6 +106,54 @@ export function colunasNoBumper(larguraBumperMm, larguraGabMm, override = null) 
   return Math.max(1, Math.floor(lb / lg));
 }
 
+// ── Limites do fabricante ──
+// Cada fabricante publica numa UNIDADE diferente (Absen: painéis por barra ·
+// Unilumin: metros verticais, e voado ≠ empilhado · YES TECH: altura + regra de
+// ferragem). Por isso são campos separados, todos opcionais.
+// `null` = SEM DADO → o app AVISA, não estima. Ver docs/rigging-pesquisa.md §5.1.
+export const MODOS = ["voado", "empilhado"];
+
+const posOrNull = (v) => {
+  if (v == null || v === "") return null;
+  const n = num(v);
+  return n > 0 ? n : null;
+};
+
+export function limitesGabinete(gabinete) {
+  const r = gabinete?.rigging || {};
+  return {
+    voadoMaxM: posOrNull(r.voadoMaxM), // altura máx. voada, em metros
+    voadoMaxQtd: posOrNull(r.voadoMaxQtd), // ou em gabinetes de altura
+    empilhadoMaxM: posOrNull(r.empilhadoMaxM), // ground stack (costuma ser menor)
+    porBarraMaxQtd: posOrNull(r.porBarraMaxQtd), // painéis pendurados por barra
+    travaExtraAcima: posOrNull(r.travaExtraAcima), // acima de N de altura, entra trava extra
+    fonte: r.fonte || "",
+    conferido: r.conferido === true,
+  };
+}
+
+// um elo da cadeia. SEM limite publicado → "semDado" (nunca "ok": não inventamos folga)
+const check = (id, label, valor, limite, unidade) => ({
+  id, label, valor, limite, unidade,
+  status: limite == null ? "semDado" : valor > limite ? "acima" : "ok",
+});
+
+// A CADEIA: trava do gabinete → bumper → ponto/talha → treliça → chão.
+// Aqui checamos os elos que o app tem dado pra checar; treliça e chão só viram aviso.
+export function checaLimites({ rows, alturaM, gabPorBarra, modo, limites }) {
+  const L = limites;
+  if (modo === "empilhado") {
+    return [check("empilhadoM", "Altura empilhada", alturaM, L.empilhadoMaxM, "m")];
+  }
+  const checks = [check("voadoM", "Altura voada", alturaM, L.voadoMaxM, "m")];
+  // só cobra a versão em gabinetes quando o fabricante publica assim (ou quando
+  // não publica nada) — senão viraria um "sem dado" redundante ao lado do metro
+  if (L.voadoMaxQtd != null || L.voadoMaxM == null)
+    checks.push(check("voadoQtd", "Gabinetes de altura", rows, L.voadoMaxQtd, "gab"));
+  checks.push(check("porBarra", "Gabinetes por barra", gabPorBarra, L.porBarraMaxQtd, "gab"));
+  return checks;
+}
+
 // a talha aguenta? menor WLL da lista que cabe; null = acima de tudo que existe
 export function sugereTalha(cargaKg, utilizacao = 1, talhas = TALHAS_KG) {
   if (!(cargaKg > 0)) return null;
@@ -140,18 +188,42 @@ export function riggingTela(tela, cfg = {}) {
   const talha = sugereTalha(cargaPorPonto, c.utilizacao);
   const totalKg = cols * pesoColuna + bumpers * bumper.pesoKg;
 
+  // ── cadeia de verificação: limites do fabricante ──
+  const modo = c.modo === "empilhado" ? "empilhado" : "voado";
+  const alturaGabMm = num(tela?.gabinete?.dimH);
+  const alturaM = (rows * alturaGabMm) / 1000;
+  const gabPorBarra = Math.min(cols, colunasPorBumper) * rows;
+  const limites = limitesGabinete(tela?.gabinete);
+  const checks = cols > 0 && rows > 0
+    ? checaLimites({ rows, alturaM, gabPorBarra, modo, limites })
+    : [];
+  const limiteAcima = checks.some((k) => k.status === "acima");
+  const limiteSemDado = checks.some((k) => k.status === "semDado");
+
   const avisos = [];
   if (larguraGab > 0 && larguraGab > bumper.larguraMm)
     avisos.push(`Gabinete (${larguraGab} mm) é mais largo que o ${bumper.nome.toLowerCase()}`);
   if (bumper.estimado || fix.estimado) avisos.push("Pesos de bumper/acessórios ainda são estimativa");
+  if (limiteSemDado) avisos.push("O fabricante não publica o limite deste gabinete — confira no manual");
+  // regra que muda a FERRAGEM, não o número (ex.: 3º conector C acima de 8 de altura)
+  if (limites.travaExtraAcima != null && rows > limites.travaExtraAcima)
+    avisos.push(`Acima de ${limites.travaExtraAcima} gabinetes de altura o fabricante pede trava extra entre gabinetes`);
+  if (alturaGabMm <= 0) avisos.push("Altura do gabinete não informada — não dá pra checar o limite em metros");
+
+  const talhaOver = pontos > 0 && talha == null;
+  // qual elo trava primeiro (a treliça e o chão ficam fora: o app não tem esse dado)
+  const elo = limiteAcima ? "fabricante" : talhaOver ? "talha" : null;
 
   return {
-    cols, rows, pesoGab, pesoColuna,
+    cols, rows, pesoGab, pesoColuna, alturaM,
     bumper, fixacao: fix, colunasPorBumper,
-    bumpers, pontosPorBumper, pontos,
+    bumpers, pontosPorBumper, pontos, gabPorBarra,
     cargaPorPonto, totalKg,
-    talhaWLL, pctTalha, tone: rigTone(pctTalha), talha,
-    over: pontos > 0 && talha == null, // não cabe em nenhuma talha da frota
+    talhaWLL, pctTalha, talha, talhaOver,
+    modo, limites, checks, limiteAcima, limiteSemDado, elo,
+    // o tom da tela é o PIOR entre a talha e os limites do fabricante
+    tone: limiteAcima ? "over" : rigTone(pctTalha),
+    over: talhaOver || limiteAcima,
     empilhaOk: c.maxRows == null ? null : rows <= c.maxRows,
     avisos,
   };
@@ -165,8 +237,9 @@ export function projectRigging(project, cfg = {}) {
   const bumpers = telas.reduce((s, r) => s + r.rig.bumpers, 0);
   const algumOver = telas.some((r) => r.rig.over);
   const algumWarn = telas.some((r) => r.rig.tone !== "ok");
+  const algumSemDado = telas.some((r) => r.rig.limiteSemDado);
   return {
-    telas, totalKg, pontos, bumpers, algumOver,
+    telas, totalKg, pontos, bumpers, algumOver, algumSemDado,
     tone: algumOver ? "over" : algumWarn ? "warn" : "ok",
   };
 }
