@@ -2,6 +2,29 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.9.1] — 2026-07-24
+
+**Elétrica mais segura + retoques de campo.**
+
+- **Regra dos 80% virou o padrão**: a margem de segurança do cabo AC agora nasce em 80% (carga contínua, NBR 5410/NEC). Quem já tinha escolhido uma margem nas Configurações mantém a escolha.
+- **Faixa laranja de atenção**: cabo AC entre 80% e 100% do conector acende em **laranja** no Cabeamento (status "Acima de 80%"), no Caderno Técnico e no PDF. Estouro segue vermelho.
+- **Biblioteca-semente auditada nos datasheets**: potências máximas conferidas fabricante a fabricante — ROE CB5 confirmado; Black Pearl BP2, Absen PL3.9 Pro e ROE Ruby corrigidos pro valor real (com a margem explícita de 80%, valor inflado por cima seria margem dupla). Só vale pra instalações novas — a biblioteca de quem já usa não muda.
+- **iPhone**: a barra de gesto não cobre mais o fim do conteúdo nem os botões das Configurações.
+- Interno: o número de versão agora vem de um lugar só (`package.json`).
+
+236 testes.
+
+## [1.9.0] — 2026-07-24
+
+**O Caderno Técnico sai em PDF direto do app** — e a rodada de refino do backlog de campo.
+
+- **"Baixar PDF" nativo**: capa, sumário com número de página, mapas de cabos desenhados (vetoriais), esquema das telas em fila, uma página por Screen com specs em destaque e fonte IBM Plex embutida (numeral tabular). Funciona no celular e **offline**, sem depender do Imprimir do navegador. ~230 KB.
+- **Recibos**: o fixo mensal não some mais ao filtrar por cliente; teclado numérico com máscara de CPF/CNPJ e ordem de tabulação certa; período **"Esta semana"**.
+- **Energia**: seletor de tensão legível (não trunca mais no celular).
+- **Telas**: arrastar pra reordenar com feedback visual + **Desfazer** no toast; excluir uma tela limpa a referência dela nas Screens (consertou relatório quebrado).
+- **Diagramação**: Ajustes do mapa disponíveis ali mesmo.
+- **Test Cards e Aspect Ratio**: consistência de controles com o resto do app.
+
 ## [1.8.0] — 2026-07-24
 
 **O app vestiu a marca.** Nasceu o Manual de Marca & Sistema (`docs/marca/`) — a lei da interface — e a paleta saiu do roxo pra identidade led/lab.

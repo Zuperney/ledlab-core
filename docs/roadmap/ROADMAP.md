@@ -9,8 +9,8 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.5 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
-**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (2 de 5 iniciativas-chave · v1.1→v1.5) · Fase 03 iniciada (Reembolso entregue).
+**Horizonte:** v1.9 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (3 de 5 iniciativas-chave; rigging iniciado · v1.1→v1.9) · Fase 03 iniciada (Reembolso e "Esta semana" entregues).
 
 ---
 
@@ -84,6 +84,11 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **Mapa de cabos visual de volta no Relatório** — projetos com Screen voltam a desenhar o grid (sinal e AC), escalado pra caber na página; antes só tabelas | 2 | **v1.5.3** |
 | **🟣 Relatório vira Caderno Técnico** — redesign completo em **paisagem**: capa dedicada, seções por disciplina (cor + ícone), esquema das telas em fila, tabelas em até 4 colunas, specs por Screen, box de segurança, fórmula do consumo típico (Barco) + glossário; sem referências ao app, pensado pra distribuição | **3** | **v1.5.4** |
 | **Capa "Folha Técnica"** — folha de rosto com a identidade de marca (logo led/lab + lime), tag Caderno Técnico e nome dominante; evento à esquerda e specs à direita em bloco-de-título; sai a contagem de gabinetes do topo | 1 | **v1.5.5** |
+| **🟣 Página Equipamentos + catálogo de controladoras** — catálogo **certificado nos datasheets** (séries VX e MX/COEX, read-only) e "Verificar projeto": controladora por Screen, portas usadas × disponíveis, teto de carga, dica de Hz. Desktop, em Gestão | **2** | **v1.6.0** |
+| **Interface repaginada (refino mobile + gramática)** — rótulo em toda aba, ajustes contextuais (Cabeamento/Test Card), bottom nav com Projetos a 1 toque, **modo SOL** de alto contraste, alvos de toque maiores, e a **gramática das 5 faixas** aplicada nas 7 abas do projeto | 1 | **v1.7.0–1.7.1** |
+| **O app vestiu a marca** — Manual de Marca & Sistema (`docs/marca/`) + paleta led/lab (lime `#ebf51e` + preto) nos 3 ecossistemas: Palco (escuro), Sol (invertido) e Print (oliva) | 1 | **v1.8.0** |
+| **🟣 Caderno Técnico em PDF nativo** — "Baixar PDF" com capa, sumário, mapas de cabos vetoriais, uma página por Screen e fonte embutida; funciona no celular e **offline**. + rodada de refino do backlog de campo (Recibos, Energia, telas com Desfazer) | **3** | **v1.9.0** |
+| **🟣 Regra dos 80% padrão + auditoria elétrica** — margem de carga contínua como padrão, faixa **laranja** 80–100% (Cabeamento/Caderno/PDF) e potências da biblioteca-semente conferidas nos datasheets. + fix da barra de gesto do iPhone | **2** | **v1.9.1** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -106,7 +111,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 
 ---
 
-## Fase 02 — Profundidade de engenharia · `v1.1 → v1.6` · **em curso** *(3 de 5)*
+## Fase 02 — Profundidade de engenharia · `v1.1 → v1.9` · **em curso** *(3 de 5 · rigging iniciado)*
 **O cálculo que nenhum app de aluguel faz.** *Aqui mora o diferencial — engenharia de verdade, não só inventário.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
@@ -114,7 +119,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 | ✅ **Portas de dados reais (px/porta)** *(v1.1.0)* | 🟣 | M | **Feito:** nº de portas pela capacidade real do processador — 655.360 px/porta a 8-bit 60 Hz, 327.680 a 10-bit — escalando com refresh e bit-depth. A régua de área virou opção (controlador básico). Inclui o **canto de início da serpentina** (4 cantos × 2 direções = os 8 padrões do *Quick Connection* do NovaLCT), pro mapa casar com a montagem física. | capacidade de porta Novastar |
 | ✅ **Mapa de pixels exportável** *(v1.1.0)* | 🟣 | M | **Feito:** CSV com uma linha por gabinete (porta · ordem no cabo · coluna/linha · X/Y, origem sup-esq) + tabela de início por porta no relatório "Mapa de cabos". Modelo conferido **contra o NovaLCT real** (aba *Screen Connection*): bate 1:1 com o que o operador digita. **Gerar `.scr` binário foi descartado** — formato proprietário (`DSCI`+checksum), risco de desconfigurar parede em campo. | workflow Novastar/Brompton |
 | **Recomendador pitch × distância** | 🟣 | M | Dado o pitch (ou tamanho + distância), retorna distância mínima/ótima/máxima + VAD e sugere o pitch ideal. Expande a aba Aspect Ratio. *É a primeira pergunta de todo cliente — "de longe fica bom?".* **← próximo** | regra 10×, VAD 3438, altura×30 |
-| **Rigging & estrutura** | 🟣 | G | Peso total e por ponto, nº de pontos de içamento (4–8), fator de segurança (≈5:1), voado vs. ground support, carga de vento (outdoor), checklist de motor/hardware. *É o cálculo de maior risco em obra.* | práticas de rigging |
+| 🚧 **Rigging & estrutura** *(iniciado 2026-07-24)* | 🟣 | G | **Ground pronto (em branch):** espeque de domínio (`docs/rigging-spec.md` — coluna/bumper/ponto/WLL, voado primeiro; ground support/vento na fase seguinte) + motor puro testado (peso por coluna → bumpers → carga por ponto no pior caso → sugestão de talha 250/500/1000/2000 kg). **UI e seção no Caderno aguardam 5 decisões de produto** (spec §6). *É o cálculo de maior risco em obra.* | práticas de rigging |
 | ✅ **Catálogo de controladoras (ex-"Biblioteca de processadores")** *(v1.6.0)* | 🟣 | M | **Feito (1ª leva):** página **Equipamentos** (Gestão, desktop) com catálogo **certificado nos datasheets** (read-only — o usuário seleciona, não cadastra): séries **VX** (650.000 px/porta) e **MX/COEX** (659.722), com teto de carga do dispositivo (MX40 Pro = 9M px). "Verificar projeto": controladora por Screen → portas usadas × disponíveis, carga, resolução e a dica de Hz. **Próximas levas:** modulares (H9, MX2000/6000 Pro), Colorlight/Brompton, "Sending Card + Porta" no mapa de pixels. | datasheets NovaStar (acervo) |
 
 ---
@@ -126,7 +131,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 |---|:---:|:---:|---|---|
 | **Orçamento & proposta (PDF)** | 🟣 | G | Proposta a partir do projeto: m²/gabinetes + mão de obra (puxa das diárias) + logística, com PDF de aceite/assinatura. *Hoje o técnico projeta aqui mas orça no WhatsApp/planilha à parte.* | propostas Flex/Rentman/Goodshuffle |
 | ✅ **Despesas & reembolso** *(v0.17–v0.18)* | 🟣 | M | **Feito:** aba própria — despesa (data/categoria/valor/descrição/cliente) com **foto do comprovante comprimida e local no IndexedDB** (não sobe pra nuvem, por decisão de custo) + relatório imprimível com comprovantes embutidos, PDF/Copiar/WhatsApp. **Falta (se pedir):** vínculo despesa↔evento e período custom (hoje é por mês). | demanda de campo |
-| **Recibo por cadência (semana/mês)** | 🟣 | P | Presets de período no recibo — *esta semana / semana passada*, como já existe pra mês — pra fechar por semana (agenda seg→dom, pagamento na quarta). O trabalho segue lançado por dia; o recibo agrupa e fecha por semana. **A mesma estratégia de período vale pro relatório de reembolso.** *Tem freela que recebe semanalmente; hoje o recibo só pensa em dia/mês.* | demanda de campo |
+| ✅ **Recibo por cadência (semana/mês)** *(v1.9.0 · parcial)* | 🟣 | P | **Feito:** período **"Esta semana"** nos Recibos (semana seg→dom identificada e rotulada). **Falta (se pedir):** "semana passada" e a mesma estratégia no relatório de reembolso. *Tem freela que recebe semanalmente.* | demanda de campo |
 | **Disponibilidade & conflito** | 🟣 | M | A agenda cruza eventos e avisa quando o mesmo gabinete/tela está reservado em datas sobrepostas. *Dupla-reserva é o erro clássico — e o mais caro.* | conflito Current RMS/Rentman |
 | **Escala de equipe** | 🟣 | M | Ligar as diárias a pessoas (função, custo, disponibilidade) e montar a equipe do evento. *O módulo de cachês já sabe quanto; falta saber quem.* | — |
 | **Kits & presets reutilizáveis** | ⚪ | P | Salvar telas-modelo e presets de tensão/cabeamento pra montar projeto novo em segundos. *A maioria dos eventos repete configurações.* | — |
@@ -183,4 +188,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-24 (v1.5.5 · Fase 02 em curso)._
+_Última atualização: 2026-07-24 (v1.9.1 · Fase 02 em curso, rigging iniciado)._

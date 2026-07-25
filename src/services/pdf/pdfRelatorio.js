@@ -17,6 +17,7 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasFilaSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, portLabel, videoOf } from "../reportContent.js";
+import { acTone } from "../electricalCalc.js";
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
 const LIME = "#ebf51e";
@@ -580,7 +581,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
                   { text: `${S}.${i + 1}  ${s.nome}`, bold: true },
                   { text: nomes.join(", "), fontSize: 8.5, color: PRINT.mut },
                   mono(String(s.ports.length), { alignment: "right", bold: true }),
-                  mono(`${m.load.toFixed(1)} A · ${m.pct}%`, { alignment: "right", bold: true, color: m.over ? PRINT.red : PRINT.ink }),
+                  mono(`${m.load.toFixed(1)} A · ${m.pct}%`, { alignment: "right", bold: true, color: m.over ? PRINT.red : m.warn ? PRINT.amb : PRINT.ink }),
                 ];
               }),
             ],
@@ -602,7 +603,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
             densePortTable(s.ports, [
               { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
               { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-              { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : PRINT.ink }) },
+              { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink }) },
             ]),
           ]);
         }),
@@ -656,7 +657,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           densePortTable(rows, [
             { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
             { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-            { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
+            { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: acTone(p.pct) === "over" ? PRINT.red : acTone(p.pct) === "warn" ? PRINT.amb : PRINT.ink }) },
           ]),
         ]);
       }),
@@ -717,6 +718,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     })(),
   };
 }
+
 
 
 

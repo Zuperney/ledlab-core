@@ -1,7 +1,7 @@
-// electricalCalc.test.js — motor elétrico (disjuntor, corrente, divisores, consumo).
+﻿// electricalCalc.test.js — motor elétrico (disjuntor, corrente, divisores, consumo).
 // Trava o modelo validado contra datasheets/normas (ver docs + memória de validação).
 import { describe, it, expect } from "vitest";
-import { calcScreen, pickBreaker, typicalPerTile, pitch, VOLT } from "./electricalCalc.js";
+import { calcScreen, pickBreaker, typicalPerTile, pitch, VOLT, acTone } from "./electricalCalc.js";
 
 const SQRT3 = Math.sqrt(3);
 
@@ -92,3 +92,14 @@ describe("pitch — dimW / resX", () => {
     expect(pitch({})).toBe("—");
   });
 });
+
+describe("acTone — regra dos 80% (carga contínua)", () => {
+  it("até 80% ok · 80–100% atenção · acima de 100% estouro", () => {
+    expect(acTone(50)).toBe("ok");
+    expect(acTone(80)).toBe("ok");
+    expect(acTone(81)).toBe("warn");
+    expect(acTone(100)).toBe("warn");
+    expect(acTone(101)).toBe("over");
+  });
+});
+
