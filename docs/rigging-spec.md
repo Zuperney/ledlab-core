@@ -238,8 +238,8 @@ gabinete 500×500 mm · a regra dos conectores C acima de 8 de altura (MG6S).
 | **R0.5 ✅** | **Base de Conhecimento: categoria Estrutura** com "Peso e ancoragens — como a conta é feita" e "Checklist de montagem — parede voada" (§4). Conhecimento antes da calculadora: não dependia de decisão nenhuma. | — |
 | **R2 ✅** | motor: **cadeia de verificação** — `limitesGabinete()` + `checaLimites()`, modo voado × empilhado, limite por barra, `elo` (quem trava primeiro), e **sem dado nunca vira "ok"** | — |
 | **R1 ✅** | **campos do fabricante em "Especificações Avançadas" da Biblioteca de gabinetes** (`Inventory.jsx`): altura voada/empilhada, gabinetes por barra, trava extra acima de N, tipo de trava e procedência (`fonte` + `conferido`) | — |
-| **R3** | seção **"Peso e ancoragens"** no Caderno + PDF: números, premissas declaradas, campos não informados, **checklist da §4** e box de segurança. Desenho aprovado — ver o mockup dos 3 estados. | Q2a/Q4 |
-| **R4** | painel no app (bumper/fixação/ancoragens/ângulo por Screen) | R3 |
+| **R3 ✅** | seção **"Peso e ancoragens"** no Caderno + PDF nativo: premissas declaradas, stats + tabela por tela, **a cadeia por tela**, avisos (acima / não informado / ferragem extra / sem peso), **checklist da §4** e box de escopo. Saiu como o mockup dos 3 estados. | — |
+| **R4** | painel no app (bumper/fixação/ancoragens/ângulo por Screen). O Caderno já lê `project.rigging` — a R4 é quem passa a escrever esse objeto; hoje a seção roda no `DEFAULT_RIG`. É também onde os `avisos` do motor (bumper mais estreito que o gabinete, altura do gabinete ausente) ganham lugar: no papel eles ficariam ruído. | Q4 |
 | **R5** | ~~ground support~~ **FORA DE ESCOPO** (§3.3) — sobra só o limite de empilhamento do fabricante em metros | — |
 | **R6** | pitch × distância no Aspect Ratio (independente, pode furar fila) | — |
 
@@ -289,7 +289,10 @@ Motor trivial; o valor está na UI, junto do Aspect Ratio.
 ## 9 · Estado ao fim da sessão de 25/07/2026
 
 Tudo vive na branch **`feat/rigging`** (empurrada pro GitHub). **Nada foi pra
-produção** — prod segue na v1.9.1. `npm test` 273 verdes, `eslint` limpo.
+produção** — prod segue na v1.9.1. `npm test` 296 verdes, `eslint` limpo.
+
+> **Atualização — R3 entregue.** A seção do Caderno saiu (ver §7). O que resta
+> da fase é a **R4** (painel no app) e os **dados reais** que só ele traz.
 
 ### O que já está construído
 
@@ -298,23 +301,26 @@ produção** — prod segue na v1.9.1. `npm test` 273 verdes, `eslint` limpo.
 | `src/services/rigging.js` | motor puro: peso, bumpers, ancoragens, carga na pior ancoragem, checagem contra a talha, **cadeia de limites do fabricante** (modo voado × empilhado, por barra, por altura), `elo` (quem trava primeiro), avisos de procedimento. 37 testes. |
 | `src/pages/Inventory.jsx` | os 6 campos de limite do fabricante no **Avançado** do gabinete, com procedência. |
 | `src/data/knowledge.js` | categoria **Estrutura** com 2 artigos (a conta + o checklist de montagem). |
+| `src/services/reportContent.js` | **o texto do papel**, compartilhado pelos dois renderizadores: `rigCadeia()` (a cadeia pronta pra desenhar), `rigTextoAcima()`, os avisos, o checklist e o glossário novo (Ancoragem, Bumper, Talha, WLL). Testado em `reportContent.test.js`. |
+| `ProjectRelatorio.jsx` + `pdf/pdfRelatorio.js` | a seção **"Peso e ancoragens"** nos dois cadernos (DOM e PDF nativo), tipos Completo e Estrutural. |
 | `docs/rigging-pesquisa.md` | a pesquisa de base e a triagem da pesquisa paralela. |
 | este arquivo | vocabulário, modelo, escopo, checklist de campo, fases, decisões. |
 
-### Como retomar (a R3)
+### Como mexer na seção sem quebrar o contrato
 
-A seção do Caderno é o próximo passo e **não depende de mais nenhuma decisão de
-arquitetura** — o desenho foi aprovado num mockup com 3 estados (com limites /
-sem limites / acima do limite) mais a tela de cadastro. Ordem sugerida:
+Ler §3 (escopo) e §4 (checklist) antes — são as regras que a seção obedece. E
+mais quatro, que os testes de `reportContent.test.js` seguram:
 
-1. Ler §3 (escopo) e §4 (checklist) deste arquivo — são as regras que a seção
-   tem que obedecer.
-2. `projectRigging()` já devolve tudo que a seção precisa; falta só o componente
-   de apresentação em `ProjectRelatorio.jsx` + o espelho no PDF nativo.
-3. Cor da disciplina **Estrutura: teal `#0f766e`** (as existentes em
-   `reportContent.js` — prod `#475569`, vídeo `#1d4ed8`, elétrica `#c2410c`).
-4. A seção chama **"Peso e ancoragens"**. Nunca "Rigging" (prometeria engenharia),
-   nunca "ponto" (é o ponto de talha da produção).
+1. **Ausência de dado nunca vira "ok".** Sem limite publicado a pílula é *não
+   informado* (cinza), nunca *dentro*. Sem peso de gabinete os campos saem "—" e
+   o total sai "(parcial)" — um `0 kg` num documento datado leria como fato.
+2. **Texto novo entra em `reportContent.js`, não no renderizador.** São dois
+   cadernos (DOM e PDF) desenhando a mesma coisa; texto duplicado diverge.
+3. **A seção chama "Peso e ancoragens".** Nunca "Rigging" (prometeria
+   engenharia), nunca "ponto" pra ancoragem — *ponto* é o ponto de talha que a
+   produção entrega. Cor da disciplina: **Estrutura teal `#0f766e`**.
+4. **No PDF, nada de `unbreakable`.** A cadeia flui entre páginas de propósito;
+   bloco alto demais some no pdfmake (já aconteceu com a Screen 2).
 
 ### O que destrava o resto
 
