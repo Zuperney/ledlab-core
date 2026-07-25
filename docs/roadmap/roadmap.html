@@ -231,7 +231,7 @@
         <li><span style="color:var(--good)">✅</span> <b>Persistência</b> — <i>resolvido:</i> IndexedDB + backup + sync na nuvem (v0.10–v0.12).</li>
         <li><span style="color:var(--good)">✅</span> <b>Testes</b> — <i>resolvido:</i> 113 testes (elétrico, cabeamento, projeto, crop, layout, cachês) + CI com <b>lint bloqueante</b> (v1.0.0).</li>
         <li><span style="color:var(--good)">✅</span> <b>Portas de sinal por "área"</b> — <i>resolvido (v1.1.0):</i> a régua de <b>pixels reais</b> (px/porta, 8/10-bit) virou padrão; a de área segue como opção pra controlador básico.</li>
-        <li><b>Sem rigging, sem distância de visão, sem orçamento</b> — o trio que falta pra fechar engenharia + negócio.</li>
+        <li><b>Sem distância de visão, sem orçamento</b> — o que falta pra fechar engenharia + negócio (peso e ancoragens entraram na v1.10.0).</li>
         <li><b>Preview do painel ainda é 2D</b> — a Composição (v0.20) já monta várias telas num render; falta a escala real e o 3D.</li>
         <li><b>Desktop (Electron)</b> — <i>fora do escopo (jul/2026):</i> o PWA atende bem o desktop.</li>
       </ul>
@@ -311,7 +311,7 @@
   <div class="phase-head">
     <div class="pnum num">02</div>
     <div>
-      <div class="ptrack">Profundidade de engenharia <span class="rel">v1.1 → v1.9 · em curso (3 de 5 · rigging iniciado)</span></div>
+      <div class="ptrack">Profundidade de engenharia <span class="rel">v1.1 → v1.10 · em curso (4 de 5 · falta o pitch × distância)</span></div>
       <h2>O cálculo que nenhum app de aluguel faz.</h2>
       <p class="theme">"Aqui mora o diferencial — engenharia de verdade, não só inventário."</p>
     </div>
@@ -332,11 +332,11 @@
         <span class="ref">ref. regra 10×, VAD 3438, altura×30</span></div>
     </div>
     <div class="card">
-      <h3>🚧 Rigging &amp; estrutura <span style="font-size:.62rem;font-family:var(--mono);color:var(--edge,#a78bfa);border:1px solid rgba(167,139,250,.4);border-radius:999px;padding:1px 8px;vertical-align:middle">iniciado 24/07</span></h3>
-      <p class="what"><b style="color:var(--txt2)">Ground pronto (em branch):</b> espeque de domínio (coluna/bumper/ponto/WLL — voado primeiro; ground support/vento na fase seguinte) + motor puro testado: peso por coluna → bumpers → carga por ponto no pior caso → sugestão de talha (250/500/1000/2000&nbsp;kg). UI e seção no Caderno aguardam as decisões de produto do espeque.</p>
-      <p class="why"><b>Por quê:</b> é o cálculo de maior risco em obra — segurança de gente e de equipamento.</p>
+      <h3>🚧 Peso e ancoragens <span style="font-size:.62rem;font-family:var(--mono);color:var(--edge,#a78bfa);border:1px solid rgba(167,139,250,.4);border-radius:999px;padding:1px 8px;vertical-align:middle">v1.10.0</span></h3>
+      <p class="what"><b style="color:var(--good)">Entregue (v1.10.0).</b> O app <b>REGISTRA</b>, não dimensiona: motor testado (peso por coluna → bumpers → carga na pior <b>ancoragem</b> → talha manual de 1&nbsp;t), <b>cadeia de limites do fabricante</b> (voado × empilhado, por barra, ferragem por altura), campos com <b>procedência</b> no cadastro do gabinete, a <b>seção no Caderno e no PDF</b> e 2 artigos de KB na categoria Estrutura. Regra dura: <b>ausência de dado nunca vira "ok"</b> — sai <i>não informado</i>. <b style="color:var(--txt2)">Falta:</b> painel no app por Screen e os pesos reais de bumper/fixação.</p>
+      <p class="why"><b>Por quê:</b> é o de maior risco em obra. O valor não é a conta — é o técnico saber o que está montando e ter base pra discordar quando algo estiver errado.</p>
       <div class="foot"><span class="prio"><span class="dot edge"></span>Diferencial</span><span class="badge-eff">G</span>
-        <span class="ref">ref. práticas de rigging (fator 5:1, carga de vento)</span></div>
+        <span class="ref">ref. WLL do fabricante (o fator de projeto já vem embutido) · fora de escopo: truss, vento, lastro</span></div>
     </div>
     <div class="card">
       <h3>✅ Catálogo de controladoras</h3>
@@ -504,7 +504,7 @@
 </section>
 
 <footer class="wrap">
-  <div style="color:var(--txt2);margin-bottom:10px"><b>Última atualização: 24/07/2026</b> — app na <b>v1.9.1</b>. O dia rendeu: <b>v1.6.0</b> página Equipamentos + catálogo certificado de controladoras · <b>v1.7.0–1.7.1</b> interface repaginada (refino mobile, modo SOL, gramática das 5 faixas) · <b>v1.8.0</b> o app vestiu a marca (manual + paleta lime/preto) · <b>v1.9.0</b> Caderno Técnico em <b>PDF nativo</b> (celular e offline) + backlog de campo · <b>v1.9.1</b> regra dos 80% padrão com faixa laranja + auditoria dos datasheets. Fase 01 concluída (v1.0.0); Fase 02 em curso (3 de 5 · <b>rigging iniciado</b>); Fase 03 iniciada (Reembolso e "Esta semana" entregues).</div>
+  <div style="color:var(--txt2);margin-bottom:10px"><b>Última atualização: 25/07/2026</b> — app na <b>v1.10.0</b>: o Caderno Técnico ganhou a seção <b>Peso e ancoragens</b> — o app registra o que a parede pesa e o que o fabricante publica como limite, e diz <i>não informado</i> quando o dado não existe (nunca "ok"). Véspera: <b>v1.6.0</b> página Equipamentos + catálogo certificado de controladoras · <b>v1.7.0–1.7.1</b> interface repaginada (refino mobile, modo SOL, gramática das 5 faixas) · <b>v1.8.0</b> o app vestiu a marca (manual + paleta lime/preto) · <b>v1.9.0</b> Caderno Técnico em <b>PDF nativo</b> (celular e offline) + backlog de campo · <b>v1.9.1</b> regra dos 80% padrão com faixa laranja + auditoria dos datasheets. Fase 01 concluída (v1.0.0); Fase 02 em curso (4 de 5 · falta o <b>pitch × distância</b>); Fase 03 iniciada (Reembolso e "Esta semana" entregues).</div>
   <div>Fundamentado em pesquisa de fabricantes (Novastar, Brompton), plataformas de locação (Rentman, Flex, Current RMS, Goodshuffle),
     ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first — combinada à leitura completa do código do LedLab Core.</div>
   <div class="srcs">

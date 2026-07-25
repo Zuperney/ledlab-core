@@ -2,6 +2,21 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.10.0] — 2026-07-25
+
+**Peso e ancoragens: o Caderno passa a registrar a estrutura.**
+
+O app não dimensiona rigging — quem dimensiona, monta e assina é o rigger habilitado. O que ele faz é **registrar**: o peso que a parede tem, quantas ancoragens ela pede, quanto carrega a pior delas, e o que o fabricante publica como limite. Documento datado, para levar pra produção e pra locadora.
+
+- **Seção "Peso e ancoragens" no Caderno Técnico e no PDF** (tipos Completo e Estrutural): premissas declaradas na cara (modo voado, içamento a prumo, talha, bumper, fixação), peso e ancoragens do projeto, tabela por tela e o checklist de campo.
+- **A cadeia — o que trava primeiro**: por tela, os limites do fabricante, a talha e o elo que o app não alcança (treliça e piso → confira com a produção). Com painel de evento quem trava quase nunca é a corrente, e o papel mostra isso.
+- **Limites do fabricante no cadastro do gabinete** (Gestão › Gabinetes › Especificações Avançadas): altura voada e empilhada, gabinetes por barra, trava extra acima de N, tipo de trava e **procedência** (de onde veio o dado e se foi conferido).
+- **Campo vazio nunca vira "ok"**: sem limite publicado o papel imprime **não informado**, nunca "dentro". Sem peso de gabinete, os campos saem em branco e o total sai "(parcial)" — um zero num documento datado leria como fato.
+- **Aviso quando a parede passa do limite**, nomeando o elo que estourou e a folga da talha — porque a saída errada seria trocar de talha.
+- **Base de Conhecimento, categoria Estrutura**: "Peso e ancoragens — como a conta é feita" e "Checklist de montagem — parede voada" (corrente livre, torção, gancho, nivelamento, içamento, ferragem por altura).
+
+296 testes.
+
 ## [1.9.1] — 2026-07-24
 
 **Elétrica mais segura + retoques de campo.**

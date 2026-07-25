@@ -10,7 +10,7 @@ De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma 
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
 **Horizonte:** v1.9 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
-**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (3 de 5 iniciativas-chave; rigging iniciado · v1.1→v1.9) · Fase 03 iniciada (Reembolso e "Esta semana" entregues).
+**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (4 de 5 iniciativas-chave; peso e ancoragens entregue · v1.1→v1.10) · Fase 03 iniciada (Reembolso e "Esta semana" entregues).
 
 ---
 
@@ -39,7 +39,7 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 - ✅ **Persistência** — *resolvido:* saiu do `localStorage` puro para IndexedDB + backup + **sync na nuvem** (v0.10–v0.12). Ver "Já entregue" abaixo.
 - ✅ **Testes** — *resolvido:* vitest no motor elétrico, cabeamento, projeto, crop, layout e cachês (**113 testes**) + CI a cada push, com **lint bloqueante** desde a v1.0.0.
 - ✅ **Portas de sinal por "área"** — *resolvido (v1.1.0):* a régua de **pixels reais** (px/porta, 8/10-bit, escalando com refresh) virou o padrão; a régua de área continua como opção pra controlador básico.
-- **Sem rigging, sem distância de visão, sem orçamento** — o trio que falta pra fechar a engenharia + o negócio.
+- **Sem distância de visão, sem orçamento** — o que falta pra fechar a engenharia + o negócio (o peso e as ancoragens entraram na v1.10.0).
 - **Preview do painel ainda é 2D** — a Composição (v0.20) monta várias telas num render; falta o 3D/previz da Fase 04.
 - ~~Desktop (Electron)~~ — **fora do escopo** (decisão de produto, jul/2026): o PWA atende o desktop; o empacotamento segue no repo, sem investimento.
 
@@ -89,6 +89,7 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **O app vestiu a marca** — Manual de Marca & Sistema (`docs/marca/`) + paleta led/lab (lime `#ebf51e` + preto) nos 3 ecossistemas: Palco (escuro), Sol (invertido) e Print (oliva) | 1 | **v1.8.0** |
 | **🟣 Caderno Técnico em PDF nativo** — "Baixar PDF" com capa, sumário, mapas de cabos vetoriais, uma página por Screen e fonte embutida; funciona no celular e **offline**. + rodada de refino do backlog de campo (Recibos, Energia, telas com Desfazer) | **3** | **v1.9.0** |
 | **🟣 Regra dos 80% padrão + auditoria elétrica** — margem de carga contínua como padrão, faixa **laranja** 80–100% (Cabeamento/Caderno/PDF) e potências da biblioteca-semente conferidas nos datasheets. + fix da barra de gesto do iPhone | **2** | **v1.9.1** |
+| **🟣 Peso e ancoragens no Caderno** — seção nova (Caderno + PDF) com peso da parede, bumpers, ancoragens e a **cadeia** do que trava primeiro; limites do fabricante com procedência no cadastro do gabinete; checklist de campo; categoria **Estrutura** na Base de Conhecimento. Campo vazio sai **não informado**, nunca "ok" | **3** | **v1.10.0** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -111,7 +112,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 
 ---
 
-## Fase 02 — Profundidade de engenharia · `v1.1 → v1.9` · **em curso** *(3 de 5 · rigging iniciado)*
+## Fase 02 — Profundidade de engenharia · `v1.1 → v1.10` · **em curso** *(4 de 5 · falta o pitch × distância)*
 **O cálculo que nenhum app de aluguel faz.** *Aqui mora o diferencial — engenharia de verdade, não só inventário.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
@@ -119,7 +120,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 | ✅ **Portas de dados reais (px/porta)** *(v1.1.0)* | 🟣 | M | **Feito:** nº de portas pela capacidade real do processador — 655.360 px/porta a 8-bit 60 Hz, 327.680 a 10-bit — escalando com refresh e bit-depth. A régua de área virou opção (controlador básico). Inclui o **canto de início da serpentina** (4 cantos × 2 direções = os 8 padrões do *Quick Connection* do NovaLCT), pro mapa casar com a montagem física. | capacidade de porta Novastar |
 | ✅ **Mapa de pixels exportável** *(v1.1.0)* | 🟣 | M | **Feito:** CSV com uma linha por gabinete (porta · ordem no cabo · coluna/linha · X/Y, origem sup-esq) + tabela de início por porta no relatório "Mapa de cabos". Modelo conferido **contra o NovaLCT real** (aba *Screen Connection*): bate 1:1 com o que o operador digita. **Gerar `.scr` binário foi descartado** — formato proprietário (`DSCI`+checksum), risco de desconfigurar parede em campo. | workflow Novastar/Brompton |
 | **Recomendador pitch × distância** | 🟣 | M | Dado o pitch (ou tamanho + distância), retorna distância mínima/ótima/máxima + VAD e sugere o pitch ideal. Expande a aba Aspect Ratio. *É a primeira pergunta de todo cliente — "de longe fica bom?".* **← próximo** | regra 10×, VAD 3438, altura×30 |
-| 🚧 **Rigging & estrutura** *(iniciado 2026-07-24)* | 🟣 | G | **Ground pronto (em branch):** espeque de domínio (`docs/rigging-spec.md` — coluna/bumper/ponto/WLL, voado primeiro; ground support/vento na fase seguinte) + motor puro testado (peso por coluna → bumpers → carga por ponto no pior caso → sugestão de talha 250/500/1000/2000 kg). **UI e seção no Caderno aguardam 5 decisões de produto** (spec §6). *É o cálculo de maior risco em obra.* | práticas de rigging |
+| 🚧 **Peso e ancoragens** *(ex-"Rigging & estrutura" · v1.10.0)* | 🟣 | G | **Entregue (v1.10.0):** o app **REGISTRA**, não dimensiona — motor testado (peso por coluna → bumpers → carga na pior **ancoragem** → talha manual de 1 t) + **cadeia de limites do fabricante** (voado × empilhado, por barra, ferragem por altura) + campos com **procedência** no cadastro do gabinete + a **seção no Caderno e no PDF** + 2 artigos de KB na categoria Estrutura. Regra dura: **ausência de dado nunca vira "ok"** — sai *não informado*. **Falta:** painel no app por Screen (R4) e os pesos reais de bumper/fixação. *Fora de escopo por decisão: truss, vento, lastro e a palavra "aprovado".* | `docs/rigging-spec.md` · WLL (o fator de projeto já está embutido — multiplicar de novo é fator sobre fator) |
 | ✅ **Catálogo de controladoras (ex-"Biblioteca de processadores")** *(v1.6.0)* | 🟣 | M | **Feito (1ª leva):** página **Equipamentos** (Gestão, desktop) com catálogo **certificado nos datasheets** (read-only — o usuário seleciona, não cadastra): séries **VX** (650.000 px/porta) e **MX/COEX** (659.722), com teto de carga do dispositivo (MX40 Pro = 9M px). "Verificar projeto": controladora por Screen → portas usadas × disponíveis, carga, resolução e a dica de Hz. **Próximas levas:** modulares (H9, MX2000/6000 Pro), Colorlight/Brompton, "Sending Card + Porta" no mapa de pixels. | datasheets NovaStar (acervo) |
 
 ---
@@ -188,4 +189,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-24 (v1.9.1 · Fase 02 em curso, rigging iniciado)._
+_Última atualização: 2026-07-25 (v1.10.0 · Fase 02 em curso — peso e ancoragens entregue; falta o pitch × distância)._
