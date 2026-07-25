@@ -4,6 +4,10 @@
 > Domínio mapeado + motor puro (`services/rigging.js`) com testes. UI e relatório
 > vêm depois das decisões que ainda faltam (§6).
 >
+> 📚 **Base de pesquisa:** [`rigging-pesquisa.md`](./rigging-pesquisa.md) — como o
+> mercado resolve, o que os fabricantes publicam (e em que unidade), regras de
+> cálculo e a proposta de fases revisada. **Leia antes de mexer no motor.**
+>
 > ⚠️ **Segurança:** tudo aqui é **planejamento de referência**. Carga suspensa sobre
 > pessoas é responsabilidade do **rigger habilitado** que dimensiona, monta e assina
 > o rigging do evento — o app nunca substitui esse papel (mesma postura do box de
