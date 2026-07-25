@@ -234,8 +234,9 @@ gabinete 500×500 mm · a regra dos conectores C acima de 8 de altura (MG6S).
 | Fase | Entrega | Trava |
 | --- | --- | --- |
 | **R0 ✅** | motor puro + testes; catálogo de bumper/fixação; talha 1 t manual | — |
-| **R1** | **campos por tela preenchidos pelo técnico** (limites do fabricante, peso medido, ângulo) + biblioteca identificada por fabricante+pitch+dimensão, com `fonte`/`conferido` | Q5 |
-| **R2** | motor: **cadeia de verificação** (limite por modo/barra/coluna) + avisos | R1 |
+| **R0.5 ✅** | **Base de Conhecimento: categoria Estrutura** com "Peso e pontos — como a conta é feita" e "Checklist de montagem — parede voada" (§4). Conhecimento antes da calculadora: não dependia de decisão nenhuma. | — |
+| **R2 ✅** | motor: **cadeia de verificação** — `limitesGabinete()` + `checaLimites()`, modo voado × empilhado, limite por barra, `elo` (quem trava primeiro), e **sem dado nunca vira "ok"** | — |
+| **R1** | **campos por tela preenchidos pelo técnico** (limites do fabricante, peso medido, ângulo) + biblioteca identificada por fabricante+pitch+dimensão, com `fonte`/`conferido` — a UI que alimenta a R2 | Q5 |
 | **R3** | seção **"Peso e pontos"** no Caderno + PDF: números, premissas declaradas, campos não informados, **checklist da §4** e box de segurança | Q2a/Q2b/Q4 |
 | **R4** | painel no app (bumper/fixação/pontos/ângulo por Screen) | R3 |
 | **R5** | ~~ground support~~ **FORA DE ESCOPO** (§3.3) — sobra só o limite de empilhamento do fabricante em metros | — |
