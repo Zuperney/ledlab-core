@@ -22,6 +22,7 @@
 | **Ponto** | onde o bumper pendura: talha de corrente, spanset na truss, olhal. |
 | **Talha** | a corrente que sobe a parede. **A frota é 100% talha MANUAL de 1 t** — não tem motor elétrico, a subida é na mão (afeta o texto do Caderno: não existe "descer no controle"). |
 | **WLL** | Working Load Limit — carga de trabalho da talha/acessório (o fator de projeto ~5:1 do fabricante **já está embutido** no WLL; nunca somar fator por cima do WLL, e nunca passar dele). |
+| **Trava (fast-lock)** | o fecho que prende gabinete em gabinete. **É o elo que quase sempre define o limite de empilhamento do fabricante** — não a talha. Dois tipos vistos em campo: **chaveta** (entra na ranhura) e **pino transversal** (gira e trava apoiando no fim de curso mecânico). |
 | **Enforcar a talha** | içar até o fim do curso, sem corrente livre entre o gancho de carga e o corpo. **Modo de falha real e observado** — ver §4.1. |
 | **Voado (flown)** | parede pendurada em pontos. É o escopo desta fase. |
 | **Ground support** | parede apoiada no chão com torre/lastro — **fora do escopo** (§3.3). |
@@ -47,12 +48,22 @@
 - **Checagem da talha**: `pctTalha = carga por ponto ÷ WLL`. `rigTone` espelha o elétrico — **> 80 % laranja, > 100 % vermelho**. Como a frota é só 1 t, não existe "escolher motor maior": ou cabe, ou divide a parede em mais pontos.
 - **Ângulo**: o motor assume içamento **a prumo** (θ = 0°). Fora da vertical a carga cresce por `1/cos θ` (45° = 1,41× · 60° = 2,00×). Enquanto não houver campo, o Caderno **declara a premissa**.
 
-### Catálogo da casa (frota real)
+### Catálogo de bumpers — semente, não verdade
 
-| Bumper | Largura | Colunas (gab. 500 mm) | Peso |
-| --- | --- | --- | --- |
-| Bumper 50 cm | 500 mm | 1 | ⚠️ 8 kg *(estimado)* |
-| Bumper 100 cm | 1000 mm | 2 | ⚠️ 14 kg *(estimado)* |
+**`pontos` é propriedade do BUMPER, não da largura.** Isso ficou provado pela
+própria frota: existe bumper de 50 cm com 1 ponto **e** bumper de 50 cm com 2
+pontos (o do 2.9 RGB Share). E no mercado existe viga de **2 gabinetes de 64 cm
+(1,28 m) com um ponto só** — bumper robusto, gabinete de 12 kg (ISD Lumen P10
+outdoor). Qualquer regra que derive pontos da largura está errada.
+
+Por isso o catálogo é **semente**: o técnico cadastra o bumper dele
+(`cfg.bumper` aceita objeto solto com `larguraMm`, `pontos`, `pesoKg`).
+
+| Bumper (semente) | Largura | Pontos | Colunas (gab. 500 mm) | Peso |
+| --- | --- | --- | --- | --- |
+| 50 cm · 1 ponto | 500 mm | 1 | 1 | ⚠️ 8 kg *(estimado)* |
+| 50 cm · 2 pontos | 500 mm | 2 | 1 | ⚠️ 8 kg *(estimado)* |
+| 100 cm · 2 pontos | 1000 mm | 2 | 2 | ⚠️ 14 kg *(estimado)* |
 
 | Fixação | Acessórios | Peso no ponto |
 | --- | --- | --- |
@@ -60,8 +71,9 @@
 | Ilhó + cinta + manilha | cinta de carga, manilha | ⚠️ 5 kg *(estimado)* |
 
 Os pesos ⚠️ são **placeholder** (`estimado: true`) até a pesagem real; enquanto
-estiverem assim o motor devolve aviso e o Caderno rotula como estimativa. A lista
-de acessórios por fixação é o embrião da picking list da locadora.
+estiverem assim o motor devolve aviso e o Caderno rotula como estimativa. Bumper
+cadastrado pelo técnico **sem peso** também nasce `estimado`. A lista de acessórios
+por fixação é o embrião da picking list da locadora.
 
 ---
 
@@ -249,13 +261,18 @@ Motor trivial; o valor está na UI, junto do Aspect Ratio.
   lastro e estai **fora**. Sem backend — é aritmética sobre dado local.
 - **Q7 — Origem do dado (25/07):** o **técnico preenche**; o app não supõe; vazio
   imprime "não informado".
+- **Q2b — Pontos por bumper (25/07): É PROPRIEDADE DO BUMPER, e o bumper é
+  cadastrável.** Frota: 50 cm → 1 ponto · 100 cm → 2 pontos · 50 cm do 2.9 RGB
+  Share → 2 pontos. Mercado: viga de 2 gabinetes de 64 cm → 1 ponto. `pontos`
+  virou campo do catálogo; `pontosPorBumper` na config só sobrescreve à mão.
 
 ### ⏳ Ainda faltam
 
 - **Q2a — Pesos reais:** bumper de 50 e de 100 cm, e o conjunto de fixação.
   Balança de gancho resolve.
-- **Q2b — Pontos por bumper:** o de 100 cm sobe em 1 ponto ou 2? Corta a carga por
-  ponto pela metade — é o número mais sensível da fase.
+- **Q9 — Tipo de trava:** vale registrar no gabinete qual é (chaveta × pino
+  transversal)? Não entra em conta nenhuma, mas é **o elo que define o limite de
+  empilhamento** — e saber qual é diz o que inspecionar antes de subir.
 - **Q3 — Utilização do WLL:** implementado = teto duro no WLL cheio + laranja acima
   de 80%. Confirmar, ou 80% como teto duro?
 - **Q4 — Onde mora a UI:** abas do projeto estão "infladas". Sugestão: começar pelo

@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
-  sugereTalha, riggingTela, projectRigging, colunasNoBumper, rigTone,
+  sugereTalha, riggingTela, projectRigging, colunasNoBumper, rigTone, resolveBumper,
   BUMPERS, FIXACOES, TALHAS_KG, DEFAULT_RIG,
 } from "./rigging.js";
 
 // gabinete padrão dos testes: 8 kg, 500 mm de largura (strings, como o app guarda)
 const GAB = { peso: "8", dimW: "500" };
 const TELA = { cols: 5, rows: 5, gabinete: GAB };
-// com os padrões (bumper 100 cm = 14 kg, fixação cinta = 5 kg/ponto):
-// pesoColuna 40 · colunasPorBumper 2 · bumpers 3 · carga/ponto 2×40+14+5 = 99
+// com os padrões (bumper 100 cm = 14 kg / 2 pontos, fixação cinta = 5 kg/ponto):
+// pesoColuna 40 · colunasPorBumper 2 · bumpers 3 · pontos 6
+// carga/ponto = (2×40 + 14) ÷ 2 + 5 = 52
 
 describe("sugereTalha", () => {
   it("a frota é 1 t: aguenta até 1000 kg no ponto", () => {
@@ -55,14 +56,15 @@ describe("rigTone", () => {
 });
 
 describe("riggingTela", () => {
-  it("tela 5×5 de 8 kg com os padrões (bumper 100 cm + cinta)", () => {
+  it("tela 5×5 de 8 kg com os padrões (bumper 100 cm de 2 pontos + cinta)", () => {
     const r = riggingTela(TELA);
     expect(r.pesoColuna).toBe(40); // 5 × 8
     expect(r.colunasPorBumper).toBe(2); // derivado: 1000 mm ÷ 500 mm
     expect(r.bumpers).toBe(3); // ceil(5/2)
-    expect(r.pontos).toBe(3);
-    // pior caso: bumper cheio (2 colunas) + bumper 14 kg + cinta/manilha 5 kg
-    expect(r.cargaPorPonto).toBe(2 * 40 + 14 + 5);
+    expect(r.pontosPorBumper).toBe(2); // vem do bumper, não da config
+    expect(r.pontos).toBe(6);
+    // pior caso: bumper cheio (2 colunas) + bumper 14 kg, dividido em 2 pontos, + cinta
+    expect(r.cargaPorPonto).toBe((2 * 40 + 14) / 2 + 5);
     expect(r.talhaWLL).toBe(1000);
     expect(r.talha).toBe(1000);
     expect(r.tone).toBe("ok");
@@ -71,12 +73,20 @@ describe("riggingTela", () => {
     expect(r.empilhaOk).toBeNull(); // sem maxRows configurado
   });
 
-  it("bumper de 50 cm dobra a quantidade de vigas e pontos", () => {
+  it("bumper de 50 cm de 1 ponto: mais vigas, 1 talha cada", () => {
     const r = riggingTela(TELA, { bumperId: "b50" });
     expect(r.colunasPorBumper).toBe(1);
     expect(r.bumpers).toBe(5);
     expect(r.pontos).toBe(5);
     expect(r.cargaPorPonto).toBe(40 + 8 + 5); // 1 coluna + bumper 8 kg + cinta
+  });
+
+  it("mesma largura, 2 pontos: o 50 cm do 2.9 RGB Share reparte a carga", () => {
+    const umPonto = riggingTela(TELA, { bumperId: "b50" });
+    const doisPontos = riggingTela(TELA, { bumperId: "b50p2" });
+    expect(doisPontos.bumpers).toBe(umPonto.bumpers); // mesma largura, mesmas vigas
+    expect(doisPontos.pontos).toBe(10);
+    expect(doisPontos.cargaPorPonto).toBe((40 + 8) / 2 + 5); // metade da viga + acessórios
   });
 
   it("fixação por algema/garra pesa menos no ponto que cinta+manilha", () => {
@@ -86,16 +96,32 @@ describe("riggingTela", () => {
     expect(garra.fixacao.acessorios).toContain("Algema/garra");
   });
 
-  it("2 pontos por bumper repartem a carga da viga (acessórios são por ponto)", () => {
-    const r = riggingTela(TELA, { pontosPorBumper: 2 });
-    expect(r.pontos).toBe(6);
-    expect(r.cargaPorPonto).toBe((2 * 40 + 14) / 2 + 5);
+  it("config sobrescreve os pontos do bumper quando o técnico manda", () => {
+    const r = riggingTela(TELA, { bumperId: "b100", pontosPorBumper: 1 });
+    expect(r.pontos).toBe(3);
+    expect(r.cargaPorPonto).toBe(2 * 40 + 14 + 5); // viga inteira num ponto só
+  });
+
+  it("bumper solto do técnico: 2 gabinetes de 64 cm num ponto só (caso ISD Lumen P10)", () => {
+    // gabinete pesado (12 kg) de 640 mm, viga robusta de 1,28 m com 1 ponto
+    const gab = { peso: "12", dimW: "640" };
+    const r = riggingTela({ cols: 6, rows: 8, gabinete: gab }, {
+      bumper: { nome: "Bumper 2 gabinetes", larguraMm: 1280, pontos: 1, pesoKg: 25 },
+      fixacao: "garra",
+    });
+    expect(r.colunasPorBumper).toBe(2); // 1280 ÷ 640
+    expect(r.bumpers).toBe(3);
+    expect(r.pontos).toBe(3); // 1 ponto por viga
+    expect(r.pesoColuna).toBe(96); // 8 × 12
+    expect(r.cargaPorPonto).toBe(2 * 96 + 25 + 3); // 220 kg num ponto só
+    expect(r.tone).toBe("ok"); // ainda folgado na talha de 1 t
+    expect(r.bumper.nome).toBe("Bumper 2 gabinetes");
   });
 
   it("tela mais estreita que o bumper não conta coluna fantasma", () => {
     const r = riggingTela({ cols: 1, rows: 5, gabinete: GAB });
     expect(r.bumpers).toBe(1);
-    expect(r.cargaPorPonto).toBe(1 * 40 + 14 + 5); // só 1 coluna existe
+    expect(r.cargaPorPonto).toBe((1 * 40 + 14) / 2 + 5); // só 1 coluna existe, em 2 pontos
   });
 
   it("gabinete mais largo que o bumper avisa", () => {
@@ -114,8 +140,8 @@ describe("riggingTela", () => {
   });
 
   it("atenção: entre 80% e 100% do WLL", () => {
-    // 2 colunas × 11 gabinetes × 40 kg = 880 + 14 + 5 = 899 kg → 89,9%
-    const r = riggingTela({ cols: 4, rows: 11, gabinete: { peso: "40", dimW: "500" } });
+    // (2 colunas × 880 kg + 14) ÷ 2 pontos + 5 = 892 kg → 89,2% do WLL
+    const r = riggingTela({ cols: 4, rows: 11, gabinete: { peso: "80", dimW: "500" } });
     expect(r.tone).toBe("warn");
     expect(r.over).toBe(false);
   });
@@ -138,7 +164,7 @@ describe("projectRigging", () => {
     const r = projectRigging(p);
     expect(r.telas).toHaveLength(2);
     expect(r.totalKg).toBe(242 + (2 * 16 + 1 * 14)); // 242 + 46
-    expect(r.pontos).toBe(3 + 1);
+    expect(r.pontos).toBe(6 + 2); // 2 pontos por bumper de 100 cm
     expect(r.bumpers).toBe(3 + 1);
     expect(r.algumOver).toBe(false);
     expect(r.tone).toBe("ok");
@@ -151,10 +177,27 @@ describe("projectRigging", () => {
     expect(projectRigging({})).toMatchObject({ totalKg: 0, pontos: 0, algumOver: false, tone: "ok" });
   });
   it("catálogo e defaults batem com a frota do espeque", () => {
-    expect(BUMPERS.map((b) => b.larguraMm)).toEqual([500, 1000]);
+    expect(BUMPERS.map((b) => [b.larguraMm, b.pontos])).toEqual([[500, 1], [500, 2], [1000, 2]]);
     expect(FIXACOES.map((f) => f.id)).toEqual(["garra", "cinta"]);
     expect(TALHAS_KG).toEqual([1000]); // talhas manuais de 1 t
     expect(DEFAULT_RIG.colunasPorBumper).toBeNull(); // derivado da largura
+    expect(DEFAULT_RIG.pontosPorBumper).toBeNull(); // vem do bumper
     expect(DEFAULT_RIG.talhaWLL).toBe(1000);
+  });
+});
+
+describe("resolveBumper", () => {
+  it("objeto do técnico ganha do catálogo", () => {
+    const b = resolveBumper({ bumperId: "b50", bumper: { nome: "Meu", larguraMm: 640, pontos: 2, pesoKg: 11 } });
+    expect(b).toMatchObject({ nome: "Meu", larguraMm: 640, pontos: 2, pesoKg: 11, estimado: false });
+  });
+  it("bumper do técnico sem peso fica marcado como estimado", () => {
+    expect(resolveBumper({ bumper: { larguraMm: 500, pontos: 1 } }).estimado).toBe(true);
+  });
+  it("pontos nunca ficam abaixo de 1", () => {
+    expect(resolveBumper({ bumper: { larguraMm: 500, pontos: 0 } }).pontos).toBe(1);
+  });
+  it("sem nada, cai no padrão do catálogo", () => {
+    expect(resolveBumper({}).id).toBe("b50");
   });
 });

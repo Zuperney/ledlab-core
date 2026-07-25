@@ -19,15 +19,36 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// ── Catálogo de bumpers da casa ──
-// ⚠️ pesoKg com `estimado: true` = PLACEHOLDER esperando a pesagem real da frota;
+// ── Catálogo de bumpers ──
+// `pontos` é PROPRIEDADE DO BUMPER, não da largura: a frota tem bumper de 50 cm
+// com 1 ponto E bumper de 50 cm com 2 pontos (o do 2.9 RGB Share); e existe no
+// mercado bumper de 2 gabinetes de 64 cm com 1 ponto só. Por isso o catálogo é
+// semente — o técnico cadastra o dele (cfg.bumper aceita objeto solto).
+// ⚠️ pesoKg com `estimado: true` = PLACEHOLDER esperando a pesagem real;
 // o Caderno tem que rotular como estimativa enquanto estiver assim.
 export const BUMPERS = [
-  { id: "b50", nome: "Bumper 50 cm", larguraMm: 500, pesoKg: 8, estimado: true },
-  { id: "b100", nome: "Bumper 100 cm", larguraMm: 1000, pesoKg: 14, estimado: true },
+  { id: "b50", nome: "Bumper 50 cm · 1 ponto", larguraMm: 500, pontos: 1, pesoKg: 8, estimado: true },
+  { id: "b50p2", nome: "Bumper 50 cm · 2 pontos", larguraMm: 500, pontos: 2, pesoKg: 8, estimado: true },
+  { id: "b100", nome: "Bumper 100 cm · 2 pontos", larguraMm: 1000, pontos: 2, pesoKg: 14, estimado: true },
 ];
 
 export const getBumper = (id) => BUMPERS.find((b) => b.id === id) || BUMPERS[0];
+
+// bumper do cálculo: objeto solto do técnico (cfg.bumper) > id do catálogo > padrão
+export function resolveBumper(cfg = {}) {
+  if (cfg.bumper && typeof cfg.bumper === "object") {
+    const b = cfg.bumper;
+    return {
+      id: b.id || "custom",
+      nome: b.nome || "Bumper do técnico",
+      larguraMm: num(b.larguraMm),
+      pontos: Math.max(1, Math.trunc(num(b.pontos)) || 1),
+      pesoKg: num(b.pesoKg),
+      estimado: b.estimado !== false && !(num(b.pesoKg) > 0),
+    };
+  }
+  return getBumper(cfg.bumperId);
+}
 
 // ── Fixação do bumper no ponto ──
 // `kgPorPonto` = massa dos acessórios que sobem junto (entra na carga da talha).
@@ -63,10 +84,11 @@ export function rigTone(pct) {
 }
 
 export const DEFAULT_RIG = {
-  bumperId: "b100", // 100 cm = 2 colunas de gabinete 500 mm
+  bumperId: "b100", // 100 cm = 2 colunas de gabinete 500 mm, 2 pontos
+  bumper: null, // objeto solto do técnico; se vier, ganha do bumperId
   fixacao: "cinta",
   colunasPorBumper: null, // null = DERIVA da largura do bumper ÷ largura do gabinete
-  pontosPorBumper: 1, // 1 talha por bumper
+  pontosPorBumper: null, // null = usa os pontos do próprio bumper (é propriedade dele)
   talhaWLL: TALHA_PADRAO_KG,
   extraKgPorPonto: 0, // extras da casa além dos acessórios da fixação
   utilizacao: 1, // fração do WLL admitida como limite DURO (o aviso de 80% vem do rigTone)
@@ -95,7 +117,7 @@ export function sugereTalha(cargaKg, utilizacao = 1, talhas = TALHAS_KG) {
 // o último bumper pode carregar menos colunas, mas a talha se escolhe pro cheio.
 export function riggingTela(tela, cfg = {}) {
   const c = { ...DEFAULT_RIG, ...cfg };
-  const bumper = getBumper(c.bumperId);
+  const bumper = resolveBumper(c);
   const fix = getFixacao(c.fixacao);
   const cols = Math.max(0, Math.trunc(num(tela?.cols)));
   const rows = Math.max(0, Math.trunc(num(tela?.rows)));
@@ -105,7 +127,8 @@ export function riggingTela(tela, cfg = {}) {
 
   const colunasPorBumper = colunasNoBumper(bumper.larguraMm, larguraGab, c.colunasPorBumper);
   const bumpers = cols > 0 ? Math.ceil(cols / colunasPorBumper) : 0;
-  const pontosPorBumper = Math.max(1, Math.trunc(num(c.pontosPorBumper)) || 1);
+  // pontos vêm do bumper; cfg.pontosPorBumper só existe pra sobrescrever à mão
+  const pontosPorBumper = Math.max(1, Math.trunc(num(c.pontosPorBumper)) || bumper.pontos || 1);
   const pontos = bumpers * pontosPorBumper;
 
   const cargaBumperCheio = Math.min(cols, colunasPorBumper) * pesoColuna + bumper.pesoKg;
