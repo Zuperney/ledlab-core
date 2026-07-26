@@ -17,7 +17,7 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasFilaSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, portLabel, videoOf } from "../reportContent.js";
-import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigCadeia, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../reportContent.js";
+import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../reportContent.js";
 import { projectRigging } from "../rigging.js";
 import { acTone } from "../electricalCalc.js";
 
@@ -162,12 +162,13 @@ function noteBox({ titulo, partes }) {
   };
 }
 
-// linhas da CADEIA de verificação: sem cabeçalho, zebra contínua, pílula à direita
+// linhas da CADEIA de verificação: cabeçalho (repetido se a tabela quebrar de
+// página), zebra contínua e a pílula à direita
 const cadeiaLayout = {
-  hLineWidth: (i, node) => (i === 0 || i === node.table.body.length ? 0.6 : 0.4),
-  hLineColor: () => PRINT.line,
+  hLineWidth: (i, node) => (i === 1 ? 1.2 : i === 0 || i === node.table.body.length ? 0.6 : 0.4),
+  hLineColor: (i) => (i === 1 ? PRINT.ink : PRINT.line),
   vLineWidth: () => 0,
-  fillColor: (row) => (row % 2 ? ZEBRA : null),
+  fillColor: (row) => (row > 0 && row % 2 === 0 ? ZEBRA : null),
   paddingTop: () => 4, paddingBottom: () => 4, paddingLeft: () => 8, paddingRight: () => 8,
 };
 
@@ -194,7 +195,7 @@ const coverRow = (label, value, { bold = false, first = false } = {}) => ({
   ],
 });
 
-export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerado, numbering = "row-tb-lr", palette, render }) {
+export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerado, numbering = "row-tb-lr", palette, render, cabs = [] }) {
   const pal = Array.isArray(palette) && palette.length ? palette : PALETTE;
   const colorOf = (i) => pal[(((i | 0) % pal.length) + pal.length) % pal.length];
   // render do mapa (setas/números/tamanho/canto) — mesmas prefs do DOM
@@ -249,7 +250,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
   const showGloss = tipo === "Completo";
   // ESTRUTURA (F2) — mesmos tipos do Caderno DOM
   const showRig = ["Completo", "Estrutural"].includes(tipo) && telas.length > 0;
-  const rp = showRig ? projectRigging(project, project.rigging || {}) : null;
+  // `cabs`: limite do fabricante vem VIVO da biblioteca (o snapshot da tela é reserva)
+  const rp = showRig ? projectRigging(project, project.rigging || {}, cabs) : null;
 
   const usaScreens = hasScreens(project);
   const screenReport = usaScreens && showSignal ? projectScreenReport(project, "sinal", numbering) : [];
@@ -417,12 +419,15 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
         },
         layout: zebraLayout(),
       },
-      // uma CADEIA por tela — o gabinete e a grade mudam, o elo que trava muda junto.
-      // SEM unbreakable: bloco alto que não cabe vira página em branco no pdfmake.
-      ...rp.telas.flatMap(({ tela: t, rig }, i) => {
-        const travaExtra = rig.limites.travaExtraAcima != null && rig.rows > rig.limites.travaExtraAcima;
+      // uma CADEIA por GRUPO de telas que contam a mesma história (rigGrupos):
+      // 6 telas iguais viravam 6 blocos idênticos e estouravam a seção em páginas.
+      // SEM unbreakable: bloco alto que não cabe vira página em branco no pdfmake —
+      // por isso a tabela da cadeia leva headerRows, pra quebra inevitável repetir
+      // o cabeçalho em vez de sair decapitada.
+      ...rigGrupos(rp.telas).flatMap((g, i) => {
+        const { rig, travaExtra, cadeia } = g;
         return [
-          subHead(`${S}.${i + 1}`, t.nome, `${rig.cols}×${rig.rows} · ${t.gabinete?.nome || "sem gabinete"}`),
+          subHead(`${S}.${i + 1}`, rigGrupoTitulo(g), rigGrupoMeta(g)),
           ...(rig.limiteAcima ? [warnBox({ titulo: "Acima do limite do fabricante", partes: rigTextoAcima(rig) }, "red")] : []),
           ...(rig.limiteSemDado ? [warnBox(RIG_SEM_DADO)] : []),
           ...(travaExtra ? [warnBox({
@@ -432,17 +437,21 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
               { t: " É regra que muda a ferragem, não o número — confira o manual e o material separado pela locadora." },
             ],
           })] : []),
-          { text: "A CADEIA — O QUE TRAVA PRIMEIRO", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 6, 0, 3] },
           {
             table: {
+              headerRows: 1,
               widths: ["*", "auto", "auto"],
-              body: rigCadeia(rig, t.gabinete?.nome).map((e) => [
-                { stack: [{ text: e.titulo, bold: true, fontSize: 8.5 }, { text: e.sub, fontSize: 7, color: PRINT.dim, margin: [0, 1, 0, 0] }] },
-                mono(e.valor, { alignment: "right", fontSize: 8, color: PRINT.mut }),
-                { text: e.pill.toUpperCase(), bold: true, fontSize: 7.5, color: RIG_C[e.status], alignment: "right", characterSpacing: 0.4 },
-              ]),
+              body: [
+                [th("A cadeia — o que trava primeiro"), th("Valor", "right"), th("Situação", "right")],
+                ...cadeia.map((e) => [
+                  { stack: [{ text: e.titulo, bold: true, fontSize: 8.5 }, { text: e.sub, fontSize: 7, color: PRINT.dim, margin: [0, 1, 0, 0] }] },
+                  mono(e.valor, { alignment: "right", fontSize: 8, color: PRINT.mut }),
+                  { text: e.pill.toUpperCase(), bold: true, fontSize: 7.5, color: RIG_C[e.status], alignment: "right", characterSpacing: 0.4 },
+                ]),
+              ],
             },
             layout: cadeiaLayout,
+            margin: [0, 6, 0, 0],
           },
         ];
       }),

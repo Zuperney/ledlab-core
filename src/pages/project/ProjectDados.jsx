@@ -5,6 +5,7 @@ import { newScreen } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import { useCabinets } from "../../hooks/useCabinets.js";
+import { fullSnapshot } from "../../services/cabinets.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { T } from "../../ui/tokens.js";
 import { card, input, label, btn, iconBtn, dangerIconBtn } from "../../ui/styles.js";
@@ -133,7 +134,11 @@ export default function ProjectDados({ project, patch, patchTela }) {
                     <label style={label}>Gabinete</label>
                     <Select value={t.cabId ?? ""} title="Gabinete" onChange={(e) => {
                       const c = cabs.find((x) => String(x.id) === e.target.value);
-                      patchTela(t.id, { cabId: c?.id ?? null, gabinete: c ? { nome: c.nome, resX: c.resX, resY: c.resY, dimW: c.dimW, dimH: c.dimH, peso: c.peso, pwrMax: c.pwrMax, pwrMed: c.pwrMed, fp: c.fp, conector: c.conector } : {} });
+                      // SEMPRE `fullSnapshot` — esta linha já teve uma lista branca
+                      // própria, mais curta, que engolia pwrBlack/ip/brilho/
+                      // receivingCard/rigging ao TROCAR o gabinete da tela. Uma
+                      // fonte só de snapshot; campo novo entra lá e vale aqui.
+                      patchTela(t.id, { cabId: c?.id ?? null, gabinete: fullSnapshot(c) || {} });
                     }} style={input()}>
                       {cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </Select>

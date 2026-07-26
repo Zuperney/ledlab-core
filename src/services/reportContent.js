@@ -30,6 +30,15 @@ export const videoOf = (t) => {
   return { pxW, pxH, mp: (pxW * pxH) / 1e6, ar: arSimple || `${dec}:1`, dec, pitch };
 };
 
+// Tamanho do NOME do projeto na capa, em cqi (1cqi = 1% da largura da capa).
+// A capa impressa tem 186 mm úteis de altura (A4 paisagem, margem 12 mm) e o
+// corpo dela já ocupa ~177. Em 13.5cqi cabem ~12 caracteres por linha, então um
+// nome comum de 20 quebrava em duas linhas e a capa ia pra uma SEGUNDA PÁGINA no
+// Imprimir do navegador (231,8 mm medidos). O título encolhe pra caber — mesmo
+// princípio do PDF nativo (LLC-01), que já fazia isso e o DOM não.
+// ~171 = largura útil ÷ avanço médio da grotesca bold com letter-spacing -0.035em.
+export const capaNomeCqi = (nome) => Math.max(5.5, Math.min(13.5, 171 / Math.max((nome || "").length || 1, 1)));
+
 // glossário do caderno técnico (leitor leigo/cliente) — termos que aparecem no doc
 export const GLOSSARIO = [
   { t: "Pico × Típico", d: "Pico = branco pleno, dimensiona disjuntor e cabo. Típico = consumo médio real do conteúdo, estima energia e gerador." },
@@ -107,6 +116,34 @@ export function rigCadeia(rig, gabNome = "") {
   linhas.push({ id: "fim", titulo: RIG_ELO_FIM.titulo, sub: RIG_ELO_FIM.sub, valor: "", status: "semDado", pill: "confira com a produção" });
   return linhas;
 }
+
+// AGRUPA telas que contam a MESMA história. A cadeia é propriedade do gabinete e
+// da geometria, não da tela: num caderno real, 6 telas ×14 do mesmo painel geraram
+// 6 blocos byte a byte iguais — mais 6 avisos repetidos. Isso não é informação, é
+// ruído: estica a seção e faz o conteúdo virar página à toa.
+// Agrupa por CONTEÚDO renderizado — bloco novo só quando diz algo diferente.
+export function rigGrupos(telasRig) {
+  const out = [];
+  const idx = new Map();
+  for (const { tela, rig } of telasRig) {
+    const gabNome = tela?.gabinete?.nome || "";
+    const cadeia = rigCadeia(rig, gabNome);
+    const travaExtra = rig.limites?.travaExtraAcima != null && rig.rows > rig.limites.travaExtraAcima;
+    const chave = JSON.stringify([gabNome, travaExtra, cadeia.map((e) => [e.titulo, e.sub, e.valor, e.pill])]);
+    const achado = idx.get(chave);
+    if (achado) { achado.telas.push(tela); continue; }
+    const grupo = { telas: [tela], rig, gabNome, cadeia, travaExtra };
+    idx.set(chave, grupo);
+    out.push(grupo);
+  }
+  return out;
+}
+
+// título do grupo: os nomes das telas que ele cobre (o leitor precisa saber a
+// QUAIS paredes aquela cadeia se aplica) e, à direita, a grade quando é uma só
+export const rigGrupoTitulo = (g) => g.telas.map((t) => t.nome || "sem nome").join(" · ");
+export const rigGrupoMeta = (g) =>
+  (g.telas.length === 1 ? `${g.rig.cols}×${g.rig.rows}` : `${g.telas.length} telas · mesma cadeia`) + (g.gabNome ? ` · ${g.gabNome}` : "");
 
 // status do LIMITE de uma tela, pro resumo da tabela (o pior manda)
 export const rigStatusTela = (rig) => (rig.limiteAcima ? "acima" : rig.limiteSemDado ? "semDado" : "ok");

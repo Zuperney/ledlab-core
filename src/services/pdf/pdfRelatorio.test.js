@@ -206,6 +206,34 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).toContain("(parcial)");
   });
 
+  // REGRESSÃO ponta a ponta: o técnico cadastra o limite na Biblioteca e o
+  // Caderno de um projeto ANTIGO (snapshot sem `rigging`) tem que refletir.
+  it("limite cadastrado na Biblioteca chega no Caderno de projeto já existente", () => {
+    const cabVivo = { ...gab, id: 42, rigging: { voadoMaxM: 2, porBarraMaxQtd: 4, fonte: "Manual Absen", conferido: true } };
+    const proj = { ...project, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, cabId: 42, gabinete: gab }] }; // snapshot SEM rigging
+    const semLib = JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Estrutural", cfg, logo: null }).content);
+    expect(semLib).toContain("NÃO INFORMADO");
+
+    const comLib = JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Estrutural", cfg, logo: null, cabs: [cabVivo] }).content);
+    expect(comLib).toContain("Manual Absen · conferido"); // a procedência aparece
+    expect(comLib).toContain("ACIMA DO LIMITE DO FABRICANTE"); // e o limite passa a valer
+  });
+
+  it("telas com a mesma cadeia rendem UM bloco só (não 6 iguais)", () => {
+    const seis = Array.from({ length: 6 }, (_, i) => ({ id: `t${i}`, nome: `Lateral ${i + 1}`, cols: 4, rows: 6, gabinete: gab }));
+    const j = JSON.stringify(buildRelatorioDoc({ project: { ...project, telas: seis }, tipo: "Estrutural", cfg, logo: null }).content);
+    expect(j.match(/A cadeia — o que trava primeiro/gi)?.length).toBe(1);
+    expect(j.match(/LIMITE DE EMPILHAMENTO NÃO INFORMADO/g)?.length).toBe(1);
+    expect(j).toContain("Lateral 1 · Lateral 2"); // mas nomeia todas as paredes cobertas
+    expect(j).toContain("6 telas · mesma cadeia");
+  });
+
+  it("a tabela da cadeia repete o cabeçalho se quebrar de página", () => {
+    const j = JSON.stringify(build("Estrutural").content);
+    expect(j).toContain('"headerRows":1');
+    expect(j).toContain("A CADEIA — O QUE TRAVA PRIMEIRO");
+  });
+
   it("o checklist de campo e o aviso de escopo viajam junto com os números", () => {
     const j = JSON.stringify(build("Estrutural").content);
     expect(j).toContain("ANTES DE SUBIR");

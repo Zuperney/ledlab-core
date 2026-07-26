@@ -16,8 +16,9 @@ import { hasScreens, projectScreenReport, telasSemScreen } from "../../services/
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, fmtPeso, portLabel, videoOf } from "../../services/reportContent.js";
-import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigCadeia, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../../services/reportContent.js";
+import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../../services/reportContent.js";
 import { projectRigging } from "../../services/rigging.js";
+import { useCabinets } from "../../hooks/useCabinets.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
@@ -36,6 +37,7 @@ const DOC_W = 800;
 
 export default function ProjectRelatorio({ project }) {
   const { prefs } = useLedLabContext();
+  const { cabs } = useCabinets();
   const { colorOf, palette } = useCablePalette();
   const isMobile = useIsMobile();
   const [type, setType] = useState("Completo");
@@ -65,7 +67,7 @@ export default function ProjectRelatorio({ project }) {
     setGerandoPdf(true);
     try {
       const { baixarRelatorioPdf } = await import("../../services/pdf/pdfEngine.js");
-      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette, render: prefs.cablingRender });
+      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette, render: prefs.cablingRender, cabs });
       toast("PDF gerado");
     } catch (e) {
       console.error(e);
@@ -83,7 +85,10 @@ export default function ProjectRelatorio({ project }) {
   // seção inteira com cadeia e checklist, não cabe num resumo. A config do
   // içamento vem do projeto (a R4 é quem vai escrever `project.rigging`).
   const showRig = ["Completo", "Estrutural"].includes(type) && telas.length > 0;
-  const rp = showRig ? projectRigging(project, project.rigging || {}) : null;
+  // `cabs` entra pro limite do fabricante vir VIVO da biblioteca: o snapshot da
+  // tela congela o que se sabia na criação, e o limite publicado é fato sobre o
+  // modelo — confirmar o número hoje tem que valer pro caderno de ontem.
+  const rp = showRig ? projectRigging(project, project.rigging || {}, cabs) : null;
 
   const th = { textAlign: "left", padding: "6px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase" };
   const td = { padding: "6px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
@@ -224,12 +229,12 @@ export default function ProjectRelatorio({ project }) {
               </tbody>
             </table>
 
-            {/* uma CADEIA por tela: o gabinete e a grade mudam, então o elo que trava muda junto */}
-            {rp.telas.map(({ tela: t, rig }, i) => {
-              const travaExtra = rig.limites.travaExtraAcima != null && rig.rows > rig.limites.travaExtraAcima;
+            {/* uma CADEIA por GRUPO de telas que contam a mesma história (rigGrupos) */}
+            {rigGrupos(rp.telas).map((g, i) => {
+              const { rig, travaExtra, cadeia } = g;
               return (
-                <div key={t.id} className="rp-block" style={telaBlock}>
-                  <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${rig.cols}×${rig.rows} · ${t.gabinete?.nome || "sem gabinete"}`} />
+                <div key={i} className="rp-block" style={telaBlock}>
+                  <SubHead n={`${S}.${i + 1}`} title={rigGrupoTitulo(g)} right={rigGrupoMeta(g)} />
                   {rig.limiteAcima && <WarnBox title="Acima do limite do fabricante" tone="red">{rigTextoAcima(rig).map((p, k) => (p.b ? <b key={k}>{p.t}</b> : <span key={k}>{p.t}</span>))}</WarnBox>}
                   {rig.limiteSemDado && <WarnBox title={RIG_SEM_DADO.titulo} tone="amber">{RIG_SEM_DADO.partes.map((p, k) => (p.b ? <b key={k}>{p.t}</b> : <span key={k}>{p.t}</span>))}</WarnBox>}
                   {travaExtra && (
@@ -239,7 +244,7 @@ export default function ProjectRelatorio({ project }) {
                   )}
                   <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", margin: "10px 0 6px" }}>A cadeia — o que trava primeiro</div>
                   <div style={{ border: `1px solid ${PRINT.line}`, borderRadius: 8, overflow: "hidden" }}>
-                    {rigCadeia(rig, t.gabinete?.nome).map((e, k) => (
+                    {cadeia.map((e, k) => (
                       <div key={e.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "7px 12px", borderTop: k ? `1px solid ${PRINT.line}` : undefined, background: k % 2 ? "#f8f8f8" : "transparent" }}>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: PRINT.ink }}>{e.titulo}</div>

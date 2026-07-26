@@ -168,7 +168,12 @@ export function sugereTalha(cargaKg, utilizacao = 1, talhas = TALHAS_KG) {
 
 // rigging de UMA tela voada. Carga por ancoragem = PIOR caso (bumper cheio) —
 // o último bumper pode carregar menos colunas, mas a talha se escolhe pro cheio.
-export function riggingTela(tela, cfg = {}) {
+// `cabLive` = o gabinete VIVO da biblioteca (casado por `tela.cabId`). O peso e as
+// dimensões continuam vindo do SNAPSHOT da tela — são a decisão de projeto e não
+// podem mudar sozinhas. Já o LIMITE do fabricante é fato sobre o MODELO: quando o
+// técnico finalmente confirma o número no manual, isso tem que valer pro caderno
+// que ele emitiu mês passado. Sem `cabLive`, cai no snapshot.
+export function riggingTela(tela, cfg = {}, cabLive = null) {
   const c = { ...DEFAULT_RIG, ...cfg };
   const bumper = resolveBumper(c);
   const fix = getFixacao(c.fixacao);
@@ -201,7 +206,7 @@ export function riggingTela(tela, cfg = {}) {
   const alturaGabMm = num(tela?.gabinete?.dimH);
   const alturaM = (rows * alturaGabMm) / 1000;
   const gabPorBarra = Math.min(cols, colunasPorBumper) * rows;
-  const limites = limitesGabinete(tela?.gabinete);
+  const limites = limitesGabinete(cabLive?.rigging ? cabLive : tela?.gabinete);
   const checks = cols > 0 && rows > 0
     ? checaLimites({ rows, alturaM, gabPorBarra, modo, limites })
     : [];
@@ -238,9 +243,14 @@ export function riggingTela(tela, cfg = {}) {
   };
 }
 
-// projeto inteiro (telas voadas): uma linha por tela + totais
-export function projectRigging(project, cfg = {}) {
-  const telas = (project?.telas || []).map((t) => ({ tela: t, rig: riggingTela(t, cfg) }));
+// projeto inteiro (telas voadas): uma linha por tela + totais.
+// `cabs` = biblioteca de gabinetes, pro limite do fabricante vir vivo (ver riggingTela).
+export function projectRigging(project, cfg = {}, cabs = []) {
+  const porId = new Map((cabs || []).filter((c) => c && c.id != null).map((c) => [String(c.id), c]));
+  const telas = (project?.telas || []).map((t) => ({
+    tela: t,
+    rig: riggingTela(t, cfg, porId.get(String(t?.cabId)) || null),
+  }));
   const totalKg = telas.reduce((s, r) => s + r.rig.totalKg, 0);
   const ancoragens = telas.reduce((s, r) => s + r.rig.ancoragens, 0);
   const bumpers = telas.reduce((s, r) => s + r.rig.bumpers, 0);

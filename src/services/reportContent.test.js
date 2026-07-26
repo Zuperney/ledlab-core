@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rigCadeia, rigStatusTela, rigTextoAcima, eloTalhaStatus, nRig, RIG_PILL, DISC, CHECK_SUBIR, AVISO_RIG } from "./reportContent.js";
+import { rigCadeia, rigStatusTela, rigTextoAcima, eloTalhaStatus, nRig, RIG_PILL, DISC, CHECK_SUBIR, AVISO_RIG, rigGrupos, rigGrupoTitulo, rigGrupoMeta, capaNomeCqi } from "./reportContent.js";
 import { riggingTela } from "./rigging.js";
 
 // O texto da seção "Peso e ancoragens" é COMPARTILHADO entre o Caderno do DOM e
@@ -64,6 +64,43 @@ describe("cadeia de verificação no Caderno (rigCadeia)", () => {
   });
 });
 
+// Num caderno real, 6 telas do mesmo painel com a mesma altura geraram 6 blocos
+// byte a byte iguais (mais 6 avisos repetidos) — ruído que estica a seção e joga
+// o conteúdo pra virar página. A cadeia é do gabinete + geometria, não da tela.
+describe("agrupamento de telas com a mesma cadeia (rigGrupos)", () => {
+  const t = (id, nome, cols, rows, gabinete) => ({ tela: { id, nome, gabinete }, rig: riggingTela({ cols, rows, gabinete }) });
+
+  it("telas que contam a mesma história viram UM bloco, listando todas", () => {
+    const g = rigGrupos([t("a", "SIDE LEFT 01", 24, 14, comLimite), t("b", "SIDE LEFT 02", 24, 14, comLimite), t("c", "Tela 6", 6, 14, comLimite)]);
+    expect(g).toHaveLength(1);
+    expect(g[0].telas).toHaveLength(3);
+    expect(rigGrupoTitulo(g[0])).toBe("SIDE LEFT 01 · SIDE LEFT 02 · Tela 6");
+    expect(rigGrupoMeta(g[0])).toContain("3 telas");
+  });
+
+  it("altura diferente = cadeia diferente = bloco separado", () => {
+    const g = rigGrupos([t("a", "Lateral", 24, 14, comLimite), t("b", "MAIN STAGE", 50, 16, comLimite)]);
+    expect(g).toHaveLength(2);
+    expect(rigGrupoTitulo(g[1])).toBe("MAIN STAGE");
+  });
+
+  it("gabinete diferente = bloco separado, mesmo com a mesma grade", () => {
+    expect(rigGrupos([t("a", "A", 24, 14, comLimite), t("b", "B", 24, 14, GAB)])).toHaveLength(2);
+  });
+
+  it("tela sozinha mostra a grade no cabeçalho; grupo mostra a contagem", () => {
+    const [um] = rigGrupos([t("a", "Única", 24, 14, comLimite)]);
+    expect(rigGrupoMeta(um)).toContain("24×14");
+    expect(um.cadeia.length).toBeGreaterThan(0);
+    expect(um.travaExtra).toBe(false);
+  });
+
+  it("preserva a ordem das telas do projeto", () => {
+    const g = rigGrupos([t("a", "Primeira", 50, 16, comLimite), t("b", "Segunda", 24, 14, comLimite)]);
+    expect(g.map((x) => rigGrupoTitulo(x))).toEqual(["Primeira", "Segunda"]);
+  });
+});
+
 describe("status e textos da seção", () => {
   it("rigStatusTela: acima manda sobre semDado, que manda sobre ok", () => {
     expect(rigStatusTela(tela(comLimite))).toBe("ok");
@@ -78,6 +115,21 @@ describe("status e textos da seção", () => {
     expect(txt).toContain("trocar de talha não resolve");
     expect(txt).toContain("% do WLL"); // mostra a folga da corrente pra provar o ponto
     expect(txt).toContain("3 m contra 2 m publicados"); // e nomeia o número que estourou
+  });
+
+  // REGRESSÃO: com 13.5cqi fixo, um nome de 20 caracteres quebrava em 2 linhas e
+  // jogava a CAPA pra uma segunda página no Imprimir do navegador (231,8 mm
+  // medidos contra 186 mm úteis do A4 paisagem).
+  it("capaNomeCqi: nome curto fica grande, nome comum encolhe pra caber numa linha", () => {
+    expect(capaNomeCqi("AD Summit")).toBe(13.5); // 9 caracteres: no teto
+    expect(capaNomeCqi("Ademicom Summit 2026")).toBeCloseTo(8.55, 2); // 20: encolheu
+    expect(capaNomeCqi("Ademicom Summit 2026")).toBeLessThan(13.5);
+  });
+
+  it("capaNomeCqi: tem piso (nome gigante não vira letra ilegível) e aguenta vazio", () => {
+    expect(capaNomeCqi("x".repeat(200))).toBe(5.5);
+    expect(capaNomeCqi("")).toBe(13.5);
+    expect(capaNomeCqi(null)).toBe(13.5);
   });
 
   it("nRig: inteiro sem casa, quebrado com vírgula (papel em pt-BR)", () => {

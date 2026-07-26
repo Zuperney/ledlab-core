@@ -188,6 +188,44 @@ describe("projectRigging", () => {
     const p = { telas: [TELA, { cols: 4, rows: 20, gabinete: { peso: "60", dimW: "500" } }] };
     expect(projectRigging(p)).toMatchObject({ algumOver: true, tone: "over" });
   });
+  // REGRESSÃO: o limite do fabricante tem que vir VIVO da biblioteca. O snapshot
+  // da tela congela o que se sabia na criação; quando o técnico finalmente
+  // confirma o número no manual, isso precisa valer pro caderno já emitido.
+  describe("limite do fabricante vem da biblioteca viva", () => {
+    const telaVelha = { id: "t1", cabId: 9, cols: 6, rows: 14, gabinete: { ...GAB, dimH: "500" } }; // snapshot SEM rigging
+    const cabAtual = { id: 9, rigging: { voadoMaxM: 10, porBarraMaxQtd: 20, fonte: "Manual Absen", conferido: true } };
+
+    it("tela antiga (snapshot sem limites) passa a enxergar o que foi cadastrado depois", () => {
+      const semCabs = projectRigging({ telas: [telaVelha] });
+      expect(semCabs.telas[0].rig.limiteSemDado).toBe(true); // era isso que saía no Caderno
+
+      const comCabs = projectRigging({ telas: [telaVelha] }, {}, [cabAtual]);
+      const r = comCabs.telas[0].rig;
+      expect(r.limites.voadoMaxM).toBe(10);
+      expect(r.limites.fonte).toBe("Manual Absen");
+      expect(r.checks.find((k) => k.id === "voadoM").status).toBe("ok"); // 7 m de 10
+    });
+
+    it("casa por cabId mesmo com id numérico × string", () => {
+      const r = projectRigging({ telas: [{ ...telaVelha, cabId: "9" }] }, {}, [cabAtual]);
+      expect(r.telas[0].rig.limites.voadoMaxM).toBe(10);
+    });
+
+    it("gabinete apagado da biblioteca: cai no snapshot, não perde o que a tela guardou", () => {
+      const telaComSnap = { ...telaVelha, cabId: 99, gabinete: { ...GAB, dimH: "500", rigging: { voadoMaxM: 4 } } };
+      const r = projectRigging({ telas: [telaComSnap] }, {}, [cabAtual]);
+      expect(r.telas[0].rig.limites.voadoMaxM).toBe(4);
+      expect(r.telas[0].rig.limiteAcima).toBe(true); // 7 m de 4
+    });
+
+    it("peso e dimensão continuam do SNAPSHOT — projeto não muda sozinho se a biblioteca mudar", () => {
+      const cabMaisPesado = { id: 9, peso: "999", dimH: "9000", rigging: cabAtual.rigging };
+      const r = projectRigging({ telas: [telaVelha] }, {}, [cabMaisPesado]);
+      expect(r.telas[0].rig.pesoGab).toBe(8); // o do snapshot (GAB), não 999
+      expect(r.telas[0].rig.alturaM).toBe(7); // 14 × 500 mm do snapshot
+    });
+  });
+
   it("projeto vazio", () => {
     expect(projectRigging({})).toMatchObject({ totalKg: 0, ancoragens: 0, algumOver: false, tone: "ok" });
   });

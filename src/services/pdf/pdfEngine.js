@@ -51,16 +51,16 @@ async function logoDataUrl() {
 }
 
 // baixa o Caderno em PDF (nome de arquivo no padrão do app)
-export async function baixarRelatorioPdf({ project, tipo, cfg, gerado, numbering, palette, render }) {
+export async function baixarRelatorioPdf({ project, tipo, cfg, gerado, numbering, palette, render, cabs }) {
   const logo = await logoDataUrl();
-  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, gerado, numbering, palette, render });
+  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, gerado, numbering, palette, render, cabs });
   await pdfMake.createPdf(doc).download(fileName([project.name, "caderno", tipo], "pdf"));
 }
 
 // gera um blob-URL (pra pré-visualizar/verificar sem baixar)
-export async function relatorioPdfUrl({ project, tipo, cfg, gerado, numbering, palette, render }) {
+export async function relatorioPdfUrl({ project, tipo, cfg, gerado, numbering, palette, render, cabs }) {
   const logo = await logoDataUrl();
-  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, gerado, numbering, palette, render });
+  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, gerado, numbering, palette, render, cabs });
   const blob = await pdfMake.createPdf(doc).getBlob();
   return URL.createObjectURL(blob);
 }

@@ -3,6 +3,7 @@
 // tabela com barra de %, chips). Documento CLARO (tokens PRINT), pronto pra impressão.
 // Direto ao ponto — rótulos curtos, sem jargão inflado.
 import { PRINT } from "../../ui/tokens.js";
+import { capaNomeCqi } from "../../services/reportContent.js";
 import ledlabSquare from "../../assets/ledlab-square.png";
 
 // tipos da CAPA (Folha Técnica) — grotesca + mono, à la cânone técnico
@@ -31,6 +32,9 @@ export function ReportCover({ docType, name, meta, generated, config }) {
 // breakAfter:page → o conteúdo começa na página seguinte. É a "capa".
 export function ReportCoverPage({ docType, name, fields = [], generated, stats = [] }) {
   const docNo = (name || "").toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 22);
+  // título auto-encolhe pra capa não virar duas páginas no Imprimir do
+  // navegador — a regra (e o porquê) vive em services/reportContent.js
+  const nomeSize = capaNomeCqi(name);
   // outer = container de query (inline-size); inner usa cqi → escala com a largura do doc
   return (
     <div style={{ breakAfter: "page", pageBreakAfter: "always", containerType: "inline-size" }}>
@@ -42,7 +46,7 @@ export function ReportCoverPage({ docType, name, fields = [], generated, stats =
         </div>
 
         {/* nome + acento lime */}
-        <div style={{ fontSize: "13.5cqi", lineHeight: 0.9, fontWeight: 800, letterSpacing: "-0.035em", margin: "2.4cqi 0 0" }}>{name}</div>
+        <div style={{ fontSize: `${nomeSize.toFixed(2)}cqi`, lineHeight: 0.9, fontWeight: 800, letterSpacing: "-0.035em", margin: "2.4cqi 0 0" }}>{name}</div>
         <div style={{ height: "0.3cqi", width: "22cqi", background: "#ebf51e", margin: "1.5cqi 0 0" }} />
 
         {/* dados: EVENTO (esq) | SPECS (dir), empilhados com pipes hairline */}
