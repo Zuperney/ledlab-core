@@ -2,6 +2,17 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.10.1] — 2026-07-25
+
+**Correção da v1.10.0: os limites do fabricante não chegavam no Caderno.**
+
+- **O que você cadastrava não aparecia.** Os campos de estrutura existiam no cadastro do gabinete, mas o dado se perdia no caminho até o projeto — a seção "Peso e ancoragens" saía sempre como *não informado*. Agora chega. E o **limite passou a ser lido da Biblioteca**, não da cópia congelada no projeto: confirmar o número no manual hoje vale para o caderno que você emitiu mês passado.
+- **Trocar o gabinete de uma tela** deixou de perder consumo no preto, classe IP, brilho e receiving card — eram descartados em silêncio.
+- **Seção mais curta**: telas que contam a mesma história (mesmo painel, mesma altura) agora dividem um bloco só, nomeando todas as paredes que ele cobre. Seis telas iguais rendiam seis blocos idênticos.
+- **Capa não quebra mais em duas páginas** no Imprimir do navegador: o nome do projeto encolhe para caber, como o PDF nativo já fazia.
+
+315 testes.
+
 ## [1.10.0] — 2026-07-25
 
 **Peso e ancoragens: o Caderno passa a registrar a estrutura.**
