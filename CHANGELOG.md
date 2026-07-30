@@ -2,9 +2,20 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
-## [Não publicado]
+## [1.11.0] — 2026-07-30
 
-**A seção de estrutura só registra fato: o dimensionamento de bumpers e talha saiu.**
+**Overclock de porta, link único entre telas e logo do projeto — e a estrutura só registra fato.**
+
+### Cabeamento
+
+- **Overclock por Screen** (botão ⏫ no mapa de Sinal + interruptor no Avançado): a conta de gabinetes por porta passa a arredondar **pra cima** (30,3 → 31) — divisão exata não muda. Porta acima de 100% **por escolha** sai **laranja** com o % real; vermelho fica só pro estouro além disso. O Caderno e o PDF declaram a premissa ("Overclock ligado"), e a validação de controladoras em Equipamentos conta as portas novas. Base de Conhecimento: seção "Overclock: esticar a porta" — teste no ensaio, não descubra no show.
+- **Link único entre telas da mesma Screen**: o automático completa uma tela inteira antes de pular pra próxima — no máximo **1 cabo** cruza entre telas (antes a serpentina cruzava o vão a cada faixa). Na régua de **Área**, bloco retangular **nunca atravessa vão**: telas afastadas não geram mais cabos cruzando o palco nem % inflada pelo vão (porta de 18 gab marcava mais que porta de 24). Telas encostadas continuam um painel só.
+
+### Caderno Técnico
+
+- **Logo do projeto**: campo novo na aba Dados (upload, preview, remover). Sai na capa do Caderno — tela e PDF — no lugar da marca do app.
+
+### Estrutura — o dimensionamento de bumpers e talha saiu
 
 Os números de bumpers, ancoragens, carga por ancoragem e % da talha dependiam de um catálogo **estimado** da casa — e estimativa impressa num documento datado lê como fato. Decisão do dono (30/07): o app registra o que é aritmética sobre dado real e devolve o dimensionamento a quem assina, o rigger.
 
