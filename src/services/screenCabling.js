@@ -12,7 +12,7 @@
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
 import { cableMeta, cablePorts, balancedChunks, buildAuto } from "./cabling.js";
 import { acTone } from "./electricalCalc.js";
-import { canvasCells, snakeCellsPorTela, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
+import { canvasCells, snakeCellsPorTela, clusterTelas, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
 import { screenTelas, screenOfTela, unassignedTelas, screenSize } from "./screens.js";
 
 const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
@@ -70,7 +70,11 @@ export function screenAutoPorts(screen, telas, kind = "sinal", numbering = "row-
       ports.push(...balancedChunks(snakeCellsPorTela(group, routing, corner), budget));
     } else {
       const strategy = ["linha", "coluna", "area"].includes(cfg.strategy) ? cfg.strategy : "area";
-      ports.push(...blockPorts(group, tela, budget, strategy, routing, corner, numbering));
+      // blocos por AGLOMERADO de telas encostadas: bloco retangular nunca
+      // atravessa VÃO — o retângulo cobraria o vão na régua de área e o cabo
+      // cruzaria o palco. Telas encostadas continuam um painel só.
+      for (const cluster of clusterTelas(group))
+        ports.push(...blockPorts(cluster, tela, budget, strategy, routing, corner, numbering));
     }
   }
   return orderCanvasPorts(ports, numbering);

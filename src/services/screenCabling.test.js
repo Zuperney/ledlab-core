@@ -92,6 +92,32 @@ describe("link único entre telas (serpentina tela-a-tela)", () => {
     expect(s.filter((p) => p.cruza).length).toBeLessThanOrEqual(1);
   });
 
+  it("régua de ÁREA: bloco nunca atravessa o vão — nem cabo cruzando, nem % engolindo o vão", () => {
+    // 2 telas 4×6 do mesmo modelo, empilhadas com VÃO vertical (o caso do print:
+    // portas cruzavam "Tela 7 → SIDE RIGHT 01" e 18 gab marcava % MAIOR que 24 gab)
+    const tA = mk("a", gabTira, 4, 6, "A"), tB = mk("b", gabTira, 4, 6, "B");
+    const sc = { id: "sv", nome: "V", telaIds: ["a", "b"], pos: { a: { x: 0, y: 0 }, b: { x: 0, y: 3000 } },
+      sinal: { rule: "area", strategy: "coluna" } }; // coluna = pior caso (bloco varava as duas telas)
+    const s = screenPortSummary(sc, [tA, tB]);
+    expect(s.some((p) => p.cruza)).toBe(false); // nenhum cabo cruza o vão
+    // mesma contagem de gabinetes → mesmo % (o vão não é cobrado em porta nenhuma)
+    const porCount = new Map();
+    for (const p of s) {
+      if (porCount.has(p.count)) expect(p.pct).toBe(porCount.get(p.count));
+      porCount.set(p.count, p.pct);
+    }
+    expect(s.reduce((n, p) => n + p.count, 0)).toBe(48); // cobertura total
+  });
+
+  it("régua de ÁREA: telas ENCOSTADAS continuam um painel só (blocos podem dividir)", () => {
+    const tA = mk("a", gabTira, 4, 6, "A"), tB = mk("b", gabTira, 4, 6, "B");
+    const enc = { id: "se", nome: "E", telaIds: ["a", "b"], pos: { a: { x: 0, y: 0 }, b: { x: 512, y: 0 } },
+      sinal: { rule: "area", strategy: "linha" } };
+    const s = screenPortSummary(enc, [tA, tB]);
+    expect(s.reduce((n, p) => n + p.count, 0)).toBe(48);
+    expect(s.some((p) => p.cruza)).toBe(true); // linha atravessa as duas — sem vão, sem custo
+  });
+
   it("telas afastadas: a corrente completa uma tela e cruza o vão UMA vez", () => {
     const tA = mk("a", gabTira, 5, 2, "A"), tB = mk("b", gabTira, 5, 2, "B");
     const sc = { id: "sx", nome: "X", telaIds: ["a", "b"], pos: { a: { x: 0, y: 0 }, b: { x: 5000, y: 0 } }, sinal: { rule: "px", strategy: "auto" } };

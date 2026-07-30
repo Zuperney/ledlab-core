@@ -92,6 +92,40 @@ export function snakeCellsPorTela(cells, routing = "updown", corner = "bl") {
   return groups.flatMap((group) => snakeCells(group, routing, corner));
 }
 
+// Aglomerados de telas ENCOSTADAS: telas cujas caixas se tocam (vão zero) formam
+// um painel contínuo e podem dividir os mesmos blocos; VÃO entre caixas separa
+// aglomerados — um bloco retangular que atravessasse o vão cobraria o vão na
+// régua de área E viraria cabo cruzando o palco. Devolve listas de cells.
+export function clusterTelas(cells) {
+  const byTela = new Map();
+  for (const c of cells) {
+    if (!byTela.has(c.telaId)) byTela.set(c.telaId, []);
+    byTela.get(c.telaId).push(c);
+  }
+  const grupos = [...byTela.values()];
+  if (grupos.length <= 1) return grupos;
+  const bbox = (arr) => {
+    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+    for (const c of arr) { x1 = Math.min(x1, c.x); y1 = Math.min(y1, c.y); x2 = Math.max(x2, c.x + c.w); y2 = Math.max(y2, c.y + c.h); }
+    return { x1, y1, x2, y2 };
+  };
+  const boxes = grupos.map(bbox);
+  const toca = (a, b) => a.x1 <= b.x2 + 1 && b.x1 <= a.x2 + 1 && a.y1 <= b.y2 + 1 && b.y1 <= a.y2 + 1;
+  // union-find simples sobre as telas
+  const pai = grupos.map((_, i) => i);
+  const raiz = (i) => (pai[i] === i ? i : (pai[i] = raiz(pai[i])));
+  for (let i = 0; i < grupos.length; i++)
+    for (let j = i + 1; j < grupos.length; j++)
+      if (toca(boxes[i], boxes[j])) pai[raiz(i)] = raiz(j);
+  const out = new Map();
+  grupos.forEach((g, i) => {
+    const r = raiz(i);
+    if (!out.has(r)) out.set(r, []);
+    out.get(r).push(...g);
+  });
+  return [...out.values()];
+}
+
 // retângulo circunscrito da porta, em pixels de canvas — é o que a régua de ÁREA
 // cobra quando o Free Topology está desligado.
 export function portBboxPx(port) {

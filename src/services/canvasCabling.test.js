@@ -1,6 +1,6 @@
 // canvasCabling.test.js — a corrente atravessando telas no canvas do processador.
 import { describe, it, expect } from "vitest";
-import { canvasCells, snakeCells, snakeCellsPorTela, canvasPorts, portBboxPx, orderCanvasPorts } from "./canvasCabling.js";
+import { canvasCells, snakeCells, snakeCellsPorTela, clusterTelas, canvasPorts, portBboxPx, orderCanvasPorts } from "./canvasCabling.js";
 import { packByModel } from "./layout.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -107,6 +107,36 @@ describe("snakeCellsPorTela — o link entre telas é no máximo 1", () => {
   it("tela única cai na serpentina normal", () => {
     const uma = telaCells("a", 0);
     expect(snakeCellsPorTela(uma, "updown", "bl")).toEqual(snakeCells(uma, "updown", "bl"));
+  });
+});
+
+describe("clusterTelas — telas encostadas são um painel; vão separa", () => {
+  const telaCells = (telaId, x0, y0 = 0) => [
+    { x: x0, y: y0 }, { x: x0 + 100, y: y0 }, { x: x0, y: y0 + 100 }, { x: x0 + 100, y: y0 + 100 },
+  ].map((c) => ({ ...c, w: 100, h: 100, telaId }));
+
+  it("telas encostadas (vão zero) viram um aglomerado só", () => {
+    const clusters = clusterTelas([...telaCells("a", 0), ...telaCells("b", 200)]);
+    expect(clusters.length).toBe(1);
+    expect(clusters[0].length).toBe(8);
+  });
+
+  it("vão entre telas separa os aglomerados", () => {
+    const clusters = clusterTelas([...telaCells("a", 0), ...telaCells("b", 1000)]);
+    expect(clusters.length).toBe(2);
+    for (const c of clusters) expect(new Set(c.map((x) => x.telaId)).size).toBe(1);
+  });
+
+  it("encadeia por transitividade: a encosta em b, b encosta em c → um painel", () => {
+    const cells = [...telaCells("a", 0), ...telaCells("b", 200), ...telaCells("c", 400), ...telaCells("longe", 5000)];
+    const clusters = clusterTelas(cells).map((c) => new Set(c.map((x) => x.telaId)));
+    expect(clusters.length).toBe(2);
+    expect(clusters.find((s) => s.size === 3)).toBeTruthy(); // a+b+c
+  });
+
+  it("vão vertical também separa (telas empilhadas afastadas)", () => {
+    expect(clusterTelas([...telaCells("cima", 0, 0), ...telaCells("baixo", 0, 2000)]).length).toBe(2);
+    expect(clusterTelas([...telaCells("cima", 0, 0), ...telaCells("baixo", 0, 200)]).length).toBe(1);
   });
 });
 
