@@ -177,44 +177,64 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(JSON.stringify(build("Elétrico").content)).not.toContain('"toc"');
   });
 
-  // ── R3: Peso e ancoragens ──
-  // O contrato do papel: a seção registra peso e ancoragens; nunca promete
-  // engenharia e nunca transforma ausência de dado em folga.
-  it("Peso e ancoragens: seção 02, logo depois da Visão Geral, na cor da Estrutura", () => {
+  // ── Peso e estrutura ──
+  // O contrato do papel: a seção registra peso e checa limite publicado; nunca
+  // promete engenharia e nunca transforma ausência de dado em folga.
+  it("Peso e estrutura: seção 02, logo depois da Visão Geral, na cor da Estrutura", () => {
     const j = JSON.stringify(build("Completo").content);
-    expect(j).toContain("02  ·  PESO E ANCORAGENS");
+    expect(j).toContain("02  ·  PESO E ESTRUTURA");
     expect(j).toContain("#0f766e"); // teal da disciplina Estrutura
     expect(j).not.toContain("RIGGING"); // a seção nunca se chama assim
   });
 
   it("sai no Completo e no Estrutural; fica fora do Elétrico e do Resumido", () => {
-    expect(JSON.stringify(build("Estrutural").content)).toContain("PESO E ANCORAGENS");
-    expect(JSON.stringify(build("Elétrico").content)).not.toContain("PESO E ANCORAGENS");
-    expect(JSON.stringify(build("Resumido").content)).not.toContain("PESO E ANCORAGENS");
+    expect(JSON.stringify(build("Estrutural").content)).toContain("PESO E ESTRUTURA");
+    expect(JSON.stringify(build("Elétrico").content)).not.toContain("PESO E ESTRUTURA");
+    expect(JSON.stringify(build("Resumido").content)).not.toContain("PESO E ESTRUTURA");
+  });
+
+  it("toggle `mostrar: false` tira a seção do Completo — mas o Estrutural mostra sempre", () => {
+    const proj = { ...project, rigging: { mostrar: false } };
+    expect(JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Completo", cfg, logo: null }).content)).not.toContain("PESO E ESTRUTURA");
+    expect(JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Estrutural", cfg, logo: null }).content)).toContain("PESO E ESTRUTURA");
+  });
+
+  it("montagem sentada: a tag muda e a cadeia checa a altura empilhada", () => {
+    const gabLim = { ...gab, rigging: { voadoMaxM: 10, empilhadoMaxM: 6, fonte: "Manual", conferido: true } };
+    const proj = { ...project, rigging: { modo: "empilhado" }, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: gabLim }] };
+    const j = JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Estrutural", cfg, logo: null }).content);
+    expect(j).toContain("PAREDE SENTADA"); // o sectionHead põe a tag em caixa alta
+    expect(j).toContain("Empilhamento no piso · altura");
+    expect(j).not.toContain("Trava entre gabinetes · altura voada");
+    expect(j).not.toContain("ANTES DE SUBIR"); // checklist é da parede voada
   });
 
   it("gabinete sem limite de fabricante: imprime NÃO INFORMADO, nunca 'dentro'", () => {
     const j = JSON.stringify(build("Estrutural").content); // o gab do teste não tem rigging
     expect(j).toContain("NÃO INFORMADO");
-    expect(j).toContain("LIMITE DE EMPILHAMENTO NÃO INFORMADO");
+    expect(j).toContain("LIMITE DO FABRICANTE NÃO INFORMADO");
     expect(j).toContain("sem dado de fabricante");
     expect(j).not.toContain("DENTRO");
   });
 
-  it("acima do limite: aviso VERMELHO que nomeia o elo e desarma a troca de talha", () => {
+  it("acima do limite: aviso VERMELHO que nomeia o elo e desarma a saída errada", () => {
     const gabLim = { ...gab, rigging: { voadoMaxM: 2, porBarraMaxQtd: 4, fonte: "Datasheet", conferido: true } };
     const j = JSON.stringify(buildRelatorioDoc({ project: { ...project, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: gabLim }] }, tipo: "Estrutural", cfg, logo: null }));
     expect(j).toContain("ACIMA DO LIMITE DO FABRICANTE");
     expect(j).toContain("#b91c1c"); // borda vermelha do aviso (PRINT.red)
-    expect(j).toContain("trocar de talha não resolve");
+    expect(j).toContain("ferragem não resolve");
   });
 
   it("gabinete sem peso: campos em branco e aviso — a seção não inventa um zero", () => {
     const semPeso = { ...gab, peso: "" };
-    const doc = buildRelatorioDoc({ project: { ...project, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: semPeso }] }, tipo: "Estrutural", cfg, logo: null });
+    const telas = [
+      { id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: semPeso },
+      { id: "t2", nome: "Side", cols: 4, rows: 6, gabinete: gab }, // esta tem peso
+    ];
+    const doc = buildRelatorioDoc({ project: { ...project, telas }, tipo: "Estrutural", cfg, logo: null });
     const j = JSON.stringify(doc.content);
     expect(j).toContain("PESO DO GABINETE NÃO INFORMADO");
-    // peso e pior ancoragem saem como travessão na tabela, não como 0 kg
+    // o peso da tela sem dado sai como travessão na tabela, não como 0 kg
     expect(j).toContain('{"text":"—","font":"PlexMono","alignment":"right"}');
     // e o total avisa que é parcial em vez de fingir que fechou
     expect(j).toContain("(parcial)");
@@ -237,7 +257,7 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     const seis = Array.from({ length: 6 }, (_, i) => ({ id: `t${i}`, nome: `Lateral ${i + 1}`, cols: 4, rows: 6, gabinete: gab }));
     const j = JSON.stringify(buildRelatorioDoc({ project: { ...project, telas: seis }, tipo: "Estrutural", cfg, logo: null }).content);
     expect(j.match(/A cadeia — o que trava primeiro/gi)?.length).toBe(1);
-    expect(j.match(/LIMITE DE EMPILHAMENTO NÃO INFORMADO/g)?.length).toBe(1);
+    expect(j.match(/LIMITE DO FABRICANTE NÃO INFORMADO/g)?.length).toBe(1);
     expect(j).toContain("Lateral 1 · Lateral 2"); // mas nomeia todas as paredes cobertas
     expect(j).toContain("6 telas · mesma cadeia");
   });
