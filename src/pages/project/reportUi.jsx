@@ -30,9 +30,9 @@ export function ReportCover({ docType, name, meta, generated, config }) {
 
 // PÁGINA DE ROSTO dedicada: título + resumo executivo (stats em cards) + rodapé.
 // breakAfter:page → o conteúdo começa na página seguinte. É a "capa".
-// `logo` = logo DO PROJETO (dataURL, cadastrado em Dados) — quando existe, toma o
-// lugar da marca do app no topo direito; sem borda arredondada (a arte é do cliente).
-export function ReportCoverPage({ docType, name, fields = [], generated, stats = [], logo }) {
+// A capa é da MARCA LedLab (decisão do dono, 30/07); o logo do projeto sai no
+// carimbo das pranchas do PDF nativo.
+export function ReportCoverPage({ docType, name, fields = [], generated, stats = [] }) {
   const docNo = (name || "").toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 22);
   // título auto-encolhe pra capa não virar duas páginas no Imprimir do
   // navegador — a regra (e o porquê) vive em services/reportContent.js
@@ -44,9 +44,7 @@ export function ReportCoverPage({ docType, name, fields = [], generated, stats =
         {/* topo: tag lime + marca */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <span style={{ fontFamily: COV_MONO, fontSize: "1.45cqi", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "#14140e", background: "#ebf51e", padding: "0.95cqi 1.35cqi", borderRadius: "0.5cqi" }}>Caderno Técnico{docType ? ` · ${docType}` : ""}</span>
-          {logo
-            ? <img src={logo} alt="Logo do projeto" style={{ height: "7.4cqi", maxWidth: "24cqi", objectFit: "contain", display: "block", flex: "none" }} />
-            : <img src={ledlabSquare} alt="LedLab" style={{ width: "7.4cqi", height: "7.4cqi", borderRadius: "1.3cqi", display: "block", flex: "none" }} />}
+          <img src={ledlabSquare} alt="LedLab" style={{ width: "7.4cqi", height: "7.4cqi", borderRadius: "1.3cqi", display: "block", flex: "none" }} />
         </div>
 
         {/* nome + acento lime */}

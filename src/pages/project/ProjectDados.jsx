@@ -95,7 +95,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
       canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
       patch({ logo: canvas.toDataURL("image/png") });
-      toast("Logo do projeto salvo — aparece na capa do Caderno");
+      toast("Logo do projeto salvo — sai no carimbo das pranchas do Caderno");
     } catch {
       toast("Não deu pra ler essa imagem — tenta PNG ou JPG", "info");
     }
@@ -237,7 +237,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
           <input ref={logoInputRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { onLogoFile(e.target.files?.[0]); e.target.value = ""; }} />
         </div>
-        <div style={{ color: T.dim, fontSize: 12, marginTop: 6 }}>Sai na capa do Caderno Técnico (tela e PDF), no lugar da marca do app.</div>
+        <div style={{ color: T.dim, fontSize: 12, marginTop: 6 }}>Sai no carimbo das pranchas do Caderno (PDF) — a capa segue com a marca LedLab.</div>
       </div>
 
     </div>

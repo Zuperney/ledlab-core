@@ -36,16 +36,43 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain('"pageBreak":"after"');
   });
 
-  it("capa tem fundo próprio só na página 1", () => {
-    expect(doc.background(1, { width: 100, height: 50 })).toBeTruthy();
-    expect(doc.background(2, { width: 100, height: 50 })).toBeNull();
+  it("página 1 tem o fundo da capa; as demais ganham a MOLDURA da prancha", () => {
+    const capa = JSON.stringify(doc.background(1, { width: 100, height: 50 }));
+    expect(capa).toContain("#fafaf7"); // fundo Folha Técnica
+    const prancha = doc.background(2, { width: 841.89, height: 595.28 });
+    const r = prancha.canvas[0];
+    expect(r.type).toBe("rect");
+    expect(r.lineWidth).toBeGreaterThan(1); // moldura, não preenchimento
+    expect(r.x).toBe(16); // inset da prancha
   });
 
-  it("rodapé numera todas as páginas MENOS a capa", () => {
+  it("o CARIMBO sai em toda página menos a capa, com FOLHA página/total", () => {
     expect(doc.footer(1, 9)).toBeNull();
-    const f = JSON.stringify(doc.footer(3, 9));
-    expect(f).toContain("PÁG 3 DE 9");
-    expect(f).toContain("AD-SUMMIT");
+    const f = JSON.stringify(doc.footer(3, 12));
+    expect(f).toContain('"03"'); // FOLHA grande, zero à esquerda
+    expect(f).toContain("/12");
+    expect(f).toContain("AD-SUMMIT · REV A");
+    expect(f).toContain("CADERNO TÉCNICO · COMPLETO");
+    expect(f).toContain("AD Summit"); // evento
+    expect(f).toContain("Performance"); // cliente
+    expect(f).toContain("LEDLAB CORE · ENGENHARIA DE LED");
+  });
+
+  it("carimbo: assinatura entra no Projetou; sem assinatura sai travessão", () => {
+    const com = buildRelatorioDoc({ project, tipo: "Completo", cfg, logo: null, assinatura: "Ney · LedLab" });
+    expect(JSON.stringify(com.footer(2, 5))).toContain("Ney · LedLab");
+    const sem = JSON.stringify(doc.footer(2, 5));
+    expect(sem).toContain("PROJETOU");
+    expect(sem).toContain("—");
+  });
+
+  it("carimbo: logo do projeto no bloco da marca; capa fica com a marca LedLab", () => {
+    const px = "data:image/png;base64,AAA";
+    const d = buildRelatorioDoc({ project: { ...project, logo: px }, tipo: "Completo", cfg, logo: "data:image/png;base64,LEDLAB", logoProjeto: px });
+    expect(JSON.stringify(d.footer(2, 5))).toContain('"image":"data:image/png;base64,AAA"');
+    const capaJson = JSON.stringify(d.content[0]); // topo da capa
+    expect(capaJson).toContain("LEDLAB"); // a marca, não o logo do projeto
+    expect(capaJson).not.toContain("base64,AAA");
   });
 
   it("Visão Geral: uma linha por tela + total + gabinetes utilizados", () => {

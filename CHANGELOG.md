@@ -2,6 +2,14 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [Não publicado]
+
+**O PDF virou prancha de engenharia: moldura e carimbo em toda página.**
+
+- **Moldura + carimbo** em todas as páginas do PDF (menos a capa), nos moldes da prancha clássica de arquitetura: bloco da marca, campos do projeto (evento, cliente, local e datas), Projetou/Gerado/Nº do documento, e o número da **FOLHA NN/total** grande no canto — numerado automático.
+- **O logo do projeto mudou de casa**: sai do topo da capa e entra no bloco de marca do carimbo, em toda prancha. A capa volta a ser da marca LedLab (decisão do dono). Sem logo cadastrado, o carimbo usa a marca.
+- **Assinatura do Caderno ("Projetou")**: campo novo em Configurações › Conta & sincronização — um nome só, que não muda de impressão pra impressão, e sincroniza junto com a conta. Vazio sai "—".
+
 ## [1.11.0] — 2026-07-30
 
 **Overclock de porta, link único entre telas e logo do projeto — e a estrutura só registra fato.**

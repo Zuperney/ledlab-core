@@ -42,6 +42,10 @@ export const DEFAULT_PREFS = {
   fixo: { valor: 0, cliente: "" },
   // dados legais do emitente (prestador) que aparecem no recibo de mão de obra
   emitente: { nomeFantasia: "", razaoSocial: "", cnpj: "", cpf: "", rg: "", endereco: "", cep: "", cidade: "", telefone: "", email: "", pix: "", banco: "" },
+  // "Projetou" do carimbo das pranchas do Caderno (PDF). Global e sincronizada
+  // de propósito (não é por projeto): o nome não pode mudar de impressão pra
+  // impressão. Quando a conta ganhar perfil no servidor, este campo migra pra lá.
+  assinatura: "",
   // pagadores (tomadores) lembrados por nome de cliente: { [cliente]: { nome, doc } }
   pagadores: {},
 };

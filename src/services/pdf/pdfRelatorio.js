@@ -195,7 +195,11 @@ const coverRow = (label, value, { bold = false, first = false } = {}) => ({
   ],
 });
 
-export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerado, numbering = "row-tb-lr", palette, render, cabs = [] }) {
+// `logo` = marca LedLab (capa e fallback do carimbo) · `logoProjeto` = logo
+// cadastrado em Dados (bloco de marca do carimbo) · `assinatura` = "Projetou"
+// do carimbo (Configurações › Conta — global de propósito: o nome não pode
+// mudar de impressão pra impressão).
+export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render, cabs = [] }) {
   const pal = Array.isArray(palette) && palette.length ? palette : PALETTE;
   const colorOf = (i) => pal[(((i | 0) % pal.length) + pal.length) % pal.length];
   // render do mapa (setas/números/tamanho/canto) — mesmas prefs do DOM
@@ -290,9 +294,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     {
       columns: [
         { width: "*", text: [{ text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 9, characterSpacing: 1.8, color: COVER_INK, background: LIME }], margin: [0, 6, 0, 0] },
-        // caixa 110×54 com fit: logo quadrado (marca) fica 54×54; logo largo do
-        // projeto usa a largura sem estourar a faixa do topo
-        ...(logo ? [{ width: 110, image: logo, fit: [110, 54], alignment: "right" }] : []),
+        // capa é da MARCA (decisão do dono, 30/07): LedLab aqui; o logo do
+        // projeto mora no carimbo das pranchas
+        ...(logo ? [{ width: 54, image: logo, fit: [54, 54] }] : []),
       ],
     },
     // LLC-01: o título auto-encolhe pra caber numa linha — nome de 40+ caracteres
@@ -816,22 +820,89 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     ];
   })();
 
+  // ── PRANCHA (moldura + carimbo) — em toda página menos a capa ──
+  // Referência: prancha clássica de arquitetura (docs do dono, 30/07/2026).
+  // A moldura vive no `background` (canvas por página); o carimbo é o `footer`
+  // do pdfmake — é ele que entrega página/total pro "FOLHA 03/12".
+  const FR = 16; // inset da moldura (pt) — a caixa externa da prancha
+  const CAR_H = 52; // altura da faixa do carimbo (≈18 mm), dentro da moldura
+  const carLbl = (t) => ({ text: t.toUpperCase(), font: "PlexMono", fontSize: 5, bold: true, characterSpacing: 0.7, color: PRINT.dim });
+  const carVal = (t, extra = {}) => ({ text: t || "—", bold: true, fontSize: 7, color: PRINT.ink, ...extra });
+  const carLinha = (l, v) => ({ columns: [{ width: 34, ...carLbl(l), margin: [0, 1.2, 0, 0] }, { width: "*", ...carVal(v) }], columnGap: 4, margin: [7, 0, 7, 1.8] });
+  const carimbo = (current, total) => ({
+    margin: [FR, 90 - FR - CAR_H - 3, FR, 0],
+    table: {
+      widths: [118, "*", 156, 74],
+      heights: [CAR_H],
+      body: [[
+        // bloco da MARCA: logo do projeto (Dados); sem logo, a marca LedLab
+        {
+          stack: [
+            logoProjeto
+              ? { image: logoProjeto, fit: [100, 30], alignment: "center" }
+              : (logo ? { image: logo, fit: [30, 30], alignment: "center" } : { text: "LEDLAB CORE", bold: true, fontSize: 10, alignment: "center", margin: [0, 10, 0, 0] }),
+            { text: "LEDLAB CORE · ENGENHARIA DE LED", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.8, color: PRINT.dim, alignment: "center", margin: [0, 3, 0, 0] },
+          ],
+          margin: [4, logoProjeto || logo ? 6 : 2, 4, 0],
+        },
+        // campos do projeto
+        {
+          stack: [
+            { text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 5.8, characterSpacing: 1.2, color: "#fdfdfb", background: PRINT.ink, margin: [7, 3, 7, 3] },
+            carLinha("Evento", project.name),
+            carLinha("Cliente", project.cliente),
+            carLinha("Local", [project.local, dataEvento].filter(Boolean).join(" · ")),
+          ],
+        },
+        // responsável e datas
+        {
+          stack: [
+            { text: "", margin: [0, 4, 0, 0] },
+            carLinha("Projetou", assinatura),
+            carLinha("Gerado", gerado),
+            carLinha("Nº doc", `${docNo} · REV A`),
+          ],
+        },
+        // FOLHA grande (página / total)
+        {
+          stack: [
+            { ...carLbl("Folha"), alignment: "center", margin: [0, 5, 0, 0] },
+            {
+              text: [
+                { text: String(current).padStart(2, "0"), font: "PlexMono", bold: true, fontSize: 21, color: PRINT.ink, characterSpacing: -0.5 },
+                { text: ` /${total}`, font: "PlexMono", bold: true, fontSize: 8, color: PRINT.dim },
+              ],
+              alignment: "center",
+              margin: [0, 2, 0, 0],
+            },
+            { text: "A4 · S/ ESC.", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.6, color: PRINT.dim, alignment: "center", margin: [0, 3, 0, 0] },
+          ],
+        },
+      ]],
+    },
+    layout: {
+      hLineWidth: () => 1.2,
+      vLineWidth: () => 0.7,
+      hLineColor: () => PRINT.ink,
+      vLineColor: () => PRINT.ink,
+      paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0,
+    },
+  });
+
   return {
     pageSize: "A4",
     pageOrientation: "landscape",
-    pageMargins: [40, 36, 40, 44],
+    // fundo maior embaixo: é a faixa do carimbo (a prancha come ~46 pt a mais)
+    pageMargins: [40, 36, 40, 90],
     defaultStyle: { font: "PlexSans", fontSize: 9, color: PRINT.ink, lineHeight: 1.25 },
     info: { title: `${project.name || "Projeto"} — Caderno Técnico (${tipo})`, author: "LedLab Core" },
-    // capa com fundo próprio (página 1 apenas)
-    background: (page, pageSize) => (page === 1 ? { canvas: [{ type: "rect", x: 0, y: 0, w: pageSize.width, h: pageSize.height, color: COVER_BG }] } : null),
-    // rodapé em TODA página (menos a capa): carimbo + PÁG X DE Y
-    footer: (current, total) => (current === 1 ? null : {
-      margin: [40, 14, 40, 0],
-      columns: [
-        { text: `${docNo} · REV A${gerado ? ` · GERADO EM ${gerado.toUpperCase()}` : ""}`, font: "PlexMono", fontSize: 6.5, color: PRINT.dim, characterSpacing: 0.5 },
-        { text: `PÁG ${current} DE ${total}`, font: "PlexMono", fontSize: 6.5, bold: true, color: PRINT.acc, alignment: "right", characterSpacing: 0.8 },
-      ],
-    }),
+    // página 1 = fundo da capa; demais = a MOLDURA da prancha (o carimbo fecha
+    // a caixa por dentro, no footer)
+    background: (page, pageSize) => (page === 1
+      ? { canvas: [{ type: "rect", x: 0, y: 0, w: pageSize.width, h: pageSize.height, color: COVER_BG }] }
+      : { canvas: [{ type: "rect", x: FR, y: FR, w: pageSize.width - 2 * FR, h: pageSize.height - 2 * FR, lineWidth: 1.4, lineColor: PRINT.ink }] }),
+    // rodapé em TODA página (menos a capa): o CARIMBO da prancha
+    footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
       const secoes = [visaoGeral, estrutura, video, eletrica, sinal, ac, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de

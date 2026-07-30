@@ -227,6 +227,14 @@ export default function Settings({ embedded = false }) {
 
       <Section icon={Cloud} title="Conta & sincronização" subtitle="Acesse seus dados de qualquer aparelho (opcional)" defaultOpen={false}>
         <AccountSection />
+        {/* assinatura do Caderno mora na CONTA (pedido do dono): um nome só,
+            que não muda de impressão pra impressão — sincroniza junto com as
+            prefs quando conectado; vira o nome do perfil quando houver perfil */}
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.bd}` }}>
+          <div style={subLabel}>Assinatura do Caderno (Projetou)</div>
+          <div style={subDesc}>Sai no carimbo das pranchas do PDF, em todo caderno gerado neste app.</div>
+          <input value={prefs.assinatura || ""} onChange={(e) => setPrefs({ ...prefs, assinatura: e.target.value })} placeholder="Ex.: Ney · LedLab" style={selStyle} />
+        </div>
       </Section>
 
       <Section icon={Database} title="Dados & backup" subtitle="Exportar / importar arquivos (.json)" defaultOpen={open}>

@@ -267,6 +267,16 @@ Botão-ícone 36-40px com borda. FAB só em lista de criação.
    NUNCA vermelho: no papel, vermelho significa falha/incêndio, não precaução.
 6. Paisagem por padrão · um tópico por página · cor+ícone por disciplina ·
    glossário no fim (padrões da v1.5.4-1.5.5, mantidos).
+7. **A PRANCHA (30/07/2026)** — toda página do PDF (menos a capa) é folha de
+   engenharia: **moldura** (caixa 1,4 pt, inset 16 pt) + **carimbo** em faixa
+   no rodapé, nos moldes da prancha clássica de arquitetura. Blocos, na ordem:
+   marca (logo DO PROJETO; sem logo, a marca LedLab) · campos (Caderno
+   Técnico · tipo / Evento / Cliente / Local + datas) · Projetou (assinatura
+   das Configurações › Conta — global, nunca por impressão) / Gerado / Nº ·
+   **FOLHA NN/total** grande no canto. Tinta preta, hairlines, rótulos mono;
+   "A4 · s/ esc." declara que o Caderno não é desenho em escala. A capa segue
+   sendo a única página SEM moldura — e é da marca LedLab; o logo do projeto
+   mora no carimbo.
 
 ## 11 · A gramática (estrutura de toda tela)
 
