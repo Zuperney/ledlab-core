@@ -2,6 +2,18 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [Não publicado]
+
+**A seção de estrutura só registra fato: o dimensionamento de bumpers e talha saiu.**
+
+Os números de bumpers, ancoragens, carga por ancoragem e % da talha dependiam de um catálogo **estimado** da casa — e estimativa impressa num documento datado lê como fato. Decisão do dono (30/07): o app registra o que é aritmética sobre dado real e devolve o dimensionamento a quem assina, o rigger.
+
+- **A seção virou "Peso e estrutura"** (era "Peso e ancoragens"): peso da parede, tabela por tela e a cadeia de limites do fabricante. Saíram os bumpers, as ancoragens, a "pior ancoragem", a talha e a fixação — e com eles os avisos de estimativa.
+- **Tipo de montagem agora é escolha sua** (aba Relatório): **voada** ou **sentada (empilhada)**. A sentada finalmente usa o limite de empilhamento cadastrado no gabinete — antes o app assumia voada sempre. O checklist "antes de subir" sai só na voada.
+- **A seção ficou opcional no Caderno Completo**: um toggle (âncora) na barra de ferramentas do Relatório liga/desliga. O relatório **Estrutural** mostra sempre — pedir esse tipo já é o opt-in. A escolha fica gravada no projeto (`project.rigging`).
+- **Cadastro do gabinete não muda**: os limites do fabricante (altura voada, empilhada, por barra, trava extra, procedência) continuam todos lá. O limite "por barra" vira só registro — sem o dimensionamento de bumper não há como checá-lo.
+- **Base de Conhecimento revisada**: o artigo da conta de bumper virou "Peso e estrutura — o que o app checa" (modos de montagem, WLL, ângulo, o elo que trava primeiro). O checklist de montagem fica.
+
 ## [1.10.1] — 2026-07-25
 
 **Correção da v1.10.0: os limites do fabricante não chegavam no Caderno.**

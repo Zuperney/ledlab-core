@@ -54,37 +54,31 @@ export const GLOSSARIO = [
   { t: "Trifásico (F+F+F+N)", d: "Alimentação em 3 fases + neutro — distribui a carga e reduz a corrente por fase." },
   { t: "Serpentina", d: "Roteamento em zigue-zague dos cabos para minimizar comprimento e cruzamentos." },
   { t: "Ancoragem", d: "Onde a viga (bumper) oferece para pendurar. Não confundir com o ponto de talha que a produção entrega no teto — esse é decisão do rigger." },
-  { t: "Bumper", d: "Viga de içamento que recebe a coluna de gabinetes. O número de ancoragens é propriedade do bumper, não da largura dele." },
-  { t: "Talha", d: "Equipamento de içamento (aqui, manual de 1 t). Sobe a carga pela corrente; a corrente livre é o que impede a talha de trabalhar no fim de curso." },
-  { t: "WLL", d: "Working Load Limit — carga máxima de trabalho. Já embute o fator de projeto do fabricante, então a conta certa é carga ≤ WLL: multiplicar de novo é fator sobre fator." },
+  { t: "Bumper", d: "Viga de içamento que recebe a coluna de gabinetes. Quem dimensiona quantos entram — e as ancoragens — é o rigger." },
+  { t: "Talha", d: "Equipamento de içamento manual. Sobe a carga pela corrente; a corrente livre é o que impede a talha de trabalhar no fim de curso." },
 ];
 
-// ── ESTRUTURA (F2) — texto compartilhado da seção "Peso e ancoragens" ──
-// ⚠️ Escopo cravado (docs/rigging-spec.md §3): esta seção REGISTRA peso e
-// ancoragens, não dimensiona estrutura. Nunca chamar de "Rigging"; nunca usar
-// "ponto" pra ancoragem.
+// ── ESTRUTURA (F2) — texto compartilhado da seção "Peso e estrutura" ──
+// ⚠️ Escopo cravado (docs/rigging-spec.md §3): esta seção REGISTRA peso e checa
+// limite publicado, não dimensiona estrutura. Nunca chamar de "Rigging"; nunca
+// usar "ponto" pra ancoragem.
 
 // rótulos dos elos da cadeia — o id vem dos checks de services/rigging.js
 export const RIG_ELO = {
   voadoM: { titulo: "Trava entre gabinetes · altura voada", sub: "quanto o fabricante deixa pendurar" },
   voadoQtd: { titulo: "Trava entre gabinetes · gabinetes de altura", sub: "limite publicado em gabinetes, não em metros" },
-  porBarra: { titulo: "Barra de içamento", sub: "gabinetes pendurados por barra" },
   empilhadoM: { titulo: "Empilhamento no piso · altura", sub: "o limite empilhado costuma ser menor que o voado" },
 };
 // último elo da cadeia: o app não tem esse dado e diz isso na cara
-export const RIG_ELO_FIM = { titulo: "Treliça e piso", sub: "fora do alcance do app" };
+export const RIG_ELO_FIM = { titulo: "Bumpers, talhas, treliça e piso", sub: "dimensionamento do rigger — fora do alcance do app" };
 export const RIG_PILL = { ok: "dentro", acima: "acima", semDado: "não informado" };
-
-// status do elo da TALHA: sem peso de gabinete a conta dá 0, e 0% não é "ok" —
-// é ausência de dado. Deriva igual nos dois renderizadores.
-export const eloTalhaStatus = (rig) => (rig.semPeso ? "semDado" : rig.talhaOver ? "acima" : "ok");
 
 // número de campo: inteiro sem casa, quebrado com vírgula (3 → "3" · 3.5 → "3,5")
 export const nRig = (v) => (Number.isInteger(v) ? String(v) : (Math.round(v * 10) / 10).toFixed(1).replace(".", ","));
 
-// A CADEIA de uma tela, pronta pra renderizar: elos do fabricante + a talha + o
-// elo que o app NÃO alcança. Construtor único — o DOM e o PDF só desenham as
-// linhas, sem decidir nada, senão divergem em 3 meses.
+// A CADEIA de uma tela, pronta pra renderizar: elos do fabricante + o elo que o
+// app NÃO alcança. Construtor único — o DOM e o PDF só desenham as linhas, sem
+// decidir nada, senão divergem em 3 meses.
 // Cada linha: { id, titulo, sub, valor, status, pill }.
 export function rigCadeia(rig, gabNome = "") {
   const gab = gabNome || "Gabinete";
@@ -103,15 +97,6 @@ export function rigCadeia(rig, gabNome = "") {
       status: k.status,
       pill: RIG_PILL[k.status],
     };
-  });
-  const st = eloTalhaStatus(rig);
-  linhas.push({
-    id: "talha",
-    titulo: `Ancoragem · talha manual ${nRig(rig.talhaWLL / 1000)} t`,
-    sub: "pior caso: bumper cheio",
-    valor: st === "semDado" ? "—" : `${Math.round(rig.cargaPorAncoragem)} de ${nRig(rig.talhaWLL)} kg`,
-    status: st,
-    pill: st === "ok" ? `${Math.round(rig.pctTalha)}%` : RIG_PILL[st],
   });
   linhas.push({ id: "fim", titulo: RIG_ELO_FIM.titulo, sub: RIG_ELO_FIM.sub, valor: "", status: "semDado", pill: "confira com a produção" });
   return linhas;
@@ -149,23 +134,23 @@ export const rigGrupoMeta = (g) =>
 export const rigStatusTela = (rig) => (rig.limiteAcima ? "acima" : rig.limiteSemDado ? "semDado" : "ok");
 
 // texto do ESTOURO: nomeia o elo que travou e desarma a saída errada ("troca a
-// talha") — com painel de evento quem trava é o fabricante, não a corrente.
+// ferragem") — o limite é do fabricante, não da corrente.
 export function rigTextoAcima(rig) {
   const falhou = (rig.checks || []).filter((k) => k.status === "acima");
   const lista = falhou.map((k) => `${k.label.toLowerCase()} ${nRig(k.valor)} ${k.unidade} contra ${nRig(k.limite)} ${k.unidade} publicados`).join(" · ");
   const frase = lista.charAt(0).toUpperCase() + lista.slice(1); // abre frase depois do ponto
   return [
-    { t: "A parede passa do limite do fabricante — e a talha não é o problema.", b: true },
-    { t: ` ${frase}. A corrente está em ${Math.round(rig.pctTalha)}% do WLL: trocar de talha não resolve. Reduza a altura ou divida a parede.` },
+    { t: "A parede passa do limite do fabricante — e ferragem não resolve.", b: true },
+    { t: ` ${frase}. O limite é da trava entre gabinetes, publicado no manual. Reduza a altura ou divida a parede.` },
   ];
 }
 
 // texto do SEM DADO: o vazio é declarado, e diz o que continua válido
 export const RIG_SEM_DADO = {
-  titulo: "Limite de empilhamento não informado",
+  titulo: "Limite do fabricante não informado",
   partes: [
     { t: "O fabricante não publica — ou ninguém cadastrou — o limite deste gabinete.", b: true },
-    { t: " Peso, bumpers e ancoragens continuam válidos: saem da grade e do peso do gabinete. O limite de altura, não. Confirme no manual do painel antes da montagem e registre em Gestão › Gabinetes › Especificações Avançadas." },
+    { t: " O peso continua válido: sai da grade e do peso do gabinete. O limite de altura, não. Confirme no manual do painel antes da montagem e registre em Gestão › Gabinetes › Especificações Avançadas." },
   ],
 };
 

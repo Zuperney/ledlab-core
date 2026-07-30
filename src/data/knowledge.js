@@ -143,38 +143,23 @@ export const KB_ARTICLES = [
       { h: "Instalação temporária", blocks: [{ t: "ul", items: ["DR ≤ 30 mA obrigatório em área externa/molhada (NBR 5410)", "Aterre gerador e estrutura", "Corrente de fuga (~3 mA/painel) pode limitar a ~5 painéis por circuito com DR de 30 mA"] }] },
       { h: "Energização (inrush)", blocks: [{ t: "p", text: "Fontes SMPS puxam 50–100× a corrente nominal por alguns ms no cold start (~60 A por fonte). Ligue a tela por seções e prefira disjuntor curva C (ou D em telas grandes) para não desarmar." }] },
     ] },
-  { id: "estrutura-peso-ancoragens", category: "Estrutura", title: "Peso e ancoragens — como a conta é feita", summary: "O que o app calcula na parede voada, por que o número não é peso ÷ ancoragens, e o mito do fator de segurança.",
+  { id: "estrutura-peso-ancoragens", category: "Estrutura", title: "Peso e estrutura — o que o app checa", summary: "Peso da parede, o limite publicado pelo fabricante nos dois tipos de montagem, e o mito do fator de segurança.",
     sections: [
-      { h: "Ancoragem, não ponto", blocks: [
-        { t: "p", text: "No meio técnico PONTO é o ponto de talha que a produção entrega no teto. O app não calcula isso — ele conta ANCORAGEM: onde a viga (bumper) oferece pra pendurar. Uma ancoragem normalmente sobe numa talha, mas quem decide isso — bridle, repartição, quantos motores — é o rigger." },
-      ] },
       { h: "O que o app faz — e o que não faz", blocks: [
-        { t: "p", text: "O app responde uma pergunta só: quanto pesa a parede, quantos bumpers e ancoragens ela pede, e quanta carga cai na pior ancoragem. Isso é aritmética sobre dados do projeto." },
-        { t: "note", text: "O app NÃO dimensiona treliça, não calcula vento, lastro ou estaiamento, e nunca diz que uma montagem está aprovada. Quem dimensiona, monta e assina o rigging é o rigger habilitado — no Brasil, com ART de engenheiro. O verbo aqui é sempre CONFIRA." },
+        { t: "p", text: "O app responde duas perguntas: quanto pesa a parede (grade × peso do gabinete) e se a altura respeita o limite que o FABRICANTE publica pro tipo de montagem escolhido — voada ou sentada no chão. Isso é aritmética sobre dados do projeto." },
+        { t: "note", text: "O app NÃO dimensiona bumper, talha nem ancoragem, não dimensiona treliça, não calcula vento, lastro ou estaiamento, e nunca diz que uma montagem está aprovada. Quem dimensiona, monta e assina o rigging é o rigger habilitado — no Brasil, com ART de engenheiro. O verbo aqui é sempre CONFIRA." },
       ] },
-      { h: "A conta", blocks: [
-        { t: "kv", rows: [
-          ["Peso da coluna", "linhas × peso do gabinete"],
-          ["Colunas por bumper", "largura do bumper ÷ largura do gabinete"],
-          ["Bumpers", "colunas da tela ÷ colunas por bumper (arredondando pra cima)"],
-          ["Ancoragens", "bumpers × ancoragens do bumper"],
-          ["Carga na ancoragem", "(bumper cheio + peso do bumper) ÷ ancoragens do bumper + acessórios"],
-        ] },
-        { t: "p", text: "Ancoragem é propriedade do bumper, não da largura: existe viga de 50 cm com 1 ancoragem e viga de 50 cm com 2, e existe viga de 1,28 m com uma só. Por isso o bumper é cadastrável." },
-      ] },
-      { h: "Por que o número é maior que peso ÷ ancoragens", blocks: [
-        { t: "p", text: "Dividir o peso total pelo número de ancoragens assume que todas carregam igual — e isso só vale pra duas numa viga simétrica. Com três ou mais apoios numa viga rígida o sistema é estaticamente indeterminado: não existe solução única sem conhecer a flexibilidade da viga." },
-        { t: "p", text: "A prática de engenharia é dimensionar pelo pior caso. O app calcula a carga de um bumper CHEIO, mesmo que o último da fileira leve menos colunas — porque a ferragem se escolhe pela pior ancoragem, não pela média." },
+      { h: "Voada × sentada", blocks: [
+        { t: "p", text: "O tipo de montagem se escolhe na aba Relatório e muda qual limite entra na cadeia: VOADA checa a altura pendurada (em metros e/ou em gabinetes); SENTADA (empilhada no chão) checa a altura de empilhamento — que costuma ser MENOR que a voada, porque quem trabalha é a trava entre gabinetes, não a barra." },
+        { t: "p", text: "Os dois limites se cadastram no gabinete, em Gestão › Gabinetes › Especificações Avançadas, com a procedência (manual, datasheet). O que não estiver preenchido sai como NÃO INFORMADO no papel — nunca como estimativa." },
       ] },
       { h: "WLL: o fator de segurança já está dentro", blocks: [
         { t: "p", text: "WLL (Working Load Limit) é a carga de trabalho JÁ dividida pelo fator de projeto do fabricante. Corrente de elevação trabalha com fator 8:1 sob DIN 56950-1 / EN 17206; um hoist C1 é projetado em 10:1." },
-        { t: "note", text: "Por isso NÃO se multiplica a carga por 5 para comparar com o WLL. É comum ver planilha e app pedindo WLL de 5× a carga — isso é fator sobre fator, equivale a exigir 25:1 até a ruptura. A conta certa é direta: carga na ancoragem ≤ WLL. E nunca passar do WLL." },
-        { t: "p", text: "É por isso que o número do app costuma ser MENOR que o da planilha da locadora. O nosso está certo; o dela conta o fator duas vezes." },
+        { t: "note", text: "Por isso NÃO se multiplica a carga por 5 para comparar com o WLL. É comum ver planilha pedindo WLL de 5× a carga — isso é fator sobre fator, equivale a exigir 25:1 até a ruptura. A conta certa é direta: carga na ancoragem ≤ WLL. E nunca passar do WLL." },
       ] },
       { h: "Ângulo: fora do prumo a carga sobe", blocks: [
         { t: "p", text: "Enquanto a talha está a prumo sobre a ancoragem, a carga no cabo é a carga vertical. Assim que o cabo sai da vertical (bridle pra desviar de uma perna de treliça, ancoragem fora do prumo), a força cresce por 1 ÷ cosseno do ângulo." },
         { t: "table", cols: ["Ângulo da vertical", "Multiplicador"], rows: [["0° (a prumo)", "1,00×"], ["30°", "1,15×"], ["45°", "1,41×"], ["60°", "2,00×"]] },
-        { t: "note", text: "O cálculo do app assume içamento A PRUMO. Se a sua montagem tiver desvio, aplique o multiplicador acima na carga da ancoragem." },
       ] },
       { h: "O elo que trava primeiro", blocks: [
         { t: "p", text: "A parede é uma corrente de elos: trava do gabinete → bumper → ancoragem (talha, manilha, cinta) → treliça/estrutura → chão. Com painel de evento e talha de 1 t, quem trava quase nunca é a talha — é o limite de empilhamento do fabricante (que na verdade é o limite da TRAVA entre gabinetes) ou a carga pontual admissível da treliça." },

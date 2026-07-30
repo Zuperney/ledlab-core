@@ -18,7 +18,7 @@ import { screenMapSvg, telaMapSvg, telasFilaSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, portLabel, videoOf } from "../reportContent.js";
 import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../reportContent.js";
-import { projectRigging } from "../rigging.js";
+import { projectRigging, DEFAULT_RIG } from "../rigging.js";
 import { acTone } from "../electricalCalc.js";
 
 // cor da pílula da cadeia: "sem dado" é CINZA, nunca verde (rigging-spec §3.2)
@@ -248,10 +248,12 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
   const showSignal = ["Completo", "Mapa de cabos"].includes(tipo);
   const showAC = ["Completo", "Mapa de cabos"].includes(tipo);
   const showGloss = tipo === "Completo";
-  // ESTRUTURA (F2) — mesmos tipos do Caderno DOM
-  const showRig = ["Completo", "Estrutural"].includes(tipo) && telas.length > 0;
+  // ESTRUTURA (F2) — mesma regra do Caderno DOM: o Estrutural mostra sempre;
+  // no Completo obedece o toggle `mostrar` gravado em project.rigging
+  const rigCfg = { ...DEFAULT_RIG, ...(project.rigging || {}) };
+  const showRig = telas.length > 0 && (tipo === "Estrutural" || (tipo === "Completo" && rigCfg.mostrar !== false));
   // `cabs`: limite do fabricante vem VIVO da biblioteca (o snapshot da tela é reserva)
-  const rp = showRig ? projectRigging(project, project.rigging || {}, cabs) : null;
+  const rp = showRig ? projectRigging(project, rigCfg, cabs) : null;
 
   const usaScreens = hasScreens(project);
   const screenReport = usaScreens && showSignal ? projectScreenReport(project, "sinal", numbering) : [];
@@ -368,52 +370,45 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     ];
   })();
 
-  // ── PESO E ANCORAGENS (Estrutura) ──
+  // ── PESO E ESTRUTURA ──
   // ⚠️ Nunca "Rigging" (prometeria engenharia) e nunca "ponto" (é o ponto de
   // talha da produção). Escopo: docs/rigging-spec.md §3.
   const estrutura = !showRig ? [] : (() => {
     const sn = sec(); const S = String(sn).padStart(2, "0");
     const r0 = rp.telas[0].rig;
+    const modoLabel = r0.modo === "empilhado" ? "Sentada (empilhada)" : "Voada";
+    const maiorAltura = rp.telas.reduce((m, r) => Math.max(m, r.rig.alturaM), 0);
     const linhas = rp.telas.map(({ tela: t, rig }) => [
       { text: t.nome, bold: true },
       mono(`${rig.cols}×${rig.rows}`),
       { text: t.gabinete?.nome || "—" },
       mono(rig.alturaM > 0 ? `${nRig(rig.alturaM)} m` : "—", { alignment: "right" }),
       mono(rig.semPeso ? "—" : fmtPeso(rig.totalKg), { alignment: "right" }),
-      mono(String(rig.bumpers), { alignment: "right" }),
-      mono(String(rig.ancoragens), { alignment: "right" }),
-      mono(rig.semPeso ? "—" : `${Math.round(rig.cargaPorAncoragem)} kg`, { alignment: "right" }),
       { text: RIG_PILL[rigStatusTela(rig)].toUpperCase(), bold: true, fontSize: 7.5, color: RIG_C[rigStatusTela(rig)], alignment: "right", characterSpacing: 0.4 },
     ]);
     return [
-      sectionHead(sn, "Peso e ancoragens", "Estrutura · parede voada", DISC.estr),
-      { text: "Peso da parede, quantas ancoragens ela pede e quanto carrega a pior delas — aritmética sobre a grade e o peso do gabinete. Vale sob as premissas abaixo; o que o fabricante não publica sai como NÃO INFORMADO, nunca estimado.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
+      sectionHead(sn, "Peso e estrutura", `Estrutura · parede ${r0.modo === "empilhado" ? "sentada" : "voada"}`, DISC.estr),
+      { text: "Peso da parede e a checagem contra os limites publicados pelo fabricante, no tipo de montagem escolhido — aritmética sobre a grade e o peso do gabinete. O que o fabricante não publica sai como NÃO INFORMADO, nunca estimado.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
       specBox([
-        ["Modo", r0.modo],
-        ["Içamento", "a prumo (0°)"],
-        ["Talha", `manual ${nRig(r0.talhaWLL / 1000)} t`],
-        ["Bumper", r0.bumper.nome],
-        ["Fixação", r0.fixacao.nome],
+        ["Montagem", modoLabel],
       ]),
       statRow([
         ["Peso total", rp.totalKg > 0 ? fmtPeso(rp.totalKg) : "—"],
-        ["Bumpers", rp.bumpers],
-        ["Ancoragens", rp.ancoragens],
-        ["Pior ancoragem", rp.piorAncoragem > 0 ? `${Math.round(rp.piorAncoragem)} kg · ${Math.round((rp.piorAncoragem / r0.talhaWLL) * 100)}% do WLL` : "—"],
+        ["Gabinetes", roll.gab],
+        ["Maior altura", maiorAltura > 0 ? `${nRig(maiorAltura)} m` : "—"],
       ]),
       ...(rp.algumSemPeso ? [warnBox(RIG_SEM_PESO)] : []),
       {
         table: {
           headerRows: 1,
-          widths: ["*", "auto", "*", "auto", "auto", "auto", "auto", "auto", "auto"],
+          widths: ["*", "auto", "*", "auto", "auto", "auto"],
           body: [
-            [th("Tela"), th("Grade"), th("Gabinete"), th("Altura", "right"), th("Peso", "right"), th("Bumpers", "right"), th("Ancoragens", "right"), th("Pior ancoragem", "right"), th("Limite do fabricante", "right")],
+            [th("Tela"), th("Grade"), th("Gabinete"), th("Altura", "right"), th("Peso", "right"), th("Limite do fabricante", "right")],
             ...linhas,
             [
               { text: "Total", bold: true }, mono(`${roll.gab} gab.`, { bold: true }), "", "",
               mono(rp.totalKg > 0 ? `${fmtPeso(rp.totalKg)}${rp.algumSemPeso ? " (parcial)" : ""}` : "—", { alignment: "right", bold: true }),
-              mono(String(rp.bumpers), { alignment: "right", bold: true }),
-              mono(String(rp.ancoragens), { alignment: "right", bold: true }), "", "",
+              "",
             ],
           ],
         },
@@ -455,12 +450,10 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
           },
         ];
       }),
-      { text: "ANTES DE SUBIR", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 12, 0, 4] },
-      { ul: CHECK_SUBIR.map((c) => ({ text: [{ text: c.b, bold: true, color: PRINT.ink }, { text: c.t }] })), fontSize: 8, color: PRINT.mut, lineHeight: 1.3 },
-      ...(r0.bumper.estimado || r0.fixacao.estimado ? [{
-        text: [{ text: "Os pesos de bumper e acessórios de fixação ainda são estimativa da casa", bold: true }, { text: " — pese na balança de gancho e cadastre para fechar a conta." }],
-        fontSize: 8, color: PRINT.amb, margin: [0, 8, 0, 0],
-      }] : []),
+      ...(r0.modo === "voado" ? [
+        { text: "ANTES DE SUBIR", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 12, 0, 4] },
+        { ul: CHECK_SUBIR.map((c) => ({ text: [{ text: c.b, bold: true, color: PRINT.ink }, { text: c.t }] })), fontSize: 8, color: PRINT.mut, lineHeight: 1.3 },
+      ] : []),
       noteBox(AVISO_RIG),
     ];
   })();

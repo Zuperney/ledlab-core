@@ -4,6 +4,18 @@
 > CRAVADO (2026-07-25, ver §3).** Motor puro (`services/rigging.js`) com testes.
 > UI e Caderno vêm depois das decisões que faltam (§8).
 >
+> ⚠️ **REVISÃO 30/07/2026 — dimensionamento REMOVIDO.** Decisão do dono: o app
+> **não dimensiona mais bumper, ancoragem, carga por ancoragem nem talha** —
+> esses números dependiam de catálogo estimado da casa e liam como fato no papel.
+> A seção virou **"Peso e estrutura"**: peso da parede + cadeia de limites do
+> fabricante, no **tipo de montagem escolhido pelo usuário** (voada × sentada/
+> empilhada — o modo, que era hardcoded, virou escolha real na aba Relatório) e
+> com **toggle de exibição** no Caderno Completo (`project.rigging = { mostrar,
+> modo }`). O §2 abaixo descreve o modelo ATUAL; o catálogo de bumpers, a
+> fixação, a talha e a antiga R4 (painel de içamento) foram cancelados. O
+> checklist de campo (§4) e a Base de Conhecimento ficam — são verdade de campo,
+> não conta.
+>
 > 📚 **Base de pesquisa:** [`rigging-pesquisa.md`](./rigging-pesquisa.md) — como o
 > mercado resolve, o que os fabricantes publicam (e em que unidade), regras de
 > cálculo, e a triagem da pesquisa paralela. **Leia antes de mexer no motor.**
@@ -28,53 +40,26 @@
 | **Voado (flown)** | parede pendurada em ancoragens. É o escopo desta fase. |
 | **Ground support** | parede apoiada no chão com torre/lastro — **fora do escopo** (§3.3). |
 
-## 2 · O modelo (voado)
+## 2 · O modelo (revisado 30/07/2026)
 
-```
-     ancorag.     ancorag.     ancorag.
-        │            │            │
-   ┌────┴────┐  ┌────┴────┐  ┌────┴────┐
-   │ bumper  │  │ bumper  │  │ bumper  │   ← colunasPorBumper (2 no exemplo)
-   ├────┬────┤  ├────┬────┤  ├────┬────┤
-   │gab │gab │  │gab │gab │  │gab │gab │
-   │gab │gab │  │gab │gab │  │gab │gab │   ← rows
-   └────┴────┘  └────┴────┘  └────┴────┘
-```
+O motor faz duas coisas, e só duas:
 
-- `pesoColuna = rows × peso do gabinete`
-- **`colunasPorBumper` é DERIVADO**, não configurado: `floor(largura do bumper ÷ largura do gabinete)`, mínimo 1. Bumper de 100 cm com gabinete de 500 mm = 2 colunas; de 50 cm = 1. Gabinete mais largo que a viga = 1 coluna **com aviso**. Dá pra sobrescrever à mão.
-- `bumpers = ceil(cols / colunasPorBumper)` — o último pode ficar incompleto
-- `ancoragens = bumpers × ancoragens do bumper`
-- **Carga por ancoragem = pior caso** (bumper cheio): `(colunasPorBumper × pesoColuna + pesoBumper) / ancoragens do bumper + acessórios da fixação + extras`
-- **Checagem da talha**: `pctTalha = carga por ancoragem ÷ WLL`. `rigTone` espelha o elétrico — **> 80 % laranja, > 100 % vermelho**. Como a frota é só 1 t, não existe "escolher motor maior": ou cabe, ou divide a parede em mais ancoragens.
-- **Ângulo**: o motor assume içamento **a prumo** (θ = 0°). Fora da vertical a carga na ancoragem cresce por `1/cos θ` (45° = 1,41× · 60° = 2,00×). Enquanto não houver campo, o Caderno **declara a premissa**.
+- **Peso**: `pesoColuna = rows × peso do gabinete` · `totalKg = cols × pesoColuna`.
+  Sem peso de gabinete → `semPeso` (o Caderno imprime "—", nunca `0 kg`).
+- **Cadeia de limites do fabricante**, no modo escolhido pelo usuário
+  (`project.rigging.modo`):
+  - **voado** → altura voada em metros (`voadoMaxM`) e/ou em gabinetes
+    (`voadoMaxQtd`);
+  - **empilhado (sentado)** → altura de empilhamento (`empilhadoMaxM`).
+  - `porBarraMaxQtd` **saiu da cadeia**: sem o dimensionamento de bumper não há
+    como saber quantas colunas dividem uma barra. O campo segue na Biblioteca
+    como registro do fabricante.
 
-### Catálogo de bumpers — semente, não verdade
-
-**`ancoragens` é propriedade do BUMPER, não da largura.** Isso ficou provado pela
-própria frota: existe bumper de 50 cm com 1 ancoragem **e** bumper de 50 cm com 2
-(o do 2.9 RGB Share). E no mercado existe viga de **2 gabinetes de 64 cm
-(1,28 m) com uma ancoragem só** — bumper robusto, gabinete de 12 kg (ISD Lumen P10
-outdoor). Qualquer regra que derive ancoragens da largura está errada.
-
-Por isso o catálogo é **semente**: o técnico cadastra o bumper dele
-(`cfg.bumper` aceita objeto solto com `larguraMm`, `ancoragens`, `pesoKg`).
-
-| Bumper (semente) | Largura | Ancoragens | Colunas (gab. 500 mm) | Peso |
-| --- | --- | --- | --- | --- |
-| 50 cm · 1 ancoragem | 500 mm | 1 | 1 | ⚠️ 8 kg *(estimado)* |
-| 50 cm · 2 ancoragens | 500 mm | 2 | 1 | ⚠️ 8 kg *(estimado)* |
-| 100 cm · 2 ancoragens | 1000 mm | 2 | 2 | ⚠️ 14 kg *(estimado)* |
-
-| Fixação | Acessórios | Peso na ancoragem |
-| --- | --- | --- |
-| Algema/garra | garra | ⚠️ 3 kg *(estimado)* |
-| Ilhó + cinta + manilha | cinta de carga, manilha | ⚠️ 5 kg *(estimado)* |
-
-Os pesos ⚠️ são **placeholder** (`estimado: true`) até a pesagem real; enquanto
-estiverem assim o motor devolve aviso e o Caderno rotula como estimativa. Bumper
-cadastrado pelo técnico **sem peso** também nasce `estimado`. A lista de acessórios
-por fixação é o embrião da picking list da locadora.
+O que o motor **não calcula mais** (30/07/2026): bumpers, colunas por bumper,
+ancoragens, carga por ancoragem, % do WLL e sugestão de talha. Esses números
+dependiam do catálogo estimado da casa (`BUMPERS`/`FIXACOES`, removidos) e quem
+os dimensiona é o rigger. O histórico do modelo antigo está no git
+(`d760ff2` e anteriores) e a fundamentação em `rigging-pesquisa.md`.
 
 ---
 
@@ -127,8 +112,9 @@ Não por ser difícil de programar (as fórmulas estão na pesquisa §4), mas po
 - substituir o rigger habilitado / a ART do engenheiro.
 
 **O verbo do app é "confira", nunca "pode".** E a seção não se chama "Rigging" —
-chamar de rigging promete engenharia. Chama-se **"Peso e ancoragens"**: promete
-aritmética e entrega aritmética impecável.
+chamar de rigging promete engenharia. Chama-se **"Peso e estrutura"** (até
+30/07/2026, "Peso e ancoragens"): promete aritmética e entrega aritmética
+impecável.
 
 ---
 
@@ -225,22 +211,19 @@ gabinete 500×500 mm · a regra dos conectores C acima de 8 de altura (MG6S).
 
 ## 6 · O que o motor ainda NÃO cobre
 
-- **Limite do fabricante** por modo (voado × empilhado), por barra e por coluna —
-  hoje o motor só compara com a talha. É a R2.
-- **Ângulo** fora do prumo (§2) — premissa declarada hoje, campo na R4.
 - **Layout físico** (telas posicionadas no palco): adiado; a fase calcula por tela.
 
-## 7 · Plano de fases (revisado 25/07)
+## 7 · Plano de fases (revisado 30/07)
 
 | Fase | Entrega | Trava |
 | --- | --- | --- |
-| **R0 ✅** | motor puro + testes; catálogo de bumper/fixação; talha 1 t manual | — |
-| **R0.5 ✅** | **Base de Conhecimento: categoria Estrutura** com "Peso e ancoragens — como a conta é feita" e "Checklist de montagem — parede voada" (§4). Conhecimento antes da calculadora: não dependia de decisão nenhuma. | — |
-| **R2 ✅** | motor: **cadeia de verificação** — `limitesGabinete()` + `checaLimites()`, modo voado × empilhado, limite por barra, `elo` (quem trava primeiro), e **sem dado nunca vira "ok"** | — |
-| **R1 ✅** | **campos do fabricante em "Especificações Avançadas" da Biblioteca de gabinetes** (`Inventory.jsx`): altura voada/empilhada, gabinetes por barra, trava extra acima de N, tipo de trava e procedência (`fonte` + `conferido`) | — |
-| **R3 ✅** | seção **"Peso e ancoragens"** no Caderno + PDF nativo: premissas declaradas, stats + tabela por tela, **a cadeia por tela**, avisos (acima / não informado / ferragem extra / sem peso), **checklist da §4** e box de escopo. Saiu como o mockup dos 3 estados. | — |
-| **R4** | painel no app (bumper/fixação/ancoragens/ângulo por Screen). O Caderno já lê `project.rigging` — a R4 é quem passa a escrever esse objeto; hoje a seção roda no `DEFAULT_RIG`. É também onde os `avisos` do motor (bumper mais estreito que o gabinete, altura do gabinete ausente) ganham lugar: no papel eles ficariam ruído. | Q4 |
-| **R5** | ~~ground support~~ **FORA DE ESCOPO** (§3.3) — sobra só o limite de empilhamento do fabricante em metros | — |
+| **R0 ✅→🗑** | motor puro + testes; catálogo de bumper/fixação; talha 1 t manual — **dimensionamento removido em 30/07/2026** (ver nota do topo) | — |
+| **R0.5 ✅** | **Base de Conhecimento: categoria Estrutura** (artigos revisados em 30/07: a conta de bumper saiu; ficou peso + limites + modo). | — |
+| **R2 ✅** | motor: **cadeia de verificação** — `limitesGabinete()` + `checaLimites()`, modo voado × empilhado, `elo`, e **sem dado nunca vira "ok"**. Em 30/07 o check por barra saiu (dependia do bumper). | — |
+| **R1 ✅** | **campos do fabricante em "Especificações Avançadas" da Biblioteca de gabinetes** (`Inventory.jsx`): altura voada/empilhada, gabinetes por barra, trava extra acima de N, tipo de trava e procedência (`fonte` + `conferido`). Todos mantidos em 30/07 (o por-barra vira só registro). | — |
+| **R3 ✅** | seção no Caderno + PDF nativo (hoje **"Peso e estrutura"**): stats + tabela por tela, **a cadeia por tela**, avisos (acima / não informado / ferragem extra / sem peso), **checklist da §4** (só na voada) e box de escopo. | — |
+| **R4 🗑→✅** | ~~painel de içamento (bumper/fixação/ancoragens/ângulo)~~ **cancelada e substituída (30/07/2026)** pelo controle na aba Relatório: toggle "Peso e estrutura no relatório" + Select do tipo de montagem (voada × sentada) — a primeira escrita real de `project.rigging` (`{ mostrar, modo }`). | — |
+| **R5** | ~~ground support~~ **FORA DE ESCOPO** (§3.3) — o limite de empilhamento do fabricante entra pelo modo "sentada" | — |
 | **R6** | pitch × distância no Aspect Ratio (independente, pode furar fila) | — |
 
 ### Pitch × distância (R6)
@@ -298,11 +281,11 @@ produção** — prod segue na v1.9.1. `npm test` 296 verdes, `eslint` limpo.
 
 | Onde | O quê |
 | --- | --- |
-| `src/services/rigging.js` | motor puro: peso, bumpers, ancoragens, carga na pior ancoragem, checagem contra a talha, **cadeia de limites do fabricante** (modo voado × empilhado, por barra, por altura), `elo` (quem trava primeiro), avisos de procedimento. 37 testes. |
+| `src/services/rigging.js` | motor puro (revisado 30/07): peso da parede, **cadeia de limites do fabricante** (modo voado × empilhado, por altura), `elo` (quem trava primeiro), avisos de procedimento. |
 | `src/pages/Inventory.jsx` | os 6 campos de limite do fabricante no **Avançado** do gabinete, com procedência. |
 | `src/data/knowledge.js` | categoria **Estrutura** com 2 artigos (a conta + o checklist de montagem). |
-| `src/services/reportContent.js` | **o texto do papel**, compartilhado pelos dois renderizadores: `rigCadeia()` (a cadeia pronta pra desenhar), `rigTextoAcima()`, os avisos, o checklist e o glossário novo (Ancoragem, Bumper, Talha, WLL). Testado em `reportContent.test.js`. |
-| `ProjectRelatorio.jsx` + `pdf/pdfRelatorio.js` | a seção **"Peso e ancoragens"** nos dois cadernos (DOM e PDF nativo), tipos Completo e Estrutural. |
+| `src/services/reportContent.js` | **o texto do papel**, compartilhado pelos dois renderizadores: `rigCadeia()` (a cadeia pronta pra desenhar), `rigTextoAcima()`, os avisos, o checklist e o glossário (Ancoragem, Bumper, Talha). Testado em `reportContent.test.js`. |
+| `ProjectRelatorio.jsx` + `pdf/pdfRelatorio.js` | a seção **"Peso e estrutura"** nos dois cadernos (DOM e PDF nativo), tipos Completo (com toggle) e Estrutural (sempre); tipo de montagem escolhível na aba Relatório. |
 | `docs/rigging-pesquisa.md` | a pesquisa de base e a triagem da pesquisa paralela. |
 | este arquivo | vocabulário, modelo, escopo, checklist de campo, fases, decisões. |
 
@@ -316,9 +299,10 @@ mais quatro, que os testes de `reportContent.test.js` seguram:
    o total sai "(parcial)" — um `0 kg` num documento datado leria como fato.
 2. **Texto novo entra em `reportContent.js`, não no renderizador.** São dois
    cadernos (DOM e PDF) desenhando a mesma coisa; texto duplicado diverge.
-3. **A seção chama "Peso e ancoragens".** Nunca "Rigging" (prometeria
-   engenharia), nunca "ponto" pra ancoragem — *ponto* é o ponto de talha que a
-   produção entrega. Cor da disciplina: **Estrutura teal `#0f766e`**.
+3. **A seção chama "Peso e estrutura"** (desde 30/07/2026; antes, "Peso e
+   ancoragens"). Nunca "Rigging" (prometeria engenharia), nunca "ponto" pra
+   ancoragem — *ponto* é o ponto de talha que a produção entrega. Cor da
+   disciplina: **Estrutura teal `#0f766e`**.
 4. **No PDF, nada de `unbreakable`.** A cadeia flui entre páginas de propósito;
    bloco alto demais some no pdfmake (já aconteceu com a Screen 2).
 
