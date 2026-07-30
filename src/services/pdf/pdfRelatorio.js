@@ -290,7 +290,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     {
       columns: [
         { width: "*", text: [{ text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 9, characterSpacing: 1.8, color: COVER_INK, background: LIME }], margin: [0, 6, 0, 0] },
-        ...(logo ? [{ width: 54, image: logo, fit: [54, 54] }] : []),
+        // caixa 110×54 com fit: logo quadrado (marca) fica 54×54; logo largo do
+        // projeto usa a largura sem estourar a faixa do topo
+        ...(logo ? [{ width: 110, image: logo, fit: [110, 54], alignment: "right" }] : []),
       ],
     },
     // LLC-01: o título auto-encolhe pra caber numa linha — nome de 40+ caracteres

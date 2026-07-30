@@ -1,6 +1,6 @@
 // pages/project/ProjectDados.jsx — aba Dados: telas + ficha do projeto.
 import { useState, useRef } from "react";
-import { Plus, ChevronRight, GripVertical, Copy, Trash2 } from "lucide-react";
+import { Plus, ChevronRight, GripVertical, Copy, Trash2, ImagePlus, X } from "lucide-react";
 import { newScreen } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
@@ -78,6 +78,28 @@ export default function ProjectDados({ project, patch, patchTela }) {
   };
 
   const watts = (t) => (t.cols || 0) * (t.rows || 0) * (parseFloat(t.gabinete?.pwrMax) || 0);
+
+  // LOGO do projeto (capa do Caderno/PDF): redimensiona pra ≤512px e grava como
+  // dataURL no projeto (PNG preserva transparência; vive no IDB junto do resto)
+  const logoInputRef = useRef(null);
+  const onLogoFile = async (file) => {
+    if (!file) return;
+    try {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+      const k = Math.min(1, 512 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * k));
+      canvas.height = Math.max(1, Math.round(img.height * k));
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      patch({ logo: canvas.toDataURL("image/png") });
+      toast("Logo do projeto salvo — aparece na capa do Caderno");
+    } catch {
+      toast("Não deu pra ler essa imagem — tenta PNG ou JPG", "info");
+    }
+  };
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(320px,1fr) minmax(340px,1fr)", gap: 16, alignItems: "start" }}>
@@ -196,6 +218,26 @@ export default function ProjectDados({ project, patch, patchTela }) {
         </div>
         <label style={label}>Observações</label>
         <textarea value={project.obs} onChange={(e) => patch({ obs: e.target.value })} placeholder="Notas técnicas, demandas, contatos…" rows={4} style={input({ resize: "vertical" })} />
+
+        <label style={{ ...label, marginTop: 12 }}>Logo do projeto</label>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {project.logo && (
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: 8, border: `1px solid ${T.bd}`, background: "#fff", overflow: "hidden", flexShrink: 0 }}>
+              <img src={project.logo} alt="Logo do projeto" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            </span>
+          )}
+          <button style={btn("ghost")} onClick={() => logoInputRef.current?.click()}>
+            <ImagePlus size={15} /> {project.logo ? "Trocar" : "Adicionar logo"}
+          </button>
+          {project.logo && (
+            <button style={btn("ghost")} onClick={() => { patch({ logo: null }); toast("Logo removido"); }}>
+              <X size={15} /> Remover
+            </button>
+          )}
+          <input ref={logoInputRef} type="file" accept="image/*" style={{ display: "none" }}
+            onChange={(e) => { onLogoFile(e.target.files?.[0]); e.target.value = ""; }} />
+        </div>
+        <div style={{ color: T.dim, fontSize: 12, marginTop: 6 }}>Sai na capa do Caderno Técnico (tela e PDF), no lugar da marca do app.</div>
       </div>
 
     </div>
