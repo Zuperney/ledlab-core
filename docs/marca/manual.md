@@ -178,7 +178,10 @@ fechar/remover · `Check` confirmado · `Search` buscar · `GripVertical` arrast
 
 **Estado:** `TriangleAlert` aviso · `CircleCheck` ok · `CircleX` erro/cancelado ·
 `Clock` pendente · `Activity` andamento · `Info` informação · `ShieldCheck`/
-`ShieldAlert` armazenamento · `Sparkles` novidades · `Gauge` certificado.
+`ShieldAlert` armazenamento · `Sparkles` novidades · `Gauge` certificado ·
+`ChevronsUp` overclock (arredondar limite pra cima, por escolha — estado
+âmbar "risco escolhido", entre o ok e o estouro vermelho; nunca usar pra
+outra coisa).
 
 **Tema/privacidade:** `Sun`/`Moon` · `Eye`/`EyeOff` (valores R$).
 **Campo:** `MapPin` GPS · `Play`/`Square` abrir/fechar turno · `Camera`

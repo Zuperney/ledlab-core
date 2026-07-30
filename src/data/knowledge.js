@@ -58,6 +58,11 @@ export const KB_ARTICLES = [
         { t: "p", text: "Quem decide qual régua vale é o Free Topology — um interruptor POR TELA no software da controladora, não um atributo fixo da marca. Veja “Regra do retângulo e Free Topology”." },
         { t: "note", text: "No app, telas novas usam a régua de Pixels; dá pra trocar por tela no Cabeamento (seletor 'Porta'). Telas antigas continuam na régua de Área até você mudar." },
       ] },
+      { h: "Overclock: esticar a porta", blocks: [
+        { t: "p", text: "A conta de gabinetes por porta arredonda PRA BAIXO por padrão (30,3 vira 30 — sobra segura). O botão OVERCLOCK, no Cabeamento da Screen, inverte o arredondamento: 30,3 vira 31, e a última porta pode passar da capacidade nominal. Divisão exata não muda nada." },
+        { t: "p", text: "É risco calculado, não mágica: acima do teto publicado (655.360 px por porta a 8-bit/60 Hz) a controladora pode derrubar frame ou mostrar artefato — depende de modelo, firmware e refresh. O app marca as portas overclocadas em LARANJA com o % real (ex.: 102%), e o Caderno registra a escolha." },
+        { t: "note", text: "Teste no ensaio, não descubra no show. Se a porta overclocada falhar, os caminhos são: voltar o arredondamento, baixar o refresh (a capacidade escala com 60 ÷ Hz) ou repartir em mais portas." },
+      ] },
     ] },
   { id: "serpente", category: "Sinal", title: "Serpentina", summary: "Roteamento zig-zag para minimizar cabo.", sections: [{ h: "Estratégias", blocks: [{ t: "ul", items: ["Linha", "Coluna", "Área (minimiza cabos)"] }] }] },
   { id: "free-topology", category: "Sinal", title: "Regra do retângulo e Free Topology", summary: "Quando os buracos da tela consomem banda da porta — e o interruptor que desliga isso.",

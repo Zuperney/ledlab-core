@@ -1,6 +1,6 @@
 // canvasCabling.test.js — a corrente atravessando telas no canvas do processador.
 import { describe, it, expect } from "vitest";
-import { canvasCells, snakeCells, canvasPorts, portBboxPx, orderCanvasPorts } from "./canvasCabling.js";
+import { canvasCells, snakeCells, snakeCellsPorTela, canvasPorts, portBboxPx, orderCanvasPorts } from "./canvasCabling.js";
 import { packByModel } from "./layout.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -71,6 +71,42 @@ describe("snakeCells — serpentina atravessando telas", () => {
     expect(xs).toEqual(Array.from({ length: 14 }, (_, i) => i * 128));
     // e a cadeia passa por mais de uma tela
     expect(new Set(chain.slice(0, 6).map((c) => c.telaId)).size).toBeGreaterThan(1);
+  });
+});
+
+describe("snakeCellsPorTela — o link entre telas é no máximo 1", () => {
+  // 2 telas 2×2 (células de 100px) afastadas 1000px no x
+  const telaCells = (telaId, x0) => [
+    { x: x0, y: 0 }, { x: x0 + 100, y: 0 }, { x: x0, y: 100 }, { x: x0 + 100, y: 100 },
+  ].map((c, i) => ({ ...c, w: 100, h: 100, telaId, c: i % 2, r: Math.floor(i / 2) }));
+  const duas = [...telaCells("a", 0), ...telaCells("b", 1000)];
+
+  it("completa uma tela inteira antes de pular pra próxima (1 transição)", () => {
+    const seq = snakeCellsPorTela(duas, "updown", "bl").map((c) => c.telaId);
+    expect(seq).toEqual(["a", "a", "a", "a", "b", "b", "b", "b"]);
+    // a varredura por faixas (snakeCells puro) alternaria — é o que a regra corrige
+  });
+
+  it("a ordem das telas segue o canto de início (tr começa pela direita)", () => {
+    expect(snakeCellsPorTela(duas, "updown", "tr")[0].telaId).toBe("b");
+  });
+
+  it("dentro de cada tela, a serpentina é a de sempre", () => {
+    const a = snakeCellsPorTela(duas, "updown", "bl").slice(0, 4);
+    expect(a.map((c) => [c.x, c.y])).toEqual(snakeCells(telaCells("a", 0), "updown", "bl").map((c) => [c.x, c.y]));
+  });
+
+  it("zigzag ordena telas pelo eixo Y (empilhadas na vertical)", () => {
+    const cima = telaCells("cima", 0);
+    const baixo = telaCells("baixo", 0).map((c) => ({ ...c, y: c.y + 2000 }));
+    const seq = snakeCellsPorTela([...cima, ...baixo], "zigzag", "tl").map((c) => c.telaId);
+    expect(seq).toEqual(["cima", "cima", "cima", "cima", "baixo", "baixo", "baixo", "baixo"]);
+    expect(snakeCellsPorTela([...cima, ...baixo], "zigzag", "bl")[0].telaId).toBe("baixo");
+  });
+
+  it("tela única cai na serpentina normal", () => {
+    const uma = telaCells("a", 0);
+    expect(snakeCellsPorTela(uma, "updown", "bl")).toEqual(snakeCells(uma, "updown", "bl"));
   });
 });
 

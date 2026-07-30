@@ -47,12 +47,12 @@ export const DEFAULT_PREFS = {
 };
 
 // Config de cabeamento padrão de uma tela nova.
+// (o overclock de porta NÃO mora aqui: é escolha por Screen — screen.sinal.overclock)
 export const DEFAULT_CABLING = {
   orientation: "horizontal",
   derating: false,
   aligned: true,
   hz: 60,
-  overclock: false,
   strategy: "linha",
   manual: [],
 };

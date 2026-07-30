@@ -114,7 +114,7 @@ export default function ProjectRelatorio({ project }) {
     const scr = screensById[s.id];
     const g = (scr?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)[0]?.gabinete;
     const resX = parseFloat(g?.resX) || 128, resY = parseFloat(g?.resY) || 128;
-    return { resX, resY, cols: Math.round(s.size.w / resX), rows: Math.round(s.size.h / resY), hz: parseFloat(scr?.sinal?.hz) || 60 };
+    return { resX, resY, cols: Math.round(s.size.w / resX), rows: Math.round(s.size.h / resY), hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true };
   };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
@@ -330,12 +330,14 @@ export default function ProjectRelatorio({ project }) {
                   <span>Gabinete <b style={{ color: PRINT.ink }}>{sp.resX} × {sp.resY} px</b></span>
                   <span>Grade da Screen <b style={{ color: PRINT.ink }}>{sp.cols} × {sp.rows} gabinetes</b></span>
                   <span>Total de cabos <b style={{ color: PRINT.ink }}>{s.ports.length}</b></span>
+                  {/* premissa declarada: documento datado registra que passar do nominal foi escolha */}
+                  {sp.overclock && <span>Overclock <b style={{ color: PRINT.amb }}>ligado — porta pode passar da capacidade nominal</b></span>}
                 </div>
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}
                 <DenseTable data={s.ports} maxCols={4} columns={[
                   { key: "n", label: "Porta", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
                   { key: "count", label: "Gabinetes", align: "right", render: (p) => p.count },
-                  { key: "pct", label: "Uso", align: "right", render: (p) => `${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
+                  { key: "pct", label: "Uso", align: "right", render: (p) => `${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : p.oc ? PRINT.amb : PRINT.ink }) },
                 ]} />
               </div>
             ); })}

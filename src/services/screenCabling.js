@@ -12,7 +12,7 @@
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
 import { cableMeta, cablePorts, balancedChunks, buildAuto } from "./cabling.js";
 import { acTone } from "./electricalCalc.js";
-import { canvasCells, snakeCells, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
+import { canvasCells, snakeCellsPorTela, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
 import { screenTelas, screenOfTela, unassignedTelas, screenSize } from "./screens.js";
 
 const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
@@ -66,7 +66,8 @@ export function screenAutoPorts(screen, telas, kind = "sinal", numbering = "row-
     const meta = metaOf(tela, cfg, kind);
     const budget = kind === "ac" ? meta.acBudget : meta.sinalBudget;
     if (kind === "sinal" && meta.sinalRule === "px") {
-      ports.push(...balancedChunks(snakeCells(group, routing, corner), budget));
+      // serpentina tela-a-tela: no máximo 1 cabo cruza entre telas da Screen
+      ports.push(...balancedChunks(snakeCellsPorTela(group, routing, corner), budget));
     } else {
       const strategy = ["linha", "coluna", "area"].includes(cfg.strategy) ? cfg.strategy : "area";
       ports.push(...blockPorts(group, tela, budget, strategy, routing, corner, numbering));
@@ -125,7 +126,12 @@ export function screenPortSummary(screen, telas, kind = "sinal", numbering = "ro
       return { ...base, load, pct, over: m.connRating ? load > m.connRating + 0.001 : false, warn: acTone(pct) === "warn" };
     }
     const usoPx = m.sinalRule === "px" ? port.length * m.pxPerCab : portBboxPx(port);
-    return { ...base, pct: m.pxPort ? Math.round((usoPx / m.pxPort) * 100) : 0, over: m.pxPort ? usoPx > m.pxPort + 1 : false };
+    const over = m.pxPort ? usoPx > m.pxPort + 1 : false;
+    // OVERCLOCK ligado: o excedente ESPERADO do ceil (porta dentro do orçamento
+    // overclocado) sai como `oc` (laranja, escolha do técnico) — `over` (vermelho)
+    // fica reservado pro que passa ALÉM disso (ex.: cabo desenhado no livre).
+    const oc = m.overclock && over && port.length <= m.sinalBudget;
+    return { ...base, pct: m.pxPort ? Math.round((usoPx / m.pxPort) * 100) : 0, over: over && !oc, oc };
   });
 }
 

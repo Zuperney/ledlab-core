@@ -133,6 +133,20 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(curto.fontSize).toBe(58);
   });
 
+  it("Screen overclocada: spec OVERCLOCK declarada e uso >100% em laranja, não vermelho", () => {
+    // gab 192×192 (36.864 px): floor 17 → ceil 18; 18 gab numa porta = 101%
+    const proj = {
+      ...project,
+      telas: [{ id: "t1", nome: "Main", cols: 6, rows: 3, gabinete: { ...gab, resX: 192, resY: 192 } }],
+      screens: [{ id: "s1", nome: "Screen 1", telaIds: ["t1"], pos: { t1: { x: 0, y: 0 } }, sinal: { rule: "px", strategy: "auto", overclock: true } }],
+    };
+    const j = JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Mapa de cabos", cfg, logo: null }).content);
+    expect(j).toContain("OVERCLOCK"); // premissa declarada no specBox da Screen
+    expect(j).toContain('"101%"'); // o % real nunca mente
+    expect(j).toContain('"text":"101%","font":"PlexMono","alignment":"right","bold":true,"color":"#b45309"'); // laranja (PRINT.amb)
+    expect(j).not.toContain('"text":"101%","font":"PlexMono","alignment":"right","bold":true,"color":"#b91c1c"'); // não é estouro
+  });
+
   it("um tópico por página + uma página por Screen/tela no sinal e no AC", () => {
     // Completo sem Screens: 7 seções (com sumário, todas quebram) + 4 blocos
     // (2 telas × sinal e AC, cada um na própria página) → 11 quebras "before".

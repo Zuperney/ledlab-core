@@ -66,6 +66,32 @@ export function snakeCells(cells, routing = "updown", corner = "bl") {
   return out;
 }
 
+// Serpentina TELA-A-TELA: completa todos os gabinetes de uma tela e só então
+// pula pra próxima — o LINK entre duas telas é no máximo 1 (regra de campo:
+// telas da mesma Screen podem estar longe uma da outra, e cada travessia é um
+// cabo comprido a mais; a varredura por faixas do snakeCells cruzava o vão a
+// cada faixa). A ordem das telas segue a posição no canvas, no mesmo eixo e
+// sentido do routing/corner; dentro de cada tela a serpentina é a de sempre.
+export function snakeCellsPorTela(cells, routing = "updown", corner = "bl") {
+  const byTela = new Map();
+  for (const cell of cells) {
+    if (!byTela.has(cell.telaId)) byTela.set(cell.telaId, []);
+    byTela.get(cell.telaId).push(cell);
+  }
+  if (byTela.size <= 1) return snakeCells(cells, routing, corner);
+  const rightStart = corner === "br" || corner === "tr";
+  const bottomStart = corner === "bl" || corner === "br";
+  const primary = routing === "zigzag" ? "y" : "x";
+  const secondary = primary === "x" ? "y" : "x";
+  const min = (group, axis) => group.reduce((m, c) => Math.min(m, c[axis]), Infinity);
+  const revPrim = primary === "x" ? rightStart : bottomStart;
+  const groups = [...byTela.values()].sort((a, b) => {
+    const p = min(a, primary) - min(b, primary);
+    return (revPrim ? -p : p) || min(a, secondary) - min(b, secondary);
+  });
+  return groups.flatMap((group) => snakeCells(group, routing, corner));
+}
+
 // retângulo circunscrito da porta, em pixels de canvas — é o que a régua de ÁREA
 // cobra quando o Free Topology está desligado.
 export function portBboxPx(port) {
@@ -117,7 +143,7 @@ export function canvasPorts(telas, positions, opts = {}) {
   for (const [model, group] of byModel) {
     const tela = (telas || []).find((t) => modelKey(t) === model);
     const budget = cableMeta(tela)[budgetKey] || 1;
-    ports.push(...balancedChunks(snakeCells(group, routing, corner), budget));
+    ports.push(...balancedChunks(snakeCellsPorTela(group, routing, corner), budget));
   }
   return orderCanvasPorts(ports, numbering);
 }

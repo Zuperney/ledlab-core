@@ -129,6 +129,36 @@ describe("cabling — régua de PIXELS (portas de dados reais)", () => {
   });
 });
 
+describe("cabling — OVERCLOCK (arredonda gabinetes/porta PRA CIMA)", () => {
+  // gabinete 104×208 = 21.632 px → 655.360/21.632 = 30,29: floor 30 · ceil 31
+  const tela = (sinal = {}) => ({ cols: 31, rows: 1, gabinete: { resX: 104, resY: 208 }, cabling: { sinal: { rule: "px", ...sinal } } });
+
+  it("ceil só muda quando a divisão não é exata", () => {
+    expect(cableMeta(tela()).sinalBudget).toBe(30);
+    expect(cableMeta(tela()).overclock).toBe(false);
+    expect(cableMeta(tela({ overclock: true }))).toMatchObject({ sinalBudget: 31, overclock: true });
+    // divisão exata (128×128 → 40 cravado): overclock não inventa gabinete
+    const exata = { cols: 8, rows: 6, gabinete: { resX: 128, resY: 128 }, cabling: { sinal: { rule: "px", overclock: true } } };
+    expect(cableMeta(exata).sinalBudget).toBe(40);
+  });
+
+  it("compõe com bits e Hz (ceil por cima do pxPort já escalado)", () => {
+    expect(cableMeta(tela({ bits: 10 })).sinalBudget).toBe(15); // 327.680/21.632 = 15,15
+    expect(cableMeta(tela({ bits: 10, overclock: true })).sinalBudget).toBe(16);
+  });
+
+  it("31 gabinetes: 2 portas viram 1 quando o ceil cruza o limiar", () => {
+    expect(cablePorts(tela(), "sinal", NB).length).toBe(2);
+    expect(cablePorts(tela({ overclock: true }), "sinal", NB).length).toBe(1);
+  });
+
+  it("AC não tem overclock (orçamento de corrente segue floor)", () => {
+    const comOc = { ...tela({ overclock: true }), gabinete: { resX: 104, resY: 208, pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" } };
+    const semOc = { ...tela(), gabinete: comOc.gabinete };
+    expect(cableMeta(comOc).acBudget).toBe(cableMeta(semOc).acBudget);
+  });
+});
+
 describe("cabling — canto de início da serpentina (Quick Connection do NovaLCT)", () => {
   // grade 3×3: r=0 é o topo (y cresce pra baixo), então r=2 é a base
   const start = (corner, routing = "updown") => serpentine(0, 0, 3, 3, routing, corner)[0];

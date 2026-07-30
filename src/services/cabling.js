@@ -163,8 +163,12 @@ export function cableMeta(tela, sinalOverride) {
   const sinalBits = s.bits === 10 ? 10 : 8; // profundidade de cor (8-bit padrão)
   const sinalRule = s.rule === "px" ? "px" : "area"; // sem o campo = legado (área) — não muda projetos existentes
   const pxPort = Math.floor(((PX_PER_PORT_BY_BITS[sinalBits] || PX_PER_PORT) * 60) / (s.hz || 60));
-  const sinalBudget = Math.max(1, Math.floor(pxPort / pxPerCab));
-  return { cols, rows, pxPerCab, fp, ampCab, connRating, acBudget, sinalBudget, sinalRule, sinalBits, pxPort };
+  // OVERCLOCK (escolha explícita do técnico): arredonda a divisão PRA CIMA — a
+  // última fatia fracionada vira gabinete inteiro e a porta pode passar da
+  // capacidade nominal. Divisão exata não muda (ceil = floor). Só sinal.
+  const overclock = s.overclock === true;
+  const sinalBudget = Math.max(1, (overclock ? Math.ceil : Math.floor)(pxPort / pxPerCab));
+  return { cols, rows, pxPerCab, fp, ampCab, connRating, acBudget, sinalBudget, sinalRule, sinalBits, pxPort, overclock };
 }
 
 export function buildAuto(cols, rows, strat, bud, rout, numbering, rule = "area", corner = "bl") {

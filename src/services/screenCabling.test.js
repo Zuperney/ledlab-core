@@ -54,6 +54,53 @@ describe("screenPortSummary — capacidade e telas percorridas", () => {
     const s = screenPortSummary(scTiras, telas);
     expect(s.some((p) => p.cruza)).toBe(true);
   });
+
+  // OVERCLOCK: o excedente esperado do ceil sai como `oc` (laranja, escolha),
+  // nunca como `over` (vermelho, estouro) — e o % real continua visível.
+  it("overclock no auto: IMAG de 18 fecha em 1 porta, marcada oc (não over)", () => {
+    // budget IMAG 192×192: floor(17,77) = 17 → 2 portas; ceil = 18 → 1 porta
+    const s = { ...scImag, sinal: { ...scImag.sinal, overclock: true } };
+    expect(screenAutoPorts(scImag, telas).length).toBe(2);
+    expect(screenAutoPorts(s, telas).length).toBe(1);
+    const [p] = screenPortSummary(s, telas);
+    expect(p).toMatchObject({ count: 18, pct: 101, oc: true, over: false });
+  });
+
+  it("sem o toggle, a mesma porta cheia continua estouro vermelho (teste acima)", () => {
+    const cables = autoAsCables(scImag, telas).flat();
+    const livre = { ...scImag, sinal: { strategy: "livre", cables: [cables.map((c) => ({ telaId: c.telaId, c: c.c, r: c.r }))] } };
+    const [p] = screenPortSummary(livre, telas);
+    expect(p.over).toBe(true);
+    expect(p.oc).toBeFalsy();
+  });
+
+  it("modo livre além do orçamento overclocado continua over", () => {
+    // IMAG maior (6×4 = 24 gab): orçamento overclocado = 18 → cabo de 19 estoura de verdade
+    const imag2 = mk("imag2", gabImag, 6, 4, "IMAG 2");
+    const sc = { id: "s3", nome: "X", telaIds: ["imag2"], pos: { imag2: { x: 0, y: 0 } },
+      sinal: { strategy: "livre", overclock: true, cables: [Array.from({ length: 19 }, (_, i) => ({ telaId: "imag2", c: i % 6, r: Math.floor(i / 6) }))] } };
+    const [p] = screenPortSummary(sc, [...telas, imag2]);
+    expect(p.count).toBe(19);
+    expect(p.over).toBe(true);
+    expect(p.oc).toBe(false);
+  });
+});
+
+describe("link único entre telas (serpentina tela-a-tela)", () => {
+  it("no sistema tiras, no máximo 1 porta cruza entre telas", () => {
+    const s = screenPortSummary(scTiras, telas);
+    expect(s.filter((p) => p.cruza).length).toBeLessThanOrEqual(1);
+  });
+
+  it("telas afastadas: a corrente completa uma tela e cruza o vão UMA vez", () => {
+    const tA = mk("a", gabTira, 5, 2, "A"), tB = mk("b", gabTira, 5, 2, "B");
+    const sc = { id: "sx", nome: "X", telaIds: ["a", "b"], pos: { a: { x: 0, y: 0 }, b: { x: 5000, y: 0 } }, sinal: { rule: "px", strategy: "auto" } };
+    const seqIds = screenAutoPorts(sc, [tA, tB]).flat().map((c) => c.telaId);
+    expect(seqIds.length).toBe(20);
+    // a→a…a→b…b: exatamente 1 transição de tela na corrente inteira
+    expect(seqIds.filter((id, i) => i && id !== seqIds[i - 1]).length).toBe(1);
+    expect(seqIds[0]).toBe("a"); // começa na tela mais à esquerda (corner bl)
+  });
 });
 
 describe("modo LIVRE", () => {

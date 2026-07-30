@@ -6,7 +6,7 @@
 // segurança do powerCON. Numeração 1..N por Screen. Estouro em vermelho: mostra, não
 // bloqueia (sinal = px/porta; AC = corrente do conector).
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, TriangleAlert } from "lucide-react";
+import { Layers, Plus, X, Download, Repeat2, Undo2, Eraser, TriangleAlert, ChevronsUp } from "lucide-react";
 import { T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
 import Select from "../../components/Select.jsx";
@@ -22,6 +22,7 @@ import { genId } from "../../services/ids.js";
 import { fileName } from "../../services/filenames.js";
 import { oneScreenPerTela, screenTelas } from "../../services/screens.js";
 import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV } from "../../services/screenCabling.js";
+import { PrefToggle } from "../../components/CablingPrefs.jsx";
 
 const key = (c) => `${c.telaId}:${c.c},${c.r}`;
 const ibtn = (extra = {}) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 8, border: `1px solid ${T.bd}`, background: T.card2, color: T.txt, cursor: "pointer", ...extra });
@@ -110,9 +111,10 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const cells = screenCells(active, telas);
   const faltam = mode === "livre" ? unassignedCount(active, telas, kind) : 0;
   const anyOver = summary.some((p) => p.over);
+  const anyOc = summary.some((p) => p.oc); // overclock: acima do nominal POR ESCOLHA
   // regra dos 80%: cabo AC acima da margem de carga contínua = atenção (laranja)
   const anyWarn = summary.some((p) => p.warn);
-  const status = faltam ? { l: `Faltam ${faltam}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : anyWarn ? { l: "Acima de 80%", c: T.amb } : { l: "OK", c: T.grn };
+  const status = faltam ? { l: `Faltam ${faltam}`, c: T.amb } : anyOver ? { l: "Alerta", c: T.red } : anyOc ? { l: "Overclock", c: T.amb } : anyWarn ? { l: "Acima de 80%", c: T.amb } : { l: "OK", c: T.grn };
 
   const clickCell = (cell) => {
     if (mode !== "livre" || drag.current?.moved) return;
@@ -197,13 +199,24 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                   {mode === "sinal" ? " · seguindo a rota do sinal" : " · a corrente atravessa as telas do mesmo modelo"}
                 </div>
               </div>
-              {/* CSV é fluxo de BANCADA (NovaLCT/Tessera no PC) — no celular sai da frente */}
-              {!isAc && !isMobile && (
-                <button onClick={exportCSV} title="Baixa o mapa de pixels desta Screen (gabinete → porta → X/Y) em CSV pro NovaLCT / Tessera"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, borderRadius: 8, padding: "7px 11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-                  <Download size={14} /> Mapa de pixels
-                </button>
-              )}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                {/* OVERCLOCK (só sinal): arredonda gabinetes/porta PRA CIMA — escolha
+                    explícita do técnico, gravada na Screen (screen.sinal.overclock) */}
+                {!isAc && (
+                  <button onClick={() => setCfg({ overclock: !cfg.overclock })} aria-pressed={cfg.overclock === true}
+                    aria-label="Overclock" title="Arredonda gabinetes por porta pra cima — a porta pode passar da capacidade nominal. Teste no ensaio."
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 38, background: cfg.overclock ? T.sel : T.card2, border: `1px solid ${cfg.overclock ? T.acc : T.bd}`, color: cfg.overclock ? T.acM : T.mut, borderRadius: 8, padding: "7px 11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                    <ChevronsUp size={14} />{!isMobile && " Overclock"}
+                  </button>
+                )}
+                {/* CSV é fluxo de BANCADA (NovaLCT/Tessera no PC) — no celular sai da frente */}
+                {!isAc && !isMobile && (
+                  <button onClick={exportCSV} title="Baixa o mapa de pixels desta Screen (gabinete → porta → X/Y) em CSV pro NovaLCT / Tessera"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 38, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, borderRadius: 8, padding: "7px 11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                    <Download size={14} /> Mapa de pixels
+                  </button>
+                )}
+              </span>
             </div>
 
             {isAc && (
@@ -238,10 +251,12 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                 const isAct = mode === "livre" && i === activeCable;
                 return (
                   <div key={i} onClick={mode === "livre" ? () => setActiveCable(activeCable === i ? null : i) : undefined}
-                    style={{ display: "flex", alignItems: "center", gap: 8, background: isAct ? T.sel : T.card2, border: `1px solid ${p.over ? T.red : p.warn ? T.amb : isAct ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: mode === "livre" ? "pointer" : "default" }}>
+                    title={p.oc ? "Overclock: acima da capacidade nominal por escolha" : p.cruza ? "Único cabo que atravessa entre telas" : undefined}
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: isAct ? T.sel : T.card2, border: `1px solid ${p.over ? T.red : p.oc || p.warn ? T.amb : isAct ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: mode === "livre" ? "pointer" : "default" }}>
                     <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(i), flexShrink: 0 }} />
                     <span style={{ color: T.txt, fontWeight: 600 }}>{word} {p.n}</span>
-                    <span style={{ color: p.over ? T.red : p.warn ? T.amb : T.mut }}>{isAc ? `${p.load.toFixed(1)} A (${p.pct}%)` : `${p.pct}%`}</span>
+                    {p.oc && <ChevronsUp size={13} color={T.amb} style={{ flexShrink: 0 }} />}
+                    <span style={{ color: p.over ? T.red : p.oc || p.warn ? T.amb : T.mut }}>{isAc ? `${p.load.toFixed(1)} A (${p.pct}%)` : `${p.pct}%`}</span>
                     <span style={{ color: T.dim }}>· {p.count} gab{p.cruza ? ` · ${p.telas.join(" → ")}` : ""}</span>
                     {mode === "livre" && <X size={13} color={T.dim} onClick={(e) => { e.stopPropagation(); removerCabo(i); }} style={{ cursor: "pointer" }} />}
                   </div>
@@ -265,6 +280,12 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
               <Drop fluid label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
             </>}
             {!isAc && <Drop fluid label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
+            {!isAc && (
+              <span style={{ gridColumn: "1 / -1" }} title="Ceil em vez de floor na conta de gabinetes por porta. Acima da capacidade nominal — teste no ensaio.">
+                <PrefToggle on={cfg.overclock === true} onClick={() => setCfg({ overclock: !cfg.overclock })}
+                  titulo="Overclock" desc="Arredonda gabinetes/porta pra cima — a porta pode passar da capacidade nominal" />
+              </span>
+            )}
           </div>
           <div style={{ color: T.dim, fontSize: 11, marginTop: 12, lineHeight: 1.5 }}>{isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal." : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."}</div>
         </LightModal>

@@ -265,7 +265,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
     const scr = screensById[s.id];
     const g = (scr?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)[0]?.gabinete;
     const resX = parseFloat(g?.resX) || 128, resY = parseFloat(g?.resY) || 128;
-    return { resX, resY, cols: Math.round(s.size.w / resX), rows: Math.round(s.size.h / resY), hz: parseFloat(scr?.sinal?.hz) || 60 };
+    return { resX, resY, cols: Math.round(s.size.w / resX), rows: Math.round(s.size.h / resY), hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true };
   };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
@@ -604,12 +604,15 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, gerad
               ["Gabinete", `${sp.resX} × ${sp.resY} px`],
               ["Grade da Screen", `${sp.cols} × ${sp.rows} gabinetes`],
               ["Total de cabos", String(s.ports.length)],
+              // premissa declarada: passar do nominal foi ESCOLHA (documento datado)
+              ...(sp.overclock ? [["Overclock", "ligado"]] : []),
             ]),
             ...mapNode(mapa),
             densePortTable(s.ports, [
               { label: "Porta", cell: (p) => portCell(p.n - 1, p.n) },
               { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-              { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
+              // laranja = overclock (acima do nominal por escolha); vermelho = estouro real
+              { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : p.oc ? PRINT.amb : PRINT.ink }) },
             ]),
           ]);
         }),
