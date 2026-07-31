@@ -2,6 +2,15 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [Não publicado]
+
+**A elétrica agora fala em volts — e diz a fase de cada cabo.**
+
+- **Tensão completa** na seção elétrica do Caderno, no PDF e na aba Energia: "220 V · Trifásico (F+F+F)" em vez de só "Trifásico". Os rótulos do grupo 220 ganharam os condutores.
+- **Divisão de fases (R/S/T)** nos cabos AC — rodízio automático conforme a tensão: 380 V tri → R, S, T · **220 V tri → pares RS, ST, TR** (o circuito 220 usa duas fases) · 380 V bi → R, S · monofásico/220 bi → sem rodízio. O rodízio **reinicia a cada Screen** (cada Screen é um quadro).
+- **Onde aparece**: badge de fase em cada cabo na aba Cabeamento (AC), card "Balanço por fase" na aba Energia (corrente somada por fase — soma aritmética, conservadora), coluna Fase e "Carga por fase" no Caderno e no PDF.
+- **Base de Conhecimento**: artigo "Tensões no Brasil" explica o rodízio e por que o par conta nas duas fases; glossário ganhou "Fases R/S/T".
+
 ## [1.12.0] — 2026-07-30
 
 **O PDF virou prancha de engenharia: moldura e carimbo em toda página.**
