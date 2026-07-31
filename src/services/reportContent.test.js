@@ -1,6 +1,35 @@
 import { describe, it, expect } from "vitest";
-import { rigCadeia, rigStatusTela, rigTextoAcima, nRig, RIG_PILL, DISC, CHECK_SUBIR, AVISO_RIG, rigGrupos, rigGrupoTitulo, rigGrupoMeta, capaNomeCqi } from "./reportContent.js";
+import { rigCadeia, rigStatusTela, rigTextoAcima, nRig, RIG_PILL, DISC, CHECK_SUBIR, AVISO_RIG, rigGrupos, rigGrupoTitulo, rigGrupoMeta, capaNomeCqi, videoOf, GLOSSARIO } from "./reportContent.js";
 import { riggingTela } from "./rigging.js";
+
+describe("videoOf — resolução/aspecto/fração", () => {
+  const t = { cols: 3, rows: 7, gabinete: { resX: "336", resY: "336" } }; // 1008 × 2352
+  it("aspecto simplificado + fração decimal de 3 casas (pedido do dono: 3:7 · 0,428)", () => {
+    const v = videoOf(t);
+    expect(v.pxW).toBe(1008);
+    expect(v.pxH).toBe(2352);
+    expect(v.ar).toBe("3:7");
+    expect(v.dec).toBe("0.429"); // 1008/2352 = 0.42857… → 3 casas
+  });
+  it("sem altura → dec vira travessão", () => {
+    expect(videoOf({ cols: 2, rows: 0, gabinete: { resX: "100", resY: "100" } }).dec).toBe("—");
+  });
+});
+
+describe("GLOSSARIO — enxuto (decisão do dono, 31/07)", () => {
+  const termos = GLOSSARIO.map((g) => g.t);
+  it("termos removidos não voltam", () => {
+    for (const fora of ["Serpentina", "Disjuntor", "Talha", "Bumper", "Ancoragem"]) {
+      expect(termos).not.toContain(fora);
+    }
+  });
+  it("Porta × Circuito explica que as contagens são independentes", () => {
+    expect(GLOSSARIO.find((g) => g.t === "Porta × Circuito").d).toContain("independentes");
+  });
+  it("nenhum verbete fala em combustível (o app não calcula isso)", () => {
+    expect(JSON.stringify(GLOSSARIO)).not.toContain("combustível");
+  });
+});
 
 // O texto da seção "Peso e estrutura" é COMPARTILHADO entre o Caderno do DOM e
 // o PDF nativo. O que se trava aqui é o contrato: nenhuma ausência de dado pode

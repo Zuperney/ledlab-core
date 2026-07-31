@@ -1,7 +1,7 @@
 // services/cabling.test.js — roteamento de cabos: réguas de porta (pixels/área),
 // disposição "Área" e balanceamento de fase do AC atrelado ao sinal.
 import { describe, it, expect } from "vitest";
-import { buildAuto, balancedChunks, cableMeta, cablePorts, portOffset, bboxArea, serpentine, setAcMargin } from "./cabling.js";
+import { buildAuto, balancedChunks, cableMeta, cablePorts, portOffset, bboxArea, serpentine, setAcMargin, ampCabTipico } from "./cabling.js";
 
 const NB = "row-tb-lr";
 const seq = (n) => Array.from({ length: n }, (_, i) => i);
@@ -221,6 +221,21 @@ describe("cabling — AC atrelado ao sinal: balanceamento de fase", () => {
       for (const s of sizes) expect(s).toBeLessThanOrEqual(B); // nunca passa do máximo do cabo
       expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1); // equilibrado
     }
+  });
+});
+
+describe("ampCabTipico — corrente típica por gabinete (razão exata sobre o pico)", () => {
+  // pwrMax 200, black 40, brilho 0,5, conteúdo 0,5 → típico = 40 + 160×0,25 = 80 W
+  const tela = { cols: 1, rows: 1, gabinete: { pwrMax: 200, pwrBlack: 40, fp: 0.85 } };
+
+  it("ampCabTipico = ampCab × típico/pico (mesmo fp, mesmo divisor)", () => {
+    const { ampCab } = cableMeta(tela);
+    expect(ampCabTipico(tela, { brilho: 0.5, conteudo: 0.5 })).toBeCloseTo(ampCab * (80 / 200), 10);
+  });
+
+  it("gabinete sem pwrMax → 0 (não explode)", () => {
+    expect(ampCabTipico({ cols: 1, rows: 1, gabinete: {} }, { brilho: 0.5, conteudo: 0.5 })).toBe(0);
+    expect(ampCabTipico(undefined, {})).toBe(0);
   });
 });
 

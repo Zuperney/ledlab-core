@@ -25,9 +25,9 @@ export const videoOf = (t) => {
   const pxW = (parseInt(g.resX) || 0) * (t.cols || 0), pxH = (parseInt(g.resY) || 0) * (t.rows || 0);
   const d = gcd(pxW, pxH) || 1;
   const arSimple = pxW && pxH && pxW / d <= 100 && pxH / d <= 100 ? `${pxW / d}:${pxH / d}` : null;
-  const dec = pxH ? (pxW / pxH).toFixed(2) : "—";
+  const dec = pxH ? (pxW / pxH).toFixed(3) : "—"; // fração decimal do aspecto (ex.: 3:7 → 0.429)
   const pitch = parseFloat(g.dimW) && parseInt(g.resX) ? parseFloat(g.dimW) / parseInt(g.resX) : 0;
-  return { pxW, pxH, mp: (pxW * pxH) / 1e6, ar: arSimple || `${dec}:1`, dec, pitch };
+  return { pxW, pxH, mp: (pxW * pxH) / 1e6, ar: arSimple || `${pxH ? (pxW / pxH).toFixed(2) : "—"}:1`, dec, pitch };
 };
 
 // Tamanho do NOME do projeto na capa, em cqi (1cqi = 1% da largura da capa).
@@ -39,9 +39,10 @@ export const videoOf = (t) => {
 // ~171 = largura útil ÷ avanço médio da grotesca bold com letter-spacing -0.035em.
 export const capaNomeCqi = (nome) => Math.max(5.5, Math.min(13.5, 171 / Math.max((nome || "").length || 1, 1)));
 
-// glossário do caderno técnico (leitor leigo/cliente) — termos que aparecem no doc
+// glossário do caderno técnico (leitor leigo/cliente) — termos que aparecem no doc.
+// Enxuto por decisão do dono (31/07): só o vocabulário que o caderno realmente usa.
 export const GLOSSARIO = [
-  { t: "Pico × Típico", d: "Pico = branco pleno, dimensiona cabo, proteção e gerador. Típico = consumo médio real do conteúdo, estima energia e combustível." },
+  { t: "Pico × Típico", d: "Pico = branco pleno, dimensiona cabo, proteção e gerador. Típico = consumo médio real do conteúdo, estima energia e a ocupação do gerador." },
   { t: "kVA × kW", d: "kW é a potência real; kVA a aparente (kW ÷ FP). Proteção e gerador se dimensionam em kVA/corrente." },
   { t: "FP (fator de potência)", d: "Relação entre potência real e aparente do gabinete (ex.: 0,90). Entra na corrente e no kVA." },
   { t: "Pitch", d: "Distância entre centros de LEDs (mm). Menor pitch = mais resolução por m² e menor distância mínima de visão." },
@@ -49,14 +50,9 @@ export const GLOSSARIO = [
   { t: "Gabinete", d: "Módulo físico de LED (cabinet + receiving card). Menor unidade de montagem e cabeamento." },
   { t: "Tela", d: "Bloco de gabinetes iguais montados juntos — a unidade de projeto do app." },
   { t: "Screen", d: "O sistema como a controladora enxerga, onde correm as portas 1..N. Pode reunir várias telas." },
-  { t: "Porta × Circuito", d: "Porta = saída de dados Gigabit da controladora. Circuito = cabo de energia (AC)." },
-  { t: "Disjuntor", d: "Proteção do circuito, dimensionada pelo eletricista do quadro acima da corrente de pico (margem de carga contínua) e limitada pela bitola do cabo." },
+  { t: "Porta × Circuito", d: "Porta = saída de dados Gigabit da controladora que alimenta uma cadeia de gabinetes (sinal). Circuito = cabo de energia (AC) que alimenta outra cadeia. São contagens independentes: o mesmo gabinete pertence a uma porta E a um circuito, e as duas cadeias não precisam coincidir." },
   { t: "Trifásico (F+F+F+N)", d: "Alimentação em 3 fases + neutro — distribui a carga e reduz a corrente por fase." },
   { t: "Fases R/S/T", d: "As 3 fases do sistema. Os cabos AC seguem um rodízio (1→R, 2→S, 3→T…) pra equilibrar a carga entre elas; em 220 V trifásico o circuito usa um PAR de fases (RS/ST/TR)." },
-  { t: "Serpentina", d: "Roteamento em zigue-zague dos cabos para minimizar comprimento e cruzamentos." },
-  { t: "Ancoragem", d: "Onde a viga (bumper) oferece para pendurar. Não confundir com o ponto de talha que a produção entrega no teto — esse é decisão do rigger." },
-  { t: "Bumper", d: "Viga de içamento que recebe a coluna de gabinetes. Quem dimensiona quantos entram — e as ancoragens — é o rigger." },
-  { t: "Talha", d: "Equipamento de içamento manual. Sobe a carga pela corrente; a corrente livre é o que impede a talha de trabalhar no fim de curso." },
 ];
 
 // ── ESTRUTURA (F2) — texto compartilhado da seção "Peso e estrutura" ──

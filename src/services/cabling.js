@@ -11,6 +11,7 @@
 
 // Constantes elétricas/sinal — fonte única em src/config/electricalConfig.js
 import { PX_PER_PORT, PX_PER_PORT_BY_BITS, FASE_V, CONN_AMP } from "../config/electricalConfig.js";
+import { typicalPerTile } from "./electricalCalc.js";
 export { PX_PER_PORT, PX_PER_PORT_BY_BITS, FASE_V, CONN_AMP };
 
 // Fator de segurança do cabo AC (regra dos 80% p/ carga contínua de show). É uma
@@ -169,6 +170,18 @@ export function cableMeta(tela, sinalOverride) {
   const overclock = s.overclock === true;
   const sinalBudget = Math.max(1, (overclock ? Math.ceil : Math.floor)(pxPort / pxPerCab));
   return { cols, rows, pxPerCab, fp, ampCab, connRating, acBudget, sinalBudget, sinalRule, sinalBits, pxPort, overclock };
+}
+
+// Corrente TÍPICA por gabinete (A) — razão exata sobre o ampCab de pico:
+// ampCab × típico/pico (mesmo fp e mesmo divisor, então a razão cancela tudo).
+// Informativo (balanço por fase, estimativa de consumo); dimensionamento de
+// cabo/acBudget continua SEMPRE no pico (auditoria 30/07/2026).
+export function ampCabTipico(tela, { brilho, conteudo } = {}) {
+  const g = tela?.gabinete || {};
+  const pwrMax = parseFloat(g.pwrMax) || 0;
+  if (!pwrMax) return 0;
+  const { ampCab } = cableMeta(tela);
+  return ampCab * (typicalPerTile(pwrMax, g.pwrBlack, brilho, conteudo) / pwrMax);
 }
 
 export function buildAuto(cols, rows, strat, bud, rout, numbering, rule = "area", corner = "bl") {

@@ -2,6 +2,20 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [Não publicado]
+
+**Caderno v2: a disposição real das telas no papel, balanço por fase completo e nenhuma folha vazia.**
+
+Revisão do caderno real (22 folhas) pelo dono apontou 7 melhorias de informação e estética:
+
+- **Visão Geral** ganhou a coluna **Resolução (px)** por tela.
+- **Vídeo / Resolução** agora desenha as telas **na disposição da Composição** (posições reais de `project.comp.pos`, com fallback lado a lado e contorno vermelho pra tela sobreposta), em imagem maior (620×240 pt) — e a tabela ganhou a coluna **Fração** (aspecto decimal: `1.008 × 2.352 · 3:7 · 0,428`). O layout virou função pura (`compLayout`) compartilhada entre a aba, o Caderno DOM e o PDF.
+- **Informações Elétricas**: saiu a referência a combustível (o app não calcula isso); entrou o **Balanço por fase** com **pico E típico** por fase (novo `ampCabTipico` — razão exata sobre o pico, sem duplicar o modelo Barco). O card da aba Energia também mostra as duas correntes.
+- **Folha vazia nunca mais**: a quebra de página das seções virou **condicional** (`pageBreakBefore` — só quebra se a página atual tem conteúdo). O caderno real caiu de 11 pra 10 folhas.
+- **"Energia — Cabeamento AC" virou "Cabeamento AC"**, e as folhas de Screen ganharam regras anti-transbordo: tabela densa passa a 5 grupos com >24 cabos (6 com >60), fonte 8 e linhas mais baixas quando denso, specs compactas, mapa mais baixo em Screen grande — o conteúdo que estourava pra uma 2ª folha agora cabe.
+- **Glossário enxuto**: saíram Serpentina, Disjuntor, Talha, Bumper e Ancoragem; "Porta × Circuito" explica que as contagens são independentes.
+- **PDF 2,5× mais leve** (300 KB → ~116 KB no caderno real): os logos agora entram **nomeados** no dicionário de imagens do pdfmake — embutidos uma vez, não uma vez por página/passada de layout.
+
 ## [1.13.0] — 2026-07-31
 
 **Auditoria de engenharia: o app entrega corrente, não sugere disjuntor — e o gerador é dimensionado pelo pico.**

@@ -21,6 +21,7 @@ export default function ProjectEnergia({ project, patch }) {
   // BALANÇO POR FASE: rodízio dos cabos AC (por Screen; legado = numeração global)
   const acCabos = projectAcCabos(project, prefs.cableNumbering || "row-tb-lr");
   const balFases = phaseBalance(acCabos, agg.vc);
+  const balTip = phaseBalance(acCabos.map((c) => ({ n: c.n, load: c.loadTip || 0 })), agg.vc);
   const usaScreens = hasScreens(project);
 
   return (
@@ -81,14 +82,15 @@ export default function ProjectEnergia({ project, patch }) {
       {balFases.temRodizio && acCabos.length > 0 && (
         <div style={card({ marginTop: 10 })}>
           <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 10 }}>
-            Balanço por fase · pico
+            Balanço por fase
           </div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${balFases.fases.length}, 1fr)`, gap: 10 }}>
-            {balFases.fases.map((f) => (
+            {balFases.fases.map((f, i) => (
               <div key={f.fase} style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px" }}>
                 <div style={{ fontFamily: "ui-monospace,monospace", fontWeight: 800, fontSize: 16, color: T.acM }}>{f.fase}</div>
-                <div style={{ fontFamily: "ui-monospace,monospace", fontWeight: 700, color: T.amb, marginTop: 2 }}>{f.A.toFixed(1).replace(".", ",")} A</div>
-                <div style={{ color: T.dim, fontSize: 11.5 }}>{f.cabos} {f.cabos === 1 ? "cabo" : "cabos"}</div>
+                <div style={{ fontFamily: "ui-monospace,monospace", fontWeight: 700, color: T.amb, marginTop: 2 }}>{f.A.toFixed(1).replace(".", ",")} A <span style={{ fontSize: 10, color: T.dim, fontWeight: 600, textTransform: "uppercase" }}>pico</span></div>
+                <div style={{ fontFamily: "ui-monospace,monospace", color: T.mut, fontSize: 12.5 }}>{(balTip.fases[i]?.A ?? 0).toFixed(1).replace(".", ",")} A <span style={{ fontSize: 10, color: T.dim, fontWeight: 600, textTransform: "uppercase" }}>típ.</span></div>
+                <div style={{ color: T.dim, fontSize: 11.5, marginTop: 2 }}>{f.cabos} {f.cabos === 1 ? "cabo" : "cabos"}</div>
               </div>
             ))}
           </div>

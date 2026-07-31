@@ -10,7 +10,7 @@
 // AC é energia (segue o físico), mas por consistência de contagem é organizado por
 // Screen igual o sinal — o modo LIVRE parte os circuitos como a energia realmente
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
-import { cableMeta, cablePorts, balancedChunks, buildAuto, portOffset } from "./cabling.js";
+import { cableMeta, cablePorts, balancedChunks, buildAuto, portOffset, ampCabTipico } from "./cabling.js";
 import { acTone } from "./electricalCalc.js";
 import { canvasCells, snakeCellsPorTela, clusterTelas, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
 import { screenTelas, screenOfTela, unassignedTelas, screenSize } from "./screens.js";
@@ -109,13 +109,16 @@ export function screenPorts(screen, telas, kind = "sinal", numbering = "row-tb-l
 
 // resumo por porta/cabo: uso em %, se estoura, telas que percorre. Sinal mede em px
 // (régua px real ou área/retângulo); AC mede em corrente (carga vs. conector).
-export function screenPortSummary(screen, telas, kind = "sinal", numbering = "row-tb-lr") {
+// `elCfg` (opcional, só AC): { brilho, conteudo } — habilita `loadTip` (corrente
+// típica do cabo, informativa; a régua/limite continua no pico).
+export function screenPortSummary(screen, telas, kind = "sinal", numbering = "row-tb-lr", elCfg) {
   const cfg = cfgOf(screen, kind);
   const ports = screenPorts(screen, telas, kind, numbering);
   const membros = screenTelas(screen, telas);
   const nomeDe = (id) => membros.find((t) => t.id === id)?.nome;
   return ports.map((port, pi) => {
-    const m = metaOf(membros.find((t) => t.id === port[0]?.telaId), cfg, kind);
+    const telaDo = membros.find((t) => t.id === port[0]?.telaId);
+    const m = metaOf(telaDo, cfg, kind);
     const telaIds = [...new Set(port.map((c) => c.telaId))];
     const f = port[0] || {};
     const base = {
@@ -126,8 +129,9 @@ export function screenPortSummary(screen, telas, kind = "sinal", numbering = "ro
     if (kind === "ac") {
       const load = port.length * m.ampCab;
       const pct = m.connRating ? Math.round((load / m.connRating) * 100) : 0;
+      const loadTip = elCfg ? port.length * ampCabTipico(telaDo, elCfg) : undefined;
       // regra dos 80% (carga contínua): warn = passou da margem, over = estourou o conector
-      return { ...base, load, pct, over: m.connRating ? load > m.connRating + 0.001 : false, warn: acTone(pct) === "warn" };
+      return { ...base, load, loadTip, pct, over: m.connRating ? load > m.connRating + 0.001 : false, warn: acTone(pct) === "warn" };
     }
     const usoPx = m.sinalRule === "px" ? port.length * m.pxPerCab : portBboxPx(port);
     const over = m.pxPort ? usoPx > m.pxPort + 1 : false;
@@ -192,26 +196,29 @@ export function telasSemScreen(project) {
 
 // Relatório: cada Screen com tamanho + resumo (numeração 1..N POR Screen, porque
 // cada Screen é um controlador). `kind` = "sinal" ou "ac".
-export function projectScreenReport(project, kind = "sinal", numbering = "row-tb-lr") {
+export function projectScreenReport(project, kind = "sinal", numbering = "row-tb-lr", elCfg) {
   const telas = project?.telas || [];
   return (project?.screens || [])
     .filter((s) => screenTelas(s, telas).length) // só telas existentes (LLC-11)
-    .map((s) => ({ id: s.id, nome: s.nome, size: screenSize(s, telas), ports: screenPortSummary(s, telas, kind, numbering) }));
+    .map((s) => ({ id: s.id, nome: s.nome, size: screenSize(s, telas), ports: screenPortSummary(s, telas, kind, numbering, elCfg) }));
 }
 
-// Todos os cabos AC do projeto como [{ n, load }] — o insumo do rodízio de FASES
-// (electricalCalc.phaseOf/phaseBalance). Com Screens, `n` reinicia por Screen
-// (cada Screen é um quadro — o rodízio recomeça na fase R); no legado a
-// numeração é a global do projeto (portOffset).
+// Todos os cabos AC do projeto como [{ n, load, loadTip }] — o insumo do rodízio
+// de FASES (electricalCalc.phaseOf/phaseBalance). `load` = corrente de PICO;
+// `loadTip` = típica (brilho/conteúdo do project.config). Com Screens, `n`
+// reinicia por Screen (cada Screen é um quadro — o rodízio recomeça na fase R);
+// no legado a numeração é a global do projeto (portOffset).
 export function projectAcCabos(project, numbering = "row-tb-lr") {
+  const elCfg = project?.config || {};
   if (hasScreens(project)) {
-    return projectScreenReport(project, "ac", numbering).flatMap((s) => s.ports.map((p) => ({ n: p.n, load: p.load })));
+    return projectScreenReport(project, "ac", numbering, elCfg).flatMap((s) => s.ports.map((p) => ({ n: p.n, load: p.load, loadTip: p.loadTip })));
   }
   const telas = project?.telas || [];
   return telas.flatMap((t) => {
     const { ampCab } = cableMeta(t);
+    const ampTip = ampCabTipico(t, elCfg);
     const off = portOffset(telas, t.id, "ac", numbering);
-    return cablePorts(t, "ac", numbering).map((p, i) => ({ n: off + i + 1, load: p.length * ampCab }));
+    return cablePorts(t, "ac", numbering).map((p, i) => ({ n: off + i + 1, load: p.length * ampCab, loadTip: p.length * ampTip }));
   });
 }
 

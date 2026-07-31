@@ -48,6 +48,34 @@ export function packByModel(items, maxWidth = Infinity) {
   return { pos, w: W, h: y };
 }
 
+// resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
+export const compDimOf = (t) => ({
+  w: (t.cols || 1) * (parseFloat(t.gabinete?.resX) || 128),
+  h: (t.rows || 1) * (parseFloat(t.gabinete?.resY) || 128),
+});
+
+// Layout da COMPOSIÇÃO: posições salvas (project.comp.pos) + default lado a lado
+// pras telas ainda sem posição, e a caixa envolvente. Fonte única — usada pela
+// aba Composição, pelo Caderno DOM e pelo PDF (a disposição impressa é a real).
+export function compLayout(telas, savedPos) {
+  const pos = {}, dims = {};
+  let cx = 0;
+  for (const t of telas || []) {
+    dims[t.id] = compDimOf(t);
+    const saved = (savedPos || {})[t.id];
+    if (saved) { pos[t.id] = { x: saved.x, y: saved.y }; cx = Math.max(cx, saved.x + dims[t.id].w); }
+    else { pos[t.id] = { x: cx, y: 0 }; cx += dims[t.id].w; }
+  }
+  if (!(telas || []).length) return { pos, dims, bbox: { minX: 0, minY: 0, w: 0, h: 0 } };
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const t of telas) {
+    const p = pos[t.id], d = dims[t.id];
+    minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x + d.w); maxY = Math.max(maxY, p.y + d.h);
+  }
+  return { pos, dims, bbox: { minX, minY, w: maxX - minX, h: maxY - minY } };
+}
+
 // rects: [{ id, x, y, w, h }] → Set de ids que se SOBREPÕEM.
 // Encostar borda com borda (lado a lado) NÃO conta como sobreposição.
 export function overlappingIds(rects) {

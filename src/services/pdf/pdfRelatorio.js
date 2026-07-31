@@ -12,9 +12,9 @@
 import { PRINT, PALETTE } from "../../ui/tokens.js";
 import { aggregateElectrical, projectRollup, screenRollup } from "../projectCalc.js";
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../cabling.js";
-import { hasScreens, projectScreenReport, telasSemScreen } from "../screenCabling.js";
+import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../screenCabling.js";
 import { pixelMapPorts } from "../pixelMap.js";
-import { screenMapSvg, telaMapSvg, telasFilaSvg } from "./pdfCableMap.js";
+import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf } from "../reportContent.js";
 import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../reportContent.js";
@@ -37,13 +37,13 @@ const ptBR = (n) => (n || 0).toLocaleString("pt-BR");
 // ── layout de tabela com ZEBRA (manual §10.3) ──
 // `start` = índice global da 1ª linha do grupo: tabelas divididas em colunas
 // lado a lado mantêm a alternância contínua (como o DenseTable do DOM)
-const zebraLayout = (start = 0) => ({
+const zebraLayout = (start = 0, pad = 2.5) => ({
   hLineWidth: (i) => (i === 1 ? 1.2 : 0.4),
   hLineColor: (i) => (i === 1 ? PRINT.ink : PRINT.line),
   vLineWidth: () => 0,
   fillColor: (row) => (row > 0 && (start + row - 1) % 2 === 1 ? ZEBRA : null),
-  paddingTop: () => 2.5,
-  paddingBottom: () => 2.5,
+  paddingTop: () => pad,
+  paddingBottom: () => pad,
   paddingLeft: () => 6,
   paddingRight: () => 6,
 });
@@ -81,7 +81,7 @@ function tocMarker(n, titulo, cor) {
 // sub-cabeçalho de subdivisão ("04.1 · Screen 1") com meta à direita
 function subHead(num, title, right) {
   return {
-    margin: [0, 8, 0, 4],
+    margin: [0, 6, 0, 4],
     columns: [
       { width: "*", text: [{ text: num, bold: true, color: PRINT.acc, fontSize: 9.5 }, { text: `  ${title}`, bold: true, fontSize: 11, color: PRINT.ink }] },
       ...(right ? [{ width: "auto", text: right, fontSize: 7.5, color: PRINT.dim, alignment: "right", margin: [0, 3, 0, 0] }] : []),
@@ -89,22 +89,24 @@ function subHead(num, title, right) {
   };
 }
 
-// box de especificações (fundo neutro) — pares rótulo/valor numa linha corrida
+// box de especificações (fundo neutro) — pares rótulo/valor numa linha corrida.
+// Compacto de propósito (fonte/gaps menores desde 31/07): o box compete pelo
+// orçamento vertical da página da Screen com o mapa e a tabela densa.
 function specBox(pairs) {
   return {
-    margin: [0, 2, 0, 10],
+    margin: [0, 2, 0, 8],
     table: {
       widths: ["*"],
       body: [[{
         columns: pairs.map(([l, v]) => ({
           width: "auto",
           stack: [
-            { text: l.toUpperCase(), fontSize: 7.5, color: PRINT.dim, characterSpacing: 0.7 },
-            { text: v, bold: true, fontSize: 11.5, color: PRINT.ink, margin: [0, 2, 0, 0] },
+            { text: l.toUpperCase(), fontSize: 7, color: PRINT.dim, characterSpacing: 0.7 },
+            { text: v, bold: true, fontSize: 10.5, color: PRINT.ink, margin: [0, 2, 0, 0] },
           ],
         })),
-        columnGap: 18,
-        margin: [9, 5, 9, 6],
+        columnGap: 12,
+        margin: [9, 4, 9, 5],
       }]],
     },
     layout: { hLineWidth: () => 0.6, vLineWidth: () => 0.6, hLineColor: () => PRINT.line, vLineColor: () => PRINT.line, fillColor: () => PRINT.head },
@@ -177,10 +179,14 @@ const cadeiaLayout = {
 // propósito — unbreakable que não cabe na página vira PÁGINA EM BRANCO e o
 // pdfmake DESCARTA o conteúdo (aconteceu 2× com a Screen 2 do caderno real,
 // com estimativa de altura sempre no fio). Em vez disso o bloco é COMPACTO o
-// bastante pra caber numa página (tabela densa vira 5 colunas quando há muitos
+// bastante pra caber numa página (tabela densa vira 5-6 colunas quando há muitos
 // cabos, mapa com teto de altura); se um dia passar, ele FLUI pra página
 // seguinte com o header da tabela repetindo — nunca some, nunca deixa buraco.
-const bloco = (nodes) => ({ stack: nodes, pageBreak: "before", margin: [0, 0, 0, 4] });
+// A quebra é CONDICIONAL (headlineLevel + pageBreakBefore no docDefinition):
+// só quebra se a página atual tem conteúdo — pageBreak:"before" incondicional
+// gerava página em branco quando a seção anterior estourava só a margem
+// (folha 08/22 vazia no caderno real, 31/07).
+const bloco = (nodes) => ({ stack: nodes, headlineLevel: 1, margin: [0, 0, 0, 4] });
 
 // nó de mapa pro conteúdo: o gerador devolve {svg,width,height} ou null (sem células)
 const mapNode = (m) => (m ? [{ svg: m.svg, width: m.width, margin: [0, 0, 0, 6] }] : []);
@@ -217,26 +223,29 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // DOM) — todas as linhas, na fração da altura; zebra contínua. Acima de 36
   // linhas entra a 5ª coluna, pro bloco de uma Screen grande caber numa página.
   function densePortTable(rows, columns) {
-    const nCols = Math.min(rows.length > 36 ? 5 : 4, rows.length);
-    // 5 colunas = fonte 8 no corpo (senão a última coluna estoura a página);
+    // Limiar agressivo de propósito (31/07: folhas de AC empilhavam pra 2ª página):
+    // >24 linhas → 5 grupos · >60 → 6. Fonte 8 sempre que há 5+ grupos OU a tabela
+    // tem 4+ colunas por grupo (AC com a coluna Fase) — o orçamento vertical de uma
+    // página de Screen é ~250 pt depois de subHead + specBox + mapa.
+    const nCols = Math.min(rows.length > 60 ? 6 : rows.length > 24 ? 5 : 4, rows.length);
+    const small = nCols >= 5 || columns.length >= 4;
     // grupos em largura de CONTEÚDO ("auto") — a coluna Gabinetes esticada
     // criava um vão entre o nº do cabo e a quantidade E empurrava o resto
-    const small = nCols >= 5;
-    const fit = (node) => (small ? { ...node, fontSize: 8 } : node);
+    const fit = (node) => (small ? { ...node, fontSize: 8, lineHeight: 1 } : node);
     const build = (slice, start) => ({
       table: {
         headerRows: 1,
         widths: columns.map(() => "auto"),
         body: [columns.map((c) => th(c.label, c.align)), ...slice.map((r, i) => columns.map((c) => fit(c.cell(r, start + i))))],
       },
-      layout: zebraLayout(start),
+      layout: zebraLayout(start, small ? 1.8 : 2.5), // linhas mais baixas quando denso
       width: "auto",
     });
     if (nCols <= 1 || rows.length < 3) return build(rows, 0);
     const base = Math.floor(rows.length / nCols), rem = rows.length % nCols;
     const groups = []; let idx = 0;
     for (let i = 0; i < nCols; i++) { const size = base + (i < rem ? 1 : 0); groups.push(build(rows.slice(idx, idx + size), idx)); idx += size; }
-    return { columns: groups, columnGap: small ? 10 : 14 };
+    return { columns: groups, columnGap: small ? 8 : 12 };
   }
 
   const telas = project.telas || [];
@@ -300,7 +309,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         { width: "*", text: [{ text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 9, characterSpacing: 1.8, color: COVER_INK, background: LIME }], margin: [0, 6, 0, 0] },
         // capa é da MARCA (decisão do dono, 30/07): LedLab aqui; o logo do
         // projeto mora no carimbo das pranchas
-        ...(logo ? [{ width: 54, image: logo, fit: [54, 54] }] : []),
+        ...(logo ? [{ width: 54, image: "marcaLedlab", fit: [54, 54] }] : []),
       ],
     },
     // LLC-01: o título auto-encolhe pra caber numa linha — nome de 40+ caracteres
@@ -334,10 +343,12 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   const visaoGeral = !showPhys ? [] : (() => {
     const rows = telas.map((t) => {
       const r = screenRollup(t);
+      const v = videoOf(t);
       return [
         { text: t.nome, bold: true },
         mono(`${r.dim.largura_m.toFixed(1)}×${r.dim.altura_m.toFixed(1)} m`),
         mono(`${t.cols}×${t.rows}`),
+        mono(v.pxW && v.pxH ? `${v.pxW.toLocaleString("pt-BR")} × ${v.pxH.toLocaleString("pt-BR")}` : "—"),
         { text: t.gabinete?.nome || "—" },
         mono(String(r.gab), { alignment: "right" }),
         mono(fmtPeso(r.peso_kg), { alignment: "right" }),
@@ -350,12 +361,12 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       {
         table: {
           headerRows: 1,
-          widths: ["*", "auto", "auto", "*", "auto", "auto", "auto"],
+          widths: ["*", "auto", "auto", "auto", "*", "auto", "auto", "auto"],
           body: [
-            [th("Tela"), th("Dimensão"), th("Grade"), th("Modelo"), th("Gabinetes", "right"), th("Peso", "right"), th(showElec ? "Carga" : "Peso por gabinete", "right")],
+            [th("Tela"), th("Dimensão"), th("Grade"), th("Resolução (px)"), th("Modelo"), th("Gabinetes", "right"), th("Peso", "right"), th(showElec ? "Carga" : "Peso por gabinete", "right")],
             ...rows,
             [
-              { text: "Total", bold: true }, mono(`${roll.area_m2.toFixed(1)} m²`, { bold: true }), "", "",
+              { text: "Total", bold: true }, mono(`${roll.area_m2.toFixed(1)} m²`, { bold: true }), "", "", "",
               mono(String(roll.gab), { alignment: "right", bold: true }), mono(fmtPeso(roll.peso_kg), { alignment: "right", bold: true }),
               showElec ? mono(`${(roll.pwrMax_w / 1000).toFixed(1)} kW`, { alignment: "right", bold: true, color: PRINT.red }) : "",
             ],
@@ -469,26 +480,27 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   })();
 
   // ── VÍDEO / RESOLUÇÃO ──
-  const fila = showVideo ? telasFilaSvg(telas, colorOf) : null;
+  const fila = showVideo ? telasLayoutSvg(telas, project.comp?.pos, colorOf) : null;
   const video = !showVideo ? [] : [
     sectionHead(sec(), "Vídeo / Resolução", "Sinal e proporção", DISC.video),
-    { text: "As telas em fila (nome de cada uma no seu bloco) — a largura somada é a resolução linear do projeto, pela altura da tela maior.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
+    { text: "As telas na disposição da Composição (nome de cada uma no seu bloco); a caixa envolvente é o canvas de conteúdo do projeto.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
     ...(fila ? [
       { svg: fila.svg, width: fila.width, margin: [0, 0, 0, 4] },
-      { text: [{ text: "Telas em fila — resolução linear " }, { text: `${ptBR(fila.linW)} × ${ptBR(fila.linH)} px`, bold: true, color: PRINT.ink }], fontSize: 8, color: PRINT.dim, margin: [0, 0, 0, 8] },
+      { text: [{ text: "Canvas de conteúdo (caixa envolvente) — " }, { text: `${ptBR(fila.linW)} × ${ptBR(fila.linH)} px`, bold: true, color: PRINT.ink }], fontSize: 8, color: PRINT.dim, margin: [0, 0, 0, 8] },
     ] : []),
     {
       table: {
         headerRows: 1,
-        widths: ["*", "auto", "auto", "auto", "auto"],
+        widths: ["*", "auto", "auto", "auto", "auto", "auto"],
         body: [
-          [th("Tela"), th("Resolução (px)"), th("Aspecto"), th("Grade"), th("Pixel por gabinete", "right")],
+          [th("Tela"), th("Resolução (px)"), th("Aspecto"), th("Fração"), th("Grade"), th("Pixel por gabinete", "right")],
           ...telas.map((t) => {
             const v = videoOf(t);
             return [
               { text: t.nome, bold: true },
               mono(`${ptBR(v.pxW)} × ${ptBR(v.pxH)}`, { bold: true }),
               mono(v.ar, { color: PRINT.acc, bold: true }),
+              mono(String(v.dec).replace(".", ",")),
               mono(`${t.cols}×${t.rows}`),
               mono(t.gabinete?.resX && t.gabinete?.resY ? `${t.gabinete.resX}×${t.gabinete.resY}` : "—", { alignment: "right" }),
             ];
@@ -500,9 +512,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   ];
 
   // ── INFORMAÇÕES ELÉTRICAS ──
+  // balanço por fase do projeto inteiro: pico e típico (rodízio por Screen)
+  const acCabosEl = showElec ? projectAcCabos(project, numbering) : [];
+  const balPicoEl = phaseBalance(acCabosEl, agg.vc);
+  const balTipEl = phaseBalance(acCabosEl.map((c) => ({ n: c.n, load: c.loadTip || 0 })), agg.vc);
   const eletrica = !showElec ? [] : [
     sectionHead(sec(), "Informações Elétricas", "Energia · dimensionamento", DISC.elec),
-    { text: [{ text: `Dimensionamento em ${voltFull(agg.vc)}. ` }, { text: "A potência de pico dimensiona a instalação (cabos, proteção e gerador); a típica (consumo médio em operação) estima energia e combustível. A proteção do quadro é do projeto elétrico da casa/gerador.", color: PRINT.mut }], fontSize: 8.5, margin: [0, 0, 0, 6] },
+    { text: [{ text: `Dimensionamento em ${voltFull(agg.vc)}. ` }, { text: "A potência de pico dimensiona a instalação (cabos, proteção e gerador); a típica (consumo médio em operação) estima a energia e a ocupação do gerador. A proteção do quadro é do projeto elétrico da casa/gerador.", color: PRINT.mut }], fontSize: 8.5, margin: [0, 0, 0, 6] },
     {
       table: {
         headerRows: 1,
@@ -531,6 +547,26 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       layout: zebraLayout(),
     },
     { text: [{ text: "Gerador mínimo (pico × 1,25): " }, { text: `≥ ${agg.gerador} kVA`, bold: true, color: PRINT.acc }, { text: ` — consumo típico ocupa ${agg.geradorPct}% (janela saudável: 60–80%). Projetos grandes dividem a carga em setores, com mais de um gerador.`, color: PRINT.mut }], fontSize: 8.5, margin: [0, 6, 0, 0] },
+    ...(balPicoEl.temRodizio && acCabosEl.length ? [
+      { text: "Balanço por fase", bold: true, fontSize: 8.5, color: PRINT.ink, margin: [0, 8, 0, 2], characterSpacing: 0.5 },
+      {
+        table: {
+          headerRows: 1,
+          widths: ["auto", "auto", "auto", "auto"],
+          body: [
+            [th("Fase"), th("Cabos", "right"), th("Pico A", "right"), th("Típico A", "right")],
+            ...balPicoEl.fases.map((f, i) => [
+              mono(f.fase, { bold: true }),
+              mono(String(f.cabos), { alignment: "right" }),
+              mono(f.A.toFixed(1).replace(".", ","), { alignment: "right", color: PRINT.amb, bold: true }),
+              mono((balTipEl.fases[i]?.A ?? 0).toFixed(1).replace(".", ","), { alignment: "right" }),
+            ]),
+          ],
+        },
+        layout: zebraLayout(),
+      },
+      { text: `Rodízio ${usaScreens ? "reinicia a cada Screen (cada Screen é um quadro)" : "pela numeração do projeto"}; soma aritmética (leitura conservadora de quadro)${agg.vc.g === "220" && agg.vc.ph === 3 ? " — o par F+F conta nas duas fases" : ""}.`, fontSize: 7.5, color: PRINT.mut, margin: [0, 3, 0, 0] },
+    ] : []),
     {
       margin: [0, 6, 0, 0],
       table: {
@@ -596,7 +632,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         // ── uma página por Screen ──
         ...screenReport.map((s, i) => {
           const sp = specsDe[s.id];
-          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "sinal", numbering, colorOf, cr) : null;
+          // Screen com muitas portas: mapa mais baixo — o espaço vai pra tabela
+          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "sinal", numbering, colorOf, cr, s.ports.length > 36 ? { maxHeight: 130 } : undefined) : null;
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
@@ -693,7 +730,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // ── ENERGIA — CABEAMENTO AC ──
   const ac = !showAC ? [] : (() => {
     const sn = sec(); const S = String(sn).padStart(2, "0");
-    const head = [sectionHead(sn, "Energia — Cabeamento AC", "Circuitos de força", DISC.elec), warnBox(AVISO_AC)];
+    const head = [sectionHead(sn, "Cabeamento AC", "Circuitos de força", DISC.elec), warnBox(AVISO_AC)];
     if (usaScreens) {
       const totCirc = screenReportAc.reduce((n, s) => n + s.ports.length, 0);
       const cargaMax = (ports) => ports.reduce((m, p) => (p.load > m.load ? p : m), { load: 0, pct: 0 });
@@ -731,7 +768,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         ...(temEstouro ? [{ text: "Há circuito ACIMA da capacidade do conector — confira as linhas em vermelho antes de energizar.", fontSize: 8.5, bold: true, color: PRINT.red, margin: [0, 8, 0, 0] }] : []),
         // ── uma página por Screen ──
         ...screenReportAc.map((s, i) => {
-          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr) : null;
+          // Screen com muitos cabos: mapa mais baixo — o espaço vai pra tabela
+          // (senão o bloco estoura pra 2ª página; folhas 14-18 do caderno real)
+          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr, s.ports.length > 36 ? { maxHeight: 130 } : undefined) : null;
           const bal = phaseBalance(s.ports, agg.vc);
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
@@ -864,8 +903,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         {
           stack: [
             logoProjeto
-              ? { image: logoProjeto, fit: [104, 34], alignment: "center", margin: [0, 9, 0, 0] }
-              : (logo ? { image: logo, fit: [34, 34], alignment: "center", margin: [0, 9, 0, 0] } : { text: "LEDLAB CORE", bold: true, fontSize: 10, alignment: "center", lineHeight: 1, margin: [0, 22, 0, 0] }),
+              ? { image: "logoProjeto", fit: [104, 34], alignment: "center", margin: [0, 9, 0, 0] }
+              : (logo ? { image: "marcaLedlab", fit: [34, 34], alignment: "center", margin: [0, 9, 0, 0] } : { text: "LEDLAB CORE", bold: true, fontSize: 10, alignment: "center", lineHeight: 1, margin: [0, 22, 0, 0] }),
           ],
           margin: [4, 0, 4, 0],
         },
@@ -930,6 +969,15 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     pageOrientation: "landscape",
     // fundo maior embaixo: é a faixa do carimbo (a prancha come ~50 pt a mais)
     pageMargins: [40, 36, 40, BOT],
+    // Logos por NOME no dicionário `images` — nunca dataURL inline nos nós:
+    // a chave nomeada é estável entre passadas de layout (o pageBreakBefore
+    // re-layouta N vezes) e entre páginas, então o PDF embute a imagem UMA vez.
+    // Inline, cada medição registrava um $$pdfmake$$ novo — caderno real foi de
+    // 236 KB pra 1,4 MB (75 embeds do mesmo logo) antes deste dicionário.
+    images: {
+      ...(logo ? { marcaLedlab: logo } : {}),
+      ...(logoProjeto ? { logoProjeto } : {}),
+    },
     defaultStyle: { font: "PlexSans", fontSize: 9, color: PRINT.ink, lineHeight: 1.25 },
     info: { title: `${project.name || "Projeto"} — Caderno Técnico (${tipo})`, author: "LedLab Core" },
     // página 1 = fundo da capa; demais = a MOLDURA da prancha (o carimbo fecha
@@ -950,13 +998,20 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         { canvas: [{ type: "line", x1: 0, y1: 0, x2: 762, y2: 0, lineWidth: 1.2, lineColor: PRINT.ink }], margin: [0, 0, 0, 12] },
         { toc: { numberStyle: { bold: true, color: PRINT.acc, font: "PlexMono", fontSize: 9.5 } } },
       ] : [];
-      // UM TÓPICO POR PÁGINA (manual §10.6): com sumário, TODA seção abre página
-      // nova (o sumário ocupa a página pós-capa); sem, a 1ª já nasce em página
-      // limpa — a capa termina com pageBreak "after" e "before" dobrado = página
-      // em branco.
-      secoes.slice(sumario.length ? 0 : 1).forEach((s) => { s[0] = { ...s[0], pageBreak: "before" }; });
+      // UM TÓPICO POR PÁGINA (manual §10.6): toda seção marca headlineLevel e a
+      // quebra real é decidida pelo pageBreakBefore (só quebra se a página atual
+      // tem conteúdo) — ver comentário do `bloco`. Com sumário, a 1ª seção também
+      // quebra (o sumário ocupa a página pós-capa); sem, a 1ª já nasce em página
+      // limpa depois do "after" da capa e o pageBreakBefore não dispara nela.
+      secoes.slice(sumario.length ? 0 : 1).forEach((s) => { s[0] = { ...s[0], headlineLevel: 1 }; });
       return [...capa, ...sumario, ...secoes.flat()];
     })(),
+    // Quebra condicional: nó marcado (headlineLevel 1 = início de seção/bloco)
+    // quebra SÓ quando a página atual já tem conteúdo — nunca nasce página vazia.
+    // Assinatura do pdfmake atual: (nodeInfo, { getPreviousNodesOnPage, ... }) —
+    // getters preguiçosos, NÃO os quatro arrays posicionais da doc antiga.
+    pageBreakBefore: (cur, ctx) =>
+      cur.headlineLevel === 1 && ((ctx && ctx.getPreviousNodesOnPage ? ctx.getPreviousNodesOnPage() : []) || []).length > 0,
   };
 }
 

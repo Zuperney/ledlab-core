@@ -1,6 +1,6 @@
 ﻿// screenCabling.test.js — cabeamento de sinal por Screen (auto + livre).
 import { describe, it, expect } from "vitest";
-import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV } from "./screenCabling.js";
+import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV, projectAcCabos } from "./screenCabling.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
 const gabImag = { resX: "192", resY: "192", pwrMax: "150", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -246,6 +246,28 @@ describe("AC por Screen", () => {
       expect(p.load).toBeGreaterThan(0);
       expect(typeof p.pct).toBe("number");
       expect(typeof p.over).toBe("boolean");
+    }
+  });
+
+  it("projectAcCabos traz loadTip (típico) ao lado do load (pico), sem mudar o load", () => {
+    // brilho 100% + conteúdo 100% → típico = pico → loadTip = load (extremo que fecha a fórmula)
+    const proj = { telas, screens: [scTiras, scImag], config: { vk: "380_tri", brilho: 1, conteudo: 1 } };
+    const cabos = projectAcCabos(proj);
+    expect(cabos.length).toBeGreaterThan(0);
+    for (const c of cabos) expect(c.loadTip).toBeCloseTo(c.load, 6);
+    // brilho menor → típico estritamente menor que o pico
+    const menor = projectAcCabos({ ...proj, config: { vk: "380_tri", brilho: 0.5, conteudo: 0.33 } });
+    for (const c of menor) expect(c.loadTip).toBeLessThan(c.load);
+  });
+
+  it("projectAcCabos legado (sem Screens) também traz loadTip com numeração global", () => {
+    const proj = { telas, config: { brilho: 0.5, conteudo: 0.33 } };
+    const cabos = projectAcCabos(proj);
+    expect(cabos.length).toBeGreaterThan(0);
+    expect(cabos.map((c) => c.n)).toEqual(cabos.map((_, i) => i + 1)); // 1..N global
+    for (const c of cabos) {
+      expect(c.loadTip).toBeGreaterThan(0);
+      expect(c.loadTip).toBeLessThan(c.load);
     }
   });
 

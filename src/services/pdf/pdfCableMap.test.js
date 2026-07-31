@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { telaMapSvg, screenMapSvg, telasFilaSvg } from "./pdfCableMap.js";
+import { telaMapSvg, screenMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
 
 const gab = { resX: 128, resY: 128, pwrMax: 200, fp: 0.9, conector: "true1" };
 const tela = { id: "t1", nome: "Main", cols: 6, rows: 4, gabinete: gab, cabling: { sinal: { rule: "px" } } };
@@ -42,17 +42,31 @@ describe("telaMapSvg (mapa legado por tela → SVG do PDF)", () => {
   });
 });
 
-describe("telasFilaSvg (esquema das telas em fila — seção Vídeo)", () => {
+describe("telasLayoutSvg (esquema das telas na disposição da Composição — seção Vídeo)", () => {
   const telas = [
     { id: "t1", nome: "MAIN <STAGE> & CIA", cols: 20, rows: 8, gabinete: { ...gab, nome: "Absen" } },
     { id: "t2", nome: "SIDE", cols: 6, rows: 4, gabinete: { ...gab, nome: "ROE" } },
   ];
-  const m = telasFilaSvg(telas, colorOf);
+  const m = telasLayoutSvg(telas, undefined, colorOf);
 
-  it("um bloco por tela, base no chão, com a resolução linear somada", () => {
+  it("sem comp.pos: fallback lado a lado — bbox = larguras somadas × altura máxima", () => {
     expect((m.svg.match(/<rect/g) || []).length).toBe(3); // fundo + 2 telas
     expect(m.linW).toBe(20 * 128 + 6 * 128);
     expect(m.linH).toBe(8 * 128);
+  });
+
+  it("com comp.pos: o bbox segue a disposição salva", () => {
+    // t2 embaixo de t1 → largura = só a da t1; altura = 8 + 4 linhas
+    const pos = { t1: { x: 0, y: 0 }, t2: { x: 0, y: 8 * 128 } };
+    const c = telasLayoutSvg(telas, pos, colorOf);
+    expect(c.linW).toBe(20 * 128);
+    expect(c.linH).toBe(12 * 128);
+  });
+
+  it("tela sobreposta ganha contorno vermelho (mesma segurança da Composição)", () => {
+    const pos = { t1: { x: 0, y: 0 }, t2: { x: 10, y: 10 } }; // t2 invade t1
+    const c = telasLayoutSvg(telas, pos, colorOf);
+    expect(c.svg).toContain('stroke="#ef4444"');
   });
 
   it("nome com &/< é escapado (nome de tela é texto livre)", () => {
@@ -66,7 +80,7 @@ describe("telasFilaSvg (esquema das telas em fila — seção Vídeo)", () => {
   });
 
   it("sem telas → null", () => {
-    expect(telasFilaSvg([], colorOf)).toBeNull();
+    expect(telasLayoutSvg([], undefined, colorOf)).toBeNull();
   });
 });
 

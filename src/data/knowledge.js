@@ -14,7 +14,7 @@ export const KB_ARTICLES = [
   { id: "pico-tipico", category: "Energia", title: "Pico × Típico — cálculo do consumo", summary: "Por que dimensionar a instalação pelo PICO e estimar energia/gerador pelo TÍPICO — com a fórmula (modelo Barco) e as fontes.",
     sections: [
       { h: "Conceito", blocks: [
-        { t: "p", text: "O pico (pwrMax = branco pleno, 100% de brilho) é o que a instalação precisa aguentar — protege cabo, fonte e dimensiona o gerador. Mas conteúdo real quase nunca é branco: o consumo TÍPICO (médio, em operação) é bem menor, e é ele que estima energia, calor e combustível." },
+        { t: "p", text: "O pico (pwrMax = branco pleno, 100% de brilho) é o que a instalação precisa aguentar — protege cabo, fonte e dimensiona o gerador. Mas conteúdo real quase nunca é branco: o consumo TÍPICO (médio, em operação) é bem menor, e é ele que estima energia, calor e a ocupação do gerador." },
       ] },
       { h: "A fórmula (por gabinete)", blocks: [
         { t: "kv", rows: [["Típico", "base + (pico − base) × brilho × conteúdo"]] },
@@ -32,7 +32,7 @@ export const KB_ARTICLES = [
         { t: "p", text: "A velha regra de 'dividir o máximo por três' ignora o black level e subestima telas indoor modernas (muitos drivers). Por isso o típico real costuma ficar ACIMA de 1/3 do pico. Fora da Barco, guias de mercado convergem em típico ≈ 30–50% do pico, conforme a aplicação." },
       ] },
       { h: "Importante — segurança", blocks: [
-        { t: "note", text: "Proteção, cabo, fonte e GERADOR se dimensionam SEMPRE pelo PICO (com a margem de carga contínua), nunca pelo típico — um frame branco sustentado leva a parede ao máximo e derruba circuito e gerador subdimensionados. O típico serve pra energia, calor, combustível — e pra conferir se o consumo médio cai na janela saudável do gerador (60–80% da capacidade; muito abaixo de 30% o diesel sofre com wet stacking)." },
+        { t: "note", text: "Proteção, cabo, fonte e GERADOR se dimensionam SEMPRE pelo PICO (com a margem de carga contínua), nunca pelo típico — um frame branco sustentado leva a parede ao máximo e derruba circuito e gerador subdimensionados. O típico serve pra energia, calor — e pra conferir se o consumo médio cai na janela saudável do gerador (60–80% da capacidade; muito abaixo de 30% o diesel sofre com wet stacking)." },
       ] },
       { h: "Fontes", blocks: [
         { t: "links", items: [

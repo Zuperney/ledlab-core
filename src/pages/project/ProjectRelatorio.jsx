@@ -13,7 +13,7 @@ import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../../services/electricalCalc.js";
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabling.js";
-import { hasScreens, projectScreenReport, telasSemScreen } from "../../services/screenCabling.js";
+import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { GLOSSARIO, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf } from "../../services/reportContent.js";
@@ -65,6 +65,10 @@ export default function ProjectRelatorio({ project, patch }) {
   const roll = projectRollup(project);
   const today = formatFull(isoDate()); // data LOCAL (evita virar o dia seguinte à noite)
   const telas = project.telas || [];
+  // balanço por fase do projeto inteiro (seção elétrica): pico e típico por fase
+  const acCabos = projectAcCabos(project, numbering);
+  const balPico = phaseBalance(acCabos, agg.vc);
+  const balTip = phaseBalance(acCabos.map((c) => ({ n: c.n, load: c.loadTip || 0 })), agg.vc);
   // F1 do motor nativo: o pdfmake (pesado) só carrega no clique — chunk separado
   const [gerandoPdf, setGerandoPdf] = useState(false);
   const toast = useToast();
@@ -181,12 +185,12 @@ export default function ProjectRelatorio({ project, patch }) {
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Visão Geral" tag="Composição do painel" color={DISC.prod} Icon={LayoutGrid} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Dimensão</th><th style={th}>Grade</th><th style={th}>Modelo</th><th style={th}>Gabinetes</th><th style={th}>Peso</th><th style={th}>{showElec ? "Carga" : "Peso por gabinete"}</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Dimensão</th><th style={th}>Grade</th><th style={th}>Resolução (px)</th><th style={th}>Modelo</th><th style={th}>Gabinetes</th><th style={th}>Peso</th><th style={th}>{showElec ? "Carga" : "Peso por gabinete"}</th></tr></thead>
               <tbody>
-                {telas.map((t) => { const r = screenRollup(t); return (
-                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={td}>{r.dim.largura_m.toFixed(1)}×{r.dim.altura_m.toFixed(1)} m</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.nome}</td><td style={td}>{r.gab}</td><td style={td}>{fmtPeso(r.peso_kg)}</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(r.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}>{(parseFloat(t.gabinete?.peso) || 0).toFixed(1)} kg</td>}</tr>
+                {telas.map((t) => { const r = screenRollup(t); const v = videoOf(t); return (
+                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={td}>{r.dim.largura_m.toFixed(1)}×{r.dim.altura_m.toFixed(1)} m</td><td style={td}>{t.cols}×{t.rows}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{v.pxW && v.pxH ? `${v.pxW.toLocaleString("pt-BR")} × ${v.pxH.toLocaleString("pt-BR")}` : "—"}</td><td style={td}>{t.gabinete?.nome}</td><td style={td}>{r.gab}</td><td style={td}>{fmtPeso(r.peso_kg)}</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(r.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}>{(parseFloat(t.gabinete?.peso) || 0).toFixed(1)} kg</td>}</tr>
                 ); })}
-                <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}>{roll.area_m2.toFixed(1)} m²</td><td style={td}></td><td style={td}></td><td style={td}>{roll.gab}</td><td style={td}>{fmtPeso(roll.peso_kg)}</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(roll.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}></td>}</tr>
+                <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}>{roll.area_m2.toFixed(1)} m²</td><td style={td}></td><td style={td}></td><td style={td}></td><td style={td}>{roll.gab}</td><td style={td}>{fmtPeso(roll.peso_kg)}</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(roll.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}></td>}</tr>
               </tbody>
             </table>
             {gabsUsados.length > 0 && (
@@ -291,13 +295,13 @@ export default function ProjectRelatorio({ project, patch }) {
         {showVideo && (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" color={DISC.video} Icon={Monitor} />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas em fila (nome de cada uma no seu bloco) — a largura somada é a resolução linear do projeto, pela altura da tela maior.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas na disposição da Composição (nome de cada uma no seu bloco); a caixa envolvente é o canvas de conteúdo do projeto.</p>
             <ReportTelasCanvas project={project} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Aspecto</th><th style={th}>Grade</th><th style={th}>Pixel por gabinete</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Aspecto</th><th style={th}>Fração</th><th style={th}>Grade</th><th style={th}>Pixel por gabinete</th></tr></thead>
               <tbody>
                 {telas.map((t) => { const v = videoOf(t); return (
-                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.resX && t.gabinete?.resY ? `${t.gabinete.resX}×${t.gabinete.resY}` : "—"}</td></tr>
+                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{String(v.dec).replace(".", ",")}</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.resX && t.gabinete?.resY ? `${t.gabinete.resX}×${t.gabinete.resY}` : "—"}</td></tr>
                 ); })}
               </tbody>
             </table>
@@ -307,7 +311,7 @@ export default function ProjectRelatorio({ project, patch }) {
         {showElec && (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Informações Elétricas" tag="Energia · dimensionamento" color={DISC.elec} Icon={Zap} />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Dimensionamento em <b style={{ color: PRINT.ink }}>{voltFull(agg.vc)}</b>. A potência de <b>pico</b> dimensiona a instalação (cabos, proteção e gerador); a <b>típica</b> (consumo médio em operação) estima energia e combustível. A proteção do quadro é do projeto elétrico da casa/gerador.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Dimensionamento em <b style={{ color: PRINT.ink }}>{voltFull(agg.vc)}</b>. A potência de <b>pico</b> dimensiona a instalação (cabos, proteção e gerador); a <b>típica</b> (consumo médio em operação) estima a energia e a ocupação do gerador. A proteção do quadro é do projeto elétrico da casa/gerador.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Gabinetes</th><th style={th}>Pico kW</th><th style={th}>Pico kVA</th><th style={th}>Pico A</th><th style={th}>Típico kVA</th><th style={th}>Típico A</th></tr></thead>
               <tbody>
@@ -318,6 +322,20 @@ export default function ProjectRelatorio({ project, patch }) {
               </tbody>
             </table>
             <p style={{ color: PRINT.mut, fontSize: 12, marginTop: 8 }}>Gerador mínimo (pico × 1,25): <b style={{ color: PRINT.acc }}>≥ {agg.gerador} kVA</b> — consumo típico ocupa <b>{agg.geradorPct}%</b> (janela saudável: 60–80%). Projetos grandes dividem a carga em setores, com mais de um gerador.</p>
+            {balPico.temRodizio && acCabos.length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: PRINT.ink, letterSpacing: 0.5, marginBottom: 4 }}>Balanço por fase</div>
+                <table style={{ borderCollapse: "collapse", minWidth: 320 }}>
+                  <thead><tr><th style={th}>Fase</th><th style={th}>Cabos</th><th style={th}>Pico A</th><th style={th}>Típico A</th></tr></thead>
+                  <tbody>
+                    {balPico.fases.map((f, i) => (
+                      <tr key={f.fase}><td style={{ ...td, fontFamily: "ui-monospace,monospace", fontWeight: 700 }}>{f.fase}</td><td style={td}>{f.cabos}</td><td style={{ ...td, color: PRINT.amb, fontWeight: 600 }}>{f.A.toFixed(1).replace(".", ",")}</td><td style={td}>{(balTip.fases[i]?.A ?? 0).toFixed(1).replace(".", ",")}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 4 }}>Rodízio {usaScreens ? "reinicia a cada Screen (cada Screen é um quadro)" : "pela numeração do projeto"}; soma aritmética (leitura conservadora de quadro){agg.vc.g === "220" && agg.vc.ph === 3 ? " — o par F+F conta nas duas fases" : ""}.</p>
+              </div>
+            )}
             <div style={{ marginTop: 6, padding: "10px 12px", borderRadius: 8, background: PRINT.head, border: `1px solid ${PRINT.line}`, fontSize: 11, color: PRINT.mut }}>
               <div style={{ fontFamily: "ui-monospace, monospace", color: PRINT.ink, fontSize: 12, marginBottom: 5 }}>Típico por gabinete = base + (pico − base) × brilho × conteúdo</div>
               O consumo real fica entre <b>tela preta</b> (base) e <b>branco pleno</b> (pico); o <b>brilho</b> calibrado ({Math.round(agg.brilho * 100)}%) e o <b>conteúdo</b> médio do vídeo ({Math.round(agg.conteudo * 100)}%) escalam só a parcela dinâmica.{fpLabel ? <> Fator de potência dos gabinetes: <b>{fpLabel}</b>.</> : null} Modelo baseado no estudo de consumo de painéis de LED da Barco.
@@ -402,7 +420,7 @@ export default function ProjectRelatorio({ project, patch }) {
 
         {showAC && usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
+            <SectionHead n={sn} title="Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
             <WarnBox title={AVISO_AC.titulo} tone="amber">{AVISO_AC.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen{phaseOf(1, agg.vc) ? <>; a <b>fase</b> segue o rodízio (cabo 1→{phaseOf(1, agg.vc)}, 2→{phaseOf(2, agg.vc)}, 3→{phaseOf(3, agg.vc)}…), reiniciando a cada Screen</> : null}.</p>
             {screenReportAc.map((s, i) => {
@@ -425,7 +443,7 @@ export default function ProjectRelatorio({ project, patch }) {
 
         {showAC && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
+            <SectionHead n={sn} title="Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
             <WarnBox title={AVISO_AC.titulo} tone="amber">{AVISO_AC.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>
             <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
             {telas.map((t, i) => {

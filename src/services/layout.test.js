@@ -1,8 +1,43 @@
-// layout.test.js — detecção de sobreposição da Composição (segurança de campo).
+// layout.test.js — detecção de sobreposição da Composição (segurança de campo)
+// e o layout puro da Composição (fonte única da aba, do Caderno e do PDF).
 import { describe, it, expect } from "vitest";
-import { overlappingIds, reorder, packByModel } from "./layout.js";
+import { overlappingIds, reorder, packByModel, compLayout } from "./layout.js";
 
 const r = (id, x, y, w, h) => ({ id, x, y, w, h });
+
+describe("compLayout — posições da Composição + fallback + bbox", () => {
+  const tela = (id, cols, rows) => ({ id, cols, rows, gabinete: { resX: 100, resY: 100 } });
+  const telas = [tela("a", 4, 2), tela("b", 2, 3)];
+
+  it("sem posição salva: fila lado a lado no y=0", () => {
+    const { pos, bbox } = compLayout(telas, undefined);
+    expect(pos.a).toEqual({ x: 0, y: 0 });
+    expect(pos.b).toEqual({ x: 400, y: 0 });
+    expect(bbox).toEqual({ minX: 0, minY: 0, w: 600, h: 300 });
+  });
+
+  it("posição parcial: a salva vale, a nova entra depois da mais à direita", () => {
+    const { pos } = compLayout(telas, { a: { x: 100, y: 50 } });
+    expect(pos.a).toEqual({ x: 100, y: 50 });
+    expect(pos.b).toEqual({ x: 500, y: 0 }); // 100 + 400 (borda direita da salva)
+  });
+
+  it("bbox segue as posições salvas (empilhado = mais alto que largo)", () => {
+    const { bbox } = compLayout(telas, { a: { x: 0, y: 0 }, b: { x: 0, y: 200 } });
+    expect(bbox).toEqual({ minX: 0, minY: 0, w: 400, h: 500 });
+  });
+
+  it("posição salva de tela removida não vaza; sem telas → bbox zero", () => {
+    const { pos, bbox } = compLayout([], { fantasma: { x: 9, y: 9 } });
+    expect(pos).toEqual({});
+    expect(bbox).toEqual({ minX: 0, minY: 0, w: 0, h: 0 });
+  });
+
+  it("gabinete vazio assume 128 px (mesma regra do draw)", () => {
+    const { dims } = compLayout([{ id: "x", cols: 2, rows: 1 }], undefined);
+    expect(dims.x).toEqual({ w: 256, h: 128 });
+  });
+});
 
 describe("overlappingIds", () => {
   it("lado a lado (bordas encostadas) NÃO conta como sobreposição", () => {

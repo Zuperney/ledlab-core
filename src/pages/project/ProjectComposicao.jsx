@@ -19,13 +19,7 @@ import { useLedLabContext } from "../../store/AppContext.jsx";
 import { telaPortSlices } from "../../services/screenCabling.js";
 import { draw, DEFAULTS, PRESETS } from "../../services/testcardDraw.js";
 import { fileName } from "../../services/filenames.js";
-import { overlappingIds } from "../../services/layout.js";
-
-// resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
-const dimOf = (t) => ({
-  w: (t.cols || 1) * (parseFloat(t.gabinete?.resX) || 128),
-  h: (t.rows || 1) * (parseFloat(t.gabinete?.resY) || 128),
-});
+import { overlappingIds, compLayout, compDimOf as dimOf } from "../../services/layout.js";
 
 // encaixa a borda (v ou v+size) na borda-alvo mais próxima dentro do limiar
 const snap = (v, size, targets, thr) => {
@@ -62,33 +56,14 @@ export default function ProjectComposicao({ project, patch }) {
     return () => ro.disconnect();
   }, []);
 
-  // posições: as salvas + default lado a lado pras telas ainda sem posição
-  const positions = useMemo(() => {
-    const pos = { ...(comp.pos || {}) };
-    let cx = 0;
-    for (const t of telas) {
-      if (pos[t.id]) cx = Math.max(cx, pos[t.id].x + dimOf(t).w);
-      else { pos[t.id] = { x: cx, y: 0 }; cx += dimOf(t).w; }
-    }
-    return pos;
-  }, [telas, comp.pos]);
+  // posições salvas + default lado a lado + bbox — fonte única em services/layout.js
+  // (a mesma que o Caderno/PDF usam pra imprimir a disposição real)
+  const { pos: positions, bbox } = useMemo(() => compLayout(telas, comp.pos), [telas, comp.pos]);
 
   const posOf = (t) => (drag && drag.id === t.id ? drag : positions[t.id]);
 
   // segurança: telas que se SOBREPÕEM (encostar nas bordas não conta) → borda vermelha
   const overlapIds = overlappingIds(telas.map((t) => { const p = posOf(t), d = dimOf(t); return { id: t.id, x: p.x, y: p.y, w: d.w, h: d.h }; }));
-
-  // caixa envolvente (canvas automático)
-  const bbox = useMemo(() => {
-    if (!telas.length) return { minX: 0, minY: 0, w: 0, h: 0 };
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const t of telas) {
-      const p = positions[t.id], d = dimOf(t);
-      minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
-      maxX = Math.max(maxX, p.x + d.w); maxY = Math.max(maxY, p.y + d.h);
-    }
-    return { minX, minY, w: maxX - minX, h: maxY - minY };
-  }, [telas, positions]);
 
   // thumbnails reais (render via draw) — recomputa só quando muda conteúdo/estilo, não a posição
   // portas de cabo por tela — só quando o estilo pede mapa de cabos e a tela tem gabinete

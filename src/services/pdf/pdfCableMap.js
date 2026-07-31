@@ -9,6 +9,7 @@
 // PURO de propósito (string → string): testável sem pdfmake nem DOM.
 import { screenCells, screenPorts, cellPortIndex } from "../screenCabling.js";
 import { key, cablePorts } from "../cabling.js";
+import { compLayout, overlappingIds } from "../layout.js";
 
 const BG = "#0d0d1a"; // mesmo fundo do mapa no DOM (identidade do mapa, v1.5.3)
 const UNASSIGNED = "#3f3f5a";
@@ -116,32 +117,28 @@ export function screenMapSvg(screen, telas, kind, numbering, colorOf, cr, opts) 
   );
 }
 
-// ESQUEMA DAS TELAS EM FILA (seção Vídeo) — espelho do ReportTelasCanvas do DOM:
-// cada tela é um bloco na cor do MODELO (mesma sequência dos chips "Gabinetes
-// utilizados"), nome dentro, base alinhada no chão; a largura somada é a
-// resolução linear do projeto. Devolve também a resolução linear pra legenda.
-export function telasFilaSvg(telas, colorOf, { maxWidth = 500, maxHeight = 150 } = {}) {
+// ESQUEMA DAS TELAS (seção Vídeo) — espelho do ReportTelasCanvas do DOM: cada
+// tela é um bloco na cor do MODELO (mesma sequência dos chips "Gabinetes
+// utilizados"), nome dentro, na DISPOSIÇÃO REAL da Composição (project.comp.pos
+// via compLayout; sem posição salva o fallback é a fila lado a lado de sempre).
+// Tela sobreposta ganha contorno vermelho (mesma segurança da aba Composição).
+// Devolve também a resolução do bbox pra legenda.
+export function telasLayoutSvg(telas, compPos, colorOf, { maxWidth = 620, maxHeight = 240 } = {}) {
   if (!telas?.length) return null;
-  const dimOf = (t) => ({
-    w: (t.cols || 1) * (parseFloat(t.gabinete?.resX) || 128),
-    h: (t.rows || 1) * (parseFloat(t.gabinete?.resY) || 128),
-  });
+  const { pos, dims, bbox } = compLayout(telas, compPos);
   const models = [...new Set(telas.filter((t) => t.gabinete?.nome).map((t) => t.gabinete.nome))];
   const colOf = (t) => colorOf(Math.max(0, models.indexOf(t.gabinete?.nome)));
+  const overlap = overlappingIds(telas.map((t) => ({ id: t.id, ...pos[t.id], ...dims[t.id] })));
 
-  const dims = telas.map(dimOf);
-  const maxH = Math.max(...dims.map((d) => d.h), 1);
-  const totalW = dims.reduce((s, d) => s + d.w, 0) || 1;
-  const scale = Math.min(maxWidth / totalW, maxHeight / maxH);
-  const W = totalW * scale, H = maxH * scale;
+  const bw = bbox.w || 1, bh = bbox.h || 1;
+  const scale = Math.min(maxWidth / bw, maxHeight / bh);
+  const W = bw * scale, H = bh * scale;
 
   const out = [`<rect x="0" y="0" width="${r2(W)}" height="${r2(H)}" rx="6" fill="${BG}"/>`];
-  let xAcc = 0;
-  telas.forEach((t, i) => {
-    const d = dims[i];
-    const x = xAcc * scale, y = (maxH - d.h) * scale, w = d.w * scale, h = d.h * scale;
-    xAcc += d.w;
-    const col = colOf(t);
+  for (const t of telas) {
+    const d = dims[t.id], p = pos[t.id];
+    const x = (p.x - bbox.minX) * scale, y = (p.y - bbox.minY) * scale, w = d.w * scale, h = d.h * scale;
+    const col = overlap.has(t.id) ? "#ef4444" : colOf(t);
     const nome = String(t.nome || "Tela");
     const fs = Math.max(5, Math.min(14, Math.min(h * 0.26, w / (Math.max(4, nome.length) * 0.62))));
     const showRes = w > 56 && h > fs * 3.4; // resolução só quando cabe no bloco
@@ -152,9 +149,9 @@ export function telasFilaSvg(telas, colorOf, { maxWidth = 500, maxHeight = 150 }
       out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty)}" ${textAttrs(fs, "middle")} fill="#ffffff">${esc(nome)}</text>`);
       if (showRes) out.push(`<text x="${r2(x + w / 2)}" y="${r2(ty + fs * 1.05)}" font-family="PlexSans" font-size="${r2(fs * 0.72)}" text-anchor="middle" fill="#cbd5e1">${d.w} × ${d.h}</text>`);
     }
-  });
+  }
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${r2(W)}" height="${r2(H)}" viewBox="0 0 ${r2(W)} ${r2(H)}">${out.join("")}</svg>`;
-  return { svg, width: r2(W), height: r2(H), linW: Math.round(totalW), linH: Math.round(maxH) };
+  return { svg, width: r2(W), height: r2(H), linW: Math.round(bbox.w), linH: Math.round(bbox.h) };
 }
 
 // mapa de uma TELA (modo legado) — grade cols×rows, numeração global via offset

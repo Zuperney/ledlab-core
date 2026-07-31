@@ -99,13 +99,16 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(sem).toContain("—");
   });
 
-  it("carimbo: logo do projeto no bloco da marca; capa fica com a marca LedLab", () => {
+  it("carimbo: logo do projeto no bloco da marca; capa fica com a marca LedLab (imagens NOMEADAS)", () => {
     const px = "data:image/png;base64,AAA";
     const d = buildRelatorioDoc({ project: { ...project, logo: px }, tipo: "Completo", cfg, logo: "data:image/png;base64,LEDLAB", logoProjeto: px });
-    expect(JSON.stringify(d.footer(2, 5))).toContain('"image":"data:image/png;base64,AAA"');
+    // por NOME no dicionário images (embute 1× mesmo com re-layouts do pageBreakBefore)
+    expect(JSON.stringify(d.footer(2, 5))).toContain('"image":"logoProjeto"');
+    expect(d.images.logoProjeto).toBe(px);
+    expect(d.images.marcaLedlab).toBe("data:image/png;base64,LEDLAB");
     const capaJson = JSON.stringify(d.content[0]); // topo da capa
-    expect(capaJson).toContain("LEDLAB"); // a marca, não o logo do projeto
-    expect(capaJson).not.toContain("base64,AAA");
+    expect(capaJson).toContain('"image":"marcaLedlab"'); // a marca, não o logo do projeto
+    expect(capaJson).not.toContain("logoProjeto");
   });
 
   it("Visão Geral: uma linha por tela + total + gabinetes utilizados", () => {
@@ -118,16 +121,30 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("ROE CB5");
   });
 
-  it("Vídeo/Resolução: resolução por tela e aspecto", () => {
+  it("Vídeo/Resolução: resolução por tela, aspecto e fração decimal", () => {
     expect(json).toContain("VÍDEO / RESOLUÇÃO");
     expect(json).toContain("1.040 × 624"); // 10×104 por 6×104, pt-BR
+    expect(json).toContain("FRAÇÃO");
+    expect(json).toContain("1,667"); // 1040/624 com vírgula, 3 casas
+  });
+
+  it("Visão Geral tem a coluna de pixels da tela", () => {
+    expect(json).toContain("RESOLUÇÃO (PX)");
   });
 
   it("Elétrica: sem sugestão de disjuntor; gerador mínimo pelo pico + fórmula do típico", () => {
     expect(json).toContain("INFORMAÇÕES ELÉTRICAS");
     expect(json).not.toContain("Disjuntor".toUpperCase()); // app não sugere disjuntor (auditoria 30/07/2026)
+    expect(json).not.toContain("combustível"); // o app não calcula combustível
     expect(json).toContain("Gerador mínimo (pico × 1,25)");
     expect(json).toContain("Típico por gabinete = base + (pico − base) × brilho × conteúdo");
+  });
+
+  it("Elétrica: balanço por fase com pico E típico (220 tri = pares)", () => {
+    expect(json).toContain("Balanço por fase");
+    expect(json).toContain("PICO A");
+    expect(json).toContain("TÍPICO A");
+    expect(json).toContain('"RS"'); // par do 220 trifásico
   });
 
   it("Sinal (legado, sem Screens): seção por tela com ficha de specs", () => {
@@ -136,18 +153,23 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("RÉGUA");
   });
 
-  it("AC: aviso de energização (laranja) + ficha de specs por tela", () => {
-    expect(json).toContain("ENERGIA — CABEAMENTO AC");
+  it("AC: título direto + aviso de energização (laranja) + ficha de specs por tela", () => {
+    expect(json).toContain("CABEAMENTO AC");
+    expect(json).not.toContain("ENERGIA — CABEAMENTO AC"); // título encurtou (31/07)
     expect(json).toContain("ATENÇÃO — ENERGIZAÇÃO");
     expect(json).toContain("powerCON azuis");
     expect(json).toContain("MÁX POR CABO");
     expect(json).toContain("A/gabinete");
   });
 
-  it("Glossário em duas colunas fecha o caderno Completo", () => {
+  it("Glossário em duas colunas fecha o caderno Completo (sem os termos removidos)", () => {
     expect(json).toContain("GLOSSÁRIO");
     expect(json).toContain("Pico × Típico");
-    expect(json).toContain("Serpentina");
+    expect(json).toContain("Fases R/S/T");
+    // "Serpentina" só existia como verbete — sumiu do doc inteiro. ("Bumper"/"Talha"
+    // seguem citados na seção Estrutura, que aponta pro rigger; a ausência DELES
+    // no glossário é travada em reportContent.test.js.)
+    expect(json).not.toContain("Serpentina");
   });
 
   it("sem logo, a capa não tem node de imagem (não quebra o pdfmake)", () => {
@@ -207,15 +229,24 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).not.toContain('"text":"101%","font":"PlexMono","alignment":"right","bold":true,"color":"#b91c1c"'); // não é estouro
   });
 
-  it("um tópico por página + uma página por Screen/tela no sinal e no AC", () => {
-    // Completo sem Screens: 7 seções (com sumário, todas quebram) + 4 blocos
-    // (2 telas × sinal e AC, cada um na própria página) → 11 quebras "before".
-    // A cadeia de Peso e ancoragens FLUI: não abre página por tela.
-    const completo = JSON.stringify(build("Completo").content);
-    expect(completo.match(/"pageBreak":"before"/g)?.length).toBe(11);
-    // Elétrico = 1 seção só, sem sumário e sem blocos → nenhuma quebra "before"
+  it("um tópico por página + uma página por Screen/tela — quebra CONDICIONAL (headlineLevel)", () => {
+    // A quebra é decidida pelo pageBreakBefore do docDefinition (só quebra se a
+    // página atual tem conteúdo — mata a página em branco); os nós de início de
+    // seção/bloco carregam headlineLevel 1. Completo sem Screens: 7 seções (com
+    // sumário, todas marcam) + 4 blocos (2 telas × sinal e AC) → 11 marcas.
+    const doc = build("Completo");
+    const completo = JSON.stringify(doc.content);
+    expect(completo.match(/"headlineLevel":1/g)?.length).toBe(11);
+    expect(completo.match(/"pageBreak":"before"/g)).toBeNull(); // nunca incondicional
+    expect(typeof doc.pageBreakBefore).toBe("function");
+    // quebra só com conteúdo na página atual (assinatura do pdfmake: getters no 2º arg)
+    const ctx = (prev) => ({ getPreviousNodesOnPage: () => prev });
+    expect(doc.pageBreakBefore({ headlineLevel: 1 }, ctx([{ text: "x" }]))).toBe(true);
+    expect(doc.pageBreakBefore({ headlineLevel: 1 }, ctx([]))).toBe(false); // página vazia: não dobra a quebra
+    expect(doc.pageBreakBefore({ text: "comum" }, ctx([{ text: "x" }]))).toBe(false);
+    // Elétrico = 1 seção só, sem sumário e sem blocos → nenhuma marca
     const eletrico = JSON.stringify(build("Elétrico").content);
-    expect(eletrico.match(/"pageBreak":"before"/g)).toBeNull();
+    expect(eletrico.match(/"headlineLevel":1/g)).toBeNull();
   });
 
   it("abertura de seção: 04 e 05 têm resumo geral (stats + tabela de Screens/telas)", () => {
@@ -223,7 +254,7 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).toContain("PORTAS DE SINAL"); // stat da abertura do sinal (legado)
     expect(j).toContain("CIRCUITOS AC"); // stat da abertura do AC
     expect(j).toContain('"fontSize":19'); // números grandes da statRow
-    expect(j).toContain('"fontSize":11.5'); // specs por Screen/tela em fonte maior
+    expect(j).toContain('"fontSize":10.5'); // specs por Screen/tela (compactadas em 31/07)
   });
 
   it("SUMÁRIO só no Completo: nó toc + entradas coloridas por disciplina", () => {
@@ -361,11 +392,11 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).toContain("#0d0d1a"); // fundo do mapa (identidade visual v1.5.3)
   });
 
-  it("F3: Vídeo abre com o esquema das telas em fila + legenda da resolução linear", () => {
+  it("F3: Vídeo abre com o esquema das telas na disposição da Composição + legenda do canvas", () => {
     const j = JSON.stringify(build("Completo").content);
-    expect(j).toContain("As telas em fila");
-    expect(j).toContain("resolução linear ");
-    // 10×104 + 4×104 = 1.456 px de largura linear · altura 6×104
+    expect(j).toContain("disposição da Composição");
+    expect(j).toContain("Canvas de conteúdo");
+    // sem comp.pos salvo o fallback é a fila: 10×104 + 4×104 = 1.456 px × altura 6×104
     expect(j).toContain("1.456 × 624 px");
   });
 
