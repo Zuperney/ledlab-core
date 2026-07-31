@@ -42,7 +42,15 @@ export const KB_ARTICLES = [
         ] },
       ] },
     ] },
-  { id: "tensoes-br", category: "Energia", title: "Tensões no Brasil", summary: "220V/380V, mono/bi/trifásico e seus divisores.", sections: [{ h: "Divisores", blocks: [{ t: "kv", rows: [["220V Bifásico", "÷ 220"], ["220V Trifásico", "÷ 220 × √3"], ["380V Mono (F+N)", "÷ 220"], ["380V Bifásico", "÷ 440"], ["380V Trifásico", "÷ 380 × √3"]] }] }] },
+  { id: "tensoes-br", category: "Energia", title: "Tensões no Brasil", summary: "220V/380V, mono/bi/trifásico, divisores e o rodízio de fases R/S/T.",
+    sections: [
+      { h: "Divisores", blocks: [{ t: "kv", rows: [["220V Bifásico (F+F)", "÷ 220"], ["220V Trifásico (F+F+F)", "÷ 220 × √3"], ["380V Mono (F+N)", "÷ 220"], ["380V Bifásico (F+F+N)", "÷ 440"], ["380V Trifásico (F+F+F+N)", "÷ 380 × √3"]] }] },
+      { h: "Divisão de fases (rodízio R/S/T)", blocks: [
+        { t: "p", text: "Com várias fases disponíveis, os cabos AC seguem um RODÍZIO pra equilibrar a carga: cabo 1→R, 2→S, 3→T, 4→R… No app o rodízio reinicia a cada Screen (cada Screen é um quadro). Fase desequilibrada derruba disjuntor geral e força o neutro." },
+        { t: "kv", rows: [["380V trifásico", "circuito 220V é F+N → rodízio R, S, T"], ["220V trifásico", "circuito 220V é F+F → rodízio de PARES: RS, ST, TR"], ["380V bifásico", "alterna R, S"], ["mono / 220V bi", "uma configuração só — sem rodízio"]] },
+        { t: "note", text: "No 220V trifásico cada circuito pega DUAS fases — por isso o balanço soma a corrente do cabo nas duas letras. A soma é ARITMÉTICA (conservadora): a soma vetorial real é um pouco menor, então o quadro dimensionado por ela tem folga, nunca falta." },
+      ] },
+    ] },
   { id: "disjuntor-125", category: "Energia", title: "Margem de 25% no disjuntor", summary: "De onde vem a margem — e o que a NBR realmente pede.", sections: [{ h: "Regra", blocks: [{ t: "p", text: "O app escolhe o disjuntor padrão imediatamente acima de corrente × 1,25. Essa margem de 25% é a regra NEC/UL (EUA) para carga contínua — disjuntores IEC (NBR NM 60898) já são 100%-rated." }, { t: "note", text: "O que a NBR 5410 exige de fato é In ≤ Iz: o disjuntor não pode passar da capacidade do CABO (corrigida por temperatura e agrupamento). O ×1,25 é conservador e ajuda, mas confira a bitola. Inrush das fontes pede disjuntor curva C (ou D em telas grandes)." }] }] },
   { id: "sinal-porta", category: "Sinal", title: "Capacidade da porta", summary: "Pixels por porta Gigabit: 8-bit ≈ 655k, 10-bit ≈ 327k — e as duas réguas de alocação.",
     sections: [

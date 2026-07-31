@@ -4,6 +4,9 @@ import { SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useElectrical } from "../../hooks/useElectrical.js";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.js";
+import { useLedLabContext } from "../../store/AppContext.jsx";
+import { voltFull, phaseBalance, phaseOf } from "../../services/electricalCalc.js";
+import { projectAcCabos, hasScreens } from "../../services/screenCabling.js";
 import { T } from "../../ui/tokens.js";
 import { card } from "../../ui/styles.js";
 import Segmented from "../../components/Segmented.jsx";
@@ -11,9 +14,14 @@ import Segmented from "../../components/Segmented.jsx";
 export default function ProjectEnergia({ project, patch }) {
   const isMobile = useIsMobile();
   const { cfg, agg, VOLT } = useElectrical(project);
+  const { prefs } = useLedLabContext();
   const setCfg = (partial) => patch({ config: { ...cfg, ...partial } });
   const [open, setOpen] = useState(null); // "brilho" | "conteudo" | null — qual slider está aberto
   const [telaOpen, setTelaOpen] = useState(null); // mobile: qual card de tela está expandido
+  // BALANÇO POR FASE: rodízio dos cabos AC (por Screen; legado = numeração global)
+  const acCabos = projectAcCabos(project, prefs.cableNumbering || "row-tb-lr");
+  const balFases = phaseBalance(acCabos, agg.vc);
+  const usaScreens = hasScreens(project);
 
   return (
     <div>
@@ -62,10 +70,34 @@ export default function ProjectEnergia({ project, patch }) {
       })}
 
       <div style={card({ marginTop: 6 })}>
-        <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 12 }}>Total do projeto · {agg.vc.label}</div>
+        <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 12 }}>Total do projeto · {voltFull(agg.vc)}</div>
         <Row tag="PICO" tagColor={T.red} isMobile={isMobile} cols={[["Carga", `${agg.W.toLocaleString()} W`, T.txt], ["kVA", agg.kVA, T.grn], ["A/fase", agg.I, T.amb], ["Disj. geral", `${agg.breaker} A`, T.red]]} />
         <Row tag="TÍPICO" tagColor={T.acM} isMobile={isMobile} cols={[["Carga", `${Math.round(agg.typW).toLocaleString()} W`, T.txt], ["kVA", agg.typKva, T.grn], ["A/fase", agg.typI, T.amb], ["Gerador ~", `${agg.gerador} kVA`, T.acM]]} />
       </div>
+
+      {/* BALANÇO POR FASE — o rodízio dos cabos AC (cabo 1→R, 2→S, 3→T…) somado
+          por fase. Só aparece quando a tensão tem rodízio (tri / 380 bi) e há
+          cabos. A soma é ARITMÉTICA: par (220 tri) conta nas duas fases. */}
+      {balFases.temRodizio && acCabos.length > 0 && (
+        <div style={card({ marginTop: 10 })}>
+          <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 10 }}>
+            Balanço por fase · pico
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${balFases.fases.length}, 1fr)`, gap: 10 }}>
+            {balFases.fases.map((f) => (
+              <div key={f.fase} style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px" }}>
+                <div style={{ fontFamily: "ui-monospace,monospace", fontWeight: 800, fontSize: 16, color: T.acM }}>{f.fase}</div>
+                <div style={{ fontFamily: "ui-monospace,monospace", fontWeight: 700, color: T.amb, marginTop: 2 }}>{f.A.toFixed(1).replace(".", ",")} A</div>
+                <div style={{ color: T.dim, fontSize: 11.5 }}>{f.cabos} {f.cabos === 1 ? "cabo" : "cabos"}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ color: T.dim, fontSize: 11.5, marginTop: 8, lineHeight: 1.5 }}>
+            Rodízio {usaScreens ? "reinicia a cada Screen (cada Screen é um quadro)" : "pela numeração do projeto"}: cabo 1→{phaseOf(1, agg.vc)}, 2→{phaseOf(2, agg.vc)}, 3→{phaseOf(3, agg.vc)}…
+            {agg.vc.g === "220" && agg.vc.ph === 3 ? " Em 220 V trifásico o circuito usa um PAR de fases (F+F) — a corrente conta nas duas." : ""} Soma aritmética (leitura conservadora de quadro).
+          </div>
+        </div>
+      )}
       <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}><b style={{ color: T.red }}>Pico</b> (consumo máximo) dimensiona disjuntor e cabo; <b style={{ color: T.grn }}>Típico</b> (black level + brilho × conteúdo) estima o gerador / consumo real.</div>
     </div>
   );

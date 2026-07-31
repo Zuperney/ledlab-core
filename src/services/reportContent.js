@@ -52,6 +52,7 @@ export const GLOSSARIO = [
   { t: "Porta × Circuito", d: "Porta = saída de dados Gigabit da controladora. Circuito = cabo de energia (AC)." },
   { t: "Disjuntor", d: "Proteção do circuito, dimensionada acima da corrente de pico (margem de carga contínua)." },
   { t: "Trifásico (F+F+F+N)", d: "Alimentação em 3 fases + neutro — distribui a carga e reduz a corrente por fase." },
+  { t: "Fases R/S/T", d: "As 3 fases do sistema. Os cabos AC seguem um rodízio (1→R, 2→S, 3→T…) pra equilibrar a carga entre elas; em 220 V trifásico o circuito usa um PAR de fases (RS/ST/TR)." },
   { t: "Serpentina", d: "Roteamento em zigue-zague dos cabos para minimizar comprimento e cruzamentos." },
   { t: "Ancoragem", d: "Onde a viga (bumper) oferece para pendurar. Não confundir com o ponto de talha que a produção entrega no teto — esse é decisão do rigger." },
   { t: "Bumper", d: "Viga de içamento que recebe a coluna de gabinetes. Quem dimensiona quantos entram — e as ancoragens — é o rigger." },
@@ -183,6 +184,10 @@ export const CHECK_SUBIR = [
   { b: "Suba as ancoragens juntas", t: ", em incrementos alternados: com talha manual, uma ancoragem à frente da outra pega uma fatia desproporcional da parede." },
   { b: "Contenção contra balanço", t: " quando houver vão livre atrás, corredor de vento ou circulação embaixo — parede voada é pêndulo." },
 ];
+
+// balanço de fases formatado ("R 120,0 A · S 118,0 A · T 121,0 A") — fonte única
+// pros dois renderizadores e pra aba Energia
+export const fmtFases = (bal) => (bal?.fases || []).map((f) => `${f.fase} ${f.A.toFixed(1).replace(".", ",")} A`).join(" · ");
 
 // aviso de segurança da seção de AC — texto único do campo (DOM e PDF)
 export const AVISO_AC = {

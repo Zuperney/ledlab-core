@@ -16,10 +16,10 @@ import { hasScreens, projectScreenReport, telasSemScreen } from "../screenCablin
 import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasFilaSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
-import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, portLabel, videoOf } from "../reportContent.js";
+import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf } from "../reportContent.js";
 import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../reportContent.js";
 import { projectRigging, DEFAULT_RIG } from "../rigging.js";
-import { acTone } from "../electricalCalc.js";
+import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
 
 // cor da pílula da cadeia: "sem dado" é CINZA, nunca verde (rigging-spec §3.2)
 const RIG_C = { ok: PRINT.grn, acima: PRINT.red, semDado: PRINT.dim };
@@ -502,7 +502,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // ── INFORMAÇÕES ELÉTRICAS ──
   const eletrica = !showElec ? [] : [
     sectionHead(sec(), "Informações Elétricas", "Energia · dimensionamento", DISC.elec),
-    { text: [{ text: `Dimensionamento em ${agg.vc.label}. ` }, { text: "A potência de pico define o disjuntor e a bitola dos cabos; a típica (consumo médio em operação) estima o gerador.", color: PRINT.mut }], fontSize: 8.5, margin: [0, 0, 0, 6] },
+    { text: [{ text: `Dimensionamento em ${voltFull(agg.vc)}. ` }, { text: "A potência de pico define o disjuntor e a bitola dos cabos; a típica (consumo médio em operação) estima o gerador.", color: PRINT.mut }], fontSize: 8.5, margin: [0, 0, 0, 6] },
     {
       table: {
         headerRows: 1,
@@ -704,7 +704,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       return [
         // ── página de ABERTURA da seção: aviso de segurança + resumo geral do AC ──
         ...head,
-        { text: "Cabos de energia por Screen, na mesma organização do sinal — carga por cabo × corrente do conector. Cada sistema abre na própria página, com circuitos numerados 1..N.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+        { text: `Cabos de energia por Screen, na mesma organização do sinal — carga por cabo × corrente do conector. Cada sistema abre na própria página, com circuitos numerados 1..N${phaseOf(1, agg.vc) ? `; a fase segue o rodízio (cabo 1→${phaseOf(1, agg.vc)}, 2→${phaseOf(2, agg.vc)}, 3→${phaseOf(3, agg.vc)}…), reiniciando a cada Screen` : ""}.`, fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
         statRow([
           ["Screens", screenReportAc.length],
           ["Circuitos AC", totCirc],
@@ -734,16 +734,19 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         // ── uma página por Screen ──
         ...screenReportAc.map((s, i) => {
           const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr) : null;
+          const bal = phaseBalance(s.ports, agg.vc);
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
               ["Circuitos", String(s.ports.length)],
               ["Maior carga por cabo", `${cargaMax(s.ports).load.toFixed(1)} A · ${cargaMax(s.ports).pct}%`],
               ["Gabinetes", String(s.ports.reduce((n, p) => n + p.count, 0))],
+              ...(bal.temRodizio ? [["Carga por fase", fmtFases(bal)]] : []),
             ]),
             ...mapNode(mapa),
             densePortTable(s.ports, [
               { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
+              ...(bal.temRodizio ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
               { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink }) },
             ]),
@@ -787,6 +790,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           return { n: off + pi + 1, idx: off + pi, count: p.length, load, pct: Math.round((load / connRating) * 100) };
         });
         const mapa = telaMapSvg(t, "ac", numbering, off, colorOf, cr);
+        const temFase = phaseOf(1, agg.vc) != null;
         return bloco([
           subHead(`${S}.${i + 1}`, t.nome),
           specBox([
@@ -798,6 +802,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           ...mapNode(mapa),
           densePortTable(rows, [
             { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
+            ...(temFase ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
             { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
             { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: acTone(p.pct) === "over" ? PRINT.red : acTone(p.pct) === "warn" ? PRINT.amb : PRINT.ink }) },
           ]),

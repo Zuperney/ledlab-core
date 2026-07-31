@@ -10,7 +10,7 @@
 // AC é energia (segue o físico), mas por consistência de contagem é organizado por
 // Screen igual o sinal — o modo LIVRE parte os circuitos como a energia realmente
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
-import { cableMeta, cablePorts, balancedChunks, buildAuto } from "./cabling.js";
+import { cableMeta, cablePorts, balancedChunks, buildAuto, portOffset } from "./cabling.js";
 import { acTone } from "./electricalCalc.js";
 import { canvasCells, snakeCellsPorTela, clusterTelas, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
 import { screenTelas, screenOfTela, unassignedTelas, screenSize } from "./screens.js";
@@ -197,6 +197,22 @@ export function projectScreenReport(project, kind = "sinal", numbering = "row-tb
   return (project?.screens || [])
     .filter((s) => screenTelas(s, telas).length) // só telas existentes (LLC-11)
     .map((s) => ({ id: s.id, nome: s.nome, size: screenSize(s, telas), ports: screenPortSummary(s, telas, kind, numbering) }));
+}
+
+// Todos os cabos AC do projeto como [{ n, load }] — o insumo do rodízio de FASES
+// (electricalCalc.phaseOf/phaseBalance). Com Screens, `n` reinicia por Screen
+// (cada Screen é um quadro — o rodízio recomeça na fase R); no legado a
+// numeração é a global do projeto (portOffset).
+export function projectAcCabos(project, numbering = "row-tb-lr") {
+  if (hasScreens(project)) {
+    return projectScreenReport(project, "ac", numbering).flatMap((s) => s.ports.map((p) => ({ n: p.n, load: p.load })));
+  }
+  const telas = project?.telas || [];
+  return telas.flatMap((t) => {
+    const { ampCab } = cableMeta(t);
+    const off = portOffset(telas, t.id, "ac", numbering);
+    return cablePorts(t, "ac", numbering).map((p, i) => ({ n: off + i + 1, load: p.length * ampCab }));
+  });
 }
 
 // A fatia de UMA tela nas portas — pro selo do Test Card / Composição. Se a tela

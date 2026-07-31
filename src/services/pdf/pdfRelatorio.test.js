@@ -237,6 +237,18 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(JSON.stringify(build("Elétrico").content)).not.toContain('"toc"');
   });
 
+  it("elétrica declara a TENSÃO completa (não só 'Trifásico')", () => {
+    expect(JSON.stringify(build("Completo").content)).toContain("Dimensionamento em 220 V · Trifásico (F+F+F)");
+  });
+
+  it("AC ganha coluna FASE com o rodízio (pares RS/ST/TR no 220 tri); some sem rodízio", () => {
+    const com = JSON.stringify(build("Mapa de cabos").content);
+    expect(com).toContain('"FASE"');
+    expect(com).toContain('"RS"'); // 220 tri: circuito F+F → par de fases
+    const mono = JSON.stringify(buildRelatorioDoc({ project, tipo: "Mapa de cabos", cfg: { ...cfg, vk: "380_mono" }, logo: null }).content);
+    expect(mono).not.toContain('"FASE"');
+  });
+
   // ── Peso e estrutura ──
   // O contrato do papel: a seção registra peso e checa limite publicado; nunca
   // promete engenharia e nunca transforma ausência de dado em folga.

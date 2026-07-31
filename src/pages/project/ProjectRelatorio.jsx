@@ -11,12 +11,12 @@ import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
-import { acTone } from "../../services/electricalCalc.js";
+import { acTone, voltFull, phaseOf, phaseBalance } from "../../services/electricalCalc.js";
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabling.js";
 import { hasScreens, projectScreenReport, telasSemScreen } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
-import { GLOSSARIO, AVISO_AC, DISC, fmtPeso, portLabel, videoOf } from "../../services/reportContent.js";
+import { GLOSSARIO, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf } from "../../services/reportContent.js";
 import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../../services/reportContent.js";
 import { projectRigging, DEFAULT_RIG } from "../../services/rigging.js";
 import { useCabinets } from "../../hooks/useCabinets.js";
@@ -307,7 +307,7 @@ export default function ProjectRelatorio({ project, patch }) {
         {showElec && (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Informações Elétricas" tag="Energia · dimensionamento" color={DISC.elec} Icon={Zap} />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Dimensionamento em <b style={{ color: PRINT.ink }}>{agg.vc.label}</b>. A potência de <b>pico</b> define o disjuntor e a bitola dos cabos; a potência <b>típica</b> (consumo médio em operação) estima o gerador.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Dimensionamento em <b style={{ color: PRINT.ink }}>{voltFull(agg.vc)}</b>. A potência de <b>pico</b> define o disjuntor e a bitola dos cabos; a potência <b>típica</b> (consumo médio em operação) estima o gerador.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Gabinetes</th><th style={th}>Pico kW</th><th style={th}>Pico kVA</th><th style={th}>Pico A</th><th style={th}>Disjuntor</th><th style={th}>Típico kVA</th><th style={th}>Típico A</th></tr></thead>
               <tbody>
@@ -404,18 +404,22 @@ export default function ProjectRelatorio({ project, patch }) {
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Energia — Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
             <WarnBox title={AVISO_AC.titulo} tone="amber">{AVISO_AC.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen.</p>
-            {screenReportAc.map((s, i) => (
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen{phaseOf(1, agg.vc) ? <>; a <b>fase</b> segue o rodízio (cabo 1→{phaseOf(1, agg.vc)}, 2→{phaseOf(2, agg.vc)}, 3→{phaseOf(3, agg.vc)}…), reiniciando a cada Screen</> : null}.</p>
+            {screenReportAc.map((s, i) => {
+              const bal = phaseBalance(s.ports, agg.vc);
+              return (
               <div key={s.id} className="rp-block" style={telaBlock}>
                 <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`} />
+                {bal.temRodizio && <div style={{ color: PRINT.mut, fontSize: 11, margin: "0 0 8px" }}>Carga por fase: <b style={{ color: PRINT.ink, fontFamily: "ui-monospace, monospace" }}>{fmtFases(bal)}</b> <span style={{ color: PRINT.dim }}>(soma aritmética — par conta nas duas fases)</span></div>}
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="ac" numbering={numbering} /></div>}
                 <DenseTable data={s.ports} maxCols={4} columns={[
                   { key: "n", label: "Cabo", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
+                  ...(bal.temRodizio ? [{ key: "fase", label: "Fase", render: (p) => <b style={{ fontFamily: "ui-monospace, monospace" }}>{phaseOf(p.n, agg.vc)}</b> }] : []),
                   { key: "count", label: "Gabinetes", align: "right", render: (p) => p.count },
                   { key: "load", label: "Carga", align: "right", render: (p) => `${p.load.toFixed(1)} A · ${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink, whiteSpace: "nowrap" }) },
                 ]} />
               </div>
-            ))}
+            ); })}
           </section>
         ); })()}
 
@@ -433,8 +437,8 @@ export default function ProjectRelatorio({ project, patch }) {
                   <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${portLabel(off, ports.length, "cabo")} · máx ${acBudget} gabinetes/cabo · ${ampCab.toFixed(2)} A/gabinete · conector ${connRating} A`} />
                   <CableMap tela={t} mode="ac" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                    {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); const tone = acTone(pct); return (
-                      <span key={i} style={{ ...chip, borderColor: tone === "over" ? PRINT.red : tone === "warn" ? PRINT.amb : PRINT.line }}><span style={sw(off + i)} />Cabo {off + i + 1} · {load.toFixed(1)} A ({pct}%) · {p.length} gabinetes</span>
+                    {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); const tone = acTone(pct); const fase = phaseOf(off + i + 1, agg.vc); return (
+                      <span key={i} style={{ ...chip, borderColor: tone === "over" ? PRINT.red : tone === "warn" ? PRINT.amb : PRINT.line }}><span style={sw(off + i)} />Cabo {off + i + 1}{fase ? <> · fase <b style={{ fontFamily: "ui-monospace, monospace" }}>{fase}</b></> : null} · {load.toFixed(1)} A ({pct}%) · {p.length} gabinetes</span>
                     ); })}
                   </div>
                 </div>

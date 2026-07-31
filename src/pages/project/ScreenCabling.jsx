@@ -22,6 +22,8 @@ import { genId } from "../../services/ids.js";
 import { fileName } from "../../services/filenames.js";
 import { oneScreenPerTela, screenTelas } from "../../services/screens.js";
 import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV } from "../../services/screenCabling.js";
+import { VOLT, phaseOf, phaseBalance } from "../../services/electricalCalc.js";
+import { fmtFases } from "../../services/reportContent.js";
 import { PrefToggle } from "../../components/CablingPrefs.jsx";
 
 const key = (c) => `${c.telaId}:${c.c},${c.r}`;
@@ -108,6 +110,9 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const ports = screenPorts(active, telas, kind, numbering);
   const portIdx = cellPortIndex(ports);
   const summary = screenPortSummary(active, telas, kind, numbering);
+  // FASES (só AC): rodízio por Screen conforme a tensão do projeto (aba Energia)
+  const vc = VOLT[(project.config || {}).vk] || VOLT["220_tri"];
+  const balFases = isAc ? phaseBalance(summary, vc) : { temRodizio: false };
   const cells = screenCells(active, telas);
   const faltam = mode === "livre" ? unassignedCount(active, telas, kind) : 0;
   const anyOver = summary.some((p) => p.over);
@@ -198,6 +203,11 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                   {bbox.w.toLocaleString("pt-BR")} × {bbox.h.toLocaleString("pt-BR")} px · {ports.length} {isAc ? (ports.length === 1 ? "cabo" : "cabos") : (ports.length === 1 ? "porta" : "portas")}
                   {mode === "sinal" ? " · seguindo a rota do sinal" : " · a corrente atravessa as telas do mesmo modelo"}
                 </div>
+                {isAc && balFases.temRodizio && (
+                  <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
+                    Fases <b style={{ color: T.mut, fontFamily: "ui-monospace,monospace" }}>{fmtFases(balFases)}</b> · rodízio por Screen
+                  </div>
+                )}
               </div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                 {/* OVERCLOCK (só sinal): arredonda gabinetes/porta PRA CIMA — escolha
@@ -255,6 +265,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                     style={{ display: "flex", alignItems: "center", gap: 8, background: isAct ? T.sel : T.card2, border: `1px solid ${p.over ? T.red : p.oc || p.warn ? T.amb : isAct ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: mode === "livre" ? "pointer" : "default" }}>
                     <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(i), flexShrink: 0 }} />
                     <span style={{ color: T.txt, fontWeight: 600 }}>{word} {p.n}</span>
+                    {isAc && balFases.temRodizio && <span style={{ fontFamily: "ui-monospace,monospace", fontSize: 11, fontWeight: 700, color: T.acM, background: T.sel, borderRadius: 5, padding: "1px 6px" }}>{phaseOf(p.n, vc)}</span>}
                     {p.oc && <ChevronsUp size={13} color={T.amb} style={{ flexShrink: 0 }} />}
                     <span style={{ color: p.over ? T.red : p.oc || p.warn ? T.amb : T.mut }}>{isAc ? `${p.load.toFixed(1)} A (${p.pct}%)` : `${p.pct}%`}</span>
                     <span style={{ color: T.dim }}>· {p.count} gab{p.cruza ? ` · ${p.telas.join(" → ")}` : ""}</span>
