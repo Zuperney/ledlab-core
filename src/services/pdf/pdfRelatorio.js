@@ -832,17 +832,21 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // moldura (aconteceu com "Nº · REV A" no caderno real de 30/07). Por isso
   // TODO valor do carimbo é truncado pra caber numa linha só.
   const trunc = (t, n) => { const s = String(t || "").trim(); return s.length > n ? `${s.slice(0, n - 1)}…` : s; };
-  const carLbl = (t) => ({ text: t.toUpperCase(), font: "PlexMono", fontSize: 5, bold: true, characterSpacing: 0.7, color: PRINT.dim });
+  // ⚠️ lineHeight: 1 em TUDO — o defaultStyle do documento usa 1.25, que
+  // inflava cada linha do carimbo em 25% e estourava a faixa (caderno de 30/07)
+  const carLbl = (t) => ({ text: t.toUpperCase(), font: "PlexMono", fontSize: 5, bold: true, characterSpacing: 0.7, color: PRINT.dim, lineHeight: 1 });
   const carLinha = (l, v, vExtra = {}) => ({
     columns: [
       { width: 33, ...carLbl(l), margin: [0, 1.4, 0, 0] },
-      { width: "*", text: v || "—", bold: true, fontSize: 7, color: PRINT.ink, ...vExtra },
+      { width: "*", text: v || "—", bold: true, fontSize: 7, color: PRINT.ink, lineHeight: 1, ...vExtra },
     ],
     columnGap: 4,
-    margin: [7, 0, 7, 2.4],
+    margin: [7, 0, 7, 3.4],
   });
   const carimbo = (current, total) => ({
-    margin: [FR, BOT - FR - CAR_H - 4, FR, 0],
+    // a borda de baixo do carimbo CASA com a linha da moldura (uma linha só,
+    // não duas): topo = fundo da página − moldura − faixa − bordas da tabela
+    margin: [FR, BOT - FR - CAR_H - 2.4, FR, 0],
     table: {
       widths: [118, "*", 176, 72],
       heights: [CAR_H],
@@ -852,43 +856,45 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           stack: [
             logoProjeto
               ? { image: logoProjeto, fit: [100, 30], alignment: "center" }
-              : (logo ? { image: logo, fit: [30, 30], alignment: "center" } : { text: "LEDLAB CORE", bold: true, fontSize: 10, alignment: "center", margin: [0, 10, 0, 0] }),
-            { text: "LEDLAB CORE · ENGENHARIA DE LED", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.8, color: PRINT.dim, alignment: "center", margin: [0, 3, 0, 0] },
+              : (logo ? { image: logo, fit: [30, 30], alignment: "center" } : { text: "LEDLAB CORE", bold: true, fontSize: 10, alignment: "center", lineHeight: 1, margin: [0, 12, 0, 0] }),
+            { text: "LEDLAB CORE · ENGENHARIA DE LED", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.8, color: PRINT.dim, alignment: "center", lineHeight: 1, margin: [0, 3.5, 0, 0] },
           ],
-          margin: [4, logoProjeto || logo ? 6 : 2, 4, 0],
+          margin: [4, 8, 4, 0],
         },
         // campos do projeto (valores truncados: 1 linha SEMPRE)
         {
           stack: [
-            { text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 5.8, characterSpacing: 1.2, color: "#fdfdfb", background: PRINT.ink, margin: [7, 3, 7, 3.6] },
+            { text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 5.8, characterSpacing: 1.2, color: "#fdfdfb", background: PRINT.ink, lineHeight: 1, margin: [7, 4, 7, 4.6] },
             carLinha("Evento", trunc(project.name, 72)),
             carLinha("Cliente", trunc(project.cliente, 72)),
             carLinha("Local", trunc([project.local, dataEvento].filter(Boolean).join(" · "), 72)),
           ],
         },
         // responsável e datas — REV junto do GERADO; o Nº fica sozinho na linha
-        // dele, em mono menor (nome de projeto longo vira Nº de 22 caracteres)
+        // dele, em mono menor (nome de projeto longo vira Nº de 22 caracteres).
+        // Alinhado com o bloco do meio: PROJETOU nasce na altura do EVENTO.
         {
           stack: [
-            { text: "", margin: [0, 5, 0, 0] },
             carLinha("Projetou", trunc(assinatura, 32)),
             carLinha("Gerado", [gerado, "REV A"].filter(Boolean).join(" · ")),
             carLinha("Nº doc", docNo, { font: "PlexMono", fontSize: 6.2, characterSpacing: 0.2 }),
           ],
+          margin: [0, 15, 0, 0],
         },
         // FOLHA grande (página / total)
         {
           stack: [
-            { ...carLbl("Folha"), alignment: "center", margin: [0, 5, 0, 0] },
+            { ...carLbl("Folha"), alignment: "center", margin: [0, 7, 0, 0] },
             {
               text: [
                 { text: String(current).padStart(2, "0"), font: "PlexMono", bold: true, fontSize: 21, color: PRINT.ink, characterSpacing: -0.5 },
                 { text: ` /${total}`, font: "PlexMono", bold: true, fontSize: 8, color: PRINT.dim },
               ],
               alignment: "center",
-              margin: [0, 2, 0, 0],
+              lineHeight: 1,
+              margin: [0, 3, 0, 0],
             },
-            { text: "A4 · S/ ESC.", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.6, color: PRINT.dim, alignment: "center", margin: [0, 3, 0, 0] },
+            { text: "A4 · S/ ESC.", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.6, color: PRINT.dim, alignment: "center", lineHeight: 1, margin: [0, 4, 0, 0] },
           ],
         },
       ]],
