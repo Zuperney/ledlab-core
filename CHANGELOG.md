@@ -2,7 +2,7 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
-## [Não publicado]
+## [1.13.0] — 2026-07-31
 
 **Auditoria de engenharia: o app entrega corrente, não sugere disjuntor — e o gerador é dimensionado pelo pico.**
 
