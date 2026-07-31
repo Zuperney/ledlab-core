@@ -76,6 +76,26 @@ export function compLayout(telas, savedPos) {
   return { pos, dims, bbox: { minX, minY, w: maxX - minX, h: maxY - minY } };
 }
 
+// Contorno REAL de uma região de células [{x,y,w,h}] (o grupo de gabinetes de
+// um cabo): devolve os segmentos [{x1,y1,x2,y2}] das arestas que NÃO são
+// compartilhadas por duas células — bbox mentiria em cabo em L/serpentina.
+// Células de um cabo são uniformes (porta nunca mistura modelo), então a
+// aresta compartilhada aparece exatamente 2× e some. Usado pelo mapa de cabos
+// SIMPLIFICADO do Caderno (orientação de montagem, decisão do dono 31/07).
+export function regionEdges(cells) {
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const seen = new Map(); // chave canônica da aresta → segmento
+  for (const c of cells || []) {
+    const x0 = r2(c.x), y0 = r2(c.y), x1 = r2(c.x + c.w), y1 = r2(c.y + c.h);
+    for (const [a, b, cc, d] of [[x0, y0, x1, y0], [x0, y1, x1, y1], [x0, y0, x0, y1], [x1, y0, x1, y1]]) {
+      const k = `${a},${b}|${cc},${d}`;
+      if (seen.has(k)) seen.delete(k); // aresta interna (2ª vez) — some
+      else seen.set(k, { x1: a, y1: b, x2: cc, y2: d });
+    }
+  }
+  return [...seen.values()];
+}
+
 // rects: [{ id, x, y, w, h }] → Set de ids que se SOBREPÕEM.
 // Encostar borda com borda (lado a lado) NÃO conta como sobreposição.
 export function overlappingIds(rects) {

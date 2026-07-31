@@ -1,7 +1,7 @@
 // layout.test.js — detecção de sobreposição da Composição (segurança de campo)
 // e o layout puro da Composição (fonte única da aba, do Caderno e do PDF).
 import { describe, it, expect } from "vitest";
-import { overlappingIds, reorder, packByModel, compLayout } from "./layout.js";
+import { overlappingIds, reorder, packByModel, compLayout, regionEdges } from "./layout.js";
 
 const r = (id, x, y, w, h) => ({ id, x, y, w, h });
 
@@ -36,6 +36,31 @@ describe("compLayout — posições da Composição + fallback + bbox", () => {
   it("gabinete vazio assume 128 px (mesma regra do draw)", () => {
     const { dims } = compLayout([{ id: "x", cols: 2, rows: 1 }], undefined);
     expect(dims.x).toEqual({ w: 256, h: 128 });
+  });
+});
+
+describe("regionEdges — contorno real do grupo de células de um cabo", () => {
+  const cell = (x, y) => ({ x, y, w: 10, h: 10 });
+
+  it("uma célula → 4 arestas", () => {
+    expect(regionEdges([cell(0, 0)])).toHaveLength(4);
+  });
+
+  it("dominó 2×1 → 6 arestas (a interna some)", () => {
+    const edges = regionEdges([cell(0, 0), cell(10, 0)]);
+    expect(edges).toHaveLength(6);
+    // a aresta compartilhada (x=10 vertical) não pode aparecer
+    expect(edges.some((e) => e.x1 === 10 && e.x2 === 10 && e.y1 === 0 && e.y2 === 10)).toBe(false);
+  });
+
+  it("L de 3 células → 8 arestas (contorno segue a forma, não o bbox)", () => {
+    // (0,0) (10,0) e (0,10): bbox teria 4 arestas; o L tem 8 segmentos de borda
+    expect(regionEdges([cell(0, 0), cell(10, 0), cell(0, 10)])).toHaveLength(8);
+  });
+
+  it("vazio → sem arestas", () => {
+    expect(regionEdges([])).toEqual([]);
+    expect(regionEdges(undefined)).toEqual([]);
   });
 });
 

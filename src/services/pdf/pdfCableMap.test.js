@@ -6,15 +6,25 @@ const tela = { id: "t1", nome: "Main", cols: 6, rows: 4, gabinete: gab, cabling:
 const colorOf = (i) => ["#7c3aed", "#0ea5e9", "#f59e0b"][i % 3];
 const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl" };
 
-describe("telaMapSvg (mapa legado por tela → SVG do PDF)", () => {
+describe("telaMapSvg (mapa legado por tela → SVG do PDF, modo montagem)", () => {
   const m = telaMapSvg(tela, "sinal", "row-tb-lr", 0, colorOf, cr);
 
-  it("gera SVG com fundo, gabinetes, trajeto e selo de início", () => {
+  it("gera SVG com fundo, gabinetes, contorno de região, contagem e selo de entrada", () => {
     expect(m.svg).toContain("<svg");
     expect(m.svg).toContain('fill="#0d0d1a"'); // fundo do mapa
     expect((m.svg.match(/<rect/g) || []).length).toBeGreaterThanOrEqual(25); // 24 gabinetes + fundo
-    expect(m.svg).toContain("stroke-linejoin"); // trajeto do cabo
-    expect(m.svg).toContain("<circle"); // selo de início
+    expect(m.svg).toContain("<line"); // contorno da região do cabo
+    expect(m.svg).toContain("<circle"); // selo de entrada
+    expect(m.svg).toContain(" gab</text>"); // contagem de gabinetes do cabo
+  });
+
+  it("orientação de montagem: SEM trajeto, SEM setas, SEM número por gabinete (dono, 31/07)", () => {
+    expect(m.svg).not.toContain("stroke-linejoin"); // trajeto saiu
+    expect(m.svg).not.toContain("rotate("); // setas saíram
+    // sem número de ordem: os únicos textos são o selo (nº do cabo) e a contagem
+    const texts = (m.svg.match(/<text/g) || []).length;
+    const ports = (m.svg.match(/<circle/g) || []).length;
+    expect(texts).toBeLessThanOrEqual(ports * 3); // selo + 2 passadas da contagem por cabo — nunca 24 números
   });
 
   it("respeita o motor de SVG do pdfmake: sem paint-order, sem hex com alpha, sem dominant-baseline", () => {
@@ -23,11 +33,10 @@ describe("telaMapSvg (mapa legado por tela → SVG do PDF)", () => {
     expect(m.svg).not.toContain("dominant-baseline");
   });
 
-  it("número do gabinete sai em DUAS passadas (contorno + preenchimento)", () => {
+  it("contagem sai em DUAS passadas (contorno escuro + preenchimento branco)", () => {
     const strokes = (m.svg.match(/stroke="#0a0a14"/g) || []).length;
-    const fills = (m.svg.match(/fill="#ffffff"/g) || []).length;
     expect(strokes).toBeGreaterThan(0);
-    expect(fills).toBeGreaterThan(strokes); // brancos = números + setas + trajeto
+    expect(m.svg).toContain('fill="#ffffff"');
   });
 
   it("numeração global: offset desloca o selo da porta", () => {

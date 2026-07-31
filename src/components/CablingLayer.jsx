@@ -7,7 +7,12 @@
 // Recebe células/portas já em coordenadas de DESENHO; o chamador aplica o <g transform>
 // (zoom/pan) e decide `showNumbers` pelo tamanho na tela. Setas/números/tamanho/canto
 // vêm das Configurações globais (prefs.cablingRender). Cores e linha seguem como eram.
+//
+// `simple` (Caderno impresso — decisão do dono, 31/07): o mapa vira ORIENTAÇÃO
+// DE MONTAGEM — só a região de cada cabo (contorno forte), o selo de entrada e
+// a contagem de gabinetes. Sem números por gabinete, sem trajeto, sem setas.
 import { T } from "../ui/tokens.js";
+import { regionEdges } from "../services/layout.js";
 
 const cxOf = (c) => c.x + c.w / 2;
 const cyOf = (c) => c.y + c.h / 2;
@@ -28,7 +33,7 @@ function Arrow({ a, b, size }) {
   return <path d={`M ${-size} ${-size * 0.85} L ${size} 0 L ${-size} ${size * 0.85} Z`} fill="#fff" transform={`translate(${mx},${my}) rotate(${ang})`} />;
 }
 
-export default function CablingLayer({ cells, ports, colorOf, showNumbers = true, arrows = true, numberSize = "sm", numberPos = "bl", portOffset = 0, onCellClick, activeCable = null }) {
+export default function CablingLayer({ cells, ports, colorOf, showNumbers = true, arrows = true, numberSize = "sm", numberPos = "bl", portOffset = 0, onCellClick, activeCable = null, simple = false }) {
   const seqOf = {};
   ports.forEach((port) => port.forEach((cell, i) => { seqOf[cell.k] = i + 1; }));
   const nsize = NSIZE[numberSize] ?? NSIZE.sm;
@@ -36,14 +41,15 @@ export default function CablingLayer({ cells, ports, colorOf, showNumbers = true
 
   return (
     <>
-      {/* gabinetes — quadrados e encostados */}
+      {/* gabinetes — quadrados e encostados; no simple a grade interna é suave */}
       {cells.map((cell) => {
         const assigned = cell.port != null;
         const col = assigned ? colorOf(cell.port) : T.dim2;
         const act = activeCable != null && cell.port === activeCable;
         return (
           <rect key={cell.k} x={cell.x} y={cell.y} width={cell.w} height={cell.h}
-            fill={assigned ? col + (act ? "45" : "26") : "transparent"} stroke={col} strokeWidth={act ? 2 : 1}
+            fill={assigned ? col + (act ? "45" : "26") : "transparent"} stroke={col} strokeWidth={act ? 2 : simple && assigned ? 0.5 : 1}
+            strokeOpacity={simple && assigned ? 0.35 : 1}
             strokeDasharray={assigned ? undefined : "4 4"}
             onClick={onCellClick ? () => onCellClick(cell) : undefined}
             style={onCellClick ? { cursor: "pointer" } : undefined} />
@@ -52,7 +58,7 @@ export default function CablingLayer({ cells, ports, colorOf, showNumbers = true
 
       {/* número da ordem no cabo, num canto — em TODO gabinete (inclusive o de início, que
           também leva o selo da PORTA no centro; um é a ordem no cabo, o outro é o nº da porta) */}
-      {showNumbers && cells.map((cell) => {
+      {!simple && showNumbers && cells.map((cell) => {
         if (cell.port == null) return null;
         const u = Math.min(cell.w, cell.h);
         const fs = u * nsize;
@@ -66,19 +72,27 @@ export default function CablingLayer({ cells, ports, colorOf, showNumbers = true
         );
       })}
 
-      {/* trajeto + setas + selo de início */}
+      {/* trajeto + setas (modo denso) OU contorno de região + contagem (simple); selo de início sempre */}
       {ports.map((port, pi) => {
         if (!port.length) return null;
         const pts = port.map((c) => [cxOf(c), cyOf(c)]);
         const d = pts.map((p, i) => (i ? "L" : "M") + `${p[0]} ${p[1]}`).join(" ");
         const f = port[0];
         const u = Math.min(f.w, f.h);
-        const rad = u * 0.28;
+        const rad = u * (simple ? 0.32 : 0.28);
         const dim = activeCable != null && pi !== activeCable;
+        const m = port[Math.floor(port.length / 2)]; // célula do meio — sempre dentro da região
+        const cfs = Math.max(6, u * 0.3);
         return (
           <g key={pi} style={{ pointerEvents: "none" }} opacity={dim ? 0.45 : 1}>
-            <path d={d} fill="none" stroke="#fff" strokeWidth={Math.max(1.6, u * 0.06)} strokeLinejoin="round" strokeLinecap="round" opacity={0.92} />
-            {arrows && pts.slice(0, -1).map((p, i) => <Arrow key={`a${i}`} a={p} b={pts[i + 1]} size={u * 0.14} />)}
+            {simple
+              ? regionEdges(port).map((e, i) => <line key={`e${i}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke={colorOf(pi)} strokeWidth={2} strokeLinecap="square" />)
+              : <path d={d} fill="none" stroke="#fff" strokeWidth={Math.max(1.6, u * 0.06)} strokeLinejoin="round" strokeLinecap="round" opacity={0.92} />}
+            {!simple && arrows && pts.slice(0, -1).map((p, i) => <Arrow key={`a${i}`} a={p} b={pts[i + 1]} size={u * 0.14} />)}
+            {simple && port.length > 1 && u >= 12 && (
+              <text x={cxOf(m)} y={cyOf(m)} fill="#fff" fontSize={cfs} fontWeight="700" textAnchor="middle" dominantBaseline="central"
+                stroke="#0a0a14" strokeWidth={cfs * 0.16} paintOrder="stroke">{port.length} gab</text>
+            )}
             <circle cx={cxOf(f)} cy={cyOf(f)} r={rad} fill={colorOf(pi)} stroke="#fff" strokeWidth={Math.max(1.2, u * 0.045)} />
             <text x={cxOf(f)} y={cyOf(f)} fill="#fff" fontSize={rad * 1.05} fontWeight="700" textAnchor="middle" dominantBaseline="central">{portOffset + pi + 1}</text>
           </g>
