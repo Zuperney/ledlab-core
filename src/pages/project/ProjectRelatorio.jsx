@@ -307,17 +307,17 @@ export default function ProjectRelatorio({ project, patch }) {
         {showElec && (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Informações Elétricas" tag="Energia · dimensionamento" color={DISC.elec} Icon={Zap} />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Dimensionamento em <b style={{ color: PRINT.ink }}>{voltFull(agg.vc)}</b>. A potência de <b>pico</b> define o disjuntor e a bitola dos cabos; a potência <b>típica</b> (consumo médio em operação) estima o gerador.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Dimensionamento em <b style={{ color: PRINT.ink }}>{voltFull(agg.vc)}</b>. A potência de <b>pico</b> dimensiona a instalação (cabos, proteção e gerador); a <b>típica</b> (consumo médio em operação) estima energia e combustível. A proteção do quadro é do projeto elétrico da casa/gerador.</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Gabinetes</th><th style={th}>Pico kW</th><th style={th}>Pico kVA</th><th style={th}>Pico A</th><th style={th}>Disjuntor</th><th style={th}>Típico kVA</th><th style={th}>Típico A</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Gabinetes</th><th style={th}>Pico kW</th><th style={th}>Pico kVA</th><th style={th}>Pico A</th><th style={th}>Típico kVA</th><th style={th}>Típico A</th></tr></thead>
               <tbody>
                 {agg.perTela.map(({ tela, gab, peak, typ }) => (
-                  <tr key={tela.id}><td style={td}>{tela.nome}</td><td style={td}>{gab}</td><td style={{ ...td, color: PRINT.red }}>{(peak.W / 1000).toFixed(1)}</td><td style={td}>{peak.kVA}</td><td style={{ ...td, color: PRINT.amb }}>{peak.I}</td><td style={{ ...td, color: PRINT.red }}>{peak.breaker} A</td><td style={td}>{typ.kVA}</td><td style={td}>{typ.I}</td></tr>
+                  <tr key={tela.id}><td style={td}>{tela.nome}</td><td style={td}>{gab}</td><td style={{ ...td, color: PRINT.red }}>{(peak.W / 1000).toFixed(1)}</td><td style={td}>{peak.kVA}</td><td style={{ ...td, color: PRINT.amb }}>{peak.I}</td><td style={td}>{typ.kVA}</td><td style={td}>{typ.I}</td></tr>
                 ))}
-                <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}>{roll.gab}</td><td style={{ ...td, color: PRINT.red }}>{(agg.W / 1000).toFixed(1)}</td><td style={td}>{agg.kVA}</td><td style={{ ...td, color: PRINT.amb }}>{agg.I}</td><td style={{ ...td, color: PRINT.red }}>{agg.breaker} A</td><td style={td}>{agg.typKva}</td><td style={td}>{agg.typI}</td></tr>
+                <tr style={{ fontWeight: 700 }}><td style={td}>Total</td><td style={td}>{roll.gab}</td><td style={{ ...td, color: PRINT.red }}>{(agg.W / 1000).toFixed(1)}</td><td style={td}>{agg.kVA}</td><td style={{ ...td, color: PRINT.amb }}>{agg.I}</td><td style={td}>{agg.typKva}</td><td style={td}>{agg.typI}</td></tr>
               </tbody>
             </table>
-            <p style={{ color: PRINT.mut, fontSize: 12, marginTop: 8 }}>Gerador sugerido (típico + 25% de margem): <b style={{ color: PRINT.acc }}>~{agg.gerador} kVA</b>.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12, marginTop: 8 }}>Gerador mínimo (pico × 1,25): <b style={{ color: PRINT.acc }}>≥ {agg.gerador} kVA</b> — consumo típico ocupa <b>{agg.geradorPct}%</b> (janela saudável: 60–80%). Projetos grandes dividem a carga em setores, com mais de um gerador.</p>
             <div style={{ marginTop: 6, padding: "10px 12px", borderRadius: 8, background: PRINT.head, border: `1px solid ${PRINT.line}`, fontSize: 11, color: PRINT.mut }}>
               <div style={{ fontFamily: "ui-monospace, monospace", color: PRINT.ink, fontSize: 12, marginBottom: 5 }}>Típico por gabinete = base + (pico − base) × brilho × conteúdo</div>
               O consumo real fica entre <b>tela preta</b> (base) e <b>branco pleno</b> (pico); o <b>brilho</b> calibrado ({Math.round(agg.brilho * 100)}%) e o <b>conteúdo</b> médio do vídeo ({Math.round(agg.conteudo * 100)}%) escalam só a parcela dinâmica.{fpLabel ? <> Fator de potência dos gabinetes: <b>{fpLabel}</b>.</> : null} Modelo baseado no estudo de consumo de painéis de LED da Barco.

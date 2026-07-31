@@ -1,5 +1,5 @@
 // hooks/useElectrical.js — hook de domínio elétrico. NÃO altera as regras de cálculo
-// (pwrMax, disjuntor 125%, consumo típico) — só centraliza a montagem da config + agregação.
+// (pwrMax, consumo típico) — só centraliza a montagem da config + agregação.
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { aggregateElectrical } from "../services/projectCalc.js";
 import { VOLT } from "../services/electricalCalc.js";

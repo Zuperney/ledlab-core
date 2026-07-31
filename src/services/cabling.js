@@ -155,7 +155,7 @@ export function cableMeta(tela, sinalOverride) {
   const g = tela?.gabinete || {};
   const cols = tela?.cols || 1, rows = tela?.rows || 1;
   const pxPerCab = (parseFloat(g.resX) || 1) * (parseFloat(g.resY) || 1);
-  const fp = parseFloat(g.fp) || 0.9;
+  const fp = parseFloat(g.fp) || 0.85; // mesmo default da aba Energia (projectCalc) — auditoria 30/07/2026
   const ampCab = (parseFloat(g.pwrMax) || 0) / (FASE_V * fp);
   const connRating = CONN_AMP[g.conector] || 16;
   const acBudget = Math.max(1, Math.floor((connRating * acMargin) / (ampCab || 1)));

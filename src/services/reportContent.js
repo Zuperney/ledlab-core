@@ -41,8 +41,8 @@ export const capaNomeCqi = (nome) => Math.max(5.5, Math.min(13.5, 171 / Math.max
 
 // glossário do caderno técnico (leitor leigo/cliente) — termos que aparecem no doc
 export const GLOSSARIO = [
-  { t: "Pico × Típico", d: "Pico = branco pleno, dimensiona disjuntor e cabo. Típico = consumo médio real do conteúdo, estima energia e gerador." },
-  { t: "kVA × kW", d: "kW é a potência real; kVA a aparente (kW ÷ FP). Disjuntor e gerador se dimensionam em kVA/corrente." },
+  { t: "Pico × Típico", d: "Pico = branco pleno, dimensiona cabo, proteção e gerador. Típico = consumo médio real do conteúdo, estima energia e combustível." },
+  { t: "kVA × kW", d: "kW é a potência real; kVA a aparente (kW ÷ FP). Proteção e gerador se dimensionam em kVA/corrente." },
   { t: "FP (fator de potência)", d: "Relação entre potência real e aparente do gabinete (ex.: 0,90). Entra na corrente e no kVA." },
   { t: "Pitch", d: "Distância entre centros de LEDs (mm). Menor pitch = mais resolução por m² e menor distância mínima de visão." },
   { t: "APL / conteúdo", d: "Nível médio da imagem — quanto do branco pleno o vídeo acende, em média. Escala o consumo típico." },
@@ -50,7 +50,7 @@ export const GLOSSARIO = [
   { t: "Tela", d: "Bloco de gabinetes iguais montados juntos — a unidade de projeto do app." },
   { t: "Screen", d: "O sistema como a controladora enxerga, onde correm as portas 1..N. Pode reunir várias telas." },
   { t: "Porta × Circuito", d: "Porta = saída de dados Gigabit da controladora. Circuito = cabo de energia (AC)." },
-  { t: "Disjuntor", d: "Proteção do circuito, dimensionada acima da corrente de pico (margem de carga contínua)." },
+  { t: "Disjuntor", d: "Proteção do circuito, dimensionada pelo eletricista do quadro acima da corrente de pico (margem de carga contínua) e limitada pela bitola do cabo." },
   { t: "Trifásico (F+F+F+N)", d: "Alimentação em 3 fases + neutro — distribui a carga e reduz a corrente por fase." },
   { t: "Fases R/S/T", d: "As 3 fases do sistema. Os cabos AC seguem um rodízio (1→R, 2→S, 3→T…) pra equilibrar a carga entre elas; em 220 V trifásico o circuito usa um PAR de fases (RS/ST/TR)." },
   { t: "Serpentina", d: "Roteamento em zigue-zague dos cabos para minimizar comprimento e cruzamentos." },

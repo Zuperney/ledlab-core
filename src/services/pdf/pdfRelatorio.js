@@ -502,20 +502,19 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // ── INFORMAÇÕES ELÉTRICAS ──
   const eletrica = !showElec ? [] : [
     sectionHead(sec(), "Informações Elétricas", "Energia · dimensionamento", DISC.elec),
-    { text: [{ text: `Dimensionamento em ${voltFull(agg.vc)}. ` }, { text: "A potência de pico define o disjuntor e a bitola dos cabos; a típica (consumo médio em operação) estima o gerador.", color: PRINT.mut }], fontSize: 8.5, margin: [0, 0, 0, 6] },
+    { text: [{ text: `Dimensionamento em ${voltFull(agg.vc)}. ` }, { text: "A potência de pico dimensiona a instalação (cabos, proteção e gerador); a típica (consumo médio em operação) estima energia e combustível. A proteção do quadro é do projeto elétrico da casa/gerador.", color: PRINT.mut }], fontSize: 8.5, margin: [0, 0, 0, 6] },
     {
       table: {
         headerRows: 1,
-        widths: ["*", "auto", "auto", "auto", "auto", "auto", "auto", "auto"],
+        widths: ["*", "auto", "auto", "auto", "auto", "auto", "auto"],
         body: [
-          [th("Tela"), th("Gab.", "right"), th("Pico kW", "right"), th("Pico kVA", "right"), th("Pico A", "right"), th("Disjuntor", "right"), th("Típico kVA", "right"), th("Típico A", "right")],
+          [th("Tela"), th("Gab.", "right"), th("Pico kW", "right"), th("Pico kVA", "right"), th("Pico A", "right"), th("Típico kVA", "right"), th("Típico A", "right")],
           ...agg.perTela.map(({ tela, gab, peak, typ }) => [
             { text: tela.nome, bold: true },
             mono(String(gab), { alignment: "right" }),
             mono((peak.W / 1000).toFixed(1), { alignment: "right", color: PRINT.red }),
             mono(String(peak.kVA), { alignment: "right" }),
             mono(String(peak.I), { alignment: "right", color: PRINT.amb }),
-            mono(`${peak.breaker} A`, { alignment: "right", color: PRINT.red, bold: true }),
             mono(String(typ.kVA), { alignment: "right" }),
             mono(String(typ.I), { alignment: "right" }),
           ]),
@@ -524,7 +523,6 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
             mono((agg.W / 1000).toFixed(1), { alignment: "right", bold: true, color: PRINT.red }),
             mono(String(agg.kVA), { alignment: "right", bold: true }),
             mono(String(agg.I), { alignment: "right", bold: true, color: PRINT.amb }),
-            mono(`${agg.breaker} A`, { alignment: "right", bold: true, color: PRINT.red }),
             mono(String(agg.typKva), { alignment: "right", bold: true }),
             mono(String(agg.typI), { alignment: "right", bold: true }),
           ],
@@ -532,7 +530,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       },
       layout: zebraLayout(),
     },
-    { text: [{ text: "Gerador sugerido (típico + 25% de margem): " }, { text: `~${agg.gerador} kVA`, bold: true, color: PRINT.acc }], fontSize: 8.5, margin: [0, 6, 0, 0] },
+    { text: [{ text: "Gerador mínimo (pico × 1,25): " }, { text: `≥ ${agg.gerador} kVA`, bold: true, color: PRINT.acc }, { text: ` — consumo típico ocupa ${agg.geradorPct}% (janela saudável: 60–80%). Projetos grandes dividem a carga em setores, com mais de um gerador.`, color: PRINT.mut }], fontSize: 8.5, margin: [0, 6, 0, 0] },
     {
       margin: [0, 6, 0, 0],
       table: {

@@ -14,7 +14,7 @@ export const KB_ARTICLES = [
   { id: "pico-tipico", category: "Energia", title: "Pico × Típico — cálculo do consumo", summary: "Por que dimensionar a instalação pelo PICO e estimar energia/gerador pelo TÍPICO — com a fórmula (modelo Barco) e as fontes.",
     sections: [
       { h: "Conceito", blocks: [
-        { t: "p", text: "O pico (pwrMax = branco pleno, 100% de brilho) é o que a instalação precisa aguentar — protege disjuntor, cabo e fonte. Mas conteúdo real quase nunca é branco: o consumo TÍPICO (médio, em operação) é bem menor, e é ele que estima energia, calor e o gerador." },
+        { t: "p", text: "O pico (pwrMax = branco pleno, 100% de brilho) é o que a instalação precisa aguentar — protege cabo, fonte e dimensiona o gerador. Mas conteúdo real quase nunca é branco: o consumo TÍPICO (médio, em operação) é bem menor, e é ele que estima energia, calor e combustível." },
       ] },
       { h: "A fórmula (por gabinete)", blocks: [
         { t: "kv", rows: [["Típico", "base + (pico − base) × brilho × conteúdo"]] },
@@ -32,7 +32,7 @@ export const KB_ARTICLES = [
         { t: "p", text: "A velha regra de 'dividir o máximo por três' ignora o black level e subestima telas indoor modernas (muitos drivers). Por isso o típico real costuma ficar ACIMA de 1/3 do pico. Fora da Barco, guias de mercado convergem em típico ≈ 30–50% do pico, conforme a aplicação." },
       ] },
       { h: "Importante — segurança", blocks: [
-        { t: "note", text: "Disjuntor, cabo e fonte se dimensionam SEMPRE pelo PICO (com a margem de carga contínua), nunca pelo típico — conteúdo branco sustentado derruba o circuito. O típico serve pra energia, calor e a estimativa do gerador." },
+        { t: "note", text: "Proteção, cabo, fonte e GERADOR se dimensionam SEMPRE pelo PICO (com a margem de carga contínua), nunca pelo típico — um frame branco sustentado leva a parede ao máximo e derruba circuito e gerador subdimensionados. O típico serve pra energia, calor, combustível — e pra conferir se o consumo médio cai na janela saudável do gerador (60–80% da capacidade; muito abaixo de 30% o diesel sofre com wet stacking)." },
       ] },
       { h: "Fontes", blocks: [
         { t: "links", items: [
@@ -51,7 +51,32 @@ export const KB_ARTICLES = [
         { t: "note", text: "No 220V trifásico cada circuito pega DUAS fases — por isso o balanço soma a corrente do cabo nas duas letras. A soma é ARITMÉTICA (conservadora): a soma vetorial real é um pouco menor, então o quadro dimensionado por ela tem folga, nunca falta." },
       ] },
     ] },
-  { id: "disjuntor-125", category: "Energia", title: "Margem de 25% no disjuntor", summary: "De onde vem a margem — e o que a NBR realmente pede.", sections: [{ h: "Regra", blocks: [{ t: "p", text: "O app escolhe o disjuntor padrão imediatamente acima de corrente × 1,25. Essa margem de 25% é a regra NEC/UL (EUA) para carga contínua — disjuntores IEC (NBR NM 60898) já são 100%-rated." }, { t: "note", text: "O que a NBR 5410 exige de fato é In ≤ Iz: o disjuntor não pode passar da capacidade do CABO (corrigida por temperatura e agrupamento). O ×1,25 é conservador e ajuda, mas confira a bitola. Inrush das fontes pede disjuntor curva C (ou D em telas grandes)." }] }] },
+  { id: "disjuntor-125", category: "Energia", title: "Margem de 25% no disjuntor", summary: "De onde vem a margem — e o que a NBR realmente pede.", sections: [{ h: "Regra", blocks: [{ t: "p", text: "A prática de campo escolhe o disjuntor padrão imediatamente acima de corrente de pico × 1,25. Essa margem de 25% é a regra NEC/UL (EUA) para carga contínua — disjuntores IEC (NBR NM 60898) já são 100%-rated. O app entrega a corrente; quem dimensiona a proteção é o eletricista do quadro (tabela em Bitolas e distâncias)." }, { t: "note", text: "O que a NBR 5410 exige de fato é Ib ≤ In ≤ Iz: o disjuntor não pode passar da capacidade do CABO (corrigida por temperatura e agrupamento). O ×1,25 é conservador e ajuda, mas confira a bitola. Inrush das fontes pede disjuntor curva C (ou D em telas grandes)." }] }] },
+  { id: "bitolas-distancias", category: "Energia", title: "Bitolas, disjuntores e distâncias", summary: "Tabela de consulta: capacidade de cada bitola, o disjuntor que a protege e até onde o cabo alcança.",
+    sections: [
+      { h: "Tabela de consulta (cobre, PVC 70 °C, método B1)", blocks: [
+        { t: "table", cols: ["Bitola", "Iz (A)", "Disjuntor até", "Distância máx*"],
+          rows: [
+            ["1,5 mm²", "17,5", "16 A", "~24 m"],
+            ["2,5 mm²", "24", "20 A", "~32 m"],
+            ["4 mm²", "32", "25 A", "~40 m"],
+            ["6 mm²", "41", "32 A", "~48 m"],
+            ["10 mm²", "57", "50 A", "~51 m"],
+            ["16 mm²", "76", "63 A", "~65 m"],
+            ["25 mm²", "101", "80 A", "~80 m"],
+            ["35 mm²", "125", "100 A", "~90 m"],
+            ["50 mm²", "151", "125 A", "~102 m"],
+            ["70 mm²", "192", "160 A (MCCB)", "~112 m"],
+            ["95 mm²", "232", "200 A (MCCB)", "~121 m"],
+          ] },
+        { t: "p", text: "*Distância = comprimento do circuito (quadro → carga) com queda de tensão de 4% (limite da NBR 5410 pra circuitos terminais) a PLENA carga do disjuntor, em 220 V, cobre (L = ΔV × S ÷ (2ρI), ρ = 0,0172 Ω·mm²/m). Carga menor que o disjuntor alcança proporcionalmente mais; trifásico equilibrado, ~15% mais. Iz pelo método B1 da NBR 5410 (eletroduto, 2 condutores carregados) — instalação ao ar livre/bandeja muda a capacidade." },
+        { t: "note", text: "O critério da NBR 5410 é Ib ≤ In ≤ Iz: o disjuntor protege o CABO, então nunca escolha In acima da coluna Iz da bitola instalada. A margem ×1,25 sobre a corrente de projeto (carga contínua, prática NEC) entra ANTES: corrente × 1,25 → próximo disjuntor padrão → confere a bitola." },
+      ] },
+      { h: "Acima de 125 A: setorize", blocks: [
+        { t: "p", text: "Existem disjuntores maiores — MCCB (caixa moldada, 160–630 A) e ACB (aberto, 800–1600 A) — mas em eventos a resposta certa pra corrente grande raramente é um disjuntor gigante: divide-se a carga em SETORES (quadros menores, mais de um gerador), cada um com proteção na escala civilizada. Um telão de 1000 A/fase é um projeto elétrico, não um circuito." },
+        { t: "note", text: "Mantenha o desequilíbrio de corrente entre fases abaixo de ~10% (boa prática; o app mostra o balanço R/S/T na aba Energia). Fase desequilibrada força o neutro e derruba o geral." },
+      ] },
+    ] },
   { id: "sinal-porta", category: "Sinal", title: "Capacidade da porta", summary: "Pixels por porta Gigabit: 8-bit ≈ 655k, 10-bit ≈ 327k — e as duas réguas de alocação.",
     sections: [
       { h: "Pixels por porta", blocks: [

@@ -123,10 +123,10 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("1.040 × 624"); // 10×104 por 6×104, pt-BR
   });
 
-  it("Elétrica: disjuntor por tela, gerador sugerido e fórmula do típico", () => {
+  it("Elétrica: sem sugestão de disjuntor; gerador mínimo pelo pico + fórmula do típico", () => {
     expect(json).toContain("INFORMAÇÕES ELÉTRICAS");
-    expect(json).toContain("Disjuntor".toUpperCase());
-    expect(json).toContain("Gerador sugerido");
+    expect(json).not.toContain("Disjuntor".toUpperCase()); // app não sugere disjuntor (auditoria 30/07/2026)
+    expect(json).toContain("Gerador mínimo (pico × 1,25)");
     expect(json).toContain("Típico por gabinete = base + (pico − base) × brilho × conteúdo");
   });
 

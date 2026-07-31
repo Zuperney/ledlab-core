@@ -42,7 +42,7 @@ export default function ProjectEnergia({ project, patch }) {
       </div>
 
       {/* MOBILE: cards por tela RECOLHIDOS (pedido do usuário) — a linha fechada mostra o
-          que manda no campo (disjuntor); toque expande. Desktop segue tudo aberto. */}
+          que manda no campo (kVA e corrente de pico); toque expande. Desktop segue tudo aberto. */}
       {agg.perTela.map(({ tela, peak, typ }) => {
         const aberto = !isMobile || telaOpen === tela.id;
         return (
@@ -52,7 +52,7 @@ export default function ProjectEnergia({ project, patch }) {
               style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, cursor: isMobile ? "pointer" : "default", minHeight: isMobile ? 44 : 0 }}>
               <div style={{ color: T.txt, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tela.nome}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                {isMobile && !aberto && <span style={{ fontSize: 12.5, fontFamily: "ui-monospace,monospace", color: T.mut }}>{peak.kVA} kVA · <b style={{ color: T.red }}>disj {peak.breaker} A</b></span>}
+                {isMobile && !aberto && <span style={{ fontSize: 12.5, fontFamily: "ui-monospace,monospace", color: T.mut }}>{peak.kVA} kVA · <b style={{ color: T.amb }}>{peak.I} A</b></span>}
                 {isMobile && (aberto ? <ChevronUp size={16} color={T.dim} /> : <ChevronDown size={16} color={T.dim} />)}
               </div>
             </div>
@@ -60,7 +60,7 @@ export default function ProjectEnergia({ project, patch }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", flexWrap: "wrap", gap: 10, flexDirection: isMobile ? "column" : "row", paddingBottom: isMobile ? 10 : 0 }}>
                 <div style={{ color: T.dim, fontSize: 12, fontFamily: "ui-monospace,monospace" }}>{tela.gabinete?.nome} · {tela.cols}×{tela.rows} = {tela.cols * tela.rows} gab · {tela.gabinete?.pwrMax}W máx.</div>
                 <div style={{ textAlign: isMobile ? "left" : "right", fontSize: 13, fontFamily: "ui-monospace,monospace" }}>
-                  <div><span style={{ color: T.mut }}>PICO </span><b style={{ color: T.acM }}>{peak.W.toLocaleString()} W</b> · <b style={{ color: T.grn }}>{peak.kVA} kVA</b> · <b style={{ color: T.amb }}>{peak.I} A</b> · <b style={{ color: T.red }}>disj {peak.breaker} A</b></div>
+                  <div><span style={{ color: T.mut }}>PICO </span><b style={{ color: T.acM }}>{peak.W.toLocaleString()} W</b> · <b style={{ color: T.grn }}>{peak.kVA} kVA</b> · <b style={{ color: T.amb }}>{peak.I} A</b></div>
                   <div style={{ color: T.dim }}>TÍP. {Math.round(typ.W).toLocaleString()} W · {typ.kVA} kVA · {typ.I} A</div>
                 </div>
               </div>
@@ -71,8 +71,8 @@ export default function ProjectEnergia({ project, patch }) {
 
       <div style={card({ marginTop: 6 })}>
         <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 12 }}>Total do projeto · {voltFull(agg.vc)}</div>
-        <Row tag="PICO" tagColor={T.red} isMobile={isMobile} cols={[["Carga", `${agg.W.toLocaleString()} W`, T.txt], ["kVA", agg.kVA, T.grn], ["A/fase", agg.I, T.amb], ["Disj. geral", `${agg.breaker} A`, T.red]]} />
-        <Row tag="TÍPICO" tagColor={T.acM} isMobile={isMobile} cols={[["Carga", `${Math.round(agg.typW).toLocaleString()} W`, T.txt], ["kVA", agg.typKva, T.grn], ["A/fase", agg.typI, T.amb], ["Gerador ~", `${agg.gerador} kVA`, T.acM]]} />
+        <Row tag="PICO" tagColor={T.red} isMobile={isMobile} cols={[["Carga", `${agg.W.toLocaleString()} W`, T.txt], ["kVA", agg.kVA, T.grn], ["A/fase", agg.I, T.amb], ["Gerador ≥", `${agg.gerador} kVA`, T.red]]} />
+        <Row tag="TÍPICO" tagColor={T.acM} isMobile={isMobile} cols={[["Carga", `${Math.round(agg.typW).toLocaleString()} W`, T.txt], ["kVA", agg.typKva, T.grn], ["A/fase", agg.typI, T.amb], ["No gerador", `${agg.geradorPct}%`, T.acM]]} />
       </div>
 
       {/* BALANÇO POR FASE — o rodízio dos cabos AC (cabo 1→R, 2→S, 3→T…) somado
@@ -98,7 +98,7 @@ export default function ProjectEnergia({ project, patch }) {
           </div>
         </div>
       )}
-      <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}><b style={{ color: T.red }}>Pico</b> (consumo máximo) dimensiona disjuntor e cabo; <b style={{ color: T.grn }}>Típico</b> (black level + brilho × conteúdo) estima o gerador / consumo real.</div>
+      <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}><b style={{ color: T.red }}>Pico</b> (consumo máximo) dimensiona cabo, proteção e o gerador mínimo (×1,25 — projetos grandes dividem em setores/mais de um gerador); <b style={{ color: T.grn }}>Típico</b> (black level + brilho × conteúdo) estima o consumo real — saudável entre 60–80% do gerador. Bitolas e disjuntores: Base de Conhecimento.</div>
     </div>
   );
 }

@@ -1,21 +1,10 @@
-﻿// electricalCalc.test.js — motor elétrico (disjuntor, corrente, divisores, consumo).
-// Trava o modelo validado contra datasheets/normas (ver docs + memória de validação).
+﻿// electricalCalc.test.js — motor elétrico (corrente, divisores, consumo).
+// Trava o modelo validado contra datasheets/normas (auditoria 30/07/2026: fórmulas
+// confirmadas com fontes; o app NÃO sugere disjuntor — decisão do dono).
 import { describe, it, expect } from "vitest";
-import { calcScreen, pickBreaker, typicalPerTile, pitch, VOLT, acTone, voltFull, phaseOf, phaseBalance } from "./electricalCalc.js";
+import { calcScreen, typicalPerTile, pitch, VOLT, acTone, voltFull, phaseOf, phaseBalance } from "./electricalCalc.js";
 
 const SQRT3 = Math.sqrt(3);
-
-describe("pickBreaker — 1º padrão IEC ≥ corrente × 1,25", () => {
-  it.each([
-    [0, 10], [8, 10], [10, 16], [12, 16], [16, 20], [20, 25], [50, 63], [100, 125],
-  ])("%i A → disjuntor %i A", (corrente, disj) => {
-    expect(pickBreaker(corrente)).toBe(disj);
-  });
-
-  it("acima do topo da escada (125 A) cai no fallback 160", () => {
-    expect(pickBreaker(101)).toBe(160); // 101 × 1,25 = 126,25 > 125
-  });
-});
 
 describe("VOLT — divisores de tensão (valores validados; NÃO alterar sem revisão elétrica)", () => {
   it("220: bifásico ÷220, trifásico ÷220√3", () => {
@@ -97,15 +86,15 @@ describe("phaseBalance — soma aritmética por fase", () => {
   });
 });
 
-describe("calcScreen — W → S → I → disjuntor", () => {
-  it("100 tiles × 200W, fp 1, 380 bifásico → 45,5 A, disjuntor 63 A", () => {
+describe("calcScreen — W → S → I", () => {
+  it("100 tiles × 200W, fp 1, 380 bifásico → 45,5 A (sem sugestão de disjuntor)", () => {
     const r = calcScreen({ tiles: 100, pwrPerTile: 200, pf: 1, vk: "380_bi" });
     expect(r.W).toBe(20000);
     expect(r.S).toBe(20000);
     expect(r.kVA).toBe("20.00");
     expect(r.I).toBe(45.5); // 20000 / 440
-    expect(r.breaker).toBe(63); // 45,5 × 1,25 = 56,9 → 63
-    expect(r.steps).toHaveLength(3);
+    expect(r.breaker).toBeUndefined(); // app não sugere disjuntor (auditoria 30/07/2026)
+    expect(r.steps).toHaveLength(2);
   });
 
   it("fator de potência aumenta a corrente aparente (S = W/fp)", () => {

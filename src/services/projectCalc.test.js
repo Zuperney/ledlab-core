@@ -68,9 +68,13 @@ describe("aggregateElectrical — pico + típico do projeto inteiro", () => {
     expect(agg.S).toBe(5000); // fp 1
     expect(agg.kVA).toBe("5.00");
     expect(agg.I).toBe(11.4); // 5000 / 440
-    expect(agg.breaker).toBe(16); // 11,4 × 1,25 = 14,25 → 16
+    expect(agg.breaker).toBeUndefined(); // app não sugere disjuntor (auditoria 30/07/2026)
+    // gerador mínimo pelo PICO ×1,25 (nunca pelo típico — frame branco leva ao pico)
+    expect(agg.gerador).toBe("6.3"); // 5 kVA × 1,25 = 6,25 → "6.3"
     // típico (Barco): 40 + (200−40)×0,7×0,33 = 76,96 W/tile × 25 = 1924 W
     expect(agg.typW).toBeCloseTo(1924, 0);
+    expect(agg.geradorPct).toBe(31); // 1,924 kVA ÷ 6,25 kVA = 30,8% → 31
+
   });
 
   it("vk inválido cai no padrão 220 trifásico", () => {

@@ -2,7 +2,7 @@
 // Funções puras de projeto: status por data, agrupamento, roll-ups físicos
 // (área/peso/potência) e agregação elétrica do projeto inteiro.
 
-import { calcScreen, typicalPerTile, pickBreaker, VOLT } from "./electricalCalc.js";
+import { calcScreen, typicalPerTile, VOLT } from "./electricalCalc.js";
 
 export const MONTHS_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 export const MONTHS_LONG = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -109,10 +109,16 @@ export function aggregateElectrical(project, { vk, brilho, conteudo }) {
 
   const I = parseFloat((S / vc.div).toFixed(1));
   const typI = parseFloat((typS / vc.div).toFixed(1));
+  // Gerador mínimo pelo PICO ×1,25 (auditoria 30/07/2026: frame branco em brilho
+  // alto leva a parede ao pico — dimensionar pelo típico derruba o gerador).
+  // geradorPct = quanto o consumo típico ocupa desse gerador (janela saudável de
+  // diesel: 60–80%; abaixo de ~30% = wet stacking).
+  const gerador = (S / 1000) * 1.25;
   return {
     vk, vc, perTela, brilho, conteudo,
-    W, S, kVA: (S / 1000).toFixed(2), I, breaker: pickBreaker(I),
+    W, S, kVA: (S / 1000).toFixed(2), I,
     typW, typS, typKva: (typS / 1000).toFixed(2), typI,
-    gerador: ((typS / 1000) * 1.25).toFixed(1), // típico + 25% margem
+    gerador: gerador.toFixed(1),
+    geradorPct: gerador > 0 ? Math.round((typS / 1000 / gerador) * 100) : 0,
   };
 }

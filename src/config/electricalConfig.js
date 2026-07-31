@@ -1,6 +1,6 @@
 // config/electricalConfig.js — constantes elétricas/sinal GLOBAIS (fonte única).
 // Reunidas aqui para evitar valores duplicados espalhados pelas páginas/serviços.
-// NÃO altera as regras de cálculo (pwrMax, disjuntor 125%, consumo típico).
+// NÃO altera as regras de cálculo (pwrMax, consumo típico).
 
 export const PX_PER_PORT = 655360; // capacidade de porta de sinal (Gigabit) @60Hz · 8-bit
 // capacidade por profundidade de cor (px/porta @60Hz, Gigabit) — ref. Novastar/Colorlight:

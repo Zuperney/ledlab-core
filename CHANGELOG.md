@@ -4,6 +4,15 @@ Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](h
 
 ## [Não publicado]
 
+**Auditoria de engenharia: o app entrega corrente, não sugere disjuntor — e o gerador é dimensionado pelo pico.**
+
+Auditoria completa do motor AC (30/07, três pesquisas com fontes: normas NBR/IEC, formulário trifásico acadêmico e prática da indústria LED). Todas as fórmulas foram **confirmadas** — corrente, divisores de tensão, rodízio de fases, modelo Barco do típico. Dois pontos eram indefensáveis e mudaram:
+
+- **O app não sugere mais disjuntor** (decisão do dono): a escada interna capava em 160 A — um projeto de 1033 A/fase imprimia "disj. geral 160 A", ~6,5× subdimensionado. Agora o app entrega **corrente e kVA** (o que é aritmética sobre dado real) e a proteção fica com o eletricista do quadro, que setoriza. Saiu da aba Energia, do Caderno e do PDF.
+- **Gerador mínimo pelo PICO × 1,25** (era típico × 1,25 — inseguro: um frame branco leva a parede ao pico e derrubava o gerador sugerido). A linha TÍPICO agora mostra **quanto o consumo médio ocupa do gerador** (janela saudável de diesel: 60–80%; muito abaixo de 30% = wet stacking).
+- **Base de Conhecimento: artigo novo "Bitolas, disjuntores e distâncias"** — tabela de consulta (bitola × capacidade Iz × disjuntor recomendado × distância máxima com queda de 4% em 220 V) + o critério real da NBR 5410 (Ib ≤ In ≤ Iz), a origem NEC da margem ×1,25/80%, e por que acima de 125 A a resposta é setorizar, não um disjuntor gigante.
+- **Rigor**: fator de potência default unificado em **0,85** (cabeamento assumia 0,9 e a Energia 0,85 quando o gabinete não tinha fp); textos que atribuíam os 80%/×1,25 à NBR 5410 agora citam a prática NEC.
+
 **A elétrica agora fala em volts — e diz a fase de cada cabo.**
 
 - **Tensão completa** na seção elétrica do Caderno, no PDF e na aba Energia: "220 V · Trifásico (F+F+F)" em vez de só "Trifásico". Os rótulos do grupo 220 ganharam os condutores.

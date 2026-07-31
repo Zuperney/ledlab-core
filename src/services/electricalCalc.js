@@ -65,19 +65,12 @@ export function phaseBalance(cabos, vc) {
 
 // ── Regra dos 80% (carga contínua) ──
 // Circuito carregado por horas (painel de LED em show) não deve passar de 80%
-// da capacidade nominal do conector/proteção (prática NBR 5410/NEC p/ carga
-// contínua — o mesmo racional do disjuntor × 1.25 logo abaixo, visto do outro
-// lado). Acima de 80% = ATENÇÃO (laranja); acima de 100% = ESTOURO (vermelho).
+// da capacidade nominal do conector (prática NEC de carga contínua — na NBR 5410
+// o critério formal é Ib ≤ In ≤ Iz; auditoria 30/07/2026).
+// Acima de 80% = ATENÇÃO (laranja); acima de 100% = ESTOURO (vermelho).
 export const AC_WARN_PCT = 80;
 export function acTone(pct) {
   return pct > 100 ? "over" : pct > AC_WARN_PCT ? "warn" : "ok";
-}
-
-// Escada de disjuntores IEC. Escolhe o 1º padrão >= corrente × 1.25 (margem 25%).
-const BREAKER_LADDER = [10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125];
-
-export function pickBreaker(current) {
-  return BREAKER_LADDER.find((b) => b >= current * 1.25) || 160;
 }
 
 // Pitch (mm) a partir da resolução e dimensão físicas do gabinete.
@@ -96,24 +89,22 @@ const clamp01 = (n) => Math.min(1, Math.max(0, Number(n)));
 //   W  = tiles × W/tile
 //   S  = W / fator de potência        (potência aparente, VA)
 //   I  = S / divisor de tensão        (corrente por fase, A)
-//   disjuntor = escada(I × 1.25)
+// O app NÃO sugere disjuntor (decisão do dono, 30/07/2026): entrega a corrente
+// e a proteção é dimensionada pelo eletricista do quadro (tabela no KB).
 export function calcScreen({ tiles, pwrPerTile, pf, vk }) {
   const vc = VOLT[vk] || VOLT["220_tri"]; // fallback defensivo se vk vier inválido/corrompido
   const W = tiles * pwrPerTile;
   const S = W / pf;
   const I = parseFloat((S / vc.div).toFixed(1));
-  const breaker = pickBreaker(I);
   return {
     vc,
     W,
     S,
     kVA: (S / 1000).toFixed(2),
     I,
-    breaker,
     steps: [
       `S = ${W}W ÷ ${pf} = ${Math.round(S).toLocaleString()} VA`,
       `I = ${Math.round(S)} ÷ (${vc.dl}) = ${I} A`,
-      `Disjuntor ≥ ${I}A × 1.25 → ${breaker}A`,
     ],
   };
 }
