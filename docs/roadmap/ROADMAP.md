@@ -9,8 +9,8 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.9 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
-**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (4 de 5 iniciativas-chave; peso e ancoragens entregue · v1.1→v1.10) · Fase 03 iniciada (Reembolso e "Esta semana" entregues).
+**Horizonte:** v1.12 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (4 de 5 iniciativas-chave; falta só o pitch × distância · v1.1→v1.11) · Fase 03 iniciada (Reembolso, "Esta semana", Caderno em PDF nativo e a prancha de engenharia entregues).
 
 ---
 
@@ -90,6 +90,8 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **🟣 Caderno Técnico em PDF nativo** — "Baixar PDF" com capa, sumário, mapas de cabos vetoriais, uma página por Screen e fonte embutida; funciona no celular e **offline**. + rodada de refino do backlog de campo (Recibos, Energia, telas com Desfazer) | **3** | **v1.9.0** |
 | **🟣 Regra dos 80% padrão + auditoria elétrica** — margem de carga contínua como padrão, faixa **laranja** 80–100% (Cabeamento/Caderno/PDF) e potências da biblioteca-semente conferidas nos datasheets. + fix da barra de gesto do iPhone | **2** | **v1.9.1** |
 | **🟣 Peso e ancoragens no Caderno** — seção nova (Caderno + PDF) com peso da parede, bumpers, ancoragens e a **cadeia** do que trava primeiro; limites do fabricante com procedência no cadastro do gabinete; checklist de campo; categoria **Estrutura** na Base de Conhecimento. Campo vazio sai **não informado**, nunca "ok". *(Em 30/07 o dimensionamento de bumper/ancoragem/talha foi removido — a seção virou "Peso e estrutura" com tipo de montagem escolhível.)* | **3** | **v1.10.0** |
+| **🟣 Overclock de porta + link único entre telas** — botão por Screen que arredonda gabinetes/porta **pra cima** (porta acima do nominal sai **laranja** com o % real; escolha registrada no Caderno) · a corrente completa uma tela antes de pular pra outra (máx. 1 cabo cruzando) e, na régua de Área, **bloco nunca atravessa vão** (nem cobra o vão no %) · **logo do projeto** cadastrável | **2** | **v1.11.0** |
+| **🟣 Prancha de engenharia no PDF** — moldura + **carimbo** em toda página (nos moldes da prancha clássica): logo do projeto, campos do evento, **Projetou** (assinatura na conta), **REV manual** e **FOLHA N/M** automática. Capa segue sendo a Folha Técnica da marca | **3** | **v1.12.0** |
 
 O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
 
@@ -112,7 +114,7 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 
 ---
 
-## Fase 02 — Profundidade de engenharia · `v1.1 → v1.10` · **em curso** *(4 de 5 · falta o pitch × distância)*
+## Fase 02 — Profundidade de engenharia · `v1.1 → v1.11` · **em curso** *(4 de 5 · falta o pitch × distância)*
 **O cálculo que nenhum app de aluguel faz.** *Aqui mora o diferencial — engenharia de verdade, não só inventário.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
@@ -189,4 +191,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-25 (v1.10.0 · Fase 02 em curso — peso e ancoragens entregue; falta o pitch × distância)._
+_Última atualização: 2026-07-30 (v1.12.0 · Fase 02 em curso — falta o pitch × distância; Caderno em prancha de engenharia entregue)._

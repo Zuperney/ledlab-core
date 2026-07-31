@@ -21,25 +21,36 @@ _Aponte a câmera do celular para o QR code._
 
 | | |
 |---|---|
-| ⚡ **Elétrica** | Pico/típico por tela, corrente por fase, disjuntor e gerador — modelo validado com datasheets e normas (NBR/IEC) |
+| ⚡ **Elétrica** | Pico/típico por tela, corrente por fase, disjuntor e gerador — modelo validado com datasheets e normas (NBR/IEC), regra dos 80% de carga contínua |
 | 🖥️ **Screens** | Monte seus sistemas como no controlador: agrupe as telas que vão juntas; o cabo atravessa telas e as portas são numeradas por Screen |
-| 🔌 **Cabeamento** | Sinal e AC por Screen (automático, livre ou — no AC — atrelado ao sinal), com balanceamento, margem de segurança, aviso de estouro e mapa visual |
+| 🔌 **Cabeamento** | Sinal e AC por Screen (automático, livre ou — no AC — atrelado ao sinal), com balanceamento, **overclock de porta** opcional, link único entre telas afastadas, margem de segurança, aviso de estouro e mapa visual |
+| 🏗️ **Estrutura** | Peso da parede + checagem contra os limites publicados pelo fabricante (montagem voada × sentada), com procedência do dado — o que não é publicado sai "não informado", nunca estimado |
+| 🎛️ **Equipamentos** | Catálogo de controladoras certificado nos datasheets (NovaStar VX/MX) + "Verificar projeto": portas usadas × disponíveis por Screen |
 | 🖥️ **Test cards** | Cartões de teste na resolução nativa do painel, com números, geometria, mapa de cabos e export PNG |
 | 🧩 **Composição** | Várias telas posicionadas num render só (estilo mapeamento de slices), com alerta de sobreposição |
 | 📐 **Aspect Ratio & crop** | Proporção da tela e cálculo de crop do sinal (encaixar × preencher, com deslocamento) |
 | 📅 **Agenda & cachês** | Diárias com check-in/checkout por GPS, tipos de atividade e total do mês |
 | 🧾 **Financeiro** | Recibo/planilha de pagamento por período e cliente — imprimir, PDF ou WhatsApp |
 | 💸 **Reembolso** | Despesas do evento com foto do comprovante e relatório pronto pra enviar |
-| 📄 **Relatórios** | Completo, resumido, elétrico, mapa de cabos, estrutural… em PDF com um toque |
-| ☁️ **Backup & nuvem** | Backup em arquivo + sincronização opcional entre aparelhos |
+| 📄 **Caderno Técnico** | PDF nativo (funciona offline, no celular) em **prancha de engenharia**: moldura + carimbo com logo do projeto, revisão e folha N/M; tipos Completo, Resumido, Elétrico, Mapa de cabos, Estrutural, Design e Gabinetes |
+| 📚 **Base de Conhecimento** | Artigos de campo — sinal, segurança elétrica, estrutura, painéis — na linguagem de quem monta |
+| ☁️ **Backup & nuvem** | Backup em arquivo + sincronização opcional entre aparelhos (login por código no e-mail) |
 
 ## 🧾 Versões
 
-**Atual: v1.4.0** — **Screens**: você monta os sistemas e cabeia cada um (sinal e AC), com os controles finos de volta — régua da porta (Área/regra do retângulo ou Pixels/Free Topology), disposição Linha/Coluna/Área e 8/10-bit, num "Avançado" recolhido. *(180 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.12.0** — **Prancha de engenharia no Caderno Técnico**: moldura e carimbo em toda página do PDF, nos moldes da prancha clássica de arquitetura — logo do projeto, campos do evento, assinatura ("Projetou"), revisão manual (REV) e FOLHA N/M automática. *(555 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|
-| **1.4.0** | **Controles de cabeamento por Screen**: régua Área/Pixels (regra do retângulo / Free Topology), disposição Linha/Coluna/Área, 8/10-bit — num "Avançado"; padrão = Área |
+| **1.12.0** | **Prancha de engenharia no PDF**: moldura + carimbo em toda página (logo do projeto, Projetou, REV manual, FOLHA N/M); assinatura do Caderno na conta |
+| 1.11.0 | **Overclock de porta** (arredonda gabinetes/porta pra cima, com laranja honesto no que passa do nominal), **link único entre telas** da mesma Screen, logo do projeto, e a estrutura vira **"Peso e estrutura"** (montagem voada × sentada, sem dimensionamento especulativo) |
+| 1.10.x | **Peso e ancoragens no Caderno**: cadeia de limites do fabricante com procedência no cadastro do gabinete; "não informado" nunca vira "ok" |
+| 1.9.x | **Caderno Técnico em PDF nativo** (offline, com sumário e mapas vetoriais) + regra dos 80% como padrão da elétrica |
+| 1.8.0 | O app vestiu a marca: manual de marca + paleta lime/preto nos 3 ecossistemas (Palco, Sol, Print) |
+| 1.7.x | Interface repaginada: gramática das 5 faixas, **modo SOL** de alto contraste, refino mobile |
+| 1.6.0 | Página **Equipamentos**: catálogo de controladoras (VX/MX) certificado nos datasheets + "Verificar projeto" |
+| 1.5.x | Relatório vira **Caderno Técnico** (paisagem + capa Folha Técnica), mapa de cabos redesenhado, numeração serpente, Financeiro reorganizado |
+| 1.4.0 | **Controles de cabeamento por Screen**: régua Área/Pixels (regra do retângulo / Free Topology), disposição Linha/Coluna/Área, 8/10-bit — num "Avançado"; padrão = Área |
 | 1.3.1 | **AC por Screen** (consistência com o sinal): automático / livre / atrelar ao sinal, com aviso de estouro de corrente |
 | 1.3.0 | **Aba Screens**: você agrupa as telas em sistemas; cabeamento de sinal por Screen (auto ou livre); relatório, test card e mapa de pixels por Screen |
 | 1.2.0 | Canvas do processador (base do rework): cabo atravessando telas, portas 1..N, mapa de pixels na coordenada do NovaLCT |
