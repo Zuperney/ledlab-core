@@ -826,13 +826,25 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // do pdfmake — é ele que entrega página/total pro "FOLHA 03/12".
   const FR = 16; // inset da moldura (pt) — a caixa externa da prancha
   const CAR_H = 52; // altura da faixa do carimbo (≈18 mm), dentro da moldura
+  const BOT = 94; // margem inferior da página = FR + carimbo + respiro
+  // ⚠️ GEOMETRIA BLINDADA: `heights` do pdfmake é altura MÍNIMA — se um valor
+  // quebrar de linha, a faixa cresce pra baixo e a borda vaza pra fora da
+  // moldura (aconteceu com "Nº · REV A" no caderno real de 30/07). Por isso
+  // TODO valor do carimbo é truncado pra caber numa linha só.
+  const trunc = (t, n) => { const s = String(t || "").trim(); return s.length > n ? `${s.slice(0, n - 1)}…` : s; };
   const carLbl = (t) => ({ text: t.toUpperCase(), font: "PlexMono", fontSize: 5, bold: true, characterSpacing: 0.7, color: PRINT.dim });
-  const carVal = (t, extra = {}) => ({ text: t || "—", bold: true, fontSize: 7, color: PRINT.ink, ...extra });
-  const carLinha = (l, v) => ({ columns: [{ width: 34, ...carLbl(l), margin: [0, 1.2, 0, 0] }, { width: "*", ...carVal(v) }], columnGap: 4, margin: [7, 0, 7, 1.8] });
+  const carLinha = (l, v, vExtra = {}) => ({
+    columns: [
+      { width: 33, ...carLbl(l), margin: [0, 1.4, 0, 0] },
+      { width: "*", text: v || "—", bold: true, fontSize: 7, color: PRINT.ink, ...vExtra },
+    ],
+    columnGap: 4,
+    margin: [7, 0, 7, 2.4],
+  });
   const carimbo = (current, total) => ({
-    margin: [FR, 90 - FR - CAR_H - 3, FR, 0],
+    margin: [FR, BOT - FR - CAR_H - 4, FR, 0],
     table: {
-      widths: [118, "*", 156, 74],
+      widths: [118, "*", 176, 72],
       heights: [CAR_H],
       body: [[
         // bloco da MARCA: logo do projeto (Dados); sem logo, a marca LedLab
@@ -845,22 +857,23 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           ],
           margin: [4, logoProjeto || logo ? 6 : 2, 4, 0],
         },
-        // campos do projeto
+        // campos do projeto (valores truncados: 1 linha SEMPRE)
         {
           stack: [
-            { text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 5.8, characterSpacing: 1.2, color: "#fdfdfb", background: PRINT.ink, margin: [7, 3, 7, 3] },
-            carLinha("Evento", project.name),
-            carLinha("Cliente", project.cliente),
-            carLinha("Local", [project.local, dataEvento].filter(Boolean).join(" · ")),
+            { text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 5.8, characterSpacing: 1.2, color: "#fdfdfb", background: PRINT.ink, margin: [7, 3, 7, 3.6] },
+            carLinha("Evento", trunc(project.name, 72)),
+            carLinha("Cliente", trunc(project.cliente, 72)),
+            carLinha("Local", trunc([project.local, dataEvento].filter(Boolean).join(" · "), 72)),
           ],
         },
-        // responsável e datas
+        // responsável e datas — REV junto do GERADO; o Nº fica sozinho na linha
+        // dele, em mono menor (nome de projeto longo vira Nº de 22 caracteres)
         {
           stack: [
-            { text: "", margin: [0, 4, 0, 0] },
-            carLinha("Projetou", assinatura),
-            carLinha("Gerado", gerado),
-            carLinha("Nº doc", `${docNo} · REV A`),
+            { text: "", margin: [0, 5, 0, 0] },
+            carLinha("Projetou", trunc(assinatura, 32)),
+            carLinha("Gerado", [gerado, "REV A"].filter(Boolean).join(" · ")),
+            carLinha("Nº doc", docNo, { font: "PlexMono", fontSize: 6.2, characterSpacing: 0.2 }),
           ],
         },
         // FOLHA grande (página / total)
@@ -892,8 +905,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   return {
     pageSize: "A4",
     pageOrientation: "landscape",
-    // fundo maior embaixo: é a faixa do carimbo (a prancha come ~46 pt a mais)
-    pageMargins: [40, 36, 40, 90],
+    // fundo maior embaixo: é a faixa do carimbo (a prancha come ~50 pt a mais)
+    pageMargins: [40, 36, 40, BOT],
     defaultStyle: { font: "PlexSans", fontSize: 9, color: PRINT.ink, lineHeight: 1.25 },
     info: { title: `${project.name || "Projeto"} — Caderno Técnico (${tipo})`, author: "LedLab Core" },
     // página 1 = fundo da capa; demais = a MOLDURA da prancha (o carimbo fecha

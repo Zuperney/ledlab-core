@@ -51,11 +51,30 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     const f = JSON.stringify(doc.footer(3, 12));
     expect(f).toContain('"03"'); // FOLHA grande, zero à esquerda
     expect(f).toContain("/12");
-    expect(f).toContain("AD-SUMMIT · REV A");
+    expect(f).toContain('"AD-SUMMIT"'); // Nº doc sozinho na linha (nunca quebra)
+    expect(f).toContain("REV A"); // REV mora com o GERADO
     expect(f).toContain("CADERNO TÉCNICO · COMPLETO");
     expect(f).toContain("AD Summit"); // evento
     expect(f).toContain("Performance"); // cliente
     expect(f).toContain("LEDLAB CORE · ENGENHARIA DE LED");
+  });
+
+  // REGRESSÃO (caderno real de 30/07): "Nº ADEMICOM-SUMMIT-2026 · REV A" quebrava
+  // de linha, a faixa crescia e a borda do carimbo vazava pra fora da moldura.
+  // heights do pdfmake é MÍNIMO — a garantia é nenhum valor ocupar 2 linhas.
+  it("carimbo: valor longo é truncado numa linha — a faixa nunca cresce", () => {
+    const longo = {
+      ...project,
+      name: "Ademicom Summit 2026 Edição Especial de Aniversário com Nome Comprido Demais",
+      cliente: "C".repeat(120),
+      local: "L".repeat(120),
+    };
+    const d = buildRelatorioDoc({ project: longo, tipo: "Completo", cfg, logo: null, assinatura: "A".repeat(90) });
+    const f = d.footer(2, 5);
+    const strings = [];
+    JSON.stringify(f, (k, v) => { if (typeof v === "string") strings.push(v); return v; });
+    for (const s of strings) expect(s.length).toBeLessThanOrEqual(78); // truncado com "…"
+    expect(JSON.stringify(f)).toContain("…");
   });
 
   it("carimbo: assinatura entra no Projetou; sem assinatura sai travessão", () => {
