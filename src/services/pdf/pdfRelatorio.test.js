@@ -162,6 +162,29 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("A/gabinete");
   });
 
+  it("tabela de cabos com Fase NUNCA passa de 4 grupos (largura > contagem de linhas)", () => {
+    // Screen 220_tri com 64 cabos AC: a regra de contagem pediria 6 grupos, mas
+    // 6 grupos × 4 colunas (~160 pt cada) estouram os 762 pt úteis — o caderno
+    // real imprimiu o grupo dos cabos 55-64 FORA da folha (31/07). Teto: 4.
+    const gabAc = { ...gab, resX: 192, resY: 192, pwrMax: 470, conector: "true1" }; // ampCab 470/(220×0,9)=2,37 → 5 gab/cabo (margem 1 nos testes)
+    const telona = { id: "tg", nome: "Telona", cols: 20, rows: 16, gabinete: gabAc }; // 320 gab → 64 cabos
+    const proj = { ...project, telas: [telona], screens: [{ id: "s1", nome: "S1", telaIds: ["tg"], pos: { tg: { x: 0, y: 0 } }, sinal: { rule: "px", strategy: "auto" } }] };
+    const d = buildRelatorioDoc({ project: proj, tipo: "Completo", cfg, logo: null, gerado: "31/07/2026" });
+    const grupos = [];
+    const walk = (n) => {
+      if (!n || typeof n !== "object") return;
+      if (Array.isArray(n)) return n.forEach(walk);
+      if (Array.isArray(n.columns) && n.columns.length > 1 && n.columns.every((c) => c?.table)) {
+        const header = JSON.stringify(n.columns[0].table.body?.[0] || []);
+        if (header.includes("FASE")) grupos.push(n.columns.length);
+      }
+      Object.values(n).forEach(walk);
+    };
+    walk(d.content);
+    expect(grupos.length).toBeGreaterThan(0); // a tabela existe (fixture válida)
+    for (const g of grupos) expect(g).toBeLessThanOrEqual(4);
+  });
+
   it("Glossário em duas colunas fecha o caderno Completo (sem os termos removidos)", () => {
     expect(json).toContain("GLOSSÁRIO");
     expect(json).toContain("Pico × Típico");
