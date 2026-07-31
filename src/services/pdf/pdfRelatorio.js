@@ -648,7 +648,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
             ...mapNode(mapa),
             densePortTable(s.ports, [
               { label: "Porta", cell: (p) => portCell(p.n - 1, p.n) },
-              { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               // laranja = overclock (acima do nominal por escolha); vermelho = estouro real
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : p.oc ? PRINT.amb : PRINT.ink }) },
             ]),
@@ -701,7 +701,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
             ...mapNode(mapa),
             densePortTable(rows, [
               { label: "Porta", cell: (p) => portCell(p.idx, p.n) },
-              { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
             ]),
           ]),
@@ -784,7 +784,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
             densePortTable(s.ports, [
               { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
               ...(bal.temRodizio ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
-              { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink }) },
             ]),
           ]);
@@ -840,7 +840,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           densePortTable(rows, [
             { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
             ...(temFase ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
-            { label: "Gabinetes", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+            { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
             { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: acTone(p.pct) === "over" ? PRINT.red : acTone(p.pct) === "warn" ? PRINT.amb : PRINT.ink }) },
           ]),
         ]);
