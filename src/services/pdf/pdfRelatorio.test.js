@@ -134,7 +134,10 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
 
   it("Elétrica: sem sugestão de disjuntor; gerador mínimo pelo pico + fórmula do típico", () => {
     expect(json).toContain("INFORMAÇÕES ELÉTRICAS");
-    expect(json).not.toContain("Disjuntor".toUpperCase()); // app não sugere disjuntor (auditoria 30/07/2026)
+    // app não sugere disjuntor (auditoria 30/07/2026) — o guard é a CÉLULA de
+    // cabeçalho exata; a palavra solta é permitida (Critérios de Cálculo cita
+    // que o disjuntor é do eletricista)
+    expect(json).not.toContain('"DISJUNTOR"');
     expect(json).not.toContain("combustível"); // o app não calcula combustível
     expect(json).toContain("Gerador mínimo (pico × 1,25)");
     expect(json).toContain("Típico por gabinete = base + (pico − base) × brilho × conteúdo");
@@ -183,6 +186,17 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     walk(d.content);
     expect(grupos.length).toBeGreaterThan(0); // a tabela existe (fixture válida)
     for (const g of grupos) expect(g).toBeLessThanOrEqual(4);
+  });
+
+  it("Critérios de Cálculo: regras, normas e referências antes do Glossário (só no Completo)", () => {
+    expect(json).toContain("CRITÉRIOS DE CÁLCULO");
+    expect(json).toContain("NORMAS E PRÁTICAS ADOTADAS");
+    expect(json).toContain("ABNT NBR 5410");
+    expect(json).toContain("REFERÊNCIAS");
+    expect(json).toContain("The truth about the power consumption of LED walls");
+    // a folha vem ANTES do glossário
+    expect(json.indexOf("CRITÉRIOS DE CÁLCULO")).toBeLessThan(json.indexOf("GLOSSÁRIO"));
+    expect(JSON.stringify(build("Resumido").content)).not.toContain("CRITÉRIOS DE CÁLCULO");
   });
 
   it("Glossário em duas colunas fecha o caderno Completo (sem os termos removidos)", () => {
@@ -259,7 +273,7 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     // sumário, todas marcam) + 4 blocos (2 telas × sinal e AC) → 11 marcas.
     const doc = build("Completo");
     const completo = JSON.stringify(doc.content);
-    expect(completo.match(/"headlineLevel":1/g)?.length).toBe(11);
+    expect(completo.match(/"headlineLevel":1/g)?.length).toBe(12); // +1: Critérios de Cálculo
     expect(completo.match(/"pageBreak":"before"/g)).toBeNull(); // nunca incondicional
     expect(typeof doc.pageBreakBefore).toBe("function");
     // quebra só com conteúdo na página atual (assinatura do pdfmake: getters no 2º arg)
@@ -284,8 +298,8 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     const completo = JSON.stringify(build("Completo").content);
     expect(completo).toContain('"toc"');
     expect(completo).toContain("SUMÁRIO");
-    // 7 seções marcadas (marcador invisível com a linha "NN · TÍTULO")
-    expect(completo.match(/"tocItem":true/g)?.length).toBe(7);
+    // 8 seções marcadas (marcador invisível com a linha "NN · TÍTULO")
+    expect(completo.match(/"tocItem":true/g)?.length).toBe(8);
     expect(completo).toContain("01  ·  VISÃO GERAL");
     // Elétrico/Mapa de cabos: sem sumário (mas os marcadores são inofensivos)
     expect(JSON.stringify(build("Elétrico").content)).not.toContain('"toc"');

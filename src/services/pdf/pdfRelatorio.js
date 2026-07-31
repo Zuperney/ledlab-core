@@ -16,7 +16,7 @@ import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from 
 import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
-import { GLOSSARIO, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf } from "../reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf } from "../reportContent.js";
 import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../reportContent.js";
 import { projectRigging, DEFAULT_RIG } from "../rigging.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
@@ -855,6 +855,41 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     ];
   })();
 
+  // ── CRITÉRIOS DE CÁLCULO (normas + referências) — folha antes do Glossário ──
+  // Pedido do dono (31/07): o caderno declara COMO os números foram calculados,
+  // em que normas se apoia e quais fontes sustentam o motor. Conteúdo em
+  // reportContent.js (compartilhado com o DOM); mesmo gate do glossário.
+  const criterios = !showGloss ? [] : [
+    sectionHead(sec(), "Critérios de Cálculo", "Normas e referências", DISC.elec),
+    {
+      columnGap: 26,
+      columns: [
+        {
+          width: "*",
+          stack: [
+            { text: "COMO OS NÚMEROS SÃO CALCULADOS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 0, 0, 5] },
+            ...CRITERIOS.flatMap((g) => [
+              { text: g.h, bold: true, fontSize: 9.5, color: PRINT.ink, margin: [0, 3, 0, 2] },
+              { ul: g.itens, fontSize: 8, color: PRINT.mut, lineHeight: 1.3, margin: [0, 0, 0, 4], markerColor: PRINT.dim },
+            ]),
+          ],
+        },
+        {
+          width: "*",
+          stack: [
+            { text: "NORMAS E PRÁTICAS ADOTADAS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 0, 0, 5] },
+            ...NORMAS.flatMap(([n, d]) => [
+              { text: n, bold: true, fontSize: 9.5, color: PRINT.ink, margin: [0, 3, 0, 1] },
+              { text: d, fontSize: 8, color: PRINT.mut, lineHeight: 1.3, margin: [0, 0, 0, 3] },
+            ]),
+            { text: "REFERÊNCIAS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 10, 0, 5] },
+            { ul: REFERENCIAS, fontSize: 8, color: PRINT.mut, lineHeight: 1.3, markerColor: PRINT.dim },
+          ],
+        },
+      ],
+    },
+  ];
+
   // ── GLOSSÁRIO ──
   const gloss = !showGloss ? [] : (() => {
     const meio = Math.ceil(GLOSSARIO.length / 2);
@@ -995,7 +1030,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // rodapé em TODA página (menos a capa): o CARIMBO da prancha
     footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
-      const secoes = [visaoGeral, estrutura, video, eletrica, sinal, ac, gloss].filter((s) => s.length);
+      const secoes = [visaoGeral, estrutura, video, eletrica, sinal, ac, criterios, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
       // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
       // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead

@@ -55,6 +55,46 @@ export const GLOSSARIO = [
   { t: "Fases R/S/T", d: "As 3 fases do sistema. Os cabos AC seguem um rodízio (1→R, 2→S, 3→T…) pra equilibrar a carga entre elas; em 220 V trifásico o circuito usa um PAR de fases (RS/ST/TR)." },
 ];
 
+// ── CRITÉRIOS DE CÁLCULO (folha antes do Glossário, só no Completo) ──
+// As regras do motor, as normas e as fontes que sustentam os números do
+// caderno — a auditoria de engenharia (07/2026) virando papel. Compartilhado
+// DOM+PDF. Detalhamento completo: Base de Conhecimento do app.
+export const CRITERIOS = [
+  { h: "Potência e corrente", itens: [
+    "Todo dimensionamento usa o PICO (pwrMax = branco pleno a 100% de brilho): proteção, cabo, fonte e gerador. O típico nunca dimensiona — estima energia e ocupação.",
+    "Potência aparente S = W ÷ FP (fator de potência do gabinete; sem cadastro, 0,85). Corrente por fase I = S ÷ (√3 × V de linha) no trifásico; cada configuração de tensão (220/380 V) tem seu divisor.",
+    "Consumo típico por gabinete = base + (pico − base) × brilho × conteúdo (modelo Barco). Sem black level cadastrado, base = 15% do pico.",
+  ] },
+  { h: "Cabos AC e fases", itens: [
+    "Corrente por gabinete = pico ÷ (220 V × FP) — o circuito de alimentação é 220 V em qualquer rede brasileira (F+N na rede 380/220; F+F na 127/220).",
+    "Regra dos 80%: cabo/conector de carga contínua satura em 80% do nominal (prática NEC de carga contínua).",
+    "Fases em rodízio (R/S/T) reiniciando a cada Screen — cada Screen é um quadro. Em 220 V trifásico o circuito usa um PAR de fases e a corrente conta nas duas; o balanço soma aritmético (leitura conservadora: nunca subestima).",
+  ] },
+  { h: "Gerador e proteção", itens: [
+    "Gerador mínimo = kVA de pico × 1,25; o consumo típico saudável ocupa 60–80% da capacidade. Projetos grandes dividem a carga em setores, com mais de um gerador.",
+    "O caderno entrega corrente e kVA; o DISJUNTOR é dimensionado pelo eletricista do quadro — critério da NBR 5410: Ib ≤ In ≤ Iz (a proteção nunca excede a capacidade do cabo).",
+  ] },
+  { h: "Sinal", itens: [
+    "Porta Gigabit: 655.360 px a 8-bit/60 Hz — a capacidade escala com a profundidade de cor (10-bit = metade) e com o refresh (× 60 ÷ Hz). Porta acima do teto só por OVERCLOCK declarado.",
+  ] },
+];
+
+export const NORMAS = [
+  ["ABNT NBR 5410", "Instalações elétricas de baixa tensão: Ib ≤ In ≤ Iz, capacidade de condução e queda de tensão."],
+  ["NEC / UL (EUA)", "Origem da margem de 125% e da regra dos 80% para carga contínua — adotadas como boa prática."],
+  ["IEC 60898-1 · IEC 60947-2", "Valores padronizados de disjuntores (MCB até 125 A; MCCB/ACB acima)."],
+  ["EN 60320 / Neutrik", "Ratings de conector no regime IEC: powerCON 20 A · powerCON TRUE1 16 A."],
+];
+
+export const REFERENCIAS = [
+  "Barco — “The truth about the power consumption of LED walls” (LEDTalks, 2020): o modelo do consumo típico.",
+  "Absen — HC Series User Manual: dimensionamento pelo consumo máximo e gabinetes por cabo de energia.",
+  "Neutrik — datasheets BDA 452 (powerCON) e BDA 697 (powerCON TRUE1).",
+  "Novastar / Colorlight — capacidade de porta Gigabit por profundidade de cor e refresh.",
+  "Mean Well — corrente de inrush de fontes chaveadas e partida sequencial.",
+  "Auditoria de engenharia LedLab (07/2026): fórmulas do motor confrontadas com as fontes acima — artigos completos na Base de Conhecimento do app.",
+];
+
 // ── ESTRUTURA (F2) — texto compartilhado da seção "Peso e estrutura" ──
 // ⚠️ Escopo cravado (docs/rigging-spec.md §3): esta seção REGISTRA peso e checa
 // limite publicado, não dimensiona estrutura. Nunca chamar de "Rigging"; nunca

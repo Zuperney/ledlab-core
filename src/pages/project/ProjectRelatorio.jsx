@@ -16,7 +16,7 @@ import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabl
 import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
-import { GLOSSARIO, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf } from "../../services/reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf } from "../../services/reportContent.js";
 import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../../services/reportContent.js";
 import { projectRigging, DEFAULT_RIG } from "../../services/rigging.js";
 import { useCabinets } from "../../hooks/useCabinets.js";
@@ -464,6 +464,38 @@ export default function ProjectRelatorio({ project, patch }) {
             })}
           </section>
         ); })()}
+
+        {showGloss && (
+          <section style={{ marginBottom: 22 }}>
+            <SectionHead n={sec()} title="Critérios de Cálculo" tag="Normas e referências" color={DISC.elec} Icon={BookOpen} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 30px" }}>
+              <div>
+                <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", marginBottom: 8 }}>Como os números são calculados</div>
+                {CRITERIOS.map((g) => (
+                  <div key={g.h} style={{ marginBottom: 8 }}>
+                    <div style={{ fontWeight: 700, color: PRINT.ink, fontSize: 12.5 }}>{g.h}</div>
+                    <ul style={{ margin: "2px 0 0", paddingLeft: 18 }}>
+                      {g.itens.map((t, i) => <li key={i} style={{ color: PRINT.mut, fontSize: 11.5, lineHeight: 1.45, marginBottom: 3 }}>{t}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", marginBottom: 8 }}>Normas e práticas adotadas</div>
+                {NORMAS.map(([n, d]) => (
+                  <div key={n} style={{ marginBottom: 6 }}>
+                    <div style={{ fontWeight: 700, color: PRINT.ink, fontSize: 12.5 }}>{n}</div>
+                    <div style={{ color: PRINT.mut, fontSize: 11.5, lineHeight: 1.45 }}>{d}</div>
+                  </div>
+                ))}
+                <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", margin: "14px 0 8px" }}>Referências</div>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  {REFERENCIAS.map((t, i) => <li key={i} style={{ color: PRINT.mut, fontSize: 11.5, lineHeight: 1.45, marginBottom: 3 }}>{t}</li>)}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
 
         {showGloss && (
           <section style={{ marginBottom: 22 }}>
