@@ -870,7 +870,11 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
             { text: "COMO OS NÚMEROS SÃO CALCULADOS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 0, 0, 5] },
             ...CRITERIOS.flatMap((g) => [
               { text: g.h, bold: true, fontSize: 9.5, color: PRINT.ink, margin: [0, 3, 0, 2] },
-              { ul: g.itens, fontSize: 8, color: PRINT.mut, lineHeight: 1.3, margin: [0, 0, 0, 4], markerColor: PRINT.dim },
+              // [...itens]: o pdfmake MUTA o array do `ul` (troca string por nó
+              // com positions/_inlines) — passar o array compartilhado quebrava
+              // o Caderno DOM depois de gerar um PDF (React: "Objects are not
+              // valid as a child"). Clonar na fronteira é obrigatório.
+              { ul: [...g.itens], fontSize: 8, color: PRINT.mut, lineHeight: 1.3, margin: [0, 0, 0, 4], markerColor: PRINT.dim },
             ]),
           ],
         },
@@ -883,7 +887,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               { text: d, fontSize: 8, color: PRINT.mut, lineHeight: 1.3, margin: [0, 0, 0, 3] },
             ]),
             { text: "REFERÊNCIAS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 10, 0, 5] },
-            { ul: REFERENCIAS, fontSize: 8, color: PRINT.mut, lineHeight: 1.3, markerColor: PRINT.dim },
+            { ul: [...REFERENCIAS], fontSize: 8, color: PRINT.mut, lineHeight: 1.3, markerColor: PRINT.dim }, // clone: ver nota acima
           ],
         },
       ],

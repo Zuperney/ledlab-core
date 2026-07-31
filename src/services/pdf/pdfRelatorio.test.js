@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildRelatorioDoc } from "./pdfRelatorio.js";
+import { CRITERIOS, REFERENCIAS } from "../reportContent.js";
 
 // projeto mínimo com 2 telas reais (gabinete com specs) — o suficiente pro
 // builder montar todas as seções sem NaN
@@ -197,6 +198,19 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     // a folha vem ANTES do glossário
     expect(json.indexOf("CRITÉRIOS DE CÁLCULO")).toBeLessThan(json.indexOf("GLOSSÁRIO"));
     expect(JSON.stringify(build("Resumido").content)).not.toContain("CRITÉRIOS DE CÁLCULO");
+  });
+
+  it("o doc do PDF não compartilha arrays com o conteúdo do DOM (pdfmake MUTA o ul)", () => {
+    // Regressão de 31/07: passar CRITERIOS[i].itens/REFERENCIAS direto no `ul`
+    // fazia o pdfmake trocar as strings por nós (positions/_inlines) — e o
+    // Caderno DOM quebrava no <li> depois de gerar um PDF.
+    const compartilhados = new Set([REFERENCIAS, ...CRITERIOS.map((g) => g.itens)]);
+    const walk = (n) => {
+      if (!n || typeof n !== "object") return;
+      if (Array.isArray(n)) { expect(compartilhados.has(n)).toBe(false); return n.forEach(walk); }
+      Object.values(n).forEach(walk);
+    };
+    walk(build("Completo").content);
   });
 
   it("Glossário em duas colunas fecha o caderno Completo (sem os termos removidos)", () => {
