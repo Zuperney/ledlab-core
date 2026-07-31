@@ -9,6 +9,7 @@ Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](h
 - **Moldura + carimbo** em todas as páginas do PDF (menos a capa), nos moldes da prancha clássica de arquitetura: bloco da marca, campos do projeto (evento, cliente, local e datas), Projetou/Gerado/Nº do documento, e o número da **FOLHA NN/total** grande no canto — numerado automático.
 - **O logo do projeto mudou de casa**: sai do topo da capa e entra no bloco de marca do carimbo, em toda prancha. A capa volta a ser da marca LedLab (decisão do dono). Sem logo cadastrado, o carimbo usa a marca.
 - **Assinatura do Caderno ("Projetou")**: campo novo em Configurações › Conta & sincronização — um nome só, que não muda de impressão pra impressão, e sincroniza junto com a conta. Vazio sai "—".
+- **Revisão do documento (REV)**: campo manual na aba Dados, começando em 0 — suba quando reemitir um caderno que já circulou com mudanças (evita duas versões do mesmo papel valendo ao mesmo tempo). Sai no carimbo e na capa. O app não adivinha revisão: gerar de novo sem mudar nada não sobe o número.
 
 ## [1.11.0] — 2026-07-30
 
