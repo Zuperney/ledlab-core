@@ -32,7 +32,7 @@ export function ReportCover({ docType, name, meta, generated, config }) {
 // breakAfter:page → o conteúdo começa na página seguinte. É a "capa".
 // A capa é da MARCA LedLab (decisão do dono, 30/07); o logo do projeto sai no
 // carimbo das pranchas do PDF nativo.
-export function ReportCoverPage({ docType, name, fields = [], generated, stats = [] }) {
+export function ReportCoverPage({ docType, name, fields = [], generated, stats = [], rev = 0 }) {
   const docNo = (name || "").toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 22);
   // título auto-encolhe pra capa não virar duas páginas no Imprimir do
   // navegador — a regra (e o porquê) vive em services/reportContent.js
@@ -73,7 +73,7 @@ export function ReportCoverPage({ docType, name, fields = [], generated, stats =
 
         {/* rodapé enxuto */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "2cqi", marginTop: "auto", paddingTop: "1.3cqi", borderTop: "0.12cqi solid #dad9d0", fontFamily: COV_MONO }}>
-          <span style={{ fontSize: "1.15cqi", fontWeight: 600, color: "#6c6a5d", letterSpacing: "0.02em" }}>Nº <b style={{ color: "#14140e" }}>{docNo || "—"}</b> · Rev <b style={{ color: "#14140e" }}>A</b>{generated ? ` · Gerado em ${generated}` : ""}</span>
+          <span style={{ fontSize: "1.15cqi", fontWeight: 600, color: "#6c6a5d", letterSpacing: "0.02em" }}>Nº <b style={{ color: "#14140e" }}>{docNo || "—"}</b> · Rev <b style={{ color: "#14140e" }}>{rev}</b>{generated ? ` · Gerado em ${generated}` : ""}</span>
           <span style={{ fontSize: "1.15cqi", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#14140e" }}>LedLab Core <span style={{ color: "#9b998c" }}>· Engenharia de LED</span></span>
         </div>
       </div>

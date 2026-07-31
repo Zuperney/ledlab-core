@@ -244,6 +244,10 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   const agg = aggregateElectrical(project, cfg);
   const docNo = (project.name || "").toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 22) || "—";
   const dataEvento = formatRange(project.dataInicio, project.dataFim);
+  // REVISÃO do documento (project.rev, campo manual da aba Dados): 0 na primeira
+  // emissão; o técnico sobe quando reemite um caderno que já circulou com
+  // mudanças — o app não adivinha revisão (mesma regra do "não estima")
+  const rev = Math.max(0, Math.trunc(parseFloat(project.rev)) || 0);
 
   // mesmos filtros de seção por TIPO do Caderno DOM
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(tipo);
@@ -317,7 +321,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         { canvas: [{ type: "line", x1: 0, y1: 0, x2: 762, y2: 0, lineWidth: 0.6, lineColor: HAIR }], margin: [0, 0, 0, 6] },
         {
           columns: [
-            { text: [{ text: "Nº " }, { text: docNo, bold: true, color: COVER_INK }, { text: " · Rev " }, { text: "A", bold: true, color: COVER_INK }, { text: gerado ? ` · Gerado em ${gerado}` : "" }], font: "PlexMono", fontSize: 7.5, color: "#6c6a5d" },
+            { text: [{ text: "Nº " }, { text: docNo, bold: true, color: COVER_INK }, { text: " · Rev " }, { text: String(rev), bold: true, color: COVER_INK }, { text: gerado ? ` · Gerado em ${gerado}` : "" }], font: "PlexMono", fontSize: 7.5, color: "#6c6a5d" },
             { text: [{ text: "LEDLAB CORE", bold: true, color: COVER_INK }, { text: " · ENGENHARIA DE LED", color: "#9b998c" }], font: "PlexMono", fontSize: 7.5, alignment: "right", characterSpacing: 0.5 },
           ],
         },
@@ -876,25 +880,27 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         {
           stack: [
             carLinha("Projetou", trunc(assinatura, 32)),
-            carLinha("Gerado", [gerado, "REV A"].filter(Boolean).join(" · ")),
+            carLinha("Gerado", [gerado, `REV ${rev}`].filter(Boolean).join(" · ")),
             carLinha("Nº doc", docNo, { font: "PlexMono", fontSize: 6.2, characterSpacing: 0.2 }),
           ],
           margin: [0, 15, 0, 0],
         },
-        // FOLHA grande (página / total)
+        // FOLHA grande (página / total). Margens apertadas de propósito: o
+        // número de 21pt tem caixa de linha alta — "A4 · S/ ESC." precisa
+        // sobrar folga da borda de baixo (ajuste fino do dono, 30/07)
         {
           stack: [
-            { ...carLbl("Folha"), alignment: "center", margin: [0, 7, 0, 0] },
+            { ...carLbl("Folha"), alignment: "center", margin: [0, 5, 0, 0] },
             {
               text: [
-                { text: String(current).padStart(2, "0"), font: "PlexMono", bold: true, fontSize: 21, color: PRINT.ink, characterSpacing: -0.5 },
+                { text: String(current).padStart(2, "0"), font: "PlexMono", bold: true, fontSize: 19, color: PRINT.ink, characterSpacing: -0.5 },
                 { text: ` /${total}`, font: "PlexMono", bold: true, fontSize: 8, color: PRINT.dim },
               ],
               alignment: "center",
               lineHeight: 1,
-              margin: [0, 3, 0, 0],
+              margin: [0, 2, 0, 1.5],
             },
-            { text: "A4 · S/ ESC.", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.6, color: PRINT.dim, alignment: "center", lineHeight: 1, margin: [0, 4, 0, 0] },
+            { text: "A4 · S/ ESC.", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.6, color: PRINT.dim, alignment: "center", lineHeight: 1 },
           ],
         },
       ]],

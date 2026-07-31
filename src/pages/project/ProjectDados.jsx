@@ -216,6 +216,13 @@ export default function ProjectDados({ project, patch, patchTela }) {
             </Select>
           </div>
         </div>
+        {/* REVISÃO do Caderno: manual de propósito (como em prancha de verdade) —
+            sobe quando um caderno que JÁ CIRCULOU é reemitido com mudanças.
+            O app não adivinha revisão: gerar de novo sem mudar nada não sobe. */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "160px 1fr", gap: 12, alignItems: "end", marginBottom: 12 }}>
+          <NumField lbl="Revisão do Caderno" value={Math.max(0, Math.trunc(parseFloat(project.rev)) || 0)} onChange={(n) => patch({ rev: Math.max(0, Math.trunc(n) || 0) })} />
+          <div style={{ color: T.dim, fontSize: 12, paddingBottom: 10 }}>Sai como REV no carimbo e na capa. Começa em 0; suba quando reemitir um caderno que já circulou com mudanças.</div>
+        </div>
         <label style={label}>Observações</label>
         <textarea value={project.obs} onChange={(e) => patch({ obs: e.target.value })} placeholder="Notas técnicas, demandas, contatos…" rows={4} style={input({ resize: "vertical" })} />
 

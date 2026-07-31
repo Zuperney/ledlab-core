@@ -52,7 +52,7 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(f).toContain('"03"'); // FOLHA grande, zero à esquerda
     expect(f).toContain("/12");
     expect(f).toContain('"AD-SUMMIT"'); // Nº doc sozinho na linha (nunca quebra)
-    expect(f).toContain("REV A"); // REV mora com o GERADO
+    expect(f).toContain("REV 0"); // REV mora com o GERADO; primeira emissão = 0
     expect(f).toContain("CADERNO TÉCNICO · COMPLETO");
     expect(f).toContain("AD Summit"); // evento
     expect(f).toContain("Performance"); // cliente
@@ -75,6 +75,14 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     JSON.stringify(f, (k, v) => { if (typeof v === "string") strings.push(v); return v; });
     for (const s of strings) expect(s.length).toBeLessThanOrEqual(78); // truncado com "…"
     expect(JSON.stringify(f)).toContain("…");
+  });
+
+  it("REVISÃO é manual (project.rev): sobe no carimbo E na capa; lixo vira 0", () => {
+    const d = buildRelatorioDoc({ project: { ...project, rev: 3 }, tipo: "Completo", cfg, logo: null });
+    expect(JSON.stringify(d.footer(2, 5))).toContain("REV 3");
+    expect(JSON.stringify(d.content)).toContain("Rev "); // capa carrega a revisão
+    const lixo = buildRelatorioDoc({ project: { ...project, rev: -2 }, tipo: "Completo", cfg, logo: null });
+    expect(JSON.stringify(lixo.footer(2, 5))).toContain("REV 0");
   });
 
   it("carimbo: assinatura entra no Projetou; sem assinatura sai travessão", () => {
