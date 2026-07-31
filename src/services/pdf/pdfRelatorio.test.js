@@ -56,7 +56,13 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(f).toContain("CADERNO TÉCNICO · COMPLETO");
     expect(f).toContain("AD Summit"); // evento
     expect(f).toContain("Performance"); // cliente
-    expect(f).toContain("LEDLAB CORE · ENGENHARIA DE LED");
+    // a autoria LedLab mora AO LADO do chip do cabeçalho, não sob o logo do
+    // cliente (lia como assinatura do logo alheio — dono, 30/07)
+    const [marca, campos] = doc.footer(3, 12).table.body[0];
+    expect(JSON.stringify(marca)).not.toContain("ENGENHARIA DE LED");
+    const cab = JSON.stringify(campos.stack[0]);
+    expect(cab).toContain("CADERNO TÉCNICO");
+    expect(cab).toContain("LEDLAB CORE · ENGENHARIA DE LED");
   });
 
   // REGRESSÃO (caderno real de 30/07): "Nº ADEMICOM-SUMMIT-2026 · REV A" quebrava

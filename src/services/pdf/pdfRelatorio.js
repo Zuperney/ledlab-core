@@ -855,20 +855,28 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       widths: [118, "*", 176, 72],
       heights: [CAR_H],
       body: [[
-        // bloco da MARCA: logo do projeto (Dados); sem logo, a marca LedLab
+        // bloco da MARCA: 100% do cliente — logo do projeto sozinho, centrado
+        // (a autoria LedLab mora no cabeçalho dos campos, ao lado do chip;
+        // legenda embaixo do logo ALHEIO lia como assinatura dele — dono, 30/07)
         {
           stack: [
             logoProjeto
-              ? { image: logoProjeto, fit: [100, 30], alignment: "center" }
-              : (logo ? { image: logo, fit: [30, 30], alignment: "center" } : { text: "LEDLAB CORE", bold: true, fontSize: 10, alignment: "center", lineHeight: 1, margin: [0, 12, 0, 0] }),
-            { text: "LEDLAB CORE · ENGENHARIA DE LED", font: "PlexMono", fontSize: 4.6, characterSpacing: 0.8, color: PRINT.dim, alignment: "center", lineHeight: 1, margin: [0, 3.5, 0, 0] },
+              ? { image: logoProjeto, fit: [104, 34], alignment: "center", margin: [0, 9, 0, 0] }
+              : (logo ? { image: logo, fit: [34, 34], alignment: "center", margin: [0, 9, 0, 0] } : { text: "LEDLAB CORE", bold: true, fontSize: 10, alignment: "center", lineHeight: 1, margin: [0, 22, 0, 0] }),
           ],
-          margin: [4, 8, 4, 0],
+          margin: [4, 0, 4, 0],
         },
         // campos do projeto (valores truncados: 1 linha SEMPRE)
         {
           stack: [
-            { text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 5.8, characterSpacing: 1.2, color: "#fdfdfb", background: PRINT.ink, lineHeight: 1, margin: [7, 4, 7, 4.6] },
+            {
+              text: [
+                { text: ` CADERNO TÉCNICO · ${tipo.toUpperCase()} `, font: "PlexMono", bold: true, fontSize: 5.8, characterSpacing: 1.2, color: "#fdfdfb", background: PRINT.ink },
+                { text: `  LEDLAB CORE · ENGENHARIA DE LED`, font: "PlexMono", bold: true, fontSize: 4.8, characterSpacing: 0.8, color: PRINT.dim },
+              ],
+              lineHeight: 1,
+              margin: [7, 4, 7, 4.6],
+            },
             carLinha("Evento", trunc(project.name, 72)),
             carLinha("Cliente", trunc(project.cliente, 72)),
             carLinha("Local", trunc([project.local, dataEvento].filter(Boolean).join(" · "), 72)),
