@@ -1,6 +1,12 @@
 # Rigging & Estrutura — espeque da fase (F2)
 
-> **Status: GROUND (2026-07-24) · motor calibrado na frota (2026-07-25) · escopo
+> 🧊 **RESERVADO (2026-08-02).** O motor de rigging **saiu do app** por decisão
+> do dono — a seção "Peso e estrutura", o tipo Estrutural, os campos de cadastro
+> e o `services/rigging.js` foram removidos em v1.15.0. Este material fica
+> guardado e **volta quando o 3D entrar** (aí o dimensionamento vale a pena).
+> O peso físico (grade × peso do gabinete) segue no app, via `projectCalc`.
+>
+> **Status anterior: GROUND (2026-07-24) · motor calibrado na frota (2026-07-25) · escopo
 > CRAVADO (2026-07-25, ver §3).** Motor puro (`services/rigging.js`) com testes.
 > UI e Caderno vêm depois das decisões que faltam (§8).
 >

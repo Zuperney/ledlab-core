@@ -8,7 +8,7 @@ export const KB_ARTICLES = [
   { id: "guia-projetos", category: "Guia do App", title: "Projetos e telas", summary: "Estruture eventos com múltiplas telas.", sections: [{ h: "Telas", blocks: [{ t: "p", text: "Cada tela tem um gabinete e uma grade (colunas × linhas). Os totais do projeto somam todas as telas." }] }] },
   { id: "guia-cabeamento", category: "Guia do App", title: "Cabeamento", summary: "Sinal e AC em serpentina.", sections: [{ h: "Modos", blocks: [{ t: "p", text: "Sinal agrupa por capacidade da porta Gigabit; AC agrupa por corrente do conector." }] }] },
   { id: "guia-testcard", category: "Guia do App", title: "Test Card", summary: "Gere cartões de teste e exporte PNG 1:1.", sections: [{ h: "Export", blocks: [{ t: "p", text: "O PNG sai na resolução nativa da tela para mapeamento 1:1 no processador." }] }] },
-  { id: "guia-relatorio", category: "Guia do App", title: "Relatório", summary: "Completo, Resumido, Elétrico, Estrutural, Design ou Gabinetes.", sections: [{ h: "PDF", blocks: [{ t: "p", text: "Use Imprimir / Salvar PDF do navegador para exportar." }] }] },
+  { id: "guia-relatorio", category: "Guia do App", title: "Relatório", summary: "Completo, Resumido, Elétrico, Mapa de cabos, Design ou Gabinetes.", sections: [{ h: "PDF", blocks: [{ t: "p", text: "Use o botão Baixar PDF (motor nativo) ou Imprimir / Salvar PDF do navegador." }] }] },
   { id: "guia-ferramentas", category: "Guia do App", title: "Ferramentas rápidas", summary: "Diagramação, Test Cards e Aspect Ratio sem abrir um projeto.", sections: [{ h: "Uso", blocks: [{ t: "p", text: "Diagramação (portas de sinal), Test Cards e Aspect Ratio rodam de forma avulsa — você escolhe um gabinete e uma grade, ou parte de pixels." }, { t: "note", text: "São para estudo/planejamento rápido; não salvam em um projeto." }] }] },
   { id: "guia-config", category: "Guia do App", title: "Configurações e backup", summary: "Exporte, importe e restaure de fábrica.", sections: [{ h: "Backup", blocks: [{ t: "p", text: "Exporte um backup completo antes de limpar dados ou trocar de máquina." }] }] },
   { id: "pico-tipico", category: "Energia", title: "Pico × Típico — cálculo do consumo", summary: "Por que dimensionar a instalação pelo PICO e estimar energia/gerador pelo TÍPICO — com a fórmula (modelo Barco) e as fontes.",
@@ -180,29 +180,6 @@ export const KB_ARTICLES = [
       { h: "Tensão", blocks: [{ t: "note", text: "O cálculo de gabinetes por cabo assume 220 V. Em 110–127 V (F-N de praça 127 V) a corrente sobe ~73% e o nº de gabinetes por cabo cai pela metade." }] },
       { h: "Instalação temporária", blocks: [{ t: "ul", items: ["DR ≤ 30 mA obrigatório em área externa/molhada (NBR 5410)", "Aterre gerador e estrutura", "Corrente de fuga (~3 mA/painel) pode limitar a ~5 painéis por circuito com DR de 30 mA"] }] },
       { h: "Energização (inrush)", blocks: [{ t: "p", text: "Fontes SMPS puxam 50–100× a corrente nominal por alguns ms no cold start (~60 A por fonte). Ligue a tela por seções e prefira disjuntor curva C (ou D em telas grandes) para não desarmar." }] },
-    ] },
-  { id: "estrutura-peso-ancoragens", category: "Estrutura", title: "Peso e estrutura — o que o app checa", summary: "Peso da parede, o limite publicado pelo fabricante nos dois tipos de montagem, e o mito do fator de segurança.",
-    sections: [
-      { h: "O que o app faz — e o que não faz", blocks: [
-        { t: "p", text: "O app responde duas perguntas: quanto pesa a parede (grade × peso do gabinete) e se a altura respeita o limite que o FABRICANTE publica pro tipo de montagem escolhido — voada ou sentada no chão. Isso é aritmética sobre dados do projeto." },
-        { t: "note", text: "O app NÃO dimensiona bumper, talha nem ancoragem, não dimensiona treliça, não calcula vento, lastro ou estaiamento, e nunca diz que uma montagem está aprovada. Quem dimensiona, monta e assina o rigging é o rigger habilitado — no Brasil, com ART de engenheiro. O verbo aqui é sempre CONFIRA." },
-      ] },
-      { h: "Voada × sentada", blocks: [
-        { t: "p", text: "O tipo de montagem se escolhe na aba Relatório e muda qual limite entra na cadeia: VOADA checa a altura pendurada (em metros e/ou em gabinetes); SENTADA (empilhada no chão) checa a altura de empilhamento — que costuma ser MENOR que a voada, porque quem trabalha é a trava entre gabinetes, não a barra." },
-        { t: "p", text: "Os dois limites se cadastram no gabinete, em Gestão › Gabinetes › Especificações Avançadas, com a procedência (manual, datasheet). O que não estiver preenchido sai como NÃO INFORMADO no papel — nunca como estimativa." },
-      ] },
-      { h: "WLL: o fator de segurança já está dentro", blocks: [
-        { t: "p", text: "WLL (Working Load Limit) é a carga de trabalho JÁ dividida pelo fator de projeto do fabricante. Corrente de elevação trabalha com fator 8:1 sob DIN 56950-1 / EN 17206; um hoist C1 é projetado em 10:1." },
-        { t: "note", text: "Por isso NÃO se multiplica a carga por 5 para comparar com o WLL. É comum ver planilha pedindo WLL de 5× a carga — isso é fator sobre fator, equivale a exigir 25:1 até a ruptura. A conta certa é direta: carga na ancoragem ≤ WLL. E nunca passar do WLL." },
-      ] },
-      { h: "Ângulo: fora do prumo a carga sobe", blocks: [
-        { t: "p", text: "Enquanto a talha está a prumo sobre a ancoragem, a carga no cabo é a carga vertical. Assim que o cabo sai da vertical (bridle pra desviar de uma perna de treliça, ancoragem fora do prumo), a força cresce por 1 ÷ cosseno do ângulo." },
-        { t: "table", cols: ["Ângulo da vertical", "Multiplicador"], rows: [["0° (a prumo)", "1,00×"], ["30°", "1,15×"], ["45°", "1,41×"], ["60°", "2,00×"]] },
-      ] },
-      { h: "O elo que trava primeiro", blocks: [
-        { t: "p", text: "A parede é uma corrente de elos: trava do gabinete → bumper → ancoragem (talha, manilha, cinta) → treliça/estrutura → chão. Com painel de evento e talha de 1 t, quem trava quase nunca é a talha — é o limite de empilhamento do fabricante (que na verdade é o limite da TRAVA entre gabinetes) ou a carga pontual admissível da treliça." },
-        { t: "note", text: "Uma parede pode estar folgadíssima de talha e ainda assim estar fora do limite do fabricante. Confira sempre o manual do gabinete, e a carga pontual da treliça com a produção." },
-      ] },
     ] },
   { id: "estrutura-checklist", category: "Estrutura", title: "Checklist de montagem — parede voada", summary: "Condições de campo que não aparecem em conta nenhuma: corrente livre, torção, gancho, nivelamento e içamento.",
     sections: [

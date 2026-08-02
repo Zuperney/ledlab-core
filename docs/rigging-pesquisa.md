@@ -1,5 +1,8 @@
 # Rigging — pesquisa de base (2026-07-25)
 
+> 🧊 **RESERVADO (2026-08-02).** O motor de rigging saiu do app (decisão do
+> dono, v1.15.0) — este estudo fica guardado pro futuro com 3D.
+>
 > Estudo que antecede a implementação. Objetivo: entender **como o mercado resolve
 > isso**, **quais são as regras de cálculo reais** e **o que o LedLab pode afirmar
 > sem mentir**. O espeque da fase (vocabulário, motor, plano) está em

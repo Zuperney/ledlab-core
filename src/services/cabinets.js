@@ -35,11 +35,8 @@ export const fullSnapshot = (c) =>
         receivingCard: c.receivingCard,
         conector: c.conector,
         conectorCustom: c.conectorCustom,
-        // limites de estrutura do fabricante — vão junto pro projeto continuar
-        // legível offline/exportado. Mas o Caderno prefere o valor VIVO da
-        // biblioteca (ver services/rigging.js): limite publicado é fato sobre o
-        // MODELO, não escolha de projeto — descobrir o número hoje tem que
-        // valer pro caderno de ontem.
-        rigging: c.rigging,
+        // rigging saiu do snapshot (decisão do dono, 02/08/2026 — o motor saiu
+        // do app; reservado pro futuro 3D). Snapshots antigos com a chave
+        // `rigging` seguem válidos — ninguém a lê.
       }
     : null;

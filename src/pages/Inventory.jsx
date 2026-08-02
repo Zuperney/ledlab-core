@@ -14,11 +14,10 @@ import DropdownMenu from "../components/DropdownMenu.jsx";
 import Select from "../components/Select.jsx";
 import Drawer from "../components/Drawer.jsx";
 
-// `rigging` = limites que o FABRICANTE publica. Vazio nunca vira estimativa: o
-// Caderno imprime "não informado". Ver docs/rigging-spec.md §3.2.
-const EMPTY_RIG = { voadoMaxM: "", empilhadoMaxM: "", porBarraMaxQtd: "", travaExtraAcima: "", trava: "", fonte: "", conferido: false };
-const EMPTY = { nome: "", marca: "", resX: "", resY: "", dimW: "", dimH: "", peso: "", pwrMax: "", pwrMed: "", pwrBlack: "", fp: "0.9", ip: "Indoor", brilho: "", receivingCard: "", conector: "PowerCON Azul/Branco", conectorCustom: "", rigging: { ...EMPTY_RIG } };
-const TRAVAS = ["", "Chaveta", "Pino transversal", "Outra"];
+// rigging saiu do cadastro (decisão do dono, 02/08/2026 — reservado pro futuro
+// 3D; pesquisa em docs/rigging-*.md). Gabinetes antigos podem carregar uma
+// chave `rigging` órfã no storage — inofensiva, ninguém a lê.
+const EMPTY = { nome: "", marca: "", resX: "", resY: "", dimW: "", dimH: "", peso: "", pwrMax: "", pwrMed: "", pwrBlack: "", fp: "0.9", ip: "Indoor", brilho: "", receivingCard: "", conector: "PowerCON Azul/Branco", conectorCustom: "" };
 const firstWord = (s) => (s || "").trim().split(/\s+/)[0] || "";
 const REQUIRED = ["nome", "resX", "resY", "dimW", "dimH", "peso", "pwrMax"];
 const CONECTORES = ["PowerCON Azul/Branco", "PowerCON TRUE1", "Neutrik True1", "Neutrik True1 TOP", "HangTon SD20", "Personalizado"];
@@ -95,14 +94,7 @@ export default function Inventory() {
     setDrawer({ ...drawer, data: next });
   };
 
-  // gabinete antigo (ou da semente) não tem `rigging` — nasce vazio ao editar
-  const setRig = (k, v) => {
-    const rig = { ...EMPTY_RIG, ...(drawer.data.rigging || {}), [k]: v };
-    setDrawer({ ...drawer, data: { ...drawer.data, rigging: rig } });
-  };
-
   const d = drawer?.data;
-  const rig = { ...EMPTY_RIG, ...(d?.rigging || {}) };
 
   return (
     <div>
@@ -275,43 +267,6 @@ export default function Inventory() {
                 {d.conector === "Personalizado" && (
                   <Field lbl="Conector personalizado" ph="Descreva o conector" value={d.conectorCustom} onChange={(v) => setField("conectorCustom", v)} full />
                 )}
-
-                {/* ── Estrutura: limites do FABRICANTE ──
-                    Preenche uma vez por gabinete e vale pra todos os projetos.
-                    Campo vazio NÃO vira estimativa — o Caderno imprime "não
-                    informado". Ver docs/rigging-spec.md §3.2. */}
-                <div style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 14, display: "grid", gap: 14 }}>
-                  <div>
-                    <Label>Estrutura — limites do fabricante <Hint>o que estiver no manual do painel</Hint></Label>
-                    <p style={{ color: T.dim, fontSize: 12, margin: "0 0 2px", lineHeight: 1.45 }}>
-                      Preencha só o que você confirmou. O que ficar em branco sai como <b style={{ color: T.mut }}>“não informado”</b> no Caderno — nunca como estimativa.
-                    </p>
-                  </div>
-                  <Grid2>
-                    <Field lbl="Altura máx. voada (m)" ph="Ex: 10" type="number" value={rig.voadoMaxM} onChange={(v) => setRig("voadoMaxM", v)} />
-                    <Field lbl="Altura máx. empilhada (m)" ph="Ex: 6 (costuma ser menor)" type="number" value={rig.empilhadoMaxM} onChange={(v) => setRig("empilhadoMaxM", v)} />
-                  </Grid2>
-                  <Grid2>
-                    <Field lbl="Gabinetes por barra de içamento" ph="Ex: 20" type="number" value={rig.porBarraMaxQtd} onChange={(v) => setRig("porBarraMaxQtd", v)} />
-                    <Field lbl="Trava extra acima de (gabinetes)" ph="Ex: 8" type="number" value={rig.travaExtraAcima} onChange={(v) => setRig("travaExtraAcima", v)} />
-                  </Grid2>
-                  <Grid2>
-                    <div>
-                      <Label>Tipo de trava <Hint>registro — não entra em cálculo</Hint></Label>
-                      <Select value={rig.trava} onChange={(e) => setRig("trava", e.target.value)} style={input()}>
-                        {TRAVAS.map((t) => <option key={t || "vazio"} value={t}>{t || "Não informado"}</option>)}
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Procedência</Label>
-                      <Select value={rig.conferido ? "sim" : "nao"} onChange={(e) => setRig("conferido", e.target.value === "sim")} style={input()}>
-                        <option value="nao">Não confirmado</option>
-                        <option value="sim">Confirmado no manual/etiqueta</option>
-                      </Select>
-                    </div>
-                  </Grid2>
-                  <Field lbl="Fonte do dado" ph="Ex: Manual MG7S, cap. 3 — ou foto da etiqueta" value={rig.fonte} onChange={(v) => setRig("fonte", v)} full />
-                </div>
               </div>
             )}
           </div>

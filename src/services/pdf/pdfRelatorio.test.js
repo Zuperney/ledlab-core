@@ -217,10 +217,11 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("GLOSSÁRIO");
     expect(json).toContain("Pico × Típico");
     expect(json).toContain("Fases R/S/T");
-    // "Serpentina" só existia como verbete — sumiu do doc inteiro. ("Bumper"/"Talha"
-    // seguem citados na seção Estrutura, que aponta pro rigger; a ausência DELES
-    // no glossário é travada em reportContent.test.js.)
+    // termos que só existiam como verbete (ou na seção de estrutura, que saiu
+    // com o rigging em 02/08) sumiram do doc inteiro
     expect(json).not.toContain("Serpentina");
+    expect(json).not.toContain("Bumper");
+    expect(json).not.toContain("Talha");
   });
 
   it("sem logo, a capa não tem node de imagem (não quebra o pdfmake)", () => {
@@ -287,7 +288,7 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     // sumário, todas marcam) + 4 blocos (2 telas × sinal e AC) → 11 marcas.
     const doc = build("Completo");
     const completo = JSON.stringify(doc.content);
-    expect(completo.match(/"headlineLevel":1/g)?.length).toBe(12); // +1: Critérios de Cálculo
+    expect(completo.match(/"headlineLevel":1/g)?.length).toBe(11); // 7 seções + 4 blocos (estrutura saiu, 02/08)
     expect(completo.match(/"pageBreak":"before"/g)).toBeNull(); // nunca incondicional
     expect(typeof doc.pageBreakBefore).toBe("function");
     // quebra só com conteúdo na página atual (assinatura do pdfmake: getters no 2º arg)
@@ -312,8 +313,8 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     const completo = JSON.stringify(build("Completo").content);
     expect(completo).toContain('"toc"');
     expect(completo).toContain("SUMÁRIO");
-    // 8 seções marcadas (marcador invisível com a linha "NN · TÍTULO")
-    expect(completo.match(/"tocItem":true/g)?.length).toBe(8);
+    // 7 seções marcadas (marcador invisível com a linha "NN · TÍTULO")
+    expect(completo.match(/"tocItem":true/g)?.length).toBe(7);
     expect(completo).toContain("01  ·  VISÃO GERAL");
     // Elétrico/Mapa de cabos: sem sumário (mas os marcadores são inofensivos)
     expect(JSON.stringify(build("Elétrico").content)).not.toContain('"toc"');
@@ -331,104 +332,8 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(mono).not.toContain('"FASE"');
   });
 
-  // ── Peso e estrutura ──
-  // O contrato do papel: a seção registra peso e checa limite publicado; nunca
-  // promete engenharia e nunca transforma ausência de dado em folga.
-  it("Peso e estrutura: seção 02, logo depois da Visão Geral, na cor da Estrutura", () => {
-    const j = JSON.stringify(build("Completo").content);
-    expect(j).toContain("02  ·  PESO E ESTRUTURA");
-    expect(j).toContain("#0f766e"); // teal da disciplina Estrutura
-    expect(j).not.toContain("RIGGING"); // a seção nunca se chama assim
-  });
-
-  it("sai no Completo e no Estrutural; fica fora do Elétrico e do Resumido", () => {
-    expect(JSON.stringify(build("Estrutural").content)).toContain("PESO E ESTRUTURA");
-    expect(JSON.stringify(build("Elétrico").content)).not.toContain("PESO E ESTRUTURA");
-    expect(JSON.stringify(build("Resumido").content)).not.toContain("PESO E ESTRUTURA");
-  });
-
-  it("toggle `mostrar: false` tira a seção do Completo — mas o Estrutural mostra sempre", () => {
-    const proj = { ...project, rigging: { mostrar: false } };
-    expect(JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Completo", cfg, logo: null }).content)).not.toContain("PESO E ESTRUTURA");
-    expect(JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Estrutural", cfg, logo: null }).content)).toContain("PESO E ESTRUTURA");
-  });
-
-  it("montagem sentada: a tag muda e a cadeia checa a altura empilhada", () => {
-    const gabLim = { ...gab, rigging: { voadoMaxM: 10, empilhadoMaxM: 6, fonte: "Manual", conferido: true } };
-    const proj = { ...project, rigging: { modo: "empilhado" }, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: gabLim }] };
-    const j = JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Estrutural", cfg, logo: null }).content);
-    expect(j).toContain("PAREDE SENTADA"); // o sectionHead põe a tag em caixa alta
-    expect(j).toContain("Empilhamento no piso · altura");
-    expect(j).not.toContain("Trava entre gabinetes · altura voada");
-    expect(j).not.toContain("ANTES DE SUBIR"); // checklist é da parede voada
-  });
-
-  it("gabinete sem limite de fabricante: imprime NÃO INFORMADO, nunca 'dentro'", () => {
-    const j = JSON.stringify(build("Estrutural").content); // o gab do teste não tem rigging
-    expect(j).toContain("NÃO INFORMADO");
-    expect(j).toContain("LIMITE DO FABRICANTE NÃO INFORMADO");
-    expect(j).toContain("sem dado de fabricante");
-    expect(j).not.toContain("DENTRO");
-  });
-
-  it("acima do limite: aviso VERMELHO que nomeia o elo e desarma a saída errada", () => {
-    const gabLim = { ...gab, rigging: { voadoMaxM: 2, porBarraMaxQtd: 4, fonte: "Datasheet", conferido: true } };
-    const j = JSON.stringify(buildRelatorioDoc({ project: { ...project, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: gabLim }] }, tipo: "Estrutural", cfg, logo: null }));
-    expect(j).toContain("ACIMA DO LIMITE DO FABRICANTE");
-    expect(j).toContain("#b91c1c"); // borda vermelha do aviso (PRINT.red)
-    expect(j).toContain("ferragem não resolve");
-  });
-
-  it("gabinete sem peso: campos em branco e aviso — a seção não inventa um zero", () => {
-    const semPeso = { ...gab, peso: "" };
-    const telas = [
-      { id: "t1", nome: "Main", cols: 10, rows: 6, gabinete: semPeso },
-      { id: "t2", nome: "Side", cols: 4, rows: 6, gabinete: gab }, // esta tem peso
-    ];
-    const doc = buildRelatorioDoc({ project: { ...project, telas }, tipo: "Estrutural", cfg, logo: null });
-    const j = JSON.stringify(doc.content);
-    expect(j).toContain("PESO DO GABINETE NÃO INFORMADO");
-    // o peso da tela sem dado sai como travessão na tabela, não como 0 kg
-    expect(j).toContain('{"text":"—","font":"PlexMono","alignment":"right"}');
-    // e o total avisa que é parcial em vez de fingir que fechou
-    expect(j).toContain("(parcial)");
-  });
-
-  // REGRESSÃO ponta a ponta: o técnico cadastra o limite na Biblioteca e o
-  // Caderno de um projeto ANTIGO (snapshot sem `rigging`) tem que refletir.
-  it("limite cadastrado na Biblioteca chega no Caderno de projeto já existente", () => {
-    const cabVivo = { ...gab, id: 42, rigging: { voadoMaxM: 2, porBarraMaxQtd: 4, fonte: "Manual Absen", conferido: true } };
-    const proj = { ...project, telas: [{ id: "t1", nome: "Main", cols: 10, rows: 6, cabId: 42, gabinete: gab }] }; // snapshot SEM rigging
-    const semLib = JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Estrutural", cfg, logo: null }).content);
-    expect(semLib).toContain("NÃO INFORMADO");
-
-    const comLib = JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Estrutural", cfg, logo: null, cabs: [cabVivo] }).content);
-    expect(comLib).toContain("Manual Absen · conferido"); // a procedência aparece
-    expect(comLib).toContain("ACIMA DO LIMITE DO FABRICANTE"); // e o limite passa a valer
-  });
-
-  it("telas com a mesma cadeia rendem UM bloco só (não 6 iguais)", () => {
-    const seis = Array.from({ length: 6 }, (_, i) => ({ id: `t${i}`, nome: `Lateral ${i + 1}`, cols: 4, rows: 6, gabinete: gab }));
-    const j = JSON.stringify(buildRelatorioDoc({ project: { ...project, telas: seis }, tipo: "Estrutural", cfg, logo: null }).content);
-    expect(j.match(/A cadeia — o que trava primeiro/gi)?.length).toBe(1);
-    expect(j.match(/LIMITE DO FABRICANTE NÃO INFORMADO/g)?.length).toBe(1);
-    expect(j).toContain("Lateral 1 · Lateral 2"); // mas nomeia todas as paredes cobertas
-    expect(j).toContain("6 telas · mesma cadeia");
-  });
-
-  it("a tabela da cadeia repete o cabeçalho se quebrar de página", () => {
-    const j = JSON.stringify(build("Estrutural").content);
-    expect(j).toContain('"headerRows":1');
-    expect(j).toContain("A CADEIA — O QUE TRAVA PRIMEIRO");
-  });
-
-  it("o checklist de campo e o aviso de escopo viajam junto com os números", () => {
-    const j = JSON.stringify(build("Estrutural").content);
-    expect(j).toContain("ANTES DE SUBIR");
-    expect(j).toContain("1 m de corrente livre");
-    expect(j).toContain("PLANEJAMENTO DE REFERÊNCIA");
-    expect(j).toContain("rigger habilitado");
-  });
+  // (a suíte da seção "Peso e estrutura" saiu com o motor de rigging —
+  // decisão do dono, 02/08/2026; reservado pro futuro 3D)
 
   it("bloco de tela/Screen NÃO usa unbreakable — o pdfmake descarta bloco maior que a página", () => {
     // regressão do caderno real: unbreakable no fio da página gerou páginas em
@@ -454,7 +359,8 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
   it("numeração de seção segue a ordem exibida (Completo começa em 01)", () => {
     const j = JSON.stringify(build("Completo").content);
     expect(j).toContain('"01"');
-    expect(j).toContain('"05"'); // 5 seções numeradas no Completo sem Screens... VG, vídeo, elétrica, sinal, AC, glossário = 6
-    expect(j).toContain('"06"');
+    // VG, vídeo, elétrica, sinal, AC, critérios, glossário = 7 (estrutura saiu)
+    expect(j).toContain('"07"');
+    expect(j).not.toContain('"08"');
   });
 });

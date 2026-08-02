@@ -3,11 +3,10 @@
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState, useRef, useEffect } from "react";
-import { Printer, Download, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen, Anchor } from "lucide-react";
+import { Printer, Download, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
 import { useToast } from "../../store/UIContext.jsx";
 import HelpTip from "../../components/HelpTip.jsx";
 import Segmented from "../../components/Segmented.jsx";
-import Select from "../../components/Select.jsx";
 import { useLedLabContext } from "../../store/AppContext.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { aggregateElectrical, projectRollup, screenRollup, isoDate } from "../../services/projectCalc.js";
@@ -17,32 +16,26 @@ import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from 
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf } from "../../services/reportContent.js";
-import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../../services/reportContent.js";
-import { projectRigging, DEFAULT_RIG } from "../../services/rigging.js";
-import { useCabinets } from "../../hooks/useCabinets.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
 import ReportTelasCanvas from "../../components/ReportTelasCanvas.jsx";
-import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable, WarnBox, StatRow } from "./reportUi.jsx";
+import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable, WarnBox } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
 import { btn } from "../../ui/styles.js";
 import { fileName, printAs } from "../../services/filenames.js";
 
-const TYPES = ["Completo", "Resumido", "Elétrico", "Mapa de cabos", "Estrutural", "Design", "Gabinetes"];
+// rigging saiu do app (decisão do dono, 02/08/2026 — reservado pro futuro 3D;
+// pesquisa em docs/rigging-*.md). O peso físico segue na capa e na Visão Geral.
+const TYPES = ["Completo", "Resumido", "Elétrico", "Mapa de cabos", "Design", "Gabinetes"];
 // no CELULAR só o essencial de consulta (pedido do usuário): imprimir/tipos finos é fluxo de PC
 const TYPES_MOBILE = ["Completo", "Resumido", "Mapa de cabos"];
 // largura fixa "de impressão": no mobile o relatório é montado nela e escalado (zoom) p/ caber
 const DOC_W = 800;
-// tipo de montagem — rótulo de UI (código guarda "empilhado", que casa com o
-// campo empilhadoMaxM da Biblioteca)
-const MODO_LABEL = { voado: "Voada", empilhado: "Sentada (empilhada)" };
-const selSty = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, fontWeight: 600, minHeight: 38 };
 
-export default function ProjectRelatorio({ project, patch }) {
+export default function ProjectRelatorio({ project }) {
   const { prefs } = useLedLabContext();
-  const { cabs } = useCabinets();
   const { colorOf, palette } = useCablePalette();
   const isMobile = useIsMobile();
   const [type, setType] = useState("Completo");
@@ -76,7 +69,7 @@ export default function ProjectRelatorio({ project, patch }) {
     setGerandoPdf(true);
     try {
       const { baixarRelatorioPdf } = await import("../../services/pdf/pdfEngine.js");
-      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette, render: prefs.cablingRender, cabs, assinatura: prefs.assinatura || "" });
+      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette, render: prefs.cablingRender, assinatura: prefs.assinatura || "" });
       toast("PDF gerado");
     } catch (e) {
       console.error(e);
@@ -85,30 +78,16 @@ export default function ProjectRelatorio({ project, patch }) {
     setGerandoPdf(false);
   };
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
-  const showPhys = ["Completo", "Resumido", "Estrutural", "Gabinetes", "Design"].includes(type);
+  const showPhys = ["Completo", "Resumido", "Gabinetes", "Design"].includes(type);
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
   const showSignal = ["Completo", "Mapa de cabos"].includes(type);
   const showAC = ["Completo", "Mapa de cabos"].includes(type); // AC saiu do Elétrico → foco em tabelas
   const showGloss = type === "Completo"; // glossário só no caderno completo (leitor leigo/cliente)
-  // ESTRUTURA (F2) — peso e limites. `project.rigging` guarda a escolha do
-  // usuário: `mostrar` (a seção entra no Completo?) e `modo` (voado × sentado).
-  // No tipo "Estrutural" a seção sai sempre — pedir esse relatório JÁ é o opt-in.
-  const rigCfg = { ...DEFAULT_RIG, ...(project.rigging || {}) };
-  const setRig = (partial) => patch?.({ rigging: { ...rigCfg, ...partial } });
-  const showRig = telas.length > 0 && (type === "Estrutural" || (type === "Completo" && rigCfg.mostrar !== false));
-  // `cabs` entra pro limite do fabricante vir VIVO da biblioteca: o snapshot da
-  // tela congela o que se sabia na criação, e o limite publicado é fato sobre o
-  // modelo — confirmar o número hoje tem que valer pro caderno de ontem.
-  const rp = showRig ? projectRigging(project, rigCfg, cabs) : null;
 
   const th = { textAlign: "left", padding: "6px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase" };
   const td = { padding: "6px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
   const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: colorOf(i), flexShrink: 0 });
-  // pílula de status da cadeia: "sem dado" é CINZA, nunca verde — ausência de
-  // limite publicado não é folga (docs/rigging-spec.md §3.2)
-  const RIG_C = { ok: PRINT.grn, acima: PRINT.red, semDado: PRINT.dim };
-  const rigPill = (status) => ({ display: "inline-block", padding: "1px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, border: `1px solid ${RIG_C[status]}`, color: RIG_C[status], whiteSpace: "nowrap" });
 
   // com Screens, o SINAL vem delas (uma seção por Screen, portas 1..N por Screen).
   // Sem Screens, segue por tela (legado). O AC não muda: segue o físico, por tela.
@@ -136,21 +115,6 @@ export default function ProjectRelatorio({ project, patch }) {
         <Segmented value={type} onChange={setType} size="sm"
           options={(isMobile ? TYPES_MOBILE : TYPES).map((t) => ({ value: t, label: t }))} />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          {/* ESTRUTURA: toggle de exibição (só no Completo — no Estrutural a seção
-              é a razão do relatório) + tipo de montagem. Gravam project.rigging. */}
-          {type === "Completo" && (
-            <button aria-pressed={rigCfg.mostrar !== false} title="Peso e estrutura no relatório" aria-label="Peso e estrutura no relatório"
-              onClick={() => setRig({ mostrar: rigCfg.mostrar === false })}
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: 8, background: rigCfg.mostrar !== false ? T.sel : "transparent", border: `1px solid ${rigCfg.mostrar !== false ? T.acc : T.bd}`, color: rigCfg.mostrar !== false ? T.acM : T.mut, cursor: "pointer", padding: 0 }}>
-              <Anchor size={16} />
-            </button>
-          )}
-          {showRig && (
-            <Select value={rigCfg.modo} onChange={(e) => setRig({ modo: e.target.value })} title="Tipo de montagem" style={selSty}>
-              <option value="voado">Voada</option>
-              <option value="empilhado">Sentada (empilhada)</option>
-            </Select>
-          )}
           {/* MOTOR NATIVO (F1): gera o PDF no app — funciona no celular, com nome
               certo e sem "gráficos de segundo plano". Imprimir fica de fallback. */}
           <button style={btn("primary", gerandoPdf ? { opacity: 0.6, cursor: "wait" } : {})} disabled={gerandoPdf} onClick={baixarPdf}>
@@ -203,94 +167,6 @@ export default function ProjectRelatorio({ project, patch }) {
             )}
           </section>
         )}
-
-        {showRig && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); const r0 = rp.telas[0].rig; const maiorAltura = rp.telas.reduce((m, r) => Math.max(m, r.rig.alturaM), 0); return (
-          <section style={{ marginBottom: 22 }}>
-            <SectionHead n={sn} title="Peso e estrutura" tag={`Estrutura · parede ${r0.modo === "empilhado" ? "sentada" : "voada"}`} color={DISC.estr} Icon={Anchor} />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>
-              Peso da parede e a checagem contra os <b style={{ color: PRINT.ink }}>limites publicados pelo fabricante</b>, no tipo de montagem escolhido — aritmética sobre a grade e o peso do gabinete.
-              O que o fabricante não publica sai como <b style={{ color: PRINT.ink }}>não informado</b>, nunca estimado.
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 0 4px" }}>
-              <span style={chip}>Montagem <b style={{ marginLeft: 3 }}>{MODO_LABEL[r0.modo]}</b></span>
-            </div>
-
-            <StatRow items={[
-              { label: "Peso total", value: rp.totalKg > 0 ? fmtPeso(rp.totalKg) : "—" },
-              { label: "Gabinetes", value: roll.gab },
-              { label: "Maior altura", value: maiorAltura > 0 ? `${nRig(maiorAltura)} m` : "—" },
-            ]} />
-
-            {rp.algumSemPeso && <WarnBox title={RIG_SEM_PESO.titulo} tone="amber">{RIG_SEM_PESO.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>}
-
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Grade</th><th style={th}>Gabinete</th><th style={th}>Altura</th><th style={th}>Peso</th><th style={th}>Limite do fabricante</th></tr></thead>
-              <tbody>
-                {rp.telas.map(({ tela: t, rig }) => (
-                  <tr key={t.id}>
-                    <td style={td}>{t.nome}</td>
-                    <td style={td}>{rig.cols}×{rig.rows}</td>
-                    <td style={td}>{t.gabinete?.nome || "—"}</td>
-                    <td style={td}>{rig.alturaM > 0 ? `${nRig(rig.alturaM)} m` : "—"}</td>
-                    <td style={td}>{rig.semPeso ? "—" : fmtPeso(rig.totalKg)}</td>
-                    <td style={td}><span style={rigPill(rigStatusTela(rig))}>{RIG_PILL[rigStatusTela(rig)]}</span></td>
-                  </tr>
-                ))}
-                <tr style={{ fontWeight: 700 }}>
-                  <td style={td}>Total</td><td style={td}>{roll.gab} gab.</td><td style={td}></td><td style={td}></td>
-                  <td style={td}>{rp.totalKg > 0 ? <>{fmtPeso(rp.totalKg)}{rp.algumSemPeso && <span style={{ fontWeight: 400, color: PRINT.amb }}> (parcial)</span>}</> : "—"}</td>
-                  <td style={td}></td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* uma CADEIA por GRUPO de telas que contam a mesma história (rigGrupos) */}
-            {rigGrupos(rp.telas).map((g, i) => {
-              const { rig, travaExtra, cadeia } = g;
-              return (
-                <div key={i} className="rp-block" style={telaBlock}>
-                  <SubHead n={`${S}.${i + 1}`} title={rigGrupoTitulo(g)} right={rigGrupoMeta(g)} />
-                  {rig.limiteAcima && <WarnBox title="Acima do limite do fabricante" tone="red">{rigTextoAcima(rig).map((p, k) => (p.b ? <b key={k}>{p.t}</b> : <span key={k}>{p.t}</span>))}</WarnBox>}
-                  {rig.limiteSemDado && <WarnBox title={RIG_SEM_DADO.titulo} tone="amber">{RIG_SEM_DADO.partes.map((p, k) => (p.b ? <b key={k}>{p.t}</b> : <span key={k}>{p.t}</span>))}</WarnBox>}
-                  {travaExtra && (
-                    <WarnBox title="Ferragem extra por altura" tone="amber">
-                      <b>Acima de {rig.limites.travaExtraAcima} gabinetes de altura este fabricante pede trava extra entre gabinetes.</b> É regra que muda a ferragem, não o número — confira o manual e o material separado pela locadora.
-                    </WarnBox>
-                  )}
-                  <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", margin: "10px 0 6px" }}>A cadeia — o que trava primeiro</div>
-                  <div style={{ border: `1px solid ${PRINT.line}`, borderRadius: 8, overflow: "hidden" }}>
-                    {cadeia.map((e, k) => (
-                      <div key={e.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "7px 12px", borderTop: k ? `1px solid ${PRINT.line}` : undefined, background: k % 2 ? "#f8f8f8" : "transparent" }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: PRINT.ink }}>{e.titulo}</div>
-                          <div style={{ fontSize: 10.5, color: PRINT.dim }}>{e.sub}</div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
-                          {e.valor && <span style={{ fontSize: 11.5, color: PRINT.mut, fontFamily: "ui-monospace, monospace" }}>{e.valor}</span>}
-                          <span style={rigPill(e.status)}>{e.pill}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-
-            {r0.modo === "voado" && (
-              <div style={{ breakInside: "avoid", marginTop: 16 }}>
-                <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", marginBottom: 6 }}>Antes de subir</div>
-                <ul style={{ margin: 0, paddingLeft: 18, color: PRINT.mut, fontSize: 11.5, lineHeight: 1.6 }}>
-                  {CHECK_SUBIR.map((c, i) => <li key={i}><b style={{ color: PRINT.ink }}>{c.b}</b>{c.t}</li>)}
-                </ul>
-              </div>
-            )}
-
-            <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: PRINT.head, border: `1px solid ${PRINT.line}`, fontSize: 11, color: PRINT.mut, breakInside: "avoid" }}>
-              <div style={{ fontWeight: 800, color: PRINT.ink, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 10, marginBottom: 3 }}>{AVISO_RIG.titulo}</div>
-              {AVISO_RIG.partes.map((p, i) => (p.b ? <b key={i} style={{ color: PRINT.ink }}>{p.t}</b> : <span key={i}>{p.t}</span>))}
-            </div>
-          </section>
-        ); })()}
 
         {showVideo && (
           <section style={{ marginBottom: 22 }}>

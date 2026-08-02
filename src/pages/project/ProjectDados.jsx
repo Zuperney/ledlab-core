@@ -158,7 +158,7 @@ export default function ProjectDados({ project, patch, patchTela }) {
                       const c = cabs.find((x) => String(x.id) === e.target.value);
                       // SEMPRE `fullSnapshot` — esta linha já teve uma lista branca
                       // própria, mais curta, que engolia pwrBlack/ip/brilho/
-                      // receivingCard/rigging ao TROCAR o gabinete da tela. Uma
+                      // receivingCard ao TROCAR o gabinete da tela. Uma
                       // fonte só de snapshot; campo novo entra lá e vale aqui.
                       patchTela(t.id, { cabId: c?.id ?? null, gabinete: fullSnapshot(c) || {} });
                     }} style={input()}>

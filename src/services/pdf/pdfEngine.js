@@ -53,16 +53,16 @@ async function logoDataUrl() {
 // baixa o Caderno em PDF (nome de arquivo no padrão do app).
 // Logos (decisão do dono, 30/07): a MARCA LedLab fica na capa; o logo DO
 // PROJETO (project.logo, cadastrado em Dados) sai no carimbo das pranchas.
-export async function baixarRelatorioPdf({ project, tipo, cfg, gerado, numbering, palette, render, cabs, assinatura }) {
+export async function baixarRelatorioPdf({ project, tipo, cfg, gerado, numbering, palette, render, assinatura }) {
   const logo = await logoDataUrl();
-  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render, cabs });
+  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render });
   await pdfMake.createPdf(doc).download(fileName([project.name, "caderno", tipo], "pdf"));
 }
 
 // gera um blob-URL (pra pré-visualizar/verificar sem baixar)
-export async function relatorioPdfUrl({ project, tipo, cfg, gerado, numbering, palette, render, cabs, assinatura }) {
+export async function relatorioPdfUrl({ project, tipo, cfg, gerado, numbering, palette, render, assinatura }) {
   const logo = await logoDataUrl();
-  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render, cabs });
+  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render });
   const blob = await pdfMake.createPdf(doc).getBlob();
   return URL.createObjectURL(blob);
 }

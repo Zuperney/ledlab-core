@@ -129,20 +129,6 @@ export function SubHead({ n, title, right }) {
   );
 }
 
-// linha de stats rotuladas (label pequeno em caixa-alta + valor grande)
-export function StatRow({ items }) {
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 34, marginBottom: 26, marginTop: 4 }}>
-      {items.map((s, i) => (
-        <div key={i}>
-          <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase" }}>{s.label}</div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: s.color || PRINT.ink, marginTop: 2 }}>{s.value}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // número-herói num card (ex.: resolução total)
 export function HeroStat({ label, value, sub }) {
   return (

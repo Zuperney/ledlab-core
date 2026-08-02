@@ -3,26 +3,24 @@ import { fullSnapshot, cabinetSnapshot } from "./cabinets.js";
 
 // REGRESSÃO (25/07/2026): `fullSnapshot` é uma LISTA BRANCA — campo novo no
 // gabinete que não for adicionado aqui simplesmente não chega no projeto, e a
-// feature nasce inerte. Foi o que aconteceu com os limites de estrutura: os
-// campos existiam no cadastro, o Caderno lia `tela.gabinete.rigging`, e no meio
-// do caminho o snapshot os descartava em silêncio.
+// feature nasce inerte (campo existia no cadastro e o snapshot o descartava em
+// silêncio). Rigging saiu do app em 02/08/2026 (reservado pro futuro 3D).
 const CAB = {
   id: 7, nome: "Absen NT2.6 V2", marca: "Absen",
   resX: "192", resY: "192", dimW: "500", dimH: "500", peso: "7.9",
   pwrMax: "210", pwrMed: "70", pwrBlack: "62", fp: "0.9", ip: "Indoor",
   brilho: "5000", receivingCard: "MRV328", conector: "powercon", conectorCustom: "",
-  rigging: { voadoMaxM: 10, empilhadoMaxM: 12, porBarraMaxQtd: 20, travaExtraAcima: 20, trava: "Chaveta", fonte: "Manual Absen", conferido: true },
 };
 
 describe("snapshot do gabinete na tela", () => {
-  it("fullSnapshot leva os limites de estrutura junto", () => {
-    expect(fullSnapshot(CAB).rigging).toEqual(CAB.rigging);
-  });
-
   it("fullSnapshot leva TODO campo técnico do cadastro (guarda contra lista branca vencida)", () => {
     const snap = fullSnapshot(CAB);
-    for (const k of ["pwrBlack", "ip", "brilho", "receivingCard", "fp", "conector", "rigging"])
+    for (const k of ["pwrBlack", "ip", "brilho", "receivingCard", "fp", "conector"])
       expect(snap[k], `campo "${k}" sumiu no snapshot`).toBeDefined();
+  });
+
+  it("rigging saiu do snapshot (gabinete antigo com a chave não a propaga)", () => {
+    expect(fullSnapshot({ ...CAB, rigging: { voadoMaxM: 10 } }).rigging).toBeUndefined();
   });
 
   it("não carrega identidade de biblioteca (id/marca ficam de fora — a tela guarda cabId)", () => {
@@ -34,6 +32,6 @@ describe("snapshot do gabinete na tela", () => {
   });
 
   it("cabinetSnapshot segue leve, de propósito (projetos-semente)", () => {
-    expect(cabinetSnapshot(CAB).rigging).toBeUndefined();
+    expect(cabinetSnapshot(CAB).receivingCard).toBeUndefined();
   });
 });

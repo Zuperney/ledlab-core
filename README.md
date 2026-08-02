@@ -32,7 +32,7 @@ _Aponte a câmera do celular para o QR code._
 | 📅 **Agenda & cachês** | Diárias com check-in/checkout por GPS, tipos de atividade e total do mês |
 | 🧾 **Financeiro** | Recibo/planilha de pagamento por período e cliente — imprimir, PDF ou WhatsApp |
 | 💸 **Reembolso** | Despesas do evento com foto do comprovante e relatório pronto pra enviar |
-| 📄 **Caderno Técnico** | PDF nativo (funciona offline, no celular) em **prancha de engenharia**: moldura + carimbo com logo do projeto, revisão e folha N/M; tipos Completo, Resumido, Elétrico, Mapa de cabos, Estrutural, Design e Gabinetes |
+| 📄 **Caderno Técnico** | PDF nativo (funciona offline, no celular) em **prancha de engenharia**: moldura + carimbo com logo do projeto, revisão e folha N/M; tipos Completo, Resumido, Elétrico, Mapa de cabos, Design e Gabinetes |
 | 📚 **Base de Conhecimento** | Artigos de campo — sinal, segurança elétrica, estrutura, painéis — na linguagem de quem monta |
 | ☁️ **Backup & nuvem** | Backup em arquivo + sincronização opcional entre aparelhos (login por código no e-mail) |
 

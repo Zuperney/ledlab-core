@@ -2,6 +2,19 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [Não publicado]
+
+**O rigging saiu do app — reservado pro futuro com 3D.**
+
+Decisão do dono (02/08): o app não se envolve com estrutura até o 3D valer a pena. Saiu TUDO — sem código órfão:
+
+- **Motor** (`services/rigging.js`) e seus testes.
+- **Seção "Peso e estrutura"** do Caderno (DOM e PDF), o **tipo "Estrutural"**, o botão de exibição (âncora) e o seletor de montagem voada × sentada da aba Relatório.
+- **Campos de estrutura do cadastro de gabinete** (altura máx. voada/empilhada, gabinetes por barra, trava, procedência, fonte) e a chave `rigging` do snapshot.
+- **KB**: saiu o artigo "Peso e estrutura — o que o app checa"; **fica o "Checklist de montagem — parede voada"** (verdade de campo, não é conta).
+- **O que fica**: o peso físico da parede (grade × peso do gabinete) segue na capa e na Visão Geral; a pesquisa de rigging fica arquivada em `docs/rigging-*.md` com nota de reserva — volta quando o 3D entrar.
+- Dados antigos (`project.rigging`, `gabinete.rigging`) ficam inofensivos no storage — ninguém os lê.
+
 ## [1.14.0] — 2026-08-02
 
 **Caderno v2: mapa de cabos vira orientação de montagem, a disposição real das telas no papel, balanço por fase completo, Critérios de Cálculo — e nenhuma folha vazia.**

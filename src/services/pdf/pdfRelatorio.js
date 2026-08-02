@@ -1,4 +1,4 @@
-﻿// services/pdf/pdfRelatorio.js — monta a docDefinition do Caderno Técnico pro
+// services/pdf/pdfRelatorio.js — monta a docDefinition do Caderno Técnico pro
 // motor pdfmake. F2: paridade de CONTEÚDO com o Caderno do DOM — capa Folha
 // Técnica, Visão Geral (+ gabinetes utilizados), Vídeo/Resolução, Elétrica,
 // Sinal (por Screen ou legado por tela), AC (aviso de energização + tabelas),
@@ -17,12 +17,7 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf } from "../reportContent.js";
-import { AVISO_RIG, CHECK_SUBIR, RIG_SEM_DADO, RIG_SEM_PESO, rigGrupos, rigGrupoTitulo, rigGrupoMeta, rigTextoAcima, rigStatusTela, RIG_PILL, nRig } from "../reportContent.js";
-import { projectRigging, DEFAULT_RIG } from "../rigging.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
-
-// cor da pílula da cadeia: "sem dado" é CINZA, nunca verde (rigging-spec §3.2)
-const RIG_C = { ok: PRINT.grn, acima: PRINT.red, semDado: PRINT.dim };
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
 const LIME = "#ebf51e";
@@ -146,34 +141,6 @@ function warnBox({ titulo, partes }, tone = "amber") {
   };
 }
 
-// box NEUTRO de nota (fundo cinza) — contexto/escopo, não alarme
-function noteBox({ titulo, partes }) {
-  return {
-    margin: [0, 8, 0, 0],
-    table: {
-      widths: ["*"],
-      body: [[{
-        stack: [
-          { text: titulo.toUpperCase(), bold: true, color: PRINT.ink, fontSize: 8, characterSpacing: 0.5, margin: [0, 0, 0, 3] },
-          { text: partes.map((p) => ({ text: p.t, bold: !!p.b })), fontSize: 7.5, color: PRINT.mut, lineHeight: 1.3 },
-        ],
-        margin: [8, 6, 8, 6],
-      }]],
-    },
-    layout: { hLineWidth: () => 0.6, vLineWidth: () => 0.6, hLineColor: () => PRINT.line, vLineColor: () => PRINT.line, fillColor: () => PRINT.head },
-  };
-}
-
-// linhas da CADEIA de verificação: cabeçalho (repetido se a tabela quebrar de
-// página), zebra contínua e a pílula à direita
-const cadeiaLayout = {
-  hLineWidth: (i, node) => (i === 1 ? 1.2 : i === 0 || i === node.table.body.length ? 0.6 : 0.4),
-  hLineColor: (i) => (i === 1 ? PRINT.ink : PRINT.line),
-  vLineWidth: () => 0,
-  fillColor: (row) => (row > 0 && row % 2 === 0 ? ZEBRA : null),
-  paddingTop: () => 4, paddingBottom: () => 4, paddingLeft: () => 8, paddingRight: () => 8,
-};
-
 // bloco de Screen/tela (subtítulo + specs + mapa + tabela): abre SEMPRE em
 // página própria. SEM unbreakable, de
 // propósito — unbreakable que não cabe na página vira PÁGINA EM BRANCO e o
@@ -205,7 +172,7 @@ const coverRow = (label, value, { bold = false, first = false } = {}) => ({
 // cadastrado em Dados (bloco de marca do carimbo) · `assinatura` = "Projetou"
 // do carimbo (Configurações › Conta — global de propósito: o nome não pode
 // mudar de impressão pra impressão).
-export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render, cabs = [] }) {
+export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render }) {
   const pal = Array.isArray(palette) && palette.length ? palette : PALETTE;
   const colorOf = (i) => pal[(((i | 0) % pal.length) + pal.length) % pal.length];
   // render do mapa (setas/números/tamanho/canto) — mesmas prefs do DOM
@@ -263,19 +230,15 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // mudanças — o app não adivinha revisão (mesma regra do "não estima")
   const rev = Math.max(0, Math.trunc(parseFloat(project.rev)) || 0);
 
-  // mesmos filtros de seção por TIPO do Caderno DOM
+  // mesmos filtros de seção por TIPO do Caderno DOM. Rigging saiu do app
+  // (decisão do dono, 02/08/2026 — reservado pro futuro 3D); o peso físico
+  // segue na capa e na Visão Geral.
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(tipo);
-  const showPhys = ["Completo", "Resumido", "Estrutural", "Gabinetes", "Design"].includes(tipo);
+  const showPhys = ["Completo", "Resumido", "Gabinetes", "Design"].includes(tipo);
   const showVideo = ["Completo", "Resumido", "Design"].includes(tipo);
   const showSignal = ["Completo", "Mapa de cabos"].includes(tipo);
   const showAC = ["Completo", "Mapa de cabos"].includes(tipo);
   const showGloss = tipo === "Completo";
-  // ESTRUTURA (F2) — mesma regra do Caderno DOM: o Estrutural mostra sempre;
-  // no Completo obedece o toggle `mostrar` gravado em project.rigging
-  const rigCfg = { ...DEFAULT_RIG, ...(project.rigging || {}) };
-  const showRig = telas.length > 0 && (tipo === "Estrutural" || (tipo === "Completo" && rigCfg.mostrar !== false));
-  // `cabs`: limite do fabricante vem VIVO da biblioteca (o snapshot da tela é reserva)
-  const rp = showRig ? projectRigging(project, rigCfg, cabs) : null;
 
   const usaScreens = hasScreens(project);
   const screenReport = usaScreens && showSignal ? projectScreenReport(project, "sinal", numbering) : [];
@@ -393,94 +356,6 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           columnGap: 16,
         },
       ] : []),
-    ];
-  })();
-
-  // ── PESO E ESTRUTURA ──
-  // ⚠️ Nunca "Rigging" (prometeria engenharia) e nunca "ponto" (é o ponto de
-  // talha da produção). Escopo: docs/rigging-spec.md §3.
-  const estrutura = !showRig ? [] : (() => {
-    const sn = sec(); const S = String(sn).padStart(2, "0");
-    const r0 = rp.telas[0].rig;
-    const modoLabel = r0.modo === "empilhado" ? "Sentada (empilhada)" : "Voada";
-    const maiorAltura = rp.telas.reduce((m, r) => Math.max(m, r.rig.alturaM), 0);
-    const linhas = rp.telas.map(({ tela: t, rig }) => [
-      { text: t.nome, bold: true },
-      mono(`${rig.cols}×${rig.rows}`),
-      { text: t.gabinete?.nome || "—" },
-      mono(rig.alturaM > 0 ? `${nRig(rig.alturaM)} m` : "—", { alignment: "right" }),
-      mono(rig.semPeso ? "—" : fmtPeso(rig.totalKg), { alignment: "right" }),
-      { text: RIG_PILL[rigStatusTela(rig)].toUpperCase(), bold: true, fontSize: 7.5, color: RIG_C[rigStatusTela(rig)], alignment: "right", characterSpacing: 0.4 },
-    ]);
-    return [
-      sectionHead(sn, "Peso e estrutura", `Estrutura · parede ${r0.modo === "empilhado" ? "sentada" : "voada"}`, DISC.estr),
-      { text: "Peso da parede e a checagem contra os limites publicados pelo fabricante, no tipo de montagem escolhido — aritmética sobre a grade e o peso do gabinete. O que o fabricante não publica sai como NÃO INFORMADO, nunca estimado.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
-      specBox([
-        ["Montagem", modoLabel],
-      ]),
-      statRow([
-        ["Peso total", rp.totalKg > 0 ? fmtPeso(rp.totalKg) : "—"],
-        ["Gabinetes", roll.gab],
-        ["Maior altura", maiorAltura > 0 ? `${nRig(maiorAltura)} m` : "—"],
-      ]),
-      ...(rp.algumSemPeso ? [warnBox(RIG_SEM_PESO)] : []),
-      {
-        table: {
-          headerRows: 1,
-          widths: ["*", "auto", "*", "auto", "auto", "auto"],
-          body: [
-            [th("Tela"), th("Grade"), th("Gabinete"), th("Altura", "right"), th("Peso", "right"), th("Limite do fabricante", "right")],
-            ...linhas,
-            [
-              { text: "Total", bold: true }, mono(`${roll.gab} gab.`, { bold: true }), "", "",
-              mono(rp.totalKg > 0 ? `${fmtPeso(rp.totalKg)}${rp.algumSemPeso ? " (parcial)" : ""}` : "—", { alignment: "right", bold: true }),
-              "",
-            ],
-          ],
-        },
-        layout: zebraLayout(),
-      },
-      // uma CADEIA por GRUPO de telas que contam a mesma história (rigGrupos):
-      // 6 telas iguais viravam 6 blocos idênticos e estouravam a seção em páginas.
-      // SEM unbreakable: bloco alto que não cabe vira página em branco no pdfmake —
-      // por isso a tabela da cadeia leva headerRows, pra quebra inevitável repetir
-      // o cabeçalho em vez de sair decapitada.
-      ...rigGrupos(rp.telas).flatMap((g, i) => {
-        const { rig, travaExtra, cadeia } = g;
-        return [
-          subHead(`${S}.${i + 1}`, rigGrupoTitulo(g), rigGrupoMeta(g)),
-          ...(rig.limiteAcima ? [warnBox({ titulo: "Acima do limite do fabricante", partes: rigTextoAcima(rig) }, "red")] : []),
-          ...(rig.limiteSemDado ? [warnBox(RIG_SEM_DADO)] : []),
-          ...(travaExtra ? [warnBox({
-            titulo: "Ferragem extra por altura",
-            partes: [
-              { t: `Acima de ${rig.limites.travaExtraAcima} gabinetes de altura este fabricante pede trava extra entre gabinetes.`, b: true },
-              { t: " É regra que muda a ferragem, não o número — confira o manual e o material separado pela locadora." },
-            ],
-          })] : []),
-          {
-            table: {
-              headerRows: 1,
-              widths: ["*", "auto", "auto"],
-              body: [
-                [th("A cadeia — o que trava primeiro"), th("Valor", "right"), th("Situação", "right")],
-                ...cadeia.map((e) => [
-                  { stack: [{ text: e.titulo, bold: true, fontSize: 8.5 }, { text: e.sub, fontSize: 7, color: PRINT.dim, margin: [0, 1, 0, 0] }] },
-                  mono(e.valor, { alignment: "right", fontSize: 8, color: PRINT.mut }),
-                  { text: e.pill.toUpperCase(), bold: true, fontSize: 7.5, color: RIG_C[e.status], alignment: "right", characterSpacing: 0.4 },
-                ]),
-              ],
-            },
-            layout: cadeiaLayout,
-            margin: [0, 6, 0, 0],
-          },
-        ];
-      }),
-      ...(r0.modo === "voado" ? [
-        { text: "ANTES DE SUBIR", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 12, 0, 4] },
-        { ul: CHECK_SUBIR.map((c) => ({ text: [{ text: c.b, bold: true, color: PRINT.ink }, { text: c.t }] })), fontSize: 8, color: PRINT.mut, lineHeight: 1.3 },
-      ] : []),
-      noteBox(AVISO_RIG),
     ];
   })();
 
@@ -1034,7 +909,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // rodapé em TODA página (menos a capa): o CARIMBO da prancha
     footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
-      const secoes = [visaoGeral, estrutura, video, eletrica, sinal, ac, criterios, gloss].filter((s) => s.length);
+      const secoes = [visaoGeral, video, eletrica, sinal, ac, criterios, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
       // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
       // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead
