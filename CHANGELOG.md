@@ -8,6 +8,8 @@ Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](h
 
 A régua abstrata do modo Distância virou uma **cena de perfil** (mockup aprovado pelo dono): a parede de LED desenhada em escala, uma **pessoa de 1,70 m** como referência de proporção, o chão pintado com as quatro faixas das réguas e a cota da distância entre os dois. A pessoa é **arrastável** (tocar no chão também reposiciona — mesmo estado do campo "Primeira fila"). E o detalhe que prova o ponto: o quadro **"o que o olho vê"** mostra os LEDs separados quando perto demais e a imagem lisa da retina em diante — a mesma conta do motor (razão retina ÷ distância), visível. Máxima que não cabe na cena vira a seta "máx → N m" na borda; sem altura informada, a parede sai como referência de 3 m rotulada.
 
+E o preview de crop (modo Proporção) agora recorta uma **imagem de verdade** (pintura de domínio público, ~170 KB, no precache offline) em vez do esquema X + círculo — dá pra VER o que o "preencher" corta e o que o "encaixar" preserva; um toggle-ícone volta pro esquema quando quiser.
+
 ## [1.16.0] — 2026-08-02
 
 **Recomendador pitch × distância — a Fase 02 do roadmap fecha.**

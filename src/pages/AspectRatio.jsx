@@ -3,7 +3,7 @@
 // (Fase 02: recomendador pitch × distância — as quatro réguas de visão).
 // Ferramenta avulsa: parte de valores manuais OU de um gabinete + grade.
 import { useState, useRef } from "react";
-import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
 import { useLedLabContext } from "../store/AppContext.jsx";
@@ -16,6 +16,10 @@ import Select from "../components/Select.jsx";
 import NumField from "../components/NumField.jsx";
 import { fillCrop } from "../services/crop.js";
 import { pitchMm, viewingOf, faixa, pitchFor, sugerirGabinete } from "../services/viewing.js";
+// imagem de EXEMPLO do preview de crop (domínio público, ~170 KB — entra no
+// precache do SW via vite.config). O conteúdo real é o que o crop recorta;
+// o esquema X+círculo continua disponível no toggle.
+import cropSample from "../assets/crop-sample.jpg";
 
 // LLC-08: didática dos números mora no tooltip do rótulo (R4 — zero parágrafo fixo)
 const STAT_TIP = {
@@ -184,6 +188,7 @@ export default function AspectRatio() {
   const [sh, setSh] = useState(1080);
   const [offFrac, setOffFrac] = useState(0.5); // deslocamento do crop (0..1) no eixo com sobra
   const [vizMode, setVizMode] = useState("crop"); // "crop" (preencher) | "fit" (encaixar dentro)
+  const [showImg, setShowImg] = useState(true); // exibição: imagem real × esquema (R2: toggle-ícone)
   // modo distância: manual-sempre-visível; "Usar painel" semeia do gabinete + grade
   const [pitchIn, setPitchIn] = useState(3.9); // mm
   const [alturaIn, setAlturaIn] = useState(0); // m — 0 = não informada (sem "máxima")
@@ -328,8 +333,14 @@ export default function AspectRatio() {
       <div style={card({ marginBottom: 16 })}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Encaixar / Preencher (crop)</div>
-          <Segmented size="sm" value={vizMode} onChange={setVizMode}
-            options={[{ value: "crop", label: "Preencher (corta)" }, { value: "fit", label: "Encaixar (barras)" }]} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => setShowImg((v) => !v)} aria-pressed={showImg} title="Imagem de exemplo no preview"
+              style={{ width: 38, height: 38, borderRadius: 8, background: showImg ? T.card : T.card2, border: `1px solid ${showImg ? T.acc : T.bd}`, color: showImg ? T.acM : T.mut, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <ImageIcon size={16} />
+            </button>
+            <Segmented size="sm" value={vizMode} onChange={setVizMode}
+              options={[{ value: "crop", label: "Preencher (corta)" }, { value: "fit", label: "Encaixar (barras)" }]} />
+          </div>
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 12 }}>
           <div><label style={lbl}>Fonte — largura</label><NumField value={sw} onChange={(n) => setSw(Math.max(0, n))} style={{ ...inp, width: 110 }} /></div>
@@ -340,11 +351,17 @@ export default function AspectRatio() {
           <svg viewBox={`0 0 ${boxW} ${boxH}`} width={boxW} height={boxH} style={{ background: T.card2, borderRadius: 8, maxWidth: "100%", height: "auto" }}>
             {vizMode === "crop" ? (
               <>
-                {/* fonte: fundo + X (diagonais) + círculo no centro */}
+                {/* fonte: imagem real (cover) OU esquema X + círculo */}
                 <rect x={svX} y={svY} width={svW} height={svH} rx={3} fill="#0d0d1a" stroke={T.dim2} strokeWidth={1} />
-                <line x1={svX} y1={svY} x2={svX + svW} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
-                <line x1={svX + svW} y1={svY} x2={svX} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
-                <circle cx={svX + svW / 2} cy={svY + svH / 2} r={Math.min(svW, svH) * 0.4} fill="none" stroke={T.dim} strokeWidth={1.2} />
+                {showImg ? (
+                  <image href={cropSample} x={svX} y={svY} width={svW} height={svH} preserveAspectRatio="xMidYMid slice" />
+                ) : (
+                  <>
+                    <line x1={svX} y1={svY} x2={svX + svW} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
+                    <line x1={svX + svW} y1={svY} x2={svX} y2={svY + svH} stroke={T.dim} strokeWidth={1.2} />
+                    <circle cx={svX + svW / 2} cy={svY + svH / 2} r={Math.min(svW, svH) * 0.4} fill="none" stroke={T.dim} strokeWidth={1.2} />
+                  </>
+                )}
                 {/* escurece o que fica FORA do crop */}
                 <g fill="rgba(13,13,26,0.76)">
                   <rect x={svX} y={svY} width={Math.max(0, cxv - svX)} height={svH} />
@@ -355,20 +372,27 @@ export default function AspectRatio() {
                 {fc.axis === "x" && <line x1={cxv} y1={svY} x2={cxv} y2={svY + svH} stroke={T.acM} strokeWidth={1} strokeDasharray="4 3" />}
                 {fc.axis === "y" && <line x1={svX} y1={cyv} x2={svX + svW} y2={cyv} stroke={T.acM} strokeWidth={1} strokeDasharray="4 3" />}
                 <rect x={cxv} y={cyv} width={cwv} height={chv} fill="none" stroke={T.acc} strokeWidth={2} />
-                <text x={clampSvg(cxv + cwv / 2, svX + 30, svX + svW - 30)} y={cyv + chv / 2 + 4} fill="#fff" fontSize={12} fontWeight="700" textAnchor="middle">{fc.cropW}×{fc.cropH}</text>
-                {fc.axis && <text x={svX + 5} y={svY + 13} fill={T.acM} fontSize={11} fontWeight="700">desloc. {fc.axis} {fc.axis === "x" ? fc.x : fc.y}px</text>}
-                <text x={svX + svW - 5} y={svY + svH - 6} fill={T.mut} fontSize={10} textAnchor="end">fonte {SW}×{SH}</text>
+                {/* contorno escuro nos rótulos: sobre imagem real o branco puro some */}
+                <text x={clampSvg(cxv + cwv / 2, svX + 30, svX + svW - 30)} y={cyv + chv / 2 + 4} fill="#fff" fontSize={12} fontWeight="700" textAnchor="middle" stroke="#0a0a14" strokeWidth={2.4} paintOrder="stroke">{fc.cropW}×{fc.cropH}</text>
+                {fc.axis && <text x={svX + 5} y={svY + 13} fill={T.acM} fontSize={11} fontWeight="700" stroke="#0a0a14" strokeWidth={2} paintOrder="stroke">desloc. {fc.axis} {fc.axis === "x" ? fc.x : fc.y}px</text>}
+                <text x={svX + svW - 5} y={svY + svH - 6} fill="#fff" fontSize={10} textAnchor="end" stroke="#0a0a14" strokeWidth={2} paintOrder="stroke">fonte {SW}×{SH}</text>
               </>
             ) : (
               <>
                 {/* painel (moldura) — o preto em volta são as barras */}
                 <rect x={pvX} y={pvY} width={pvW} height={pvH} rx={3} fill="#050510" stroke={T.acc} strokeWidth={2} />
-                {/* conteúdo (fonte) encaixado preservando o ratio: X + círculo */}
+                {/* conteúdo (fonte) encaixado preservando o ratio: imagem real OU esquema */}
                 <rect x={ctX} y={ctY} width={ctW} height={ctH} fill="#0d0d1a" stroke={T.dim2} strokeWidth={1} />
-                <line x1={ctX} y1={ctY} x2={ctX + ctW} y2={ctY + ctH} stroke={T.dim} strokeWidth={1.2} />
-                <line x1={ctX + ctW} y1={ctY} x2={ctX} y2={ctY + ctH} stroke={T.dim} strokeWidth={1.2} />
-                <circle cx={ctX + ctW / 2} cy={ctY + ctH / 2} r={Math.min(ctW, ctH) * 0.4} fill="none" stroke={T.dim} strokeWidth={1.2} />
-                <text x={ctX + ctW / 2} y={ctY + ctH / 2 + 4} fill="#fff" fontSize={12} fontWeight="700" textAnchor="middle">{fitW}×{fitH}</text>
+                {showImg ? (
+                  <image href={cropSample} x={ctX} y={ctY} width={ctW} height={ctH} preserveAspectRatio="xMidYMid slice" />
+                ) : (
+                  <>
+                    <line x1={ctX} y1={ctY} x2={ctX + ctW} y2={ctY + ctH} stroke={T.dim} strokeWidth={1.2} />
+                    <line x1={ctX + ctW} y1={ctY} x2={ctX} y2={ctY + ctH} stroke={T.dim} strokeWidth={1.2} />
+                    <circle cx={ctX + ctW / 2} cy={ctY + ctH / 2} r={Math.min(ctW, ctH) * 0.4} fill="none" stroke={T.dim} strokeWidth={1.2} />
+                  </>
+                )}
+                <text x={ctX + ctW / 2} y={ctY + ctH / 2 + 4} fill="#fff" fontSize={12} fontWeight="700" textAnchor="middle" stroke="#0a0a14" strokeWidth={2.4} paintOrder="stroke">{fitW}×{fitH}</text>
                 {(barX > 0 || barY > 0) && <text x={pvX + pvW / 2} y={pvY + pvH - 6} fill={T.acM} fontSize={11} textAnchor="middle">barras {barX > 0 ? `${barX}px laterais` : `${barY}px topo/base`}</text>}
                 <text x={pvX + 5} y={pvY + 13} fill={T.mut} fontSize={10}>painel {W}×{H}</text>
               </>
