@@ -213,7 +213,43 @@ export const KB_ARTICLES = [
         { t: "note", text: "Talha manual não tem classificação D8+ (essas são de hoist elétrico), e a ASME B30.16 exclui içamento de pessoas do escopo. Carga parada sobre público ou artista pede secundário — aço de segurança — e decisão do rigger habilitado." },
       ] },
     ] },
-  { id: "pixel-pitch", category: "Painéis", title: "Pixel pitch", summary: "Relação entre resolução, dimensão e distância de visão.", sections: [{ h: "Cálculo", blocks: [{ t: "p", text: "Pitch (mm) = largura do gabinete (mm) ÷ resolução X." }] }] },
+  { id: "pixel-pitch", category: "Painéis", title: "Pixel pitch e distância de visão", summary: "As quatro réguas que respondem \"de longe fica bom?\" — e qual pitch comprar pra cada distância.",
+    // números batem com as constantes de services/viewing.js (MIN_K/OTIMA_K/
+    // RETINA_K/MAX_ALTURA_K) — mudou lá, muda aqui
+    sections: [
+      { h: "O que é", blocks: [
+        { t: "p", text: "Pitch é a distância entre os centros de dois LEDs vizinhos, em milímetros. O app calcula do cadastro do gabinete: pitch (mm) = largura do gabinete (mm) ÷ resolução X. Menor pitch = mais resolução por m² — e menor distância mínima de visão." },
+      ] },
+      { h: "As quatro réguas", blocks: [
+        { t: "p", text: "Quatro regras da indústria transformam o pitch em distâncias práticas (exemplo com P3, tela de 3 m de altura):" },
+        { t: "table", cols: ["Régua", "Fórmula", "P3"], rows: [
+          ["Mínima (fusão de cores)", "pitch em mm vira METROS (regra 1×)", "3,0 m"],
+          ["Ótima (regra 10×)", "pitch × 10 pés ≈ × 3,05 m", "9,1 m"],
+          ["Retina / VAD", "pitch × 3,438 (1 arcminuto, visão 20/20)", "10,3 m"],
+          ["Máxima", "altura da tela × 30", "90 m"],
+        ] },
+        { t: "p", text: "Mais perto que a mínima, as cores não fundem — dá pra trabalhar, não pra assistir. Entre a ótima e a retina o conforto é pleno; da retina em diante o pixel simplesmente não existe pro olho. Além da máxima, a imagem perde presença (regra de outdoor)." },
+        { t: "kv", rows: [
+          ["Pitch ideal pra uma fila a D metros", "D ÷ 3,438 (fica retina)"],
+          ["Teto aceitável", "D ÷ 1 (a imagem ainda fecha)"],
+        ] },
+      ] },
+      { h: "Exemplo de campo", blocks: [
+        { t: "p", text: "Gabinete de 600 mm com 104 px (pitch 5,77 mm): mínima 5,8 m, ótima 17,6 m, retina 19,8 m. Serve pra palco com público a partir de ~6 m; pra um stand com gente a 2 m, a conta pede pitch ≤ 2 ÷ 3,438 ≈ 0,6 mm — ou aceitar pixel visível. A aba Aspect Ratio › Distância faz essa conta com o seu cadastro." },
+      ] },
+      { h: "E a régua de leitura (AVIXA)", blocks: [
+        { t: "note", text: "O critério AVIXA DISCAS (público a no máximo 6–8× a altura da tela) responde OUTRA pergunta: ler texto na tela — menu, planilha, legenda. É mais rígido que \"ver imagem\" e não entra no motor do app; se o painel vai mostrar conteúdo de leitura, aplique-o por cima." },
+      ] },
+      { h: "Fontes", blocks: [
+        { t: "links", items: [
+          { label: "Planar — Understanding Viewing Distance (PDF)", url: "https://www.planar.com/media/439462/understanding-viewing-distance.pdf" },
+          { label: "Daktronics — Optimal Viewing Distance (KB 000030569)", url: "https://www.daktronics.com/en-us/support/kb/000030569" },
+          { label: "Linsn — LED Display Viewing Distance Guide", url: "https://www.linsnled.com/led-display-viewing-distance-guide.html" },
+          { label: "AVIXA — DISCAS (Display Image Size)", url: "https://www.avixa.org/resources/display-image-size-calculators/analytical-and-basic-decision-making-calculations" },
+          { label: "EagerLED — LED Display Size (regra ×30)", url: "https://www.eagerled.com/led-display-size/" },
+        ] },
+      ] },
+    ] },
   { id: "resolucoes-padrao", category: "Painéis", title: "Resoluções padrão de vídeo", summary: "Referência de resoluções comuns — nome, pixels e aspecto.",
     sections: [{ h: "Tabela de referência", blocks: [
       { t: "p", text: "Resoluções comuns pra configurar processador/mídia e comparar com a resolução do seu painel (veja a proporção na ferramenta Aspect Ratio)." },

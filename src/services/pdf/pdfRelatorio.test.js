@@ -122,11 +122,16 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("ROE CB5");
   });
 
-  it("Vídeo/Resolução: resolução por tela, aspecto e fração decimal", () => {
+  it("Vídeo/Resolução: resolução por tela, aspecto, fração decimal, pitch e distâncias", () => {
     expect(json).toContain("VÍDEO / RESOLUÇÃO");
     expect(json).toContain("1.040 × 624"); // 10×104 por 6×104, pt-BR
     expect(json).toContain("FRAÇÃO");
     expect(json).toContain("1,667"); // 1040/624 com vírgula, 3 casas
+    expect(json).toContain("PITCH");
+    expect(json).toContain("5,77 mm"); // 600 mm / 104 px
+    // as réguas de distância saem em PARÁGRAFO (coluna reabriria o transbordo)
+    expect(json).toContain("Distância de visão");
+    expect(json).toContain("retina 19,8 m"); // 5,769 × 3,438
   });
 
   it("Visão Geral tem a coluna de pixels da tela", () => {
@@ -195,6 +200,9 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("ABNT NBR 5410");
     expect(json).toContain("REFERÊNCIAS");
     expect(json).toContain("The truth about the power consumption of LED walls");
+    // grupo de vídeo (as quatro réguas) + fontes da pesquisa de distância
+    expect(json).toContain("Vídeo e distância de visão");
+    expect(json).toContain("Understanding Viewing Distance");
     // a folha vem ANTES do glossário
     expect(json.indexOf("CRITÉRIOS DE CÁLCULO")).toBeLessThan(json.indexOf("GLOSSÁRIO"));
     expect(JSON.stringify(build("Resumido").content)).not.toContain("CRITÉRIOS DE CÁLCULO");

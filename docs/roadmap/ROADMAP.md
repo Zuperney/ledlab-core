@@ -9,8 +9,8 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.12 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
-**Estado:** Fase 01 ✅ concluída (marcada pela v1.0.0) · **Fase 02 em curso** (4 de 5 iniciativas-chave; falta só o pitch × distância · v1.1→v1.11) · Fase 03 iniciada (Reembolso, "Esta semana", Caderno em PDF nativo e a prancha de engenharia entregues).
+**Horizonte:** v1.16 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
+**Estado:** Fase 01 ✅ concluída (v1.0.0) · **Fase 02 ✅ concluída** (5 de 5 — fechada pelo pitch × distância, v1.16.0) · Fase 03 iniciada (Reembolso, "Esta semana", Caderno em PDF nativo e a prancha de engenharia entregues).
 
 ---
 
@@ -39,7 +39,7 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 - ✅ **Persistência** — *resolvido:* saiu do `localStorage` puro para IndexedDB + backup + **sync na nuvem** (v0.10–v0.12). Ver "Já entregue" abaixo.
 - ✅ **Testes** — *resolvido:* vitest no motor elétrico, cabeamento, projeto, crop, layout e cachês (**113 testes**) + CI a cada push, com **lint bloqueante** desde a v1.0.0.
 - ✅ **Portas de sinal por "área"** — *resolvido (v1.1.0):* a régua de **pixels reais** (px/porta, 8/10-bit, escalando com refresh) virou o padrão; a régua de área continua como opção pra controlador básico.
-- **Sem distância de visão, sem orçamento** — o que falta pra fechar a engenharia + o negócio (o peso e as ancoragens entraram na v1.10.0).
+- ✅ **Distância de visão** — *resolvido (v1.16.0):* recomendador pitch × distância na aba Aspect Ratio. **Falta o orçamento** (Fase 03) pra fechar o negócio. *(O rigging entrou na v1.10 e SAIU na v1.15 — decisão do dono: estrutura é de quem é do ofício, volta com o 3D.)*
 - **Preview do painel ainda é 2D** — a Composição (v0.20) monta várias telas num render; falta o 3D/previz da Fase 04.
 - ~~Desktop (Electron)~~ — **fora do escopo** (decisão de produto, jul/2026): o PWA atende o desktop; o empacotamento segue no repo, sem investimento.
 
@@ -114,16 +114,18 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 
 ---
 
-## Fase 02 — Profundidade de engenharia · `v1.1 → v1.11` · **em curso** *(4 de 5 · falta o pitch × distância)*
+## Fase 02 — Profundidade de engenharia · `v1.1 → v1.16` · ✅ **concluída** *(5 de 5)*
 **O cálculo que nenhum app de aluguel faz.** *Aqui mora o diferencial — engenharia de verdade, não só inventário.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
 | ✅ **Portas de dados reais (px/porta)** *(v1.1.0)* | 🟣 | M | **Feito:** nº de portas pela capacidade real do processador — 655.360 px/porta a 8-bit 60 Hz, 327.680 a 10-bit — escalando com refresh e bit-depth. A régua de área virou opção (controlador básico). Inclui o **canto de início da serpentina** (4 cantos × 2 direções = os 8 padrões do *Quick Connection* do NovaLCT), pro mapa casar com a montagem física. | capacidade de porta Novastar |
 | ✅ **Mapa de pixels exportável** *(v1.1.0)* | 🟣 | M | **Feito:** CSV com uma linha por gabinete (porta · ordem no cabo · coluna/linha · X/Y, origem sup-esq) + tabela de início por porta no relatório "Mapa de cabos". Modelo conferido **contra o NovaLCT real** (aba *Screen Connection*): bate 1:1 com o que o operador digita. **Gerar `.scr` binário foi descartado** — formato proprietário (`DSCI`+checksum), risco de desconfigurar parede em campo. | workflow Novastar/Brompton |
-| **Recomendador pitch × distância** | 🟣 | M | Dado o pitch (ou tamanho + distância), retorna distância mínima/ótima/máxima + VAD e sugere o pitch ideal. Expande a aba Aspect Ratio. *É a primeira pergunta de todo cliente — "de longe fica bom?".* **← próximo** | regra 10×, VAD 3438, altura×30 |
+| ✅ **Recomendador pitch × distância** *(v1.16.0)* | 🟣 | M | **Feito:** modo "Distância" na aba Aspect Ratio — as quatro réguas (mínima 1×, ótima 10×, retina ×3,438, máxima altura×30) com régua visual, veredito da primeira fila e **sugestão de gabinete do próprio cadastro**; motor puro (`services/viewing.js`) com fontes travadas em teste; pitch + distâncias no Caderno (seção Vídeo) e artigo completo na KB. | regra 10×, VAD 3438, altura×30 |
 | ✅ **Peso e estrutura** *(ex-"Peso e ancoragens" · v1.10.0, revisada 30/07)* | 🟣 | G | **Entregue e enxugada:** o app **REGISTRA**, não dimensiona — peso da parede + **cadeia de limites do fabricante** no **tipo de montagem escolhido** (voada × sentada, escolha na aba Relatório, com toggle de exibição no Caderno Completo) + campos com **procedência** no cadastro do gabinete + a **seção no Caderno e no PDF** + 2 artigos de KB na categoria Estrutura. Regra dura: **ausência de dado nunca vira "ok"** — sai *não informado*. **Removido em 30/07/2026:** dimensionamento de bumper, ancoragem, carga e talha (eram estimativa da casa; quem dimensiona é o rigger). *Fora de escopo por decisão: truss, vento, lastro e a palavra "aprovado".* | `docs/rigging-spec.md` |
 | ✅ **Catálogo de controladoras (ex-"Biblioteca de processadores")** *(v1.6.0)* | 🟣 | M | **Feito (1ª leva):** página **Equipamentos** (Gestão, desktop) com catálogo **certificado nos datasheets** (read-only — o usuário seleciona, não cadastra): séries **VX** (650.000 px/porta) e **MX/COEX** (659.722), com teto de carga do dispositivo (MX40 Pro = 9M px). "Verificar projeto": controladora por Screen → portas usadas × disponíveis, carga, resolução e a dica de Hz. **Próximas levas:** modulares (H9, MX2000/6000 Pro), Colorlight/Brompton, "Sending Card + Porta" no mapa de pixels. | datasheets NovaStar (acervo) |
+
+> **Fase 02 concluída** ✅ *(v1.16.0)* — portas reais, mapa de pixels, Screens/canvas do processador, catálogo de controladoras e o recomendador pitch × distância entregues; peso/estrutura foi entregue (v1.10) e depois **retirado por decisão de produto** (v1.15 — estrutura é do rigger; volta com o 3D). A engenharia que nenhum app de aluguel faz está fechada — o salto de valor agora é a **Fase 03** (orçamento & negócio).
 
 ---
 
@@ -191,4 +193,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-07-30 (v1.12.0 · Fase 02 em curso — falta o pitch × distância; Caderno em prancha de engenharia entregue)._
+_Última atualização: 2026-08-02 (v1.16.0 · **Fase 02 concluída** — pitch × distância fecha a profundidade de engenharia; no caminho, o mapa de cabos virou SmartLCT (v1.15) e o rigging saiu do app, reservado pro 3D)._

@@ -15,7 +15,7 @@ import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabl
 import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf } from "../../services/reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoOf } from "../../services/reportContent.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
@@ -177,13 +177,16 @@ export default function ProjectRelatorio({ project }) {
             <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas na disposição da Composição (nome de cada uma no seu bloco); a caixa envolvente é o canvas de conteúdo do projeto.</p>
             <ReportTelasCanvas project={project} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Aspecto</th><th style={th}>Fração</th><th style={th}>Grade</th><th style={th}>Pixel por gabinete</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Aspecto</th><th style={th}>Fração</th><th style={th}>Pitch</th><th style={th}>Grade</th><th style={th}>Pixel por gabinete</th></tr></thead>
               <tbody>
                 {telas.map((t) => { const v = videoOf(t); return (
-                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{String(v.dec).replace(".", ",")}</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.resX && t.gabinete?.resY ? `${t.gabinete.resX}×${t.gabinete.resY}` : "—"}</td></tr>
+                  <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{String(v.dec).replace(".", ",")}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{v.pitch ? `${v.pitch.toFixed(2).replace(".", ",")} mm` : "—"}</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.resX && t.gabinete?.resY ? `${t.gabinete.resX}×${t.gabinete.resY}` : "—"}</td></tr>
                 ); })}
               </tbody>
             </table>
+            {(() => { const dists = telas.map(distVisaoOf).filter(Boolean); return dists.length ? (
+              <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 8 }}><b style={{ color: PRINT.ink }}>Distância de visão — </b>{dists.join("  ·  ")}</p>
+            ) : null; })()}
           </section>
         )}
 

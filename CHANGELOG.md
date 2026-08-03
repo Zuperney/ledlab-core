@@ -2,6 +2,19 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [Não publicado]
+
+**Recomendador pitch × distância — a Fase 02 do roadmap fecha.**
+
+"De longe fica bom?" agora tem resposta de engenharia, com fontes (Planar, Daktronics, Linsn, AVIXA):
+
+- **Modo "Distância" na aba Aspect Ratio**: as quatro réguas sobre o pitch — **mínima** (regra 1×: pitch em mm vira metros, fusão de cores), **ótima** (regra 10×: ×10 pés), **retina/VAD** (×3,438 — 1 arcminuto, o pixel some) e **máxima** (altura da tela × 30) — numa régua visual com o marcador da primeira fila e veredito (Pixel visível / Aceitável / Confortável / Retina / Longe demais).
+- **O inverso, acionável**: pitch ideal pra primeira fila (D ÷ 3,438) + teto aceitável — e a sugestão vem do **seu próprio cadastro de gabinetes** ("seu RB2.3 atende / não atende").
+- A primária "Usar painel" funciona nos dois modos: no Distância semeia pitch (dimW ÷ resX) e altura (linhas × dimH) do gabinete.
+- **Caderno**: a tabela de Vídeo ganhou a coluna **Pitch** e um parágrafo de **distância de visão por tela**; os Critérios de Cálculo ganharam o grupo "Vídeo e distância de visão" (com a nota AVIXA DISCAS: ler texto ≠ ver imagem) e as referências novas.
+- **Base de Conhecimento**: o artigo "Pixel pitch" saiu do stub e virou "Pixel pitch e distância de visão" — as quatro réguas, exemplo de campo e as fontes com link.
+- Motor novo `services/viewing.js`, puro e com as constantes travadas em teste (P3 → 3,00 / 9,14 / 10,31 m).
+
 ## [1.15.0] — 2026-08-02
 
 **Mapa de cabos no estilo SmartLCT: pastel por cabo, serpentina azul, entrada verde e fim vermelho.**

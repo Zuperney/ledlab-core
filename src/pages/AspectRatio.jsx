@@ -1,6 +1,7 @@
 // pages/AspectRatio.jsx — Calculadora de Aspect Ratio (proporção de tela) com
-// visualização e comparação com resoluções padrão de vídeo. Ferramenta avulsa:
-// parte de pixels manuais OU de um gabinete + grade (resolução total do painel).
+// visualização e comparação com resoluções padrão de vídeo, e o modo DISTÂNCIA
+// (Fase 02: recomendador pitch × distância — as quatro réguas de visão).
+// Ferramenta avulsa: parte de valores manuais OU de um gabinete + grade.
 import { useState } from "react";
 import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 import { T } from "../ui/tokens.js";
@@ -9,10 +10,12 @@ import { useLedLabContext } from "../store/AppContext.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import HelpTip from "../components/HelpTip.jsx";
 import Segmented from "../components/Segmented.jsx";
+import StatusPill from "../components/StatusPill.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import Select from "../components/Select.jsx";
 import NumField from "../components/NumField.jsx";
 import { fillCrop } from "../services/crop.js";
+import { pitchMm, viewingOf, faixa, pitchFor, sugerirGabinete } from "../services/viewing.js";
 
 // LLC-08: didática dos números mora no tooltip do rótulo (R4 — zero parágrafo fixo)
 const STAT_TIP = {
@@ -21,7 +24,22 @@ const STAT_TIP = {
   "Formato": "O formato de vídeo conhecido mais próximo (≈ quando não é exato).",
   "Resolução": "Pixels reais do painel: largura × altura.",
   "Orientação": "Paisagem (deitado), retrato (em pé) ou quadrado.",
+  "Mínima": "Regra 1×: o pitch em milímetros vira metros — mais perto que isso as cores não fundem.",
+  "Ótima": "Regra 10×: pitch × 10 pés (≈ ×3 m) — distância confortável de assistir.",
+  "Retina": "Pitch × 3,438 (1 minuto de arco, visão 20/20) — daqui o pixel deixa de existir.",
+  "Máxima": "Altura da tela × 30 — de mais longe a imagem perde presença (regra de outdoor).",
 };
+
+// rótulo e cor do veredito da primeira fila (a chave semântica vem do motor)
+const FAIXA_UI = {
+  "muito-perto": { c: "red", l: "Pixel visível" },
+  "aceitavel": { c: "amb", l: "Aceitável" },
+  "ideal": { c: "grn", l: "Confortável" },
+  "retina": { c: "grn", l: "Retina" },
+  "longe-demais": { c: "amb", l: "Longe demais" },
+};
+
+const fmtM = (n) => (n >= 100 ? String(Math.round(n)) : n.toFixed(1).replace(".", ","));
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
@@ -45,6 +63,7 @@ export default function AspectRatio() {
   // desktop↔mobile mudou: reajusta o padrão DURANTE o render (sem setState em effect)
   const [prevMobile, setPrevMobile] = useState(isMobile);
   if (prevMobile !== isMobile) { setPrevMobile(isMobile); setControlsOpen(!isMobile); }
+  const [mode, setMode] = useState("prop"); // F1: "prop" (proporção/crop) | "dist" (distância de visão)
   const [w, setW] = useState(1920);
   const [h, setH] = useState(1080);
   const [cabId, setCabId] = useState(cabs[0]?.id);
@@ -54,6 +73,10 @@ export default function AspectRatio() {
   const [sh, setSh] = useState(1080);
   const [offFrac, setOffFrac] = useState(0.5); // deslocamento do crop (0..1) no eixo com sobra
   const [vizMode, setVizMode] = useState("crop"); // "crop" (preencher) | "fit" (encaixar dentro)
+  // modo distância: manual-sempre-visível; "Usar painel" semeia do gabinete + grade
+  const [pitchIn, setPitchIn] = useState(3.9); // mm
+  const [alturaIn, setAlturaIn] = useState(0); // m — 0 = não informada (sem "máxima")
+  const [filaM, setFilaM] = useState(5); // primeira fila (m)
 
   const W = Math.max(1, Math.round(w) || 1), H = Math.max(1, Math.round(h) || 1);
   const dec = W / H;
@@ -71,11 +94,24 @@ export default function AspectRatio() {
   const cropOff = fc.axis === "x" ? fc.x : fc.axis === "y" ? fc.y : 0;
   const setCropOff = (px) => setOffFrac(cropSlack > 0 ? Math.min(1, Math.max(0, px / cropSlack)) : 0.5);
 
+  // a MESMA primária nos dois modos (R1) — o handler ramifica: proporção semeia
+  // pixels; distância semeia pitch (dimW/resX) e altura (linhas × dimH)
   const seedPanel = () => {
     const c = cabs.find((x) => x.id === cabId) || cabs[0]; if (!c) return;
-    setW((parseInt(c.resX) || 0) * cols); setH((parseInt(c.resY) || 0) * rows);
+    if (mode === "dist") {
+      const p = pitchMm(c); if (p) setPitchIn(p);
+      setAlturaIn(((parseFloat(c.dimH) || 0) * rows) / 1000);
+    } else {
+      setW((parseInt(c.resX) || 0) * cols); setH((parseInt(c.resY) || 0) * rows);
+    }
   };
   const swap = () => { setW(H); setH(W); };
+
+  // distância de visão (motor puro em services/viewing.js — fórmulas com fonte)
+  const vd = viewingOf(pitchIn, alturaIn);
+  const fx = faixa(filaM, vd);
+  const pf = pitchFor(filaM);
+  const sug = sugerirGabinete(filaM, cabs);
 
   const inp = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "9px 12px", fontSize: 15, width: 120 };
   const lbl = { textTransform: "uppercase", fontSize: 11, color: T.mut, display: "block", marginBottom: 4 };
@@ -108,7 +144,13 @@ export default function AspectRatio() {
 
   return (
     <div>
-      <SectionHeader title="Calculadora de Aspect Ratio" subtitle="Proporção da tela e visualização do crop do sinal de vídeo." />
+      <SectionHeader title="Calculadora de Aspect Ratio" subtitle="Proporção da tela, crop do sinal e distância de visão pelo pitch." />
+
+      {/* F1 · MODO — fora do acordeão mobile de propósito */}
+      <div style={{ marginBottom: 14 }}>
+        <Segmented value={mode} onChange={setMode}
+          options={[{ value: "prop", label: "Proporção" }, { value: "dist", label: "Distância" }]} />
+      </div>
 
       {/* ENTRADAS + RESULTADO */}
       <div style={card({ marginBottom: 16 })}>
@@ -118,7 +160,7 @@ export default function AspectRatio() {
             {controlsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
         )}
-        {(!isMobile || controlsOpen) && (
+        {(!isMobile || controlsOpen) && (mode === "prop" ? (
         <div style={{ display: "flex", gap: 14, alignItems: "flex-end", flexWrap: "wrap" }}>
           <div><label style={lbl}>Largura (px)</label><NumField value={w} onChange={(n) => setW(Math.max(0, n))} style={inp} /></div>
           <button onClick={swap} title="Trocar largura/altura" style={{ width: 38, height: 38, borderRadius: 8, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 1 }}><ArrowLeftRight size={16} /></button>
@@ -129,7 +171,19 @@ export default function AspectRatio() {
           <div><label style={lbl}>Linhas</label><NumField value={rows} onChange={(n) => setRows(Math.max(1, n))} style={{ ...inp, width: 78 }} /></div>
           <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: T.accInk, cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
         </div>
-        )}
+        ) : (
+        <div style={{ display: "flex", gap: 14, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div><label style={lbl}>Pitch (mm)</label><NumField fmt="dec2" value={pitchIn} onChange={(n) => setPitchIn(Math.max(0, n))} style={{ ...inp, width: 96 }} /></div>
+          <div><label style={lbl}>Altura da tela (m)</label><NumField fmt="dec2" value={alturaIn} onChange={(n) => setAlturaIn(Math.max(0, n))} style={{ ...inp, width: 96 }} /></div>
+          <div><label style={lbl}>Primeira fila (m)</label><NumField fmt="dec2" value={filaM} onChange={(n) => setFilaM(Math.max(0, n))} style={{ ...inp, width: 96 }} /></div>
+          <div style={{ width: 1, height: 44, background: T.bd, margin: "0 6px" }} />
+          {/* sem "Colunas": no modo distância só a ALTURA (linhas × dimH) entra na conta */}
+          <div><label style={lbl}>Gabinete</label><Select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={{ ...inp, width: 180 }}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select></div>
+          <div><label style={lbl}>Linhas</label><NumField value={rows} onChange={(n) => setRows(Math.max(1, n))} style={{ ...inp, width: 78 }} /></div>
+          <button onClick={seedPanel} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${T.acc}`, background: T.acc, color: T.accInk, cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 1 }}>Usar painel</button>
+        </div>
+        ))}
+        {mode === "prop" ? (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.bd}` }}>
           {chipStat("Proporção", friendly(W, H), T.acM)}
           {chipStat("Decimal", `${dec.toFixed(3)}:1`)}
@@ -140,10 +194,23 @@ export default function AspectRatio() {
             <b style={{ color: T.txt }}>Proporção</b> — razão simplificada (ou nome comercial). <b style={{ color: T.txt }}>Decimal</b> — largura ÷ altura. <b style={{ color: T.txt }}>Formato</b> — o padrão de vídeo mais próximo (≈ quando aproximado). <b style={{ color: T.txt }}>Resolução</b> — pixels reais do painel. <b style={{ color: T.txt }}>Orientação</b> — paisagem, retrato ou quadrado.
           </HelpTip>
         </div>
+        ) : (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.bd}` }}>
+          {vd && chipStat("Mínima", `${fmtM(vd.minM)} m`)}
+          {vd && chipStat("Ótima", `${fmtM(vd.otimaM)} m`, T.acM)}
+          {vd && chipStat("Retina", `${fmtM(vd.retinaM)} m`, T.grn)}
+          {vd && chipStat("Máxima", vd.maxM ? `${fmtM(vd.maxM)} m` : "—")}
+          {fx && <StatusPill color={T[FAIXA_UI[fx].c]} label={`1ª fila: ${FAIXA_UI[fx].l}`} />}
+          <HelpTip title="As quatro réguas de distância">
+            <b style={{ color: T.txt }}>Mínima</b> — regra 1×: pitch em mm vira metros; antes disso as cores não fundem. <b style={{ color: T.txt }}>Ótima</b> — regra 10×: pitch × 10 pés (≈ ×3 m). <b style={{ color: T.txt }}>Retina</b> — pitch × 3,438 (1 minuto de arco, visão 20/20): o pixel some. <b style={{ color: T.txt }}>Máxima</b> — altura da tela × 30 (regra de outdoor). Fórmulas com fontes no artigo <b style={{ color: T.txt }}>Pixel pitch e distância de visão</b> da Base de Conhecimento.
+          </HelpTip>
+        </div>
+        )}
       </div>
 
       {/* LLC-08: o CROP é a primeira coisa abaixo do seletor de proporção — preview
           gráfico + números no MESMO card; modo exclusivo = Segmented (R2) */}
+      {mode === "prop" && (
       <div style={card({ marginBottom: 16 })}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Encaixar / Preencher (crop)</div>
@@ -223,6 +290,60 @@ export default function AspectRatio() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* F4 do modo DISTÂNCIA — a régua das quatro distâncias + a recomendação.
+          100% tokens T (a régua vive nos DOIS temas; nada de hex solto aqui). */}
+      {mode === "dist" && (
+      <div style={card({ marginBottom: 16 })}>
+        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Régua de distância</div>
+        {vd ? (() => {
+          const RW = 460, RH = 118, pad = 14;
+          const dom = 1.12 * Math.max(vd.retinaM, filaM || 0, vd.maxM || 0);
+          const X = (m) => pad + (m / dom) * (RW - pad * 2);
+          const bandY = 48, bandH = 26;
+          const bands = [
+            [0, vd.minM, T.red + "33"],
+            [vd.minM, vd.otimaM, T.amb + "33"],
+            [vd.otimaM, vd.retinaM, T.grn + "44"],
+            [vd.retinaM, vd.maxM ?? dom, T.grn + "22"],
+            ...(vd.maxM ? [[vd.maxM, dom, T.dim2 + "22"]] : []),
+          ];
+          const ticks = [["mín", vd.minM], ["ótima", vd.otimaM], ["retina", vd.retinaM], ...(vd.maxM ? [["máx", vd.maxM]] : [])];
+          return (
+            <>
+              <svg viewBox={`0 0 ${RW} ${RH}`} width={RW} style={{ maxWidth: "100%", height: "auto", display: "block" }}>
+                {bands.map(([a, b, f], i) => <rect key={i} x={X(a)} y={bandY} width={Math.max(0, X(b) - X(a))} height={bandH} fill={f} />)}
+                <rect x={X(0)} y={bandY} width={RW - pad * 2} height={bandH} rx={3} fill="none" stroke={T.bd} />
+                {/* rótulos dos ticks alternam de linha — réguas vizinhas (ótima/retina) colidiriam */}
+                {ticks.map(([l, m], i) => (
+                  <g key={l}>
+                    <line x1={X(m)} y1={bandY - 4} x2={X(m)} y2={bandY + bandH + 4} stroke={T.mut} strokeWidth={1} />
+                    <text x={X(m)} y={bandY + bandH + (i % 2 ? 31 : 17)} fill={T.mut} fontSize={10} textAnchor="middle">{l} {fmtM(m)} m</text>
+                  </g>
+                ))}
+                {filaM > 0 && (
+                  <g>
+                    <path d={`M ${X(filaM)} ${bandY - 6} l -5 -9 h 10 z`} fill={T.acc} />
+                    <text x={Math.min(Math.max(X(filaM), 34), RW - 34)} y={bandY - 21} fill={T.acM} fontSize={10.5} fontWeight="700" textAnchor="middle">1ª fila {fmtM(filaM)} m</text>
+                  </g>
+                )}
+              </svg>
+              <div style={{ marginTop: 12, fontSize: 13, color: T.txt, lineHeight: 1.8 }}>
+                {pf && (
+                  <div>Pitch pra ficar <b style={{ color: T.grn }}>retina</b> a {fmtM(filaM)} m: <b style={{ fontFamily: "ui-monospace,monospace" }}>≤ {pf.retinaMm.toFixed(2).replace(".", ",")} mm</b> <span style={{ color: T.mut }}>(teto aceitável {pf.tetoMm.toFixed(2).replace(".", ",")} mm — regra 1×)</span></div>
+                )}
+                {pf && sug && (
+                  <div style={{ color: T.mut }}>Do seu cadastro: <b style={{ color: T.txt }}>{sug.cab.nome}</b> ({sug.pitchMm.toFixed(2).replace(".", ",")} mm) {sug.atende ? <b style={{ color: T.grn }}>atende</b> : <><b style={{ color: T.amb }}>não atende</b> — é o mais próximo</>}.</div>
+                )}
+              </div>
+            </>
+          );
+        })() : (
+          <div style={{ color: T.dim, fontSize: 13 }}>Informe um pitch maior que zero — ou use um gabinete do cadastro no botão Usar painel.</div>
+        )}
+      </div>
+      )}
     </div>
   );
 }

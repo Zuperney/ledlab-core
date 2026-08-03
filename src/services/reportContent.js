@@ -3,6 +3,8 @@
 // Fonte única de propósito: dois renderizadores, um só texto — se divergir em 3
 // meses, o bug é aqui, não em dois lugares.
 
+import { viewingOf } from "./viewing.js";
+
 // disciplinas do caderno técnico: cor de índice por seção (produção / vídeo /
 // elétrica)
 export const DISC = { prod: "#475569", video: "#1d4ed8", elec: "#c2410c" };
@@ -28,6 +30,18 @@ export const videoOf = (t) => {
   const dec = pxH ? (pxW / pxH).toFixed(3) : "—"; // fração decimal do aspecto (ex.: 3:7 → 0.429)
   const pitch = parseFloat(g.dimW) && parseInt(g.resX) ? parseFloat(g.dimW) / parseInt(g.resX) : 0;
   return { pxW, pxH, mp: (pxW * pxH) / 1e6, ar: arSimple || `${pxH ? (pxW / pxH).toFixed(2) : "—"}:1`, dec, pitch };
+};
+
+// distância de visão de UMA tela, formatada pro parágrafo da seção Vídeo
+// (DOM+PDF — fonte única). Sem pitch (gabinete sem dimW) → null e a tela é
+// omitida; altura vem de rows × dimH.
+const fmtM = (n) => (n >= 100 ? `${Math.round(n)} m` : `${n.toFixed(1).replace(".", ",")} m`);
+export const distVisaoOf = (t) => {
+  const v = videoOf(t);
+  if (!v.pitch) return null;
+  const alturaM = ((parseFloat(t.gabinete?.dimH) || 0) * (t.rows || 0)) / 1000;
+  const d = viewingOf(v.pitch, alturaM);
+  return `${t.nome || "Tela"}: mín ${fmtM(d.minM)} · ótima ${fmtM(d.otimaM)} · retina ${fmtM(d.retinaM)}${d.maxM ? ` · máx ${fmtM(d.maxM)}` : ""}`;
 };
 
 // Tamanho do NOME do projeto na capa, em cqi (1cqi = 1% da largura da capa).
@@ -77,6 +91,10 @@ export const CRITERIOS = [
   { h: "Sinal", itens: [
     "Porta Gigabit: 655.360 px a 8-bit/60 Hz — a capacidade escala com a profundidade de cor (10-bit = metade) e com o refresh (× 60 ÷ Hz). Porta acima do teto só por OVERCLOCK declarado.",
   ] },
+  { h: "Vídeo e distância de visão", itens: [
+    "Quatro réguas sobre o pitch (mm): MÍNIMA = pitch em metros (fusão de cores, regra 1×) · ÓTIMA = pitch × 10 pés (≈ × 3,05 m) · RETINA = pitch × 3,438 (1 minuto de arco, visão 20/20 — o pixel some) · MÁXIMA = altura da tela × 30.",
+    "O critério AVIXA DISCAS (6–8× a altura) responde outra pergunta — LER texto na tela, não ver imagem — e por isso não entra no motor. O caderno entrega as réguas; o \"fica bom\" final é do diretor de vídeo.",
+  ] },
 ];
 
 export const NORMAS = [
@@ -92,6 +110,9 @@ export const REFERENCIAS = [
   "Neutrik — datasheets BDA 452 (powerCON) e BDA 697 (powerCON TRUE1).",
   "Novastar / Colorlight — capacidade de porta Gigabit por profundidade de cor e refresh.",
   "Mean Well — corrente de inrush de fontes chaveadas e partida sequencial.",
+  "Planar — “Understanding Viewing Distance”: a distância retina (pitch × 3.438, 1 arcminuto).",
+  "Daktronics (KB 000030569) e Linsn — regra 10× e réguas práticas de distância de visão.",
+  "AVIXA — DISCAS: dimensionamento de imagem pra leitura de conteúdo (6–8× a altura).",
   "Auditoria de engenharia LedLab (07/2026): fórmulas do motor confrontadas com as fontes acima — artigos completos na Base de Conhecimento do app.",
 ];
 

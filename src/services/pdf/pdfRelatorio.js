@@ -17,7 +17,7 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
 import { tint } from "../cableScene.js";
 import { formatRange } from "../dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf } from "../reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf, distVisaoOf } from "../reportContent.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
@@ -373,9 +373,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     {
       table: {
         headerRows: 1,
-        widths: ["*", "auto", "auto", "auto", "auto", "auto"],
+        widths: ["*", "auto", "auto", "auto", "auto", "auto", "auto"],
         body: [
-          [th("Tela"), th("Resolução (px)"), th("Aspecto"), th("Fração"), th("Grade"), th("Pixel por gabinete", "right")],
+          [th("Tela"), th("Resolução (px)"), th("Aspecto"), th("Fração"), th("Pitch"), th("Grade"), th("Pixel por gabinete", "right")],
           ...telas.map((t) => {
             const v = videoOf(t);
             return [
@@ -383,6 +383,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               mono(`${ptBR(v.pxW)} × ${ptBR(v.pxH)}`, { bold: true }),
               mono(v.ar, { color: PRINT.acc, bold: true }),
               mono(String(v.dec).replace(".", ",")),
+              mono(v.pitch ? `${v.pitch.toFixed(2).replace(".", ",")} mm` : "—"),
               mono(`${t.cols}×${t.rows}`),
               mono(t.gabinete?.resX && t.gabinete?.resY ? `${t.gabinete.resX}×${t.gabinete.resY}` : "—", { alignment: "right" }),
             ];
@@ -391,6 +392,15 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       },
       layout: zebraLayout(),
     },
+    // as quatro réguas de distância por tela (regras na folha de Critérios) —
+    // texto corrido de propósito: coluna nova aqui reabriria o transbordo
+    ...(() => {
+      const dists = telas.map(distVisaoOf).filter(Boolean);
+      return dists.length ? [{
+        text: [{ text: "Distância de visão — ", bold: true, color: PRINT.ink }, { text: dists.join("  ·  ") }],
+        fontSize: 8.5, color: PRINT.mut, margin: [0, 6, 0, 0],
+      }] : [];
+    })(),
   ];
 
   // ── INFORMAÇÕES ELÉTRICAS ──
