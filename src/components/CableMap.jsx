@@ -1,9 +1,9 @@
 // components/CableMap.jsx — mapa de cabos ESTÁTICO (sem zoom/pan) do CADERNO, no
-// modo SIMPLIFICADO (orientação de montagem, decisão do dono 31/07): região de
-// cada cabo com contorno, selo de entrada e contagem — sem números por gabinete
-// nem setas (esses ficam na aba Cabeamento/Diagramação). Reflete o cabeamento
-// da tela (services/cabling.js). Usado só no Relatório. `offset` numera/colore
-// as portas na sequência global do projeto.
+// modo PRINT (estilo SmartLCT, decisão do dono 02/08): região de cada cabo em
+// pastel sobre papel, serpentina azul com setas, entrada verde numerada e fim
+// vermelho — sem números por gabinete (esses ficam na aba Cabeamento/
+// Diagramação). Reflete o cabeamento da tela (services/cabling.js). Usado só no
+// Relatório. `offset` numera/colore as portas na sequência global do projeto.
 import { key, cablePorts } from "../services/cabling.js";
 import { useCablePalette } from "../hooks/useCablePalette.js";
 import CablingLayer from "./CablingLayer.jsx";
@@ -27,8 +27,8 @@ export default function CableMap({ tela, mode, numbering = "row-tb-lr", maxWidth
 
   return (
     <svg viewBox={`-8 -8 ${W + 16} ${H + 16}`} width={W + 16}
-      style={{ width: "100%", maxWidth: Math.min(maxWidth, W + 16), height: "auto", background: "#0d0d1a", borderRadius: 8, display: "block" }}>
-      <CablingLayer cells={cells} ports={drawPorts} colorOf={(pi) => colorOf(offset + pi)} portOffset={offset} simple />
+      style={{ width: "100%", maxWidth: Math.min(maxWidth, W + 16), height: "auto", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, display: "block" }}>
+      <CablingLayer cells={cells} ports={drawPorts} colorOf={(pi) => colorOf(offset + pi)} portOffset={offset} print />
     </svg>
   );
 }

@@ -345,7 +345,10 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     const j = JSON.stringify(build("Completo").content);
     // esquema das telas em fila + 2 telas × (sinal + AC) = 5 svgs
     expect((j.match(/"svg":"<svg/g) || []).length).toBe(5);
-    expect(j).toContain("#0d0d1a"); // fundo do mapa (identidade visual v1.5.3)
+    expect(j).toContain("#0d0d1a"); // só o ESQUEMA DE TELAS segue escuro (identidade v1.5.3)
+    // mapas de cabo no estilo SmartLCT (dono, 02/08): serpentina azul + entrada verde
+    expect(j).toContain("#1e40af");
+    expect(j).toContain("#16a34a");
   });
 
   it("F3: Vídeo abre com o esquema das telas na disposição da Composição + legenda do canvas", () => {

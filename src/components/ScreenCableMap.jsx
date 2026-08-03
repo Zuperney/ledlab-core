@@ -1,8 +1,8 @@
 // components/ScreenCableMap.jsx — mapa de cabos VISUAL de uma Screen, pro Relatório.
 // Estático: escala os gabinetes da Screen (coord de canvas, que podem ser milhares de px)
 // pra caber na largura do documento e desenha com a camada compartilhada CablingLayer no
-// modo SIMPLIFICADO (orientação de montagem, dono 31/07): região + entrada + contagem —
-// sem números por gabinete nem setas (esses ficam na aba Cabeamento/Diagramação).
+// modo PRINT (estilo SmartLCT, dono 02/08): região pastel + serpentina azul + entrada
+// verde + fim vermelho — sem números por gabinete (esses ficam na aba/Diagramação).
 import { screenCells, screenPorts, cellPortIndex } from "../services/screenCabling.js";
 import { useCablePalette } from "../hooks/useCablePalette.js";
 import CablingLayer from "./CablingLayer.jsx";
@@ -30,8 +30,8 @@ export default function ScreenCableMap({ screen, telas, kind = "sinal", numberin
 
   return (
     <svg viewBox={`-6 -6 ${W + 12} ${H + 12}`} width={W + 12}
-      style={{ width: "100%", maxWidth: W + 12, height: "auto", background: "#0d0d1a", borderRadius: 8, display: "block" }}>
-      <CablingLayer cells={drawCells} ports={drawPorts} colorOf={colorOf} simple />
+      style={{ width: "100%", maxWidth: W + 12, height: "auto", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, display: "block" }}>
+      <CablingLayer cells={drawCells} ports={drawPorts} colorOf={colorOf} print />
     </svg>
   );
 }

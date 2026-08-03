@@ -1,42 +1,65 @@
 import { describe, it, expect } from "vitest";
 import { telaMapSvg, screenMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
+import { cablePorts } from "../cabling.js";
+import { tint } from "../cableScene.js";
 
 const gab = { resX: 128, resY: 128, pwrMax: 200, fp: 0.9, conector: "true1" };
 const tela = { id: "t1", nome: "Main", cols: 6, rows: 4, gabinete: gab, cabling: { sinal: { rule: "px" } } };
 const colorOf = (i) => ["#7c3aed", "#0ea5e9", "#f59e0b"][i % 3];
 const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl" };
 
-describe("telaMapSvg (mapa legado por tela → SVG do PDF, modo montagem)", () => {
+describe("telaMapSvg (mapa legado por tela → SVG do PDF, estilo SmartLCT)", () => {
   const m = telaMapSvg(tela, "sinal", "row-tb-lr", 0, colorOf, cr);
 
-  it("gera SVG com fundo, gabinetes, contorno de região, contagem e selo de entrada", () => {
+  it("gera SVG com moldura clara, gabinetes pastel, serpentina, entrada e fim", () => {
     expect(m.svg).toContain("<svg");
-    expect(m.svg).toContain('fill="#0d0d1a"'); // fundo do mapa
+    expect(m.svg).toContain('fill="#ffffff"'); // fundo papel
+    expect(m.svg).toContain('stroke="#e2e8f0"'); // moldura
     expect((m.svg.match(/<rect/g) || []).length).toBeGreaterThanOrEqual(25); // 24 gabinetes + fundo
-    expect(m.svg).toContain("<line"); // contorno da região do cabo
-    expect(m.svg).toContain("<circle"); // selo de entrada
-    expect(m.svg).toContain(" gab</text>"); // contagem de gabinetes do cabo
+    expect(m.svg).toContain("<line"); // borda branca da região
+    expect(m.svg).toContain('stroke="#1e40af"'); // serpentina azul
+    expect(m.svg).toContain('fill="#16a34a"'); // selo verde de entrada
+    expect(m.svg).toContain('fill="#dc2626"'); // ponto vermelho de fim
   });
 
-  it("orientação de montagem: SEM trajeto, SEM setas, SEM número por gabinete (dono, 31/07)", () => {
-    expect(m.svg).not.toContain("stroke-linejoin"); // trajeto saiu
-    expect(m.svg).not.toContain("rotate("); // setas saíram
-    // sem número de ordem: os únicos textos são o selo (nº do cabo) e a contagem
-    const texts = (m.svg.match(/<text/g) || []).length;
-    const ports = (m.svg.match(/<circle/g) || []).length;
-    expect(texts).toBeLessThanOrEqual(ports * 3); // selo + 2 passadas da contagem por cabo — nunca 24 números
+  it("pastel SÓLIDO da cor do cabo — sem fill-opacity, sem fundo escuro, sem 'N gab'", () => {
+    expect(m.svg).toContain(`fill="${tint("#7c3aed")}"`); // região do cabo 1
+    expect(m.svg).not.toContain('fill-opacity="0.15"');
+    expect(m.svg).not.toContain("#0d0d1a");
+    expect(m.svg).not.toContain(" gab</text>"); // contagem vive na tabela de portas
+  });
+
+  it("serpentina na ORDEM ELÉTRICA: rota nasce na entrada, fim ganha o ponto vermelho", () => {
+    const ports = cablePorts(tela, "sinal", "row-tb-lr");
+    const first = ports[0][0], last = ports[0][ports[0].length - 1];
+    const ctr = (c) => [c.c * 40 + 20, c.r * 40 + 20]; // CELL=40, escala 1 no 6×4
+    const [fx, fy] = ctr(first), [lx, ly] = ctr(last);
+    expect(m.svg).toContain(`d="M${fx} ${fy} L`);
+    expect(m.svg).toContain(`<circle cx="${lx}" cy="${ly}"`);
+  });
+
+  it("setas presentes em célula grande, AUSENTES quando a célula encolhe no papel", () => {
+    expect(m.svg).toMatch(/Z" fill="#1e40af"/); // seta = path fechado azul
+    const larga = telaMapSvg({ ...tela, cols: 60, rows: 4 }, "sinal", "row-tb-lr", 0, colorOf, cr);
+    expect(larga.svg).not.toMatch(/Z" fill="#1e40af"/); // u = 8 < 9 → sem setas
+    expect(larga.svg).toContain('stroke="#1e40af"'); // mas a rota fina fica
+  });
+
+  it("cabo de 1 gabinete: o selo basta — sem ponto vermelho em cima", () => {
+    const um = telaMapSvg({ ...tela, cols: 1, rows: 1 }, "sinal", "row-tb-lr", 0, colorOf, cr);
+    expect(um.svg).toContain('fill="#16a34a"');
+    expect(um.svg).not.toContain("#dc2626");
   });
 
   it("respeita o motor de SVG do pdfmake: sem paint-order, sem hex com alpha, sem dominant-baseline", () => {
     expect(m.svg).not.toContain("paint-order");
-    expect(m.svg).not.toMatch(/#[0-9a-fA-F]{8}/);
+    expect(m.svg).not.toMatch(/#[0-9a-fA-F]{8}/); // pastel é hex REAL via tint(), nunca alpha
     expect(m.svg).not.toContain("dominant-baseline");
   });
 
-  it("contagem sai em DUAS passadas (contorno escuro + preenchimento branco)", () => {
-    const strokes = (m.svg.match(/stroke="#0a0a14"/g) || []).length;
-    expect(strokes).toBeGreaterThan(0);
-    expect(m.svg).toContain('fill="#ffffff"');
+  it("número do selo em UMA passada (branco sobre verde dispensa contorno)", () => {
+    expect(m.svg).not.toContain('stroke="#0a0a14"');
+    expect(m.svg).toContain('fill="#ffffff">1</text>');
   });
 
   it("numeração global: offset desloca o selo da porta", () => {
@@ -100,9 +123,11 @@ describe("screenMapSvg (mapa por Screen)", () => {
   ];
   const screen = { id: "s1", nome: "S", telaIds: ["a", "b"], pos: { a: { x: 0, y: 0 }, b: { x: 512, y: 0 } }, sinal: { rule: "px", strategy: "auto" } };
 
-  it("desenha as células das DUAS telas da Screen", () => {
+  it("desenha as células das DUAS telas da Screen, com serpentina e entrada", () => {
     const m = screenMapSvg(screen, telas, "sinal", "row-tb-lr", colorOf, cr);
     expect((m.svg.match(/<rect/g) || []).length).toBeGreaterThanOrEqual(25); // 24 gabinetes + fundo
+    expect(m.svg).toContain('stroke="#1e40af"'); // serpentina atravessa a Screen
+    expect(m.svg).toContain('fill="#16a34a"'); // selo de entrada
   });
 
   it("Screen sem células (telaIds órfãos) → null, sem quebrar o builder", () => {

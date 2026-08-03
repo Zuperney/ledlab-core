@@ -15,6 +15,7 @@ import { cableMeta, cablePorts, bboxArea, portOffset } from "../cabling.js";
 import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../screenCabling.js";
 import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
+import { tint } from "../cableScene.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf } from "../reportContent.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
@@ -177,10 +178,11 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   const colorOf = (i) => pal[(((i | 0) % pal.length) + pal.length) % pal.length];
   // render do mapa (setas/números/tamanho/canto) — mesmas prefs do DOM
   const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl", ...(render || {}) };
-  // célula "porta/cabo": quadradinho na cor do cabo + número (paridade com o selo do DOM)
+  // célula "porta/cabo": quadradinho no PASTEL da região do mapa (miolo cruza
+  // com o mapa, borda saturada distingue pasteis parecidos) + número
   const portCell = (idx, label) => ({
     columns: [
-      { width: 9, canvas: [{ type: "rect", x: 0, y: 1.5, w: 7, h: 7, color: colorOf(idx) }] },
+      { width: 9, canvas: [{ type: "rect", x: 0, y: 1.5, w: 7, h: 7, color: tint(colorOf(idx)), lineColor: colorOf(idx), lineWidth: 0.75 }] },
       { width: "auto", ...mono(String(label)) },
     ],
     columnGap: 2,

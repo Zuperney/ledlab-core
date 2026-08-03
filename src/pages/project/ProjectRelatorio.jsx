@@ -23,6 +23,7 @@ import ReportTelasCanvas from "../../components/ReportTelasCanvas.jsx";
 import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable, WarnBox } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
+import { tint } from "../../services/cableScene.js";
 import { btn } from "../../ui/styles.js";
 import { fileName, printAs } from "../../services/filenames.js";
 
@@ -87,7 +88,9 @@ export default function ProjectRelatorio({ project }) {
   const th = { textAlign: "left", padding: "6px 10px", borderBottom: `2px solid ${PRINT.line}`, color: PRINT.mut, fontSize: 10, textTransform: "uppercase" };
   const td = { padding: "6px 10px", borderBottom: `1px solid ${PRINT.line}`, color: PRINT.ink };
   const chip = { display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${PRINT.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11, color: PRINT.ink };
-  const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: colorOf(i), flexShrink: 0 });
+  // chip de porta/cabo: miolo no PASTEL da região do mapa, borda na cor cheia
+  // (cruza com o mapa SmartLCT; espelho do portCell do PDF)
+  const sw = (i) => ({ width: 10, height: 10, borderRadius: 2, background: tint(colorOf(i)), border: `1px solid ${colorOf(i)}`, flexShrink: 0 });
 
   // com Screens, o SINAL vem delas (uma seção por Screen, portas 1..N por Screen).
   // Sem Screens, segue por tela (legado). O AC não muda: segue o físico, por tela.

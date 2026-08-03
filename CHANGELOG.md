@@ -4,6 +4,18 @@ Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](h
 
 ## [Não publicado]
 
+**Mapa de cabos no estilo SmartLCT: pastel por cabo, serpentina azul, entrada verde e fim vermelho.**
+
+Referência trazida pelo dono (export real do SmartLCT/NovaStar) → mockup aprovado → o Caderno adota a linguagem que o técnico já conhece do LCT:
+
+- **Cada cabo pinta sua região** com o pastel da própria cor (derivado por `tint()` — funciona com qualquer paleta customizada, sem hex-alpha que o pdfmake rejeita), grade interna branca fina, borda branca entre regiões vizinhas.
+- **Serpentina azul com setas na ordem elétrica real**, gabinete a gabinete — padrão pra todas as telas (as setas somem sozinhas quando o gabinete fica pequeno no papel; a rota fina fica). Vale pro sinal E pro AC (daisy-chain também tem ordem).
+- **Entrada = selo verde com o número da porta · fim do cabo = ponto vermelho** (cabo de 1 gabinete dispensa o ponto — o selo basta).
+- O rótulo "N gab" saiu do mapa (a rota mostra; a contagem segue na tabela de portas) e o **chip de cor da tabela virou pastel com borda saturada** — mapa e tabela se cruzam pela cor, no PDF e no Caderno DOM.
+- O mapa impresso trocou a ilha escura pelo **papel branco com moldura fina**; o esquema de telas da seção Vídeo mantém a identidade escura.
+- Aba Cabeamento e Diagramação seguem com o modo denso de trabalho intacto (números, trajeto branco, clique, temas) — ganharam só o **ponto vermelho de fim**.
+- Novo `services/cableScene.js`: cores e geometria da cena impressa compartilhadas entre PDF e DOM (nunca mais espelho desalinhado).
+
 **O rigging saiu do app — reservado pro futuro com 3D.**
 
 Decisão do dono (02/08): o app não se envolve com estrutura até o 3D valer a pena. Saiu TUDO — sem código órfão:
