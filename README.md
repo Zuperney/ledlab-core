@@ -21,10 +21,10 @@ _Aponte a câmera do celular para o QR code._
 
 | | |
 |---|---|
-| ⚡ **Elétrica** | Pico/típico por tela, corrente por fase, disjuntor e gerador — modelo validado com datasheets e normas (NBR/IEC), regra dos 80% de carga contínua |
+| ⚡ **Elétrica** | Pico/típico por tela, corrente por fase e faixa de gerador (pico ×1,25 + % ocupado) — modelo validado com datasheets e normas (NBR/IEC), regra dos 80% de carga contínua; a proteção fica com o eletricista do quadro |
 | 🖥️ **Screens** | Monte seus sistemas como no controlador: agrupe as telas que vão juntas; o cabo atravessa telas e as portas são numeradas por Screen |
 | 🔌 **Cabeamento** | Sinal e AC por Screen (automático, livre ou — no AC — atrelado ao sinal), com balanceamento, **overclock de porta** opcional, link único entre telas afastadas, margem de segurança, aviso de estouro e mapa visual |
-| 🏗️ **Estrutura** | Peso da parede + checagem contra os limites publicados pelo fabricante (montagem voada × sentada), com procedência do dado — o que não é publicado sai "não informado", nunca estimado |
+| 🏗️ **Peso** | Peso da parede por tela e total, direto do datasheet do gabinete — na capa e na Visão Geral do Caderno (o dimensionamento de estrutura fica com quem é do ofício) |
 | 🎛️ **Equipamentos** | Catálogo de controladoras certificado nos datasheets (NovaStar VX/MX) + "Verificar projeto": portas usadas × disponíveis por Screen |
 | 🖥️ **Test cards** | Cartões de teste na resolução nativa do painel, com números, geometria, mapa de cabos e export PNG |
 | 🧩 **Composição** | Várias telas posicionadas num render só (estilo mapeamento de slices), com alerta de sobreposição |
@@ -38,11 +38,14 @@ _Aponte a câmera do celular para o QR code._
 
 ## 🧾 Versões
 
-**Atual: v1.12.0** — **Prancha de engenharia no Caderno Técnico**: moldura e carimbo em toda página do PDF, nos moldes da prancha clássica de arquitetura — logo do projeto, campos do evento, assinatura ("Projetou"), revisão manual (REV) e FOLHA N/M automática. *(555 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.15.0** — **Mapa de cabos no estilo SmartLCT**: cada cabo pinta sua região com cor pastel, serpentina azul com setas na ordem elétrica real, entrada verde numerada e fim vermelho — a linguagem que o técnico já conhece do LCT, no sinal e no AC. E o rigging saiu do app (reservado pro futuro 3D). *(868 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|
-| **1.12.0** | **Prancha de engenharia no PDF**: moldura + carimbo em toda página (logo do projeto, Projetou, REV manual, FOLHA N/M); assinatura do Caderno na conta |
+| **1.15.0** | **Mapa de cabos estilo SmartLCT** (pastel por cabo, serpentina com setas, entrada verde, fim vermelho — PDF e Caderno DOM, cruzando com a tabela pela cor); **rigging sai do app** (peso fica; estrutura é de quem é do ofício, até o 3D) |
+| 1.14.0 | **Caderno v2**: telas na disposição da Composição, balanço por fase pico+típico, folha "Critérios de Cálculo" (regras, normas e referências), tabelas AC sem estourar página, PDF ~2,5× mais leve |
+| 1.13.0 | **Auditoria de engenharia do motor AC** (fórmulas confirmadas com fontes): o app entrega corrente e kVA — **sem sugerir disjuntor**; gerador vira **faixa honesta** (pico ×1,25 + % ocupado); tabela de bitolas × distância × proteção na Base de Conhecimento |
+| 1.12.0 | **Prancha de engenharia no PDF**: moldura + carimbo em toda página (logo do projeto, Projetou, REV manual, FOLHA N/M); assinatura do Caderno na conta |
 | 1.11.0 | **Overclock de porta** (arredonda gabinetes/porta pra cima, com laranja honesto no que passa do nominal), **link único entre telas** da mesma Screen, logo do projeto, e a estrutura vira **"Peso e estrutura"** (montagem voada × sentada, sem dimensionamento especulativo) |
 | 1.10.x | **Peso e ancoragens no Caderno**: cadeia de limites do fabricante com procedência no cadastro do gabinete; "não informado" nunca vira "ok" |
 | 1.9.x | **Caderno Técnico em PDF nativo** (offline, com sumário e mapas vetoriais) + regra dos 80% como padrão da elétrica |
@@ -90,5 +93,5 @@ src/
 
 - Dimensionamento **sempre** pelo consumo máximo (`pwrMax`), nunca pelo médio.
 - Divisores de tensão: 220V bi `÷220` · 220V tri `÷220·√3` · 380V mono (F+N) `÷220` · 380V bi `÷440` · 380V tri `÷380·√3`.
-- Disjuntor = primeiro valor padrão da escada IEC `≥ corrente × 1,25`.
+- Gerador = `kVA de pico × 1,25` (margem de partida), com % ocupado pelo típico (janela saudável 60–80%). O app **não sugere disjuntor** — entrega corrente e kVA; a proteção é do projeto elétrico do quadro.
 - Consumo típico ("Modelo Barco") = `black + (máx − preto) × brilho × conteúdo`.
