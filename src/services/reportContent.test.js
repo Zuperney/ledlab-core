@@ -47,6 +47,14 @@ describe("distVisaoGroups — tabela da seção Vídeo (réguas agrupadas por pi
     expect(distVisaoGroups([semPitch])).toEqual([]);
     expect(distVisaoGroups([semPitch, { nome: "Ok", cols: 2, rows: 4, gabinete: cb5 }])).toHaveLength(1);
   });
+
+  it("dimW NEGATIVO (form sem clamp / backup importado) não crasha — a tela é omitida (QA 02/08)", () => {
+    // videoOf calcula pitch por truthiness: dimW "-600" dava pitch -5,77 →
+    // viewingOf null → TypeError no formatador, derrubando Caderno DOM e PDF
+    const negativo = { nome: "Neg", cols: 2, rows: 4, gabinete: { resX: "104", resY: "104", dimW: "-600", dimH: "600" } };
+    expect(distVisaoGroups([negativo])).toEqual([]);
+    expect(distVisaoGroups([negativo, { nome: "Ok", cols: 2, rows: 4, gabinete: cb5 }])).toHaveLength(1);
+  });
 });
 
 describe("GLOSSARIO — enxuto (decisão do dono, 31/07)", () => {

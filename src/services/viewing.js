@@ -71,7 +71,8 @@ export function sugerirGabinete(distM, cabs) {
     .sort((a, b) => a.pitchMm - b.pitchMm || String(a.cab.nome).localeCompare(String(b.cab.nome)));
   if (!validos.length) return null;
   const atendem = validos.filter((x) => x.pitchMm <= alvo.retinaMm);
-  return atendem.length
-    ? { ...atendem[atendem.length - 1], atende: true }
-    : { ...validos[0], atende: false };
+  if (!atendem.length) return { ...validos[0], atende: false };
+  // maior pitch que atende; entre pitches IGUAIS, o primeiro em ordem de nome
+  const melhor = atendem[atendem.length - 1].pitchMm;
+  return { ...atendem.find((x) => x.pitchMm === melhor), atende: true };
 }

@@ -37,12 +37,14 @@ export const videoOf = (t) => {
 // tela repetia os mesmos números N vezes e virava parede de texto (dono,
 // 02/08). Uma linha por combinação; tela sem pitch (gabinete sem dimW) é
 // omitida. Números já formatados (vírgula) pros dois renderizadores.
-export const fmtDistM = (n) => (n >= 100 ? `${Math.round(n)} m` : `${n.toFixed(1).replace(".", ",")} m`);
+export const fmtDistM = (n) => (n >= 99.95 ? `${Math.round(n)} m` : `${n.toFixed(1).replace(".", ",")} m`);
 export const distVisaoGroups = (telas) => {
   const grupos = new Map();
   for (const t of telas || []) {
     const v = videoOf(t);
-    if (!v.pitch) continue;
+    // > 0, não truthiness: dimW negativo (form sem clamp / backup importado)
+    // daria pitch negativo → viewingOf null → crash no formatador (QA 02/08)
+    if (!(v.pitch > 0)) continue;
     const alturaM = ((parseFloat(t.gabinete?.dimH) || 0) * (t.rows || 0)) / 1000;
     const key = `${v.pitch.toFixed(3)}|${alturaM.toFixed(2)}`;
     if (!grupos.has(key)) grupos.set(key, { nomes: [], d: viewingOf(v.pitch, alturaM), pitch: v.pitch });

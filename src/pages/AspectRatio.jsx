@@ -39,7 +39,7 @@ const FAIXA_UI = {
   "longe-demais": { c: "amb", l: "Longe demais" },
 };
 
-const fmtM = (n) => (n >= 100 ? String(Math.round(n)) : n.toFixed(1).replace(".", ","));
+const fmtM = (n) => (n >= 99.95 ? String(Math.round(n)) : n.toFixed(1).replace(".", ","));
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
@@ -99,7 +99,10 @@ export default function AspectRatio() {
   const seedPanel = () => {
     const c = cabs.find((x) => x.id === cabId) || cabs[0]; if (!c) return;
     if (mode === "dist") {
-      const p = pitchMm(c); if (p) setPitchIn(p);
+      // gabinete sem dimW não semeia NADA (pitch antigo + altura nova seria
+      // um estado misto silencioso — QA 02/08)
+      const p = pitchMm(c); if (!p) return;
+      setPitchIn(p);
       setAlturaIn(((parseFloat(c.dimH) || 0) * rows) / 1000);
     } else {
       setW((parseInt(c.resX) || 0) * cols); setH((parseInt(c.resY) || 0) * rows);
@@ -302,14 +305,12 @@ export default function AspectRatio() {
           const dom = 1.12 * Math.max(vd.retinaM, filaM || 0, vd.maxM || 0);
           const X = (m) => pad + (m / dom) * (RW - pad * 2);
           const bandY = 48, bandH = 26;
-          const bands = [
-            [0, vd.minM, T.red + "33"],
-            [vd.minM, vd.otimaM, T.amb + "33"],
-            [vd.otimaM, vd.retinaM, T.grn + "44"],
-            [vd.retinaM, vd.maxM ?? dom, T.grn + "22"],
-            ...(vd.maxM ? [[vd.maxM, dom, T.dim2 + "22"]] : []),
-          ];
-          const ticks = [["mín", vd.minM], ["ótima", vd.otimaM], ["retina", vd.retinaM], ...(vd.maxM ? [["máx", vd.maxM]] : [])];
+          // as faixas são pintadas pela PRÓPRIA faixa() em segmentos ordenados —
+          // o desenho nunca diverge do motor (tela-fita pode ter máx < retina)
+          const FAIXA_COR = { "muito-perto": T.red + "33", "aceitavel": T.amb + "33", "ideal": T.grn + "44", "retina": T.grn + "22", "longe-demais": T.dim2 + "22" };
+          const stops = [...new Set([0, vd.minM, vd.otimaM, vd.retinaM, ...(vd.maxM ? [vd.maxM] : []), dom])].sort((a, b) => a - b).filter((m) => m <= dom);
+          const bands = stops.slice(0, -1).map((a, i) => [a, stops[i + 1], FAIXA_COR[faixa((a + stops[i + 1]) / 2, vd)]]);
+          const ticks = [["mín", vd.minM], ["ótima", vd.otimaM], ["retina", vd.retinaM], ...(vd.maxM ? [["máx", vd.maxM]] : [])].sort((a, b) => a[1] - b[1]);
           return (
             <>
               <svg viewBox={`0 0 ${RW} ${RH}`} width={RW} style={{ maxWidth: "100%", height: "auto", display: "block" }}>

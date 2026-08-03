@@ -117,4 +117,12 @@ describe("sugerirGabinete — recomendação sobre o cadastro real", () => {
     expect(sugerirGabinete(10, [{ nome: "X", resX: "104" }])).toBeNull();
     expect(sugerirGabinete(0, cabs)).toBeNull();
   });
+
+  it("pitches IGUAIS que atendem: o primeiro em ordem de nome (desempate determinístico)", () => {
+    const gemeos = [
+      { nome: "Zeta P2.6", dimW: "520", resX: "200" },
+      { nome: "Alfa P2.6", dimW: "520", resX: "200" },
+    ];
+    expect(sugerirGabinete(12, gemeos).cab.nome).toBe("Alfa P2.6");
+  });
 });
