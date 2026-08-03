@@ -38,11 +38,12 @@ _Aponte a câmera do celular para o QR code._
 
 ## 🧾 Versões
 
-**Atual: v1.16.0** — **Recomendador pitch × distância**: "de longe fica bom?" com resposta de engenharia — as quatro réguas de visão (mínima, ótima, retina, máxima) na aba Aspect Ratio, com veredito da primeira fila e sugestão de gabinete do seu cadastro; pitch e distâncias também no Caderno. Fecha a **Fase 02 do roadmap** (profundidade de engenharia). *(890 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.17.0** — **A cena do pitch**: no modo Distância, a parede de LED em escala, uma pessoa de 1,70 m arrastável e o quadro "o que o olho vê" — os LEDs se separam quando perto demais e a imagem fica lisa da retina em diante. E o preview de crop agora recorta uma **imagem de verdade**. *(890 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|
-| **1.16.0** | **Pitch × distância** (réguas 1×/10×/retina 3,438/altura×30 com fontes, régua visual, sugestão do cadastro; pitch + distâncias agrupadas no Caderno; KB completa) + regra das 15 linhas no cabeamento (tabela alta abre na própria página; mapa grande) — **Fase 02 concluída** |
+| **1.17.0** | **Cena do pitch** (parede em escala + pessoa de 1,70 m arrastável + chão com as faixas + "o que o olho vê" com pixels reais) e **imagem real no preview de crop** (com toggle pro esquema) |
+| 1.16.0 | **Pitch × distância** (réguas 1×/10×/retina 3,438/altura×30 com fontes, régua visual, sugestão do cadastro; pitch + distâncias agrupadas no Caderno; KB completa) + regra das 15 linhas no cabeamento (tabela alta abre na própria página; mapa grande) — **Fase 02 concluída** |
 | 1.15.0 | **Mapa de cabos estilo SmartLCT** (pastel por cabo, serpentina com setas, entrada verde, fim vermelho — PDF e Caderno DOM, cruzando com a tabela pela cor); **rigging sai do app** (peso fica; estrutura é de quem é do ofício, até o 3D) |
 | 1.14.0 | **Caderno v2**: telas na disposição da Composição, balanço por fase pico+típico, folha "Critérios de Cálculo" (regras, normas e referências), tabelas AC sem estourar página, PDF ~2,5× mais leve |
 | 1.13.0 | **Auditoria de engenharia do motor AC** (fórmulas confirmadas com fontes): o app entrega corrente e kVA — **sem sugerir disjuntor**; gerador vira **faixa honesta** (pico ×1,25 + % ocupado); tabela de bitolas × distância × proteção na Base de Conhecimento |
