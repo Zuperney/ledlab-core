@@ -15,7 +15,7 @@ import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabl
 import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoOf } from "../../services/reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups } from "../../services/reportContent.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
@@ -184,8 +184,18 @@ export default function ProjectRelatorio({ project }) {
                 ); })}
               </tbody>
             </table>
-            {(() => { const dists = telas.map(distVisaoOf).filter(Boolean); return dists.length ? (
-              <p style={{ color: PRINT.mut, fontSize: 11, marginTop: 8 }}><b style={{ color: PRINT.ink }}>Distância de visão — </b>{dists.join("  ·  ")}</p>
+            {(() => { const grupos = distVisaoGroups(telas); return grupos.length ? (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ ...th, borderBottom: "none", padding: "0 0 4px" }}>Distância de visão</div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr><th style={th}>Telas</th><th style={th}>Pitch</th><th style={th}>Mínima</th><th style={th}>Ótima</th><th style={th}>Retina</th><th style={th}>Máxima</th></tr></thead>
+                  <tbody>
+                    {grupos.map((g, i) => (
+                      <tr key={i}><td style={{ ...td, fontSize: 12 }}>{g.telas}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{g.pitch}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{g.min}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace", color: PRINT.acc, fontWeight: 600 }}>{g.otima}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace", fontWeight: 600 }}>{g.retina}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{g.max}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : null; })()}
           </section>
         )}

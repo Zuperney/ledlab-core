@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DISC, capaNomeCqi, videoOf, distVisaoOf, GLOSSARIO } from "./reportContent.js";
+import { DISC, capaNomeCqi, videoOf, distVisaoGroups, GLOSSARIO } from "./reportContent.js";
 
 // (a suíte de rigging saiu junto com o motor — decisão do dono, 02/08/2026;
 // reservado pro futuro 3D. Ver docs/rigging-*.md.)
@@ -22,17 +22,30 @@ describe("videoOf — resolução/aspecto/fração", () => {
   });
 });
 
-describe("distVisaoOf — parágrafo da seção Vídeo (réguas de distância)", () => {
-  it("tela com pitch e altura: as quatro réguas com vírgula e a máx por altura × 30", () => {
-    // pitch 5,77 mm · altura 4 × 600 mm = 2,4 m → máx 72 m
-    const s = distVisaoOf({ nome: "Main", cols: 10, rows: 4, gabinete: { resX: "104", resY: "104", dimW: "600", dimH: "600" } });
-    expect(s).toContain("Main: mín 5,8 m");
-    expect(s).toContain("ótima 17,6 m");
-    expect(s).toContain("retina 19,8 m");
-    expect(s).toContain("máx 72,0 m");
+describe("distVisaoGroups — tabela da seção Vídeo (réguas agrupadas por pitch × altura)", () => {
+  const cb5 = { resX: "104", resY: "104", dimW: "600", dimH: "600" };
+
+  it("telas com o mesmo pitch e altura viram UMA linha (feedback do dono: repetir N vezes era parede de texto)", () => {
+    const g = distVisaoGroups([
+      { nome: "Main", cols: 10, rows: 4, gabinete: cb5 },
+      { nome: "Side", cols: 4, rows: 4, gabinete: cb5 }, // mesma altura (4 linhas) → mesmo grupo
+      { nome: "Torre", cols: 2, rows: 8, gabinete: cb5 }, // altura diferente → grupo próprio
+    ]);
+    expect(g).toHaveLength(2);
+    expect(g[0].telas).toBe("Main, Side");
+    expect(g[0].pitch).toBe("5,77 mm");
+    expect(g[0].min).toBe("5,8 m");
+    expect(g[0].otima).toBe("17,6 m");
+    expect(g[0].retina).toBe("19,8 m");
+    expect(g[0].max).toBe("72,0 m"); // 4 × 600 mm = 2,4 m × 30
+    expect(g[1].telas).toBe("Torre");
+    expect(g[1].max).toBe("144 m"); // ≥ 100 m sai sem casa decimal
   });
-  it("sem dimW (pitch desconhecido) → null: a tela é omitida do parágrafo", () => {
-    expect(distVisaoOf({ nome: "X", cols: 3, rows: 7, gabinete: { resX: "336", resY: "336" } })).toBeNull();
+
+  it("tela sem dimW (pitch desconhecido) é omitida; nenhum grupo → []", () => {
+    const semPitch = { nome: "X", cols: 3, rows: 7, gabinete: { resX: "336", resY: "336" } };
+    expect(distVisaoGroups([semPitch])).toEqual([]);
+    expect(distVisaoGroups([semPitch, { nome: "Ok", cols: 2, rows: 4, gabinete: cb5 }])).toHaveLength(1);
   });
 });
 

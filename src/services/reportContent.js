@@ -32,16 +32,30 @@ export const videoOf = (t) => {
   return { pxW, pxH, mp: (pxW * pxH) / 1e6, ar: arSimple || `${pxH ? (pxW / pxH).toFixed(2) : "—"}:1`, dec, pitch };
 };
 
-// distância de visão de UMA tela, formatada pro parágrafo da seção Vídeo
-// (DOM+PDF — fonte única). Sem pitch (gabinete sem dimW) → null e a tela é
-// omitida; altura vem de rows × dimH.
-const fmtM = (n) => (n >= 100 ? `${Math.round(n)} m` : `${n.toFixed(1).replace(".", ",")} m`);
-export const distVisaoOf = (t) => {
-  const v = videoOf(t);
-  if (!v.pitch) return null;
-  const alturaM = ((parseFloat(t.gabinete?.dimH) || 0) * (t.rows || 0)) / 1000;
-  const d = viewingOf(v.pitch, alturaM);
-  return `${t.nome || "Tela"}: mín ${fmtM(d.minM)} · ótima ${fmtM(d.otimaM)} · retina ${fmtM(d.retinaM)}${d.maxM ? ` · máx ${fmtM(d.maxM)}` : ""}`;
+// distância de visão da seção Vídeo, AGRUPADA (DOM+PDF — fonte única): telas
+// com o mesmo pitch e a mesma altura têm as mesmas quatro réguas — listar por
+// tela repetia os mesmos números N vezes e virava parede de texto (dono,
+// 02/08). Uma linha por combinação; tela sem pitch (gabinete sem dimW) é
+// omitida. Números já formatados (vírgula) pros dois renderizadores.
+export const fmtDistM = (n) => (n >= 100 ? `${Math.round(n)} m` : `${n.toFixed(1).replace(".", ",")} m`);
+export const distVisaoGroups = (telas) => {
+  const grupos = new Map();
+  for (const t of telas || []) {
+    const v = videoOf(t);
+    if (!v.pitch) continue;
+    const alturaM = ((parseFloat(t.gabinete?.dimH) || 0) * (t.rows || 0)) / 1000;
+    const key = `${v.pitch.toFixed(3)}|${alturaM.toFixed(2)}`;
+    if (!grupos.has(key)) grupos.set(key, { nomes: [], d: viewingOf(v.pitch, alturaM), pitch: v.pitch });
+    grupos.get(key).nomes.push(t.nome || "Tela");
+  }
+  return [...grupos.values()].map((g) => ({
+    telas: g.nomes.join(", "),
+    pitch: `${g.pitch.toFixed(2).replace(".", ",")} mm`,
+    min: fmtDistM(g.d.minM),
+    otima: fmtDistM(g.d.otimaM),
+    retina: fmtDistM(g.d.retinaM),
+    max: g.d.maxM ? fmtDistM(g.d.maxM) : "—",
+  }));
 };
 
 // Tamanho do NOME do projeto na capa, em cqi (1cqi = 1% da largura da capa).

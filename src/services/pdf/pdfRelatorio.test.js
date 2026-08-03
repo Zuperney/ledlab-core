@@ -129,9 +129,11 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).toContain("1,667"); // 1040/624 com vírgula, 3 casas
     expect(json).toContain("PITCH");
     expect(json).toContain("5,77 mm"); // 600 mm / 104 px
-    // as réguas de distância saem em PARÁGRAFO (coluna reabriria o transbordo)
-    expect(json).toContain("Distância de visão");
-    expect(json).toContain("retina 19,8 m"); // 5,769 × 3,438
+    // as réguas de distância saem numa tabela AGRUPADA por pitch × altura
+    // (listar por tela repetia os mesmos números — feedback do dono, 02/08)
+    expect(json).toContain("DISTÂNCIA DE VISÃO");
+    expect(json).toContain('"Main, Side"'); // mesma altura (6 linhas) → uma linha só
+    expect(json).toContain("19,8 m"); // retina: 5,769 × 3,438
   });
 
   it("Visão Geral tem a coluna de pixels da tela", () => {
@@ -192,6 +194,20 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     walk(d.content);
     expect(grupos.length).toBeGreaterThan(0); // a tabela existe (fixture válida)
     for (const g of grupos) expect(g).toBeLessThanOrEqual(4);
+  });
+
+  it("coluna de cabos passa de 15 linhas → tabela abre na PÁGINA SEGUINTE (mapa fica sozinho, grande)", () => {
+    // regra do dono (02/08): 70 cabos com Fase → 4 grupos → 18 linhas > 15 —
+    // antes, 2-3 linhas órfãs vazavam pra outra folha (caderno real, folha 14).
+    // (20×20 = 400 gab → 70 cabos AC atrelados ao sinal; a grade 20×16 do teste
+    // dos grupos dá 60 → 15 linhas EXATAS, no fio da regra — e não quebra.)
+    const gabAc = { ...gab, resX: 192, resY: 192, pwrMax: 470, conector: "true1" };
+    const telona = { id: "tg", nome: "Telona", cols: 20, rows: 20, gabinete: gabAc };
+    const proj = { ...project, telas: [telona], screens: [{ id: "s1", nome: "S1", telaIds: ["tg"], pos: { tg: { x: 0, y: 0 } }, sinal: { rule: "px", strategy: "auto" } }] };
+    const j = JSON.stringify(buildRelatorioDoc({ project: proj, tipo: "Completo", cfg, logo: null }).content);
+    expect(j).toContain('"pageBreak":"before"');
+    // o caderno pequeno (2 telas, tabelas baixas) NUNCA ganha essa quebra
+    expect(json).not.toContain('"pageBreak":"before"');
   });
 
   it("Critérios de Cálculo: regras, normas e referências antes do Glossário (só no Completo)", () => {

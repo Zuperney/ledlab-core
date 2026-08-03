@@ -17,7 +17,7 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
 import { tint } from "../cableScene.js";
 import { formatRange } from "../dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf, distVisaoOf } from "../reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups } from "../reportContent.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
@@ -191,17 +191,27 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // tabela densa de portas: divide em grupos lado a lado (como o DenseTable do
   // DOM) — todas as linhas, na fração da altura; zebra contínua. Acima de 36
   // linhas entra a 5ª coluna, pro bloco de uma Screen grande caber numa página.
+  // Nº de grupos lado a lado: a CONTAGEM DE LINHAS pede mais grupos (>24 → 5,
+  // >60 → 6), mas a LARGURA manda por último — grupos são columns "auto" que o
+  // pdfmake NÃO encolhe: um grupo do AC com Fase mede ~160 pt (chip + FASE +
+  // GAB. + carga noWrap a fonte 8), então 4 colunas/grupo → máx 4 grupos em
+  // 762 pt úteis (5 já estoura; caderno real 31/07: grupo dos cabos 55-64
+  // inteiro pra fora da folha). Com 3 colunas (sinal, AC sem fase) o grupo é
+  // ~100 pt → até 6. O excedente vertical FLUI com o header repetindo.
+  const denseColsOf = (nRows, nColsTable) => {
+    const desired = nRows > 60 ? 6 : nRows > 24 ? 5 : 4;
+    const maxByWidth = nColsTable >= 4 ? 4 : 6;
+    return Math.max(1, Math.min(desired, maxByWidth, nRows));
+  };
+  // regra do dono (02/08): a coluna de cabos não passa de 15 LINHAS na página
+  // do mapa — acima disso a folha vira só o mapa (grande) e a tabela inteira
+  // abre na página seguinte (antes, 2-3 linhas órfãs vazavam pra outra folha)
+  const denseAlto = (nRows, nColsTable) => Math.ceil(nRows / denseColsOf(nRows, nColsTable)) > 15;
+  const MAPA_CHEIO = { maxWidth: 720, maxHeight: 300 }; // mapa sozinho na página
+
   function densePortTable(rows, columns) {
-    // Nº de grupos lado a lado: a CONTAGEM DE LINHAS pede mais grupos (>24 → 5,
-    // >60 → 6), mas a LARGURA manda por último — grupos são columns "auto" que o
-    // pdfmake NÃO encolhe: um grupo do AC com Fase mede ~160 pt (chip + FASE +
-    // GAB. + carga noWrap a fonte 8), então 4 colunas/grupo → máx 4 grupos em
-    // 762 pt úteis (5 já estoura; caderno real 31/07: grupo dos cabos 55-64
-    // inteiro pra fora da folha). Com 3 colunas (sinal, AC sem fase) o grupo é
-    // ~100 pt → até 6. O excedente vertical FLUI com o header repetindo.
-    const desired = rows.length > 60 ? 6 : rows.length > 24 ? 5 : 4;
-    const maxByWidth = columns.length >= 4 ? 4 : 6;
-    const nCols = Math.min(desired, maxByWidth, rows.length);
+    const nCols = denseColsOf(rows.length, columns.length);
+    const brk = denseAlto(rows.length, columns.length) ? { pageBreak: "before" } : {};
     const small = nCols >= 5 || columns.length >= 4;
     // grupos em largura de CONTEÚDO ("auto") — a coluna Gabinetes esticada
     // criava um vão entre o nº do cabo e a quantidade E empurrava o resto
@@ -215,11 +225,11 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       layout: zebraLayout(start, small ? 1.8 : 2.5), // linhas mais baixas quando denso
       width: "auto",
     });
-    if (nCols <= 1 || rows.length < 3) return build(rows, 0);
+    if (nCols <= 1 || rows.length < 3) return { ...build(rows, 0), ...brk };
     const base = Math.floor(rows.length / nCols), rem = rows.length % nCols;
     const groups = []; let idx = 0;
     for (let i = 0; i < nCols; i++) { const size = base + (i < rem ? 1 : 0); groups.push(build(rows.slice(idx, idx + size), idx)); idx += size; }
-    return { columns: groups, columnGap: small ? 8 : 12 };
+    return { columns: groups, columnGap: small ? 8 : 12, ...brk };
   }
 
   const telas = project.telas || [];
@@ -392,14 +402,31 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       },
       layout: zebraLayout(),
     },
-    // as quatro réguas de distância por tela (regras na folha de Critérios) —
-    // texto corrido de propósito: coluna nova aqui reabriria o transbordo
+    // as quatro réguas de distância (regras na folha de Critérios), AGRUPADAS
+    // por pitch × altura — listar por tela repetia os mesmos números N vezes
     ...(() => {
-      const dists = telas.map(distVisaoOf).filter(Boolean);
-      return dists.length ? [{
-        text: [{ text: "Distância de visão — ", bold: true, color: PRINT.ink }, { text: dists.join("  ·  ") }],
-        fontSize: 8.5, color: PRINT.mut, margin: [0, 6, 0, 0],
-      }] : [];
+      const grupos = distVisaoGroups(telas);
+      return grupos.length ? [
+        { text: "DISTÂNCIA DE VISÃO", fontSize: 8, bold: true, color: PRINT.mut, margin: [0, 8, 0, 2] },
+        {
+          table: {
+            headerRows: 1,
+            widths: ["*", "auto", "auto", "auto", "auto", "auto"],
+            body: [
+              [th("Telas"), th("Pitch"), th("Mínima"), th("Ótima"), th("Retina"), th("Máxima", "right")],
+              ...grupos.map((g) => [
+                { text: g.telas, fontSize: 8.5 },
+                mono(g.pitch),
+                mono(g.min),
+                mono(g.otima, { color: PRINT.acc, bold: true }),
+                mono(g.retina, { bold: true }),
+                mono(g.max, { alignment: "right" }),
+              ]),
+            ],
+          },
+          layout: zebraLayout(),
+        },
+      ] : [];
     })(),
   ];
 
@@ -524,8 +551,10 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         // ── uma página por Screen ──
         ...screenReport.map((s, i) => {
           const sp = specsDe[s.id];
-          // Screen com muitas portas: mapa mais baixo — o espaço vai pra tabela
-          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "sinal", numbering, colorOf, cr, s.ports.length > 48 ? { maxHeight: 100 } : s.ports.length > 36 ? { maxHeight: 130 } : undefined) : null;
+          // tabela alta (coluna > 15 linhas) → ela abre na próxima página e o
+          // mapa fica GRANDE na folha; senão, mapa mais baixo pra caber junto
+          const alto = denseAlto(s.ports.length, 3);
+          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "sinal", numbering, colorOf, cr, alto ? MAPA_CHEIO : s.ports.length > 48 ? { maxHeight: 100 } : s.ports.length > 36 ? { maxHeight: 130 } : undefined) : null;
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
@@ -580,7 +609,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         const ports = cablePorts(t, "sinal", numbering);
         const off = portOffset(telas, t.id, "sinal", numbering);
         const rows = ports.map((p, pi) => ({ n: off + pi + 1, idx: off + pi, count: p.length, pct: Math.round(((sinalRule === "px" ? p.length : bboxArea(p)) / sinalBudget) * 100) }));
-        const mapa = telaMapSvg(t, "sinal", numbering, off, colorOf, cr);
+        const mapa = telaMapSvg(t, "sinal", numbering, off, colorOf, cr, denseAlto(rows.length, 3) ? MAPA_CHEIO : undefined);
         return [
           bloco([
             subHead(`${S}.${i + 1}`, t.nome),
@@ -660,12 +689,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         ...(temEstouro ? [{ text: "Há circuito ACIMA da capacidade do conector — confira as linhas em vermelho antes de energizar.", fontSize: 8.5, bold: true, color: PRINT.red, margin: [0, 8, 0, 0] }] : []),
         // ── uma página por Screen ──
         ...screenReportAc.map((s, i) => {
-          // Screen com muitos cabos: mapa mais baixo — o espaço vai pra tabela
-          // (senão o bloco estoura pra 2ª página; folhas 14-18 do caderno real).
-          // Acima de 48 cabos o teto de 4 grupos deixa a tabela com 13+ linhas —
-          // o mapa desce mais um degrau pra folha continuar fechando em UMA.
-          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr, s.ports.length > 48 ? { maxHeight: 100 } : s.ports.length > 36 ? { maxHeight: 130 } : undefined) : null;
           const bal = phaseBalance(s.ports, agg.vc);
+          // tabela alta (coluna > 15 linhas — com Fase o teto de 4 grupos chega
+          // lá com 61+ cabos) → tabela na próxima página, mapa GRANDE na folha;
+          // senão, mapa mais baixo pra folha fechar em UMA (folhas 14-18 do
+          // caderno real de 31/07)
+          const alto = denseAlto(s.ports.length, bal.temRodizio ? 4 : 3);
+          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr, alto ? MAPA_CHEIO : s.ports.length > 48 ? { maxHeight: 100 } : s.ports.length > 36 ? { maxHeight: 130 } : undefined) : null;
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
@@ -720,8 +750,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           const load = p.length * ampCab;
           return { n: off + pi + 1, idx: off + pi, count: p.length, load, pct: Math.round((load / connRating) * 100) };
         });
-        const mapa = telaMapSvg(t, "ac", numbering, off, colorOf, cr);
         const temFase = phaseOf(1, agg.vc) != null;
+        const mapa = telaMapSvg(t, "ac", numbering, off, colorOf, cr, denseAlto(rows.length, temFase ? 4 : 3) ? MAPA_CHEIO : undefined);
         return bloco([
           subHead(`${S}.${i + 1}`, t.nome),
           specBox([
