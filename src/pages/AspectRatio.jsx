@@ -2,7 +2,7 @@
 // visualização e comparação com resoluções padrão de vídeo, e o modo DISTÂNCIA
 // (Fase 02: recomendador pitch × distância — as quatro réguas de visão).
 // Ferramenta avulsa: parte de valores manuais OU de um gabinete + grade.
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 import { T } from "../ui/tokens.js";
 import { card } from "../ui/styles.js";
@@ -40,6 +40,117 @@ const FAIXA_UI = {
 };
 
 const fmtM = (n) => (n >= 99.95 ? String(Math.round(n)) : n.toFixed(1).replace(".", ","));
+
+// A CENA do modo Distância (mockup aprovado, 02/08): vista de perfil com a
+// parede em escala, a pessoa de 1,70 m, o chão pintado pelas quatro réguas e
+// o detalhe "o que o olho vê". Arrastar/tocar no chão reposiciona a pessoa —
+// mesmo estado do NumField "Primeira fila" (onFila = setFilaM). Drag no
+// dialeto da casa (Composição/Screens): pointer events no próprio elemento,
+// setPointerCapture, touchAction none, estado ao vivo por move. Chrome 100%
+// tokens T; as cores do CONTEÚDO do painel (imagem/LEDs do olho) são fixas —
+// é imagem exibida, não interface (mesmo estatuto do test card).
+function CenaDistancia({ vd, alturaM, filaM, onFila }) {
+  const dragging = useRef(false);
+  const W = 640, H = 320, wallX = 46, groundY = 268, pad = 24;
+  const dom = 1.18 * Math.max(vd.retinaM, filaM || 0, alturaM > 0 ? alturaM * 0.8 : 0);
+  const ppm = (W - wallX - pad) / dom; // px por metro
+  const X = (m) => wallX + m * ppm;
+
+  // faixas no CHÃO — pintadas pela PRÓPRIA faixa(): o desenho nunca diverge
+  // do motor (tela-fita pode ter máx < retina)
+  const FAIXA_COR = { "muito-perto": T.red + "33", "aceitavel": T.amb + "33", "ideal": T.grn + "44", "retina": T.grn + "22", "longe-demais": T.dim2 + "22" };
+  const stops = [...new Set([0, vd.minM, vd.otimaM, vd.retinaM, ...(vd.maxM && vd.maxM < dom ? [vd.maxM] : []), dom])].sort((a, b) => a - b).filter((m) => m <= dom);
+  const bands = stops.slice(0, -1).map((a, i) => [a, stops[i + 1], FAIXA_COR[faixa((a + stops[i + 1]) / 2, vd)]]);
+  const ticks = [["mín", vd.minM], ["ótima", vd.otimaM], ["retina", vd.retinaM], ...(vd.maxM && vd.maxM < dom ? [["máx", vd.maxM]] : [])]
+    .filter(([, m]) => m <= dom).sort((a, b) => a[1] - b[1]);
+
+  // parede: sem altura informada desenha 3 m de REFERÊNCIA (rotulada como tal)
+  const semAltura = !(alturaM > 0);
+  const wallM = semAltura ? 3 : alturaM;
+  const wallH = Math.min(wallM * ppm, groundY - 30);
+  // pessoa: 1,70 m em escala, com piso de tamanho pra domínio grande
+  const ph = Math.max(10, 1.7 * ppm);
+  const px = X(Math.max(0, filaM));
+  const headR = ph * 0.11;
+  const cotaY = Math.max(24, groundY - Math.min(wallH, ph) - 26);
+
+  const toM = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const m = ((e.clientX - r.left) * (W / r.width) - wallX) / ppm;
+    return Math.round(Math.min(dom * 0.98, Math.max(0.2, m)) * 10) / 10;
+  };
+  const onDown = (e) => { e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer já morto (raro) — o drag segue sem capture */ } dragging.current = true; onFila(toM(e)); };
+  const onMove = (e) => { if (dragging.current) onFila(toM(e)); };
+  const onUp = () => { dragging.current = false; };
+
+  // o olho: razão angular real (retina ÷ distância) — >1, o olho separa os
+  // pixels; o tile do <pattern> tem 4 LEDs pra imagem "colorida" sem loop
+  const ratio = vd.retinaM / Math.max(0.1, filaM || 0.1);
+  const cell = Math.min(24, 2.2 * ratio), dot = cell * 0.62, off = (cell - dot) / 2;
+
+  return (
+    <div style={{ display: "flex", gap: 14, alignItems: "stretch", flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 380px", minWidth: 300 }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", touchAction: "none", cursor: "ew-resize" }}
+          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+          {bands.map(([a, b, f], i) => <rect key={i} x={X(a)} y={groundY} width={Math.max(0, X(b) - X(a))} height={16} fill={f} />)}
+          <line x1={wallX} y1={groundY} x2={W - pad + 10} y2={groundY} stroke={T.bd} strokeWidth={1.5} />
+          {/* rótulos alternam de linha — réguas vizinhas (ótima/retina) colidiriam */}
+          {ticks.map(([l, m], i) => (
+            <g key={l}>
+              <line x1={X(m)} y1={groundY - 4} x2={X(m)} y2={groundY + 16} stroke={T.mut} strokeWidth={1} />
+              <text x={X(m)} y={groundY + (i % 2 ? 44 : 31)} fill={T.mut} fontSize={10.5} textAnchor="middle">{l} {fmtM(m)} m</text>
+            </g>
+          ))}
+          {vd.maxM && vd.maxM >= dom ? <text x={W - pad + 8} y={groundY + 31} fill={T.dim} fontSize={10.5} textAnchor="end">máx → {fmtM(vd.maxM)} m</text> : null}
+
+          {/* parede de LED em escala, com cota de altura */}
+          <rect x={wallX - 10} y={groundY - wallH} width={10} height={wallH} rx={2} fill={T.card2} stroke={T.acc} strokeWidth={1.5} />
+          <rect x={wallX - 8} y={groundY - wallH + 2} width={6} height={Math.max(0, wallH - 4)} fill={T.acc} opacity={0.35} />
+          <text x={wallX - 16} y={groundY - wallH / 2} fill={T.acM} fontSize={11} fontWeight="700" textAnchor="middle" transform={`rotate(-90 ${wallX - 16} ${groundY - wallH / 2})`}>{fmtM(wallM)} m</text>
+          {semAltura && <text x={wallX + 4} y={groundY - wallH - 8} fill={T.dim} fontSize={9.5}>referência 3 m — altura não informada</text>}
+
+          {/* pessoa de 1,70 m */}
+          <g fill={T.txt}>
+            <circle cx={px} cy={groundY - ph + headR} r={headR} />
+            <rect x={px - ph * 0.09} y={groundY - ph + headR * 2.2} width={ph * 0.18} height={ph * 0.42} rx={ph * 0.08} />
+            <line x1={px - ph * 0.05} y1={groundY - ph * 0.36} x2={px - ph * 0.13} y2={groundY} stroke={T.txt} strokeWidth={Math.max(1.6, ph * 0.06)} strokeLinecap="round" />
+            <line x1={px + ph * 0.05} y1={groundY - ph * 0.36} x2={px + ph * 0.13} y2={groundY} stroke={T.txt} strokeWidth={Math.max(1.6, ph * 0.06)} strokeLinecap="round" />
+          </g>
+          <text x={px} y={groundY - ph - 8} fill={T.mut} fontSize={10} textAnchor="middle">1,70 m</text>
+
+          {/* cota da distância parede ↔ pessoa */}
+          <line x1={wallX} y1={cotaY} x2={px} y2={cotaY} stroke={T.acM} strokeWidth={1} strokeDasharray="5 4" />
+          <line x1={wallX} y1={cotaY - 5} x2={wallX} y2={cotaY + 5} stroke={T.acM} strokeWidth={1} />
+          <line x1={px} y1={cotaY - 5} x2={px} y2={cotaY + 5} stroke={T.acM} strokeWidth={1} />
+          <text x={Math.min(Math.max((wallX + px) / 2, 40), W - 40)} y={cotaY - 7} fill={T.acM} fontSize={12.5} fontWeight="700" textAnchor="middle">{fmtM(filaM)} m</text>
+        </svg>
+      </div>
+
+      {/* "o que o olho vê" — <pattern> puro-render (sem canvas/effect) */}
+      <div style={{ flex: "0 0 168px", display: "flex", flexDirection: "column", gap: 8, alignItems: "center", justifyContent: "center", background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 12 }}>
+        <div style={{ fontSize: 10.5, textTransform: "uppercase", color: T.mut, textAlign: "center", letterSpacing: ".05em" }}>O que o olho vê a {fmtM(filaM)} m</div>
+        <svg viewBox="0 0 140 140" width={140} style={{ borderRadius: 8, display: "block" }}>
+          <defs>
+            <linearGradient id="olho-liso" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#7c3aed" /><stop offset="0.55" stopColor="#22c55e" /><stop offset="1" stopColor="#0ea5e9" />
+            </linearGradient>
+            <pattern id="olho-led" width={cell * 2} height={cell * 2} patternUnits="userSpaceOnUse">
+              <rect width={cell * 2} height={cell * 2} fill="#0b0a12" />
+              <rect x={off} y={off} width={dot} height={dot} fill="#7c3aed" />
+              <rect x={cell + off} y={off} width={dot} height={dot} fill="#22c55e" />
+              <rect x={off} y={cell + off} width={dot} height={dot} fill="#0ea5e9" />
+              <rect x={cell + off} y={cell + off} width={dot} height={dot} fill="#db2777" />
+            </pattern>
+          </defs>
+          <rect width="140" height="140" fill="#0b0a12" />
+          <rect x="6" y="6" width="128" height="128" fill={ratio <= 1 ? "url(#olho-liso)" : "url(#olho-led)"} />
+        </svg>
+        <div style={{ fontSize: 11, color: ratio <= 1 ? T.grn : T.amb, fontWeight: 700 }}>{ratio <= 1 ? "imagem lisa (retina)" : "pixels visíveis"}</div>
+      </div>
+    </div>
+  );
+}
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const ratioStr = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}:${h / g}`; };
@@ -295,41 +406,14 @@ export default function AspectRatio() {
       </div>
       )}
 
-      {/* F4 do modo DISTÂNCIA — a régua das quatro distâncias + a recomendação.
-          100% tokens T (a régua vive nos DOIS temas; nada de hex solto aqui). */}
+      {/* F4 do modo DISTÂNCIA — a CENA (parede + pessoa + olho) + recomendação.
+          Chrome 100% tokens T (vive nos DOIS temas). */}
       {mode === "dist" && (
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Régua de distância</div>
-        {vd ? (() => {
-          const RW = 460, RH = 118, pad = 14;
-          const dom = 1.12 * Math.max(vd.retinaM, filaM || 0, vd.maxM || 0);
-          const X = (m) => pad + (m / dom) * (RW - pad * 2);
-          const bandY = 48, bandH = 26;
-          // as faixas são pintadas pela PRÓPRIA faixa() em segmentos ordenados —
-          // o desenho nunca diverge do motor (tela-fita pode ter máx < retina)
-          const FAIXA_COR = { "muito-perto": T.red + "33", "aceitavel": T.amb + "33", "ideal": T.grn + "44", "retina": T.grn + "22", "longe-demais": T.dim2 + "22" };
-          const stops = [...new Set([0, vd.minM, vd.otimaM, vd.retinaM, ...(vd.maxM ? [vd.maxM] : []), dom])].sort((a, b) => a - b).filter((m) => m <= dom);
-          const bands = stops.slice(0, -1).map((a, i) => [a, stops[i + 1], FAIXA_COR[faixa((a + stops[i + 1]) / 2, vd)]]);
-          const ticks = [["mín", vd.minM], ["ótima", vd.otimaM], ["retina", vd.retinaM], ...(vd.maxM ? [["máx", vd.maxM]] : [])].sort((a, b) => a[1] - b[1]);
-          return (
-            <>
-              <svg viewBox={`0 0 ${RW} ${RH}`} width={RW} style={{ maxWidth: "100%", height: "auto", display: "block" }}>
-                {bands.map(([a, b, f], i) => <rect key={i} x={X(a)} y={bandY} width={Math.max(0, X(b) - X(a))} height={bandH} fill={f} />)}
-                <rect x={X(0)} y={bandY} width={RW - pad * 2} height={bandH} rx={3} fill="none" stroke={T.bd} />
-                {/* rótulos dos ticks alternam de linha — réguas vizinhas (ótima/retina) colidiriam */}
-                {ticks.map(([l, m], i) => (
-                  <g key={l}>
-                    <line x1={X(m)} y1={bandY - 4} x2={X(m)} y2={bandY + bandH + 4} stroke={T.mut} strokeWidth={1} />
-                    <text x={X(m)} y={bandY + bandH + (i % 2 ? 31 : 17)} fill={T.mut} fontSize={10} textAnchor="middle">{l} {fmtM(m)} m</text>
-                  </g>
-                ))}
-                {filaM > 0 && (
-                  <g>
-                    <path d={`M ${X(filaM)} ${bandY - 6} l -5 -9 h 10 z`} fill={T.acc} />
-                    <text x={Math.min(Math.max(X(filaM), 34), RW - 34)} y={bandY - 21} fill={T.acM} fontSize={10.5} fontWeight="700" textAnchor="middle">1ª fila {fmtM(filaM)} m</text>
-                  </g>
-                )}
-              </svg>
+        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Cena · parede × público — arraste a pessoa</div>
+        {vd ? (
+          <>
+              <CenaDistancia vd={vd} alturaM={alturaIn} filaM={filaM} onFila={setFilaM} />
               <div style={{ marginTop: 12, fontSize: 13, color: T.txt, lineHeight: 1.8 }}>
                 {pf && (
                   <div>Pitch pra ficar <b style={{ color: T.grn }}>retina</b> a {fmtM(filaM)} m: <b style={{ fontFamily: "ui-monospace,monospace" }}>≤ {pf.retinaMm.toFixed(2).replace(".", ",")} mm</b> <span style={{ color: T.mut }}>(teto aceitável {pf.tetoMm.toFixed(2).replace(".", ",")} mm — regra 1×)</span></div>
@@ -338,9 +422,8 @@ export default function AspectRatio() {
                   <div style={{ color: T.mut }}>Do seu cadastro: <b style={{ color: T.txt }}>{sug.cab.nome}</b> ({sug.pitchMm.toFixed(2).replace(".", ",")} mm) {sug.atende ? <b style={{ color: T.grn }}>atende</b> : <><b style={{ color: T.amb }}>não atende</b> — é o mais próximo</>}.</div>
                 )}
               </div>
-            </>
-          );
-        })() : (
+          </>
+        ) : (
           <div style={{ color: T.dim, fontSize: 13 }}>Informe um pitch maior que zero — ou use um gabinete do cadastro no botão Usar painel.</div>
         )}
       </div>
