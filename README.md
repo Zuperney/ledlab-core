@@ -28,7 +28,7 @@ _Aponte a câmera do celular para o QR code._
 | 🎛️ **Equipamentos** | Catálogo de controladoras certificado nos datasheets (NovaStar VX/MX) + "Verificar projeto": portas usadas × disponíveis por Screen |
 | 🖥️ **Test cards** | Cartões de teste na resolução nativa do painel, com números, geometria, mapa de cabos e export PNG |
 | 🧩 **Composição** | Várias telas posicionadas num render só (estilo mapeamento de slices), com alerta de sobreposição |
-| 📐 **Aspect Ratio & crop** | Proporção da tela e cálculo de crop do sinal (encaixar × preencher, com deslocamento) |
+| 📐 **Aspect Ratio & distância** | Proporção da tela, crop do sinal (encaixar × preencher) e **distância de visão pelo pitch** — as quatro réguas da indústria + sugestão de gabinete do cadastro |
 | 📅 **Agenda & cachês** | Diárias com check-in/checkout por GPS, tipos de atividade e total do mês |
 | 🧾 **Financeiro** | Recibo/planilha de pagamento por período e cliente — imprimir, PDF ou WhatsApp |
 | 💸 **Reembolso** | Despesas do evento com foto do comprovante e relatório pronto pra enviar |
@@ -38,11 +38,12 @@ _Aponte a câmera do celular para o QR code._
 
 ## 🧾 Versões
 
-**Atual: v1.15.0** — **Mapa de cabos no estilo SmartLCT**: cada cabo pinta sua região com cor pastel, serpentina azul com setas na ordem elétrica real, entrada verde numerada e fim vermelho — a linguagem que o técnico já conhece do LCT, no sinal e no AC. E o rigging saiu do app (reservado pro futuro 3D). *(868 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.16.0** — **Recomendador pitch × distância**: "de longe fica bom?" com resposta de engenharia — as quatro réguas de visão (mínima, ótima, retina, máxima) na aba Aspect Ratio, com veredito da primeira fila e sugestão de gabinete do seu cadastro; pitch e distâncias também no Caderno. Fecha a **Fase 02 do roadmap** (profundidade de engenharia). *(890 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|
-| **1.15.0** | **Mapa de cabos estilo SmartLCT** (pastel por cabo, serpentina com setas, entrada verde, fim vermelho — PDF e Caderno DOM, cruzando com a tabela pela cor); **rigging sai do app** (peso fica; estrutura é de quem é do ofício, até o 3D) |
+| **1.16.0** | **Pitch × distância** (réguas 1×/10×/retina 3,438/altura×30 com fontes, régua visual, sugestão do cadastro; pitch + distâncias agrupadas no Caderno; KB completa) + regra das 15 linhas no cabeamento (tabela alta abre na própria página; mapa grande) — **Fase 02 concluída** |
+| 1.15.0 | **Mapa de cabos estilo SmartLCT** (pastel por cabo, serpentina com setas, entrada verde, fim vermelho — PDF e Caderno DOM, cruzando com a tabela pela cor); **rigging sai do app** (peso fica; estrutura é de quem é do ofício, até o 3D) |
 | 1.14.0 | **Caderno v2**: telas na disposição da Composição, balanço por fase pico+típico, folha "Critérios de Cálculo" (regras, normas e referências), tabelas AC sem estourar página, PDF ~2,5× mais leve |
 | 1.13.0 | **Auditoria de engenharia do motor AC** (fórmulas confirmadas com fontes): o app entrega corrente e kVA — **sem sugerir disjuntor**; gerador vira **faixa honesta** (pico ×1,25 + % ocupado); tabela de bitolas × distância × proteção na Base de Conhecimento |
 | 1.12.0 | **Prancha de engenharia no PDF**: moldura + carimbo em toda página (logo do projeto, Projetou, REV manual, FOLHA N/M); assinatura do Caderno na conta |
