@@ -72,6 +72,51 @@ export async function ativarAvisos(userId) {
   if (error) { try { await sub.unsubscribe(); } catch { /* melhor esforço */ } throw new Error(error.message); }
 }
 
+// Aparelhos assinados da conta (pra revisar/revogar nas Configurações).
+export async function listarAparelhos() {
+  const client = await getSupabase();
+  if (!client) return [];
+  const { data, error } = await client.from("push_assinaturas")
+    .select("id, endpoint, user_agent, criado_em, ultimo_ok")
+    .order("criado_em", { ascending: false });
+  if (error) throw new Error(error.message);
+  const atualEndpoint = await (async () => {
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      return (await reg?.pushManager?.getSubscription())?.endpoint || null;
+    } catch { return null; }
+  })();
+  return (data || []).map((d) => ({ ...d, esteAparelho: d.endpoint === atualEndpoint }));
+}
+
+// Revoga um aparelho (LGPD: o dono da conta controla onde o aviso chega).
+// Se for o aparelho atual, cancela a assinatura local também.
+export async function revogarAparelho(aparelho) {
+  const client = await getSupabase();
+  if (!client) throw new Error("Conecte-se primeiro (Conta & sincronização).");
+  const { error } = await client.from("push_assinaturas").delete().eq("id", aparelho.id);
+  if (error) throw new Error(error.message);
+  if (aparelho.esteAparelho) {
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      await (await reg?.pushManager?.getSubscription())?.unsubscribe();
+    } catch { /* melhor esforço */ }
+  }
+}
+
+// rótulo curto do aparelho a partir do user-agent (só pra lista das Configurações)
+export function rotuloDoAparelho(userAgent = "") {
+  const so = /iPhone|iPad/.test(userAgent) ? "iPhone/iPad"
+    : /Android/.test(userAgent) ? "Android"
+    : /Windows/.test(userAgent) ? "Windows"
+    : /Mac OS/.test(userAgent) ? "Mac" : "Aparelho";
+  const nav = /Edg\//.test(userAgent) ? "Edge"
+    : /Chrome\//.test(userAgent) ? "Chrome"
+    : /Safari\//.test(userAgent) ? "Safari"
+    : /Firefox\//.test(userAgent) ? "Firefox" : "";
+  return nav ? `${so} · ${nav}` : so;
+}
+
 // Desliga neste aparelho: remove do Supabase e cancela a assinatura local.
 export async function desativarAvisos() {
   const reg = await navigator.serviceWorker.getRegistration();

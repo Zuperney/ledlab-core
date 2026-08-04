@@ -8,7 +8,7 @@ import { useAuth } from "../../store/AuthContext.jsx";
 import { useEquipe } from "../../store/EquipeContext.jsx";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { codigoConviteValido, mensagemErroEquipe } from "../../services/avisosCalc.js";
-import { suportePush, assinaturaAtiva, ativarAvisos, desativarAvisos } from "../../services/pushAssinatura.js";
+import { suportePush, assinaturaAtiva, ativarAvisos, desativarAvisos, listarAparelhos, revogarAparelho, rotuloDoAparelho } from "../../services/pushAssinatura.js";
 import { PrefToggle } from "../../components/CablingPrefs.jsx";
 import { T } from "../../ui/tokens.js";
 import { btn } from "../../ui/styles.js";
@@ -37,20 +37,33 @@ export default function EquipeConfig() {
 // ── avisos no celular (Web Push) — opt-in por aparelho ──
 function AvisosCelular() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const toast = useToast();
   const [ativo, setAtivo] = useState(false);
+  const [aparelhos, setAparelhos] = useState([]);
   const [busy, setBusy] = useState(false);
   const suporte = suportePush();
 
-  useEffect(() => { assinaturaAtiva().then(setAtivo); }, []);
+  const recarregar = () => {
+    assinaturaAtiva().then(setAtivo);
+    listarAparelhos().then(setAparelhos).catch(() => {});
+  };
+  useEffect(recarregar, []);
 
   const alternar = async () => {
     setBusy(true);
     try {
-      if (ativo) { await desativarAvisos(); setAtivo(false); toast("Avisos desligados neste aparelho"); }
-      else { await ativarAvisos(user.id); setAtivo(true); toast("Avisos ligados neste aparelho"); }
+      if (ativo) { await desativarAvisos(); toast("Avisos desligados neste aparelho"); }
+      else { await ativarAvisos(user.id); toast("Avisos ligados neste aparelho"); }
+      recarregar();
     } catch (err) { toast(err?.message || "Falha ao configurar os avisos", "info"); }
     setBusy(false);
+  };
+
+  const revogar = async (ap) => {
+    if (!(await confirm({ title: "Revogar aparelho?", message: `${rotuloDoAparelho(ap.user_agent)} deixa de receber avisos no celular. Dá pra ligar de novo por lá.`, confirmLabel: "Revogar" }))) return;
+    try { await revogarAparelho(ap); toast("Aparelho revogado"); recarregar(); }
+    catch (err) { toast(err?.message || "Falha ao revogar", "info"); }
   };
 
   return (
@@ -74,6 +87,21 @@ function AvisosCelular() {
             titulo="Avisar neste aparelho" desc="A permissão é do navegador — dá pra desligar quando quiser." />
         )}
       </div>
+
+      {aparelhos.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ ...desc, marginBottom: 2 }}>Aparelhos recebendo avisos:</div>
+          {aparelhos.map((ap) => (
+            <div key={ap.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 0", borderTop: `1px solid ${T.bd}` }}>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ color: T.txt, fontSize: 13.5 }}>{rotuloDoAparelho(ap.user_agent)}</span>
+                {ap.esteAparelho && <span style={{ color: T.acM, fontSize: 12 }}> · este aparelho</span>}
+              </div>
+              <button style={btn("ghost")} onClick={() => revogar(ap)}>Revogar</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

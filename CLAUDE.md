@@ -57,5 +57,12 @@ Regras de decisão:
   **A convenção completa é o §12.1 do `docs/marca/manual.md` — texto novo segue ela.**
 - **Testes**: `npm test` (vitest) — motor de cálculo tem que passar sempre;
   `npx eslint src --max-warnings 0` é bloqueante no CI.
+- **Backend (`supabase/`)**: migrations SQL + Edge Functions (Deno/TS) moram
+  versionadas em `supabase/` — mudança de banco entra ALI como migration
+  numerada, nunca só no dashboard (checklist de deploy no `supabase/README.md`).
+  O diretório é ignorado pelo ESLint (mundo Deno). Módulo Equipe & avisos:
+  papel é por vínculo (quem cria a equipe é gestor DELA), avisos nascem em
+  trigger no banco com dedupe por chave única, e push é fila drenada pela
+  Edge Function `enviar-avisos` (claim atômico).
 - **Release**: trabalho novo em BRANCH; merge/deploy na main SÓ com o "pode
   soltar" do usuário (deploy = push na main → GitHub Pages).
