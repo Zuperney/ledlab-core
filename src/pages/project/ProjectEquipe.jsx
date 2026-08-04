@@ -3,10 +3,11 @@
 // Sobe só o mínimo do Project (nome, cliente, local, datas, obs) — nada
 // financeiro/técnico. O técnico recebe o evento read-only na Agenda dele.
 import { useState, useMemo } from "react";
-import { Megaphone, Users, CalendarDays, MapPin } from "lucide-react";
+import { Megaphone, Users, CalendarDays, MapPin, BellRing } from "lucide-react";
 import { useEquipe } from "../../store/EquipeContext.jsx";
 import { useToast, useConfirm } from "../../store/UIContext.jsx";
 import { mensagemErroEquipe } from "../../services/avisosCalc.js";
+import { convocarEquipe } from "../../services/equipe.js";
 import { formatRange } from "../../services/dates.js";
 import { T } from "../../ui/tokens.js";
 import { card, btn } from "../../ui/styles.js";
@@ -73,6 +74,16 @@ export default function ProjectEquipe({ project }) {
       return s;
     });
   };
+  // convocação manual: avisa (com push) todo mundo já escalado na publicação
+  const nEscaladosPublicados = (pub?.escalados || []).length;
+  const convocar = async () => {
+    setBusy(true);
+    try {
+      await convocarEquipe(pub.id);
+      toast("Equipe convocada");
+    } catch (err) { toast(mensagemErroEquipe(err), "info"); }
+    setBusy(false);
+  };
 
   const precisaPublicar = !publicada || escalaDiferente || dadosDesatualizados;
 
@@ -89,9 +100,17 @@ export default function ProjectEquipe({ project }) {
             <Users size={15} style={{ color: T.acM }} /> {equipe?.nome}
           </span>
         )}
-        <button style={btn("ghost", { visibility: publicada ? "visible" : "hidden" })} onClick={remover} disabled={busy}>
-          Remover publicação
-        </button>
+        {publicada && (
+          <button style={btn("ghost")} onClick={convocar} disabled={busy || nEscaladosPublicados === 0}
+            title={nEscaladosPublicados === 0 ? "Publique a escala antes de convocar" : `Avisa agora os ${nEscaladosPublicados} escalados`}>
+            <BellRing size={14} /> Convocar {nEscaladosPublicados > 0 ? `${nEscaladosPublicados} escalado${nEscaladosPublicados === 1 ? "" : "s"}` : "equipe"}
+          </button>
+        )}
+        {publicada && (
+          <button style={btn("ghost")} onClick={remover} disabled={busy}>
+            Remover publicação
+          </button>
+        )}
         <div style={{ flex: 1 }} />
         <button style={btn("primary")} onClick={publicar} disabled={busy || !precisaPublicar}>
           <Megaphone size={15} /> {busy ? "Publicando…" : publicada ? "Atualizar publicação" : "Publicar na agenda da equipe"}

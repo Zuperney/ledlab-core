@@ -2,12 +2,14 @@
 // Gestor: cria a equipe, compartilha o código de convite, gerencia membros.
 // Técnico: entra pelo código com um nome de exibição (o e-mail nunca aparece
 // pra ninguém — LGPD/minimização, ver supabase/migrations/01_equipes.sql).
-import { useState } from "react";
-import { Copy, RotateCcw, Trash2, Users, LogOut, UserMinus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Copy, RotateCcw, Trash2, Users, LogOut, UserMinus, BellRing } from "lucide-react";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { useEquipe } from "../../store/EquipeContext.jsx";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { codigoConviteValido, mensagemErroEquipe } from "../../services/avisosCalc.js";
+import { suportePush, assinaturaAtiva, ativarAvisos, desativarAvisos } from "../../services/pushAssinatura.js";
+import { PrefToggle } from "../../components/CablingPrefs.jsx";
 import { T } from "../../ui/tokens.js";
 import { btn } from "../../ui/styles.js";
 
@@ -27,6 +29,51 @@ export default function EquipeConfig() {
       {participo.map((e) => <EquipeParticipo key={e.id} equipe={e} />)}
       {gerencio.length === 0 && <NovaEquipe />}
       {participo.length === 0 && <EntrarComCodigo temAlgo={gerencio.length > 0} />}
+      {(gerencio.length > 0 || participo.length > 0) && <AvisosCelular />}
+    </div>
+  );
+}
+
+// ── avisos no celular (Web Push) — opt-in por aparelho ──
+function AvisosCelular() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const [ativo, setAtivo] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const suporte = suportePush();
+
+  useEffect(() => { assinaturaAtiva().then(setAtivo); }, []);
+
+  const alternar = async () => {
+    setBusy(true);
+    try {
+      if (ativo) { await desativarAvisos(); setAtivo(false); toast("Avisos desligados neste aparelho"); }
+      else { await ativarAvisos(user.id); setAtivo(true); toast("Avisos ligados neste aparelho"); }
+    } catch (err) { toast(err?.message || "Falha ao configurar os avisos", "info"); }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ ...bloco, borderTop: `1px solid ${T.bd}`, paddingTop: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <BellRing size={15} style={{ color: T.acM, flexShrink: 0 }} />
+        <div style={titulo}>Avisos no celular</div>
+      </div>
+      <div style={desc}>Escalação, mudança de evento, convocação e lembrete chegam como aviso do sistema — mesmo com o app fechado.</div>
+      <div style={{ marginTop: 8 }}>
+        {!import.meta.env.PROD ? (
+          <div style={desc}>Disponível só no app publicado (o service worker não roda em desenvolvimento).</div>
+        ) : suporte === "ios-nao-instalado" ? (
+          <div style={desc}>No iPhone/iPad: abra no Safari, toque em <b>Compartilhar → Adicionar à Tela de Início</b> e ligue os avisos por lá (iOS 16.4+).</div>
+        ) : suporte === "negado" ? (
+          <div style={desc}>O navegador está bloqueando avisos deste site — libere nas permissões e tente de novo.</div>
+        ) : suporte === "sem-suporte" ? (
+          <div style={desc}>Este navegador não tem suporte a avisos. No celular, instale o app na tela de início.</div>
+        ) : (
+          <PrefToggle on={ativo} onClick={busy ? undefined : alternar}
+            titulo="Avisar neste aparelho" desc="A permissão é do navegador — dá pra desligar quando quiser." />
+        )}
+      </div>
     </div>
   );
 }

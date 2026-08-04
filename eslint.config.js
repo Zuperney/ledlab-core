@@ -5,7 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // supabase/: migrations SQL + Edge Functions em Deno/TS — fora do mundo do
+  // ESLint do app (globals e resolução de import próprios do Deno)
+  globalIgnores(['dist', 'supabase']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

@@ -160,6 +160,18 @@ export async function carregarPublicacoes() {
   return (ev.data || []).map((e) => ({ ...e, escalados: escaladosPor[e.id] || [] }));
 }
 
+// Convocação manual: a Edge Function valida o gestor, cria os avisos com
+// janela de dedupe (10 min) e dispara o push na sequência.
+export async function convocarEquipe(eventoId) {
+  const client = await sb();
+  const { data, error } = await client.functions.invoke("convocar", {
+    body: { evento_id: eventoId },
+  });
+  lanca(error);
+  if (data?.erro) throw new Error(data.erro);
+  return data; // { convocados, enviados, aparelhos }
+}
+
 // ── central de avisos (fase 2) ─────────────────────────────────────────────
 
 export async function carregarAvisos() {

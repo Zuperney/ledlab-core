@@ -119,3 +119,35 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(staleWhileRevalidate(request));
 });
+
+// ── Avisos no celular (Web Push) ──────────────────────────────────────────
+// Payload vem da Edge Function enviar-avisos: { titulo, corpo, tag, url }.
+// tag = chave de dedupe do aviso → o sistema colapsa repetidos na bandeja.
+
+self.addEventListener("push", (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch { /* payload não-JSON → aviso genérico */ }
+  event.waitUntil(self.registration.showNotification(d.titulo || "LedLab", {
+    body: d.corpo || "",
+    tag: d.tag || undefined,
+    icon: toAbsoluteUrl("./pwa-192.png"),
+    badge: toAbsoluteUrl("./pwa-192.png"),
+    data: { url: d.url || "./#/agenda" },
+  }));
+});
+
+// clique no aviso → foca a janela aberta (ou abre uma) já na rota do hash-router
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || "./#/agenda", self.registration.scope).toString();
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const win = wins.find((w) => w.url.startsWith(self.registration.scope));
+    if (win) {
+      await win.focus();
+      if ("navigate" in win) await win.navigate(url);
+      return;
+    }
+    await self.clients.openWindow(url);
+  })());
+});
