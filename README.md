@@ -37,10 +37,11 @@ _Aponte a câmera do celular para o QR code._
 
 ## 🧾 Versões
 
-**Atual: v1.17.0** — **A cena do pitch**: no modo Distância, a parede de LED em escala, uma pessoa de 1,70 m arrastável e o quadro "o que o olho vê" — os LEDs se separam quando perto demais e a imagem fica lisa da retina em diante. E o preview de crop agora recorta uma **imagem de verdade**. *(334 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.18.0** — **O vocabulário cravado**: uma palavra por conceito no app inteiro — Porta = sinal, **Circuito** = AC, **cadeia** = encadeamento (corrente é só ampères), **controladora** unificada, aba Relatório vira **Caderno** do clique à capa, Proporção + Fração e as quatro **distâncias de visão**. A convenção completa é o §12.1 do manual de marca. *(334 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|
+| **1.18.0** | **Vocabulário cravado** (§12.1 do manual de marca + varredura no app inteiro: Circuito no AC, aba "Caderno", cadeia, controladora, Proporção + Fração, distâncias de visão, grafias powerCON/NovaStar); Equipamentos oculta por enquanto |
 | **1.17.0** | **Cena do pitch** (parede em escala + pessoa de 1,70 m arrastável + chão com as faixas + "o que o olho vê" com pixels reais) e **imagem real no preview de crop** (com toggle pro esquema) |
 | 1.16.0 | **Pitch × distância** (réguas 1×/10×/retina 3,438/altura×30 com fontes, régua visual, sugestão do cadastro; pitch + distâncias agrupadas no Caderno; KB completa) + regra das 15 linhas no cabeamento (tabela alta abre na própria página; mapa grande) — **Fase 02 concluída** |
 | 1.15.0 | **Mapa de cabos estilo SmartLCT** (pastel por cabo, serpentina com setas, entrada verde, fim vermelho — PDF e Caderno DOM, cruzando com a tabela pela cor); **rigging sai do app** (peso fica; estrutura é de quem é do ofício, até o 3D) |

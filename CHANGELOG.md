@@ -2,7 +2,7 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
-## [Não publicado]
+## [1.18.0] — 2026-08-04
 
 **O vocabulário cravado — uma palavra por conceito, no app inteiro.**
 
