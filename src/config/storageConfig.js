@@ -16,4 +16,6 @@ export const KEYS = {
 // no backup, no sync KV nem no restaurar de fábrica — logout limpa.
 export const CACHE_KEYS = {
   equipe: "ledlab.equipe.v1",   // vínculos + membros (EquipeContext)
+  escala: "ledlab.escala.v1",   // eventos em que fui escalado (Agenda do técnico)
+  avisos: "ledlab.avisos.v1",   // central de avisos (sino)
 };

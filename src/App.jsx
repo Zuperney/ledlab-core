@@ -14,6 +14,7 @@ import NavBtn from "./components/NavBtn.jsx";
 import BottomNav from "./components/BottomNav.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import Drawer from "./components/Drawer.jsx";
+import AvisosSino from "./components/AvisosSino.jsx";
 
 import Dashboard from "./pages/Dashboard.jsx";
 import Agenda from "./pages/Agenda.jsx";
@@ -138,6 +139,7 @@ export default function App() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             {/* alvos de 38px no mobile (thumb zone; NN/g pede ~1cm) — desktop segue 30 */}
+            <AvisosSino size={38} />
             <SunToggle sol={theme === "sol"} onClick={toggleTheme} size={38} />
             <PrivacyEye on={ocultarValores} onClick={toggleOcultar} size={38} />
             <button onClick={() => setSettingsOpen(true)} aria-label="Configurações" title="Configurações"
@@ -208,6 +210,7 @@ export default function App() {
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", borderBottom: `1px solid ${T.bd}` }}>
           <h1 style={{ margin: 0, fontSize: 18 }}>{LABELS[page]}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AvisosSino />
             <SunToggle sol={theme === "sol"} onClick={toggleTheme} />
             <PrivacyEye on={ocultarValores} onClick={toggleOcultar} />
             <span style={{ background: T.sel, color: T.acM, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{VERSION}</span>

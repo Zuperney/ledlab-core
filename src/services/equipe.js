@@ -96,3 +96,85 @@ export async function excluirEquipe(equipeId) {
   const { error } = await client.from("equipes").delete().eq("id", equipeId);
   lanca(error); // cascade limpa convite + membros
 }
+
+// ── eventos publicados & escala (fase 2) ───────────────────────────────────
+
+// Publica (ou atualiza) o Project na agenda da equipe e acerta a escala.
+// Sobe SÓ o mínimo — nada financeiro/técnico (LGPD/minimização).
+export async function publicarEvento(equipeId, project, escaladosIds) {
+  const client = await sb();
+  const { data: ev, error } = await client.from("eventos_publicados").upsert({
+    equipe_id: equipeId,
+    project_id: project.id,
+    nome: project.name || "Sem nome",
+    cliente: project.cliente || "",
+    local: project.local || "",
+    data_inicio: project.dataInicio,
+    data_fim: project.dataFim || null,
+    obs: project.obs || "",
+    cancelado: !!project.cancelled,
+    atualizado_em: new Date().toISOString(),
+  }, { onConflict: "equipe_id,project_id" }).select("id").single();
+  lanca(error);
+
+  // diff da escala: insere quem entrou, remove quem saiu (triggers avisam)
+  const { data: atuais, error: e2 } = await client.from("escalas")
+    .select("user_id").eq("evento_id", ev.id);
+  lanca(e2);
+  const antes = new Set((atuais || []).map((r) => r.user_id));
+  const depois = new Set(escaladosIds || []);
+  const entra = [...depois].filter((u) => !antes.has(u));
+  const saem = [...antes].filter((u) => !depois.has(u));
+  if (entra.length) {
+    const { error: e3 } = await client.from("escalas")
+      .insert(entra.map((user_id) => ({ evento_id: ev.id, user_id })));
+    lanca(e3);
+  }
+  for (const u of saem) {
+    const { error: e4 } = await client.from("escalas").delete()
+      .eq("evento_id", ev.id).eq("user_id", u);
+    lanca(e4);
+  }
+  return ev.id;
+}
+
+// Remove a publicação (o Project local segue intacto).
+export async function removerPublicacao(equipeId, projectId) {
+  const client = await sb();
+  const { error } = await client.from("eventos_publicados").delete()
+    .eq("equipe_id", equipeId).eq("project_id", projectId);
+  lanca(error);
+}
+
+// Publicações + escalas dos MEUS projetos (visão do gestor): o RLS devolve só
+// o que eu gerencio ou onde estou escalado; o filtro por equipe vem de fora.
+export async function carregarPublicacoes() {
+  const client = await sb();
+  const [ev, esc] = await Promise.all([
+    client.from("eventos_publicados").select("id, equipe_id, project_id, nome, data_inicio, data_fim, hora_chamada, cancelado, atualizado_em, cliente, local, obs"),
+    client.from("escalas").select("evento_id, user_id, funcao"),
+  ]);
+  lanca(ev.error); lanca(esc.error);
+  const escaladosPor = {};
+  for (const r of esc.data || []) (escaladosPor[r.evento_id] ||= []).push(r.user_id);
+  return (ev.data || []).map((e) => ({ ...e, escalados: escaladosPor[e.id] || [] }));
+}
+
+// ── central de avisos (fase 2) ─────────────────────────────────────────────
+
+export async function carregarAvisos() {
+  const client = await sb();
+  const { data, error } = await client.from("avisos")
+    .select("id, evento_id, tipo, titulo, corpo, criado_em, lido_em")
+    .order("criado_em", { ascending: false }).limit(80);
+  lanca(error);
+  return data || [];
+}
+
+export async function marcarAvisosLidos(ids) {
+  if (!ids?.length) return;
+  const client = await sb();
+  const { error } = await client.from("avisos")
+    .update({ lido_em: new Date().toISOString() }).in("id", ids);
+  lanca(error);
+}

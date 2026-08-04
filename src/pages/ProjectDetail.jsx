@@ -1,7 +1,8 @@
 // pages/ProjectDetail.jsx — detalhe do projeto com abas.
 import { useState } from "react";
-import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText, Layers } from "lucide-react";
+import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText, Layers, Users } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
+import { useEquipe } from "../store/EquipeContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { T } from "../ui/tokens.js";
@@ -15,6 +16,10 @@ import ProjectCabeamento from "./project/ProjectCabeamento.jsx";
 import ProjectTestCard from "./project/ProjectTestCard.jsx";
 import ProjectComposicao from "./project/ProjectComposicao.jsx";
 import ProjectRelatorio from "./project/ProjectRelatorio.jsx";
+import ProjectEquipe from "./project/ProjectEquipe.jsx";
+
+// aba Equipe só existe pra quem GERENCIA uma equipe (útil e invisível pro resto)
+const EQUIPE_TAB = { id: "equipe", label: "Equipe", Icon: Users, Comp: ProjectEquipe };
 
 const TABS = [
   { id: "dados", label: "Dados", Icon: Folder, Comp: ProjectDados },
@@ -29,15 +34,17 @@ const TABS = [
 
 export default function ProjectDetail({ project, onBack }) {
   const { projects, setProjects } = useLedLabContext();
+  const { gerencio } = useEquipe();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState("dados");
+  const tabs = gerencio.length ? [...TABS.slice(0, 1), EQUIPE_TAB, ...TABS.slice(1)] : TABS;
 
   const patch = (partial) => setProjects(projects.map((p) => (p.id === project.id ? { ...p, ...partial, updatedAt: Date.now() } : p)));
   const patchTela = (telaId, partial) =>
     patch({ telas: (project.telas || []).map((t) => (t.id === telaId ? { ...t, ...partial } : t)) });
 
   const roll = projectRollup(project);
-  const Active = TABS.find((t) => t.id === tab)?.Comp || ProjectDados;
+  const Active = tabs.find((t) => t.id === tab)?.Comp || ProjectDados;
 
   return (
     <div>
@@ -66,7 +73,7 @@ export default function ProjectDetail({ project, onBack }) {
       )}
 
       <div className="no-scrollbar" style={{ display: "flex", gap: 4, borderBottom: `1px solid ${T.bd}`, marginBottom: isMobile ? 14 : 20, overflowX: "auto", flexWrap: "nowrap" }}>
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const active = tab === t.id;
           const Icon = t.Icon;
           return (

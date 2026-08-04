@@ -1,8 +1,10 @@
 // pages/Agenda.jsx — agenda de eventos com 3 visualizações (Linha, Coluna, Grade/calendário),
 // filtros, status automático por data e clique no evento abrindo o projeto.
 import { useState, useMemo } from "react";
-import { Rows3, Columns3, CalendarDays, ChevronLeft, ChevronRight, MapPin, Layers, Search, SlidersHorizontal } from "lucide-react";
+import { Rows3, Columns3, CalendarDays, ChevronLeft, ChevronRight, MapPin, Layers, Search, SlidersHorizontal, Users } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
+import { useEquipe } from "../store/EquipeContext.jsx";
+import { mesclarEscalados } from "../services/escalaMerge.js";
 import { recomputeStatus, projectRollup, groupByMonth, MONTHS_LONG, isoDate } from "../services/projectCalc.js";
 import { formatRange } from "../services/dates.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -12,6 +14,7 @@ import SectionHeader from "../components/SectionHeader.jsx";
 import StatusBadge, { STATUS, STATUS_ORDER } from "../components/StatusBadge.jsx";
 import Placeholder from "../components/Placeholder.jsx";
 import BottomSheet from "../components/BottomSheet.jsx";
+import LightModal from "../components/LightModal.jsx";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const pad = (n) => String(n).padStart(2, "0");
@@ -19,22 +22,28 @@ const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDat
 
 export default function Agenda({ nav }) {
   const { projects } = useLedLabContext();
+  const { eventosEscalados } = useEquipe();
   const isMobile = useIsMobile();
   const [view, setView] = useState("linha");
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [escaladoAberto, setEscaladoAberto] = useState(null); // LightModal read-only
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
 
-  // cor estável por projeto (ordem original)
-  const colorOf = (id) => paletteColor(Math.max(0, projects.findIndex((p) => p.id === id)));
-  const open = (id) => nav?.openProject?.(id);
+  // projetos locais + eventos em que fui escalado (read-only, vêm da equipe)
+  const todos = useMemo(() => mesclarEscalados(projects, eventosEscalados), [projects, eventosEscalados]);
+
+  // cor estável por item (ordem da lista mesclada)
+  const colorOf = (id) => paletteColor(Math.max(0, todos.findIndex((p) => p.id === id)));
+  // escalado abre o detalhe leve (não há Project local); os meus abrem o projeto
+  const open = (p) => (p.escalado ? setEscaladoAberto(p) : nav?.openProject?.(p.id));
 
   // status sempre derivado da data
   const withStatus = useMemo(
-    () => projects.map((p) => ({ ...p, status: recomputeStatus(p, isoDate()) })),
-    [projects]
+    () => todos.map((p) => ({ ...p, status: recomputeStatus(p, isoDate()) })),
+    [todos]
   );
   const list = useMemo(
     () => withStatus.filter((p) =>
@@ -71,7 +80,7 @@ export default function Agenda({ nav }) {
 
   return (
     <div>
-      <SectionHeader title="Agenda" subtitle={`${projects.length} projetos · o status acompanha a data do evento.`}>
+      <SectionHeader title="Agenda" subtitle={`${todos.length} eventos · o status acompanha a data do evento.`}>
         <div style={segBox}>
           {views.map((v) => { const Icon = v.Icon; return (
             <button key={v.id} onClick={() => setView(v.id)} title={v.label} style={segBtn(view === v.id)}>
@@ -111,7 +120,41 @@ export default function Agenda({ nav }) {
       {view === "linha" && <LinhaView list={list} colorOf={colorOf} open={open} />}
       {view === "coluna" && <ColunaView list={list} colorOf={colorOf} open={open} />}
       {view === "grade" && <GradeView list={list} colorOf={colorOf} open={open} cursor={cursor} setCursor={setCursor} />}
+
+      {escaladoAberto && <EscaladoModal item={escaladoAberto} onClose={() => setEscaladoAberto(null)} />}
     </div>
+  );
+}
+
+// selo "Escalado" — marca o evento que veio da equipe (read-only)
+function EscaladoBadge() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.sel, color: T.acM, borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+      <Users size={11} /> Escalado
+    </span>
+  );
+}
+
+// detalhe leve do evento escalado: o técnico não tem o Project — só o que o
+// gestor publicou. Somente leitura, sem botão de ação.
+function EscaladoModal({ item, onClose }) {
+  const linha = (rotulo, valor) => valor ? (
+    <div style={{ display: "flex", gap: 10, padding: "7px 0", borderTop: `1px solid ${T.bd}`, fontSize: 13.5 }}>
+      <span style={{ color: T.dim, width: 88, flexShrink: 0 }}>{rotulo}</span>
+      <span style={{ color: T.txt, minWidth: 0 }}>{valor}</span>
+    </div>
+  ) : null;
+  return (
+    <LightModal title="Evento — você está escalado" onClose={onClose}>
+      <div style={{ color: T.txt, fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{item.name}</div>
+      {item.cancelled && <div style={{ color: T.red, fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>Evento cancelado</div>}
+      <div style={{ color: T.dim, fontSize: 12.5, marginBottom: 8 }}>Equipe {item.equipeNome || "—"} · publicado pelo gestor</div>
+      {linha("Datas", formatRange(item.dataInicio, item.dataFim))}
+      {linha("Chamada", item.horaChamada ? item.horaChamada.slice(0, 5) : null)}
+      {linha("Cliente", item.cliente)}
+      {linha("Local", item.local)}
+      {linha("Obs.", item.obs)}
+    </LightModal>
   );
 }
 
@@ -125,13 +168,14 @@ function LinhaView({ list, colorOf, open }) {
       {m.projects.map((p) => (
         <div key={p.id} style={card({ display: "flex", alignItems: "center", gap: 14, marginBottom: 10, borderLeft: `3px solid ${colorOf(p.id)}` })}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <button onClick={() => open(p.id)} style={{ background: "none", border: "none", color: T.txt, fontWeight: 600, fontSize: 15, cursor: "pointer", padding: 0, textAlign: "left" }}>{p.name}</button>
+            <button onClick={() => open(p)} style={{ background: "none", border: "none", color: T.txt, fontWeight: 600, fontSize: 15, cursor: "pointer", padding: 0, textAlign: "left" }}>{p.name}</button>
             <div style={{ display: "flex", gap: 16, color: T.mut, fontSize: 12, marginTop: 3, flexWrap: "wrap" }}>
               <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><CalendarDays size={13} /> {formatRange(p.dataInicio, p.dataFim)}</span>
               <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><MapPin size={13} /> {p.local}</span>
-              <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><Layers size={13} /> {projectRollup(p).gab} gabinetes</span>
+              {!p.escalado && <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><Layers size={13} /> {projectRollup(p).gab} gabinetes</span>}
             </div>
           </div>
+          {p.escalado && <EscaladoBadge />}
           <StatusBadge s={p.status} />
         </div>
       ))}
@@ -152,11 +196,14 @@ function ColunaView({ list, colorOf, open }) {
               <cfg.Icon size={15} /> {cfg.l} <span style={{ marginLeft: "auto", color: T.dim }}>{items.length}</span>
             </div>
             {items.map((p) => (
-              <button key={p.id} onClick={() => open(p.id)}
+              <button key={p.id} onClick={() => open(p)}
                 style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: T.card, border: `1px solid ${T.bd}`, borderLeft: `3px solid ${colorOf(p.id)}`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
-                <div style={{ color: T.txt, fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: T.txt, fontWeight: 600, fontSize: 14, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  {p.escalado && <EscaladoBadge />}
+                </div>
                 <div style={{ color: T.dim, fontSize: 12, marginTop: 4 }}>{formatRange(p.dataInicio, p.dataFim)}</div>
-                <div style={{ color: T.dim, fontSize: 12 }}>{p.local} · {projectRollup(p).gab} gab</div>
+                <div style={{ color: T.dim, fontSize: 12 }}>{p.escalado ? p.local || p.equipeNome : `${p.local} · ${projectRollup(p).gab} gab`}</div>
               </button>
             ))}
             {!items.length && <div style={{ color: T.dim2, fontSize: 12, padding: "6px 6px 10px" }}>—</div>}
@@ -208,7 +255,7 @@ function GradeView({ list, colorOf, open, cursor, setCursor }) {
               {evs.map((p) => {
                 const col = colorOf(p.id);
                 return (
-                  <button key={p.id} onClick={() => open(p.id)} title={p.name}
+                  <button key={p.id} onClick={() => open(p)} title={p.escalado ? `${p.name} (escalado)` : p.name}
                     style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: col + "2e", color: "#fff", borderLeft: `3px solid ${col}`, border: "none", borderRadius: 4, padding: "3px 6px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {p.name}
                   </button>
