@@ -83,9 +83,17 @@ export async function enviarPendentes(sb: ReturnType<typeof serviceClient>) {
   return { enviados: claimed.length, aparelhos };
 }
 
+// CORS: convocar é invocada direto do navegador (functions.invoke) — sem
+// estes headers o preflight morre e o app só vê "Failed to send a request".
+export const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 export function respostaJson(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...CORS },
   });
 }

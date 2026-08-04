@@ -3,9 +3,10 @@
 // cada escalado (dedupe com janela de 10 min — duplo-clique não duplica, mas
 // reconvocar mais tarde funciona) e drena a fila de push na sequência.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { serviceClient, enviarPendentes, respostaJson } from "../_shared/push.ts";
+import { serviceClient, enviarPendentes, respostaJson, CORS } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS }); // preflight
   try {
     const { evento_id } = await req.json().catch(() => ({}));
     if (!evento_id) return respostaJson({ erro: "evento_id obrigatório" }, 400);
