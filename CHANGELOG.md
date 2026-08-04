@@ -18,6 +18,7 @@ A convenção de termos virou a seção §12.1 do manual de marca (auditoria com
 - Grafias fixas: **powerCON / powerCON TRUE1** (Neutrik) e **NovaStar** na KB; "Gab." no espelho DOM (paridade com o PDF).
 - Miúdas de voz (§12): toasts no passado e sem emoji, "Ex.:" com ponto, "Desligado" no lugar de "Off", "Frequência" no lugar de "Refresh", "fixo" no lugar de "flat", "Novo projeto" em sentence case, cantos "Sup-esq", veredito da Diagramação só quando há problema (era um "OK" verde permanente), Agenda "Grade" → "Calendário", "Cachês (Diárias)" → "Cachês".
 - **Correção honesta**: a contagem de testes divulgada estava inflada — o vitest contava as cópias de worktrees antigos dentro do repo. A suíte real tem **334 testes** (todos verdes); os números anteriores (555–890) somavam duplicatas.
+- **Equipamentos ficou oculta por enquanto** (decisão do dono): saiu do menu e da rota, mas a página, o catálogo certificado e os testes seguem no código — volta quando fizer sentido.
 
 ## [1.17.0] — 2026-08-03
 

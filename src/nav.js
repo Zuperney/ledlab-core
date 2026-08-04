@@ -1,9 +1,9 @@
 // nav.js — modelo de navegação (itens, ícones e seções da sidebar).
 import {
   LayoutDashboard, CalendarDays, Receipt, Wallet, Coins, Package, FolderOpen,
-  GitBranch, Monitor, Ratio, BookOpen, Settings, Home, Boxes, Wrench, Cpu,
+  GitBranch, Monitor, Ratio, BookOpen, Settings, Home, Boxes, Wrench,
 } from "lucide-react";
-// (Wrench segue em uso no agrupamento mobile "Mais")
+// (Wrench segue em uso no agrupamento mobile "Mais"; Cpu volta com Equipamentos)
 
 export const NAV = [
   { id: "dashboard",  label: "Visão Geral",          Icon: LayoutDashboard, sec: "INÍCIO" },
@@ -13,8 +13,10 @@ export const NAV = [
   { id: "financeiro", label: "Recibos",              Icon: Receipt,         sec: "FINANCEIRO" },
   { id: "reembolso",  label: "Reembolso",            Icon: Wallet,          sec: "FINANCEIRO" },
   { id: "inventory",  label: "Gabinetes",            Icon: Package,         sec: "GESTÃO" },
-  // Equipamentos é desktop-only (aposta de diferenciar features mobile×desktop)
-  { id: "equipamentos", label: "Equipamentos",       Icon: Cpu,             sec: "GESTÃO", desktopOnly: true },
+  // Equipamentos OCULTA por enquanto (decisão do dono, 03/08/2026): página,
+  // catálogo e testes seguem no código — pra voltar, descomente a linha, devolva
+  // o Cpu ao import, o id ao grupo GESTÃO do mobile e a rota no App.jsx.
+  // { id: "equipamentos", label: "Equipamentos", Icon: Cpu, sec: "GESTÃO", desktopOnly: true },
   { id: "diagrams",   label: "Diagramação",          Icon: GitBranch,       sec: "FERRAMENTAS" },
   { id: "testcards",  label: "Test Cards",           Icon: Monitor,         sec: "FERRAMENTAS" },
   { id: "aspect",     label: "Aspect Ratio",         Icon: Ratio,           sec: "FERRAMENTAS" },
@@ -43,7 +45,7 @@ export const MOBILE_SECTIONS = [
   { sec: "INÍCIO",     label: "Início",     tab: "Início",     Icon: Home,       ids: ["dashboard", "agenda"] },
   { sec: "PROJETOS",   label: "Projetos",   tab: "Projetos",   Icon: FolderOpen, ids: ["projects"] },
   { sec: "FINANCEIRO", label: "Financeiro", tab: "Financeiro", Icon: Wallet,     ids: ["diarias", "financeiro", "reembolso"] },
-  { sec: "GESTÃO",     label: "Gestão",     tab: "Gestão",     Icon: Boxes,      ids: ["inventory", "equipamentos"] },
+  { sec: "GESTÃO",     label: "Gestão",     tab: "Gestão",     Icon: Boxes,      ids: ["inventory"] },
   { sec: "MAIS",       label: "Mais",       tab: "Mais",       Icon: Wrench,     ids: ["diagrams", "testcards", "aspect", "knowledge"] },
 ];
 

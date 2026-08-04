@@ -21,7 +21,8 @@ import Caches from "./pages/Caches.jsx";
 import Financeiro from "./pages/Financeiro.jsx";
 import Reembolso from "./pages/Reembolso.jsx";
 import Inventory from "./pages/Inventory.jsx";
-import Equipamentos from "./pages/Equipamentos.jsx";
+// Equipamentos oculta por enquanto (dono, 03/08/2026) — página fica no código;
+// pra voltar: reimporte aqui, devolva ao mapa PAGES e ao NAV (nav.js).
 import Projects from "./pages/Projects.jsx";
 import Diagrams from "./pages/Diagrams.jsx";
 import TestCards from "./pages/TestCards.jsx";
@@ -32,7 +33,7 @@ import Settings from "./pages/Settings.jsx";
 // Configurações NÃO é rota: vira overlay (Drawer) por cima da página atual, pra não
 // desmontar onde o usuário está. Por isso fica fora de PAGES (ver settingsOpen abaixo).
 const PAGES = {
-  dashboard: Dashboard, agenda: Agenda, diarias: Caches, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, equipamentos: Equipamentos, projects: Projects,
+  dashboard: Dashboard, agenda: Agenda, diarias: Caches, financeiro: Financeiro, reembolso: Reembolso, inventory: Inventory, projects: Projects,
   diagrams: Diagrams, testcards: TestCards, aspect: AspectRatio,
   knowledge: Knowledge,
 };
@@ -46,7 +47,7 @@ export default function App() {
   const [openProjectId, setOpenProjectId] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false); // overlay de Configurações
   const isMobile = useIsMobile();
-  // páginas desktop-only (ex.: Equipamentos) caem na Visão Geral no mobile
+  // páginas desktop-only caem na Visão Geral no mobile
   const rawPage = PATH_TO_PAGE[location] || DEFAULT_PAGE;
   const page = isMobile && NAV.find((n) => n.id === rawPage)?.desktopOnly ? DEFAULT_PAGE : rawPage;
   const Page = PAGES[page] || Dashboard;

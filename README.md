@@ -25,7 +25,6 @@ _Aponte a câmera do celular para o QR code._
 | 🖥️ **Screens** | Monte seus sistemas como no controlador: agrupe as telas que vão juntas; o cabo atravessa telas e as portas são numeradas por Screen |
 | 🔌 **Cabeamento** | Sinal e AC por Screen (automático, livre ou — no AC — atrelado ao sinal), com balanceamento, **overclock de porta** opcional, link único entre telas afastadas, margem de segurança, aviso de estouro e mapa visual |
 | 🏗️ **Peso** | Peso da parede por tela e total, direto do datasheet do gabinete — na capa e na Visão Geral do Caderno (o dimensionamento de estrutura fica com quem é do ofício) |
-| 🎛️ **Equipamentos** | Catálogo de controladoras certificado nos datasheets (NovaStar VX/MX) + "Verificar projeto": portas usadas × disponíveis por Screen |
 | 🖥️ **Test cards** | Cartões de teste na resolução nativa do painel, com números, geometria, mapa de cabos e export PNG |
 | 🧩 **Composição** | Várias telas posicionadas num render só (estilo mapeamento de slices), com alerta de sobreposição |
 | 📐 **Aspect Ratio & distância** | Proporção da tela, crop do sinal (encaixar × preencher) e **distância de visão pelo pitch** — as quatro réguas da indústria + sugestão de gabinete do cadastro |
