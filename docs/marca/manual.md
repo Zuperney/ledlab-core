@@ -292,9 +292,106 @@ direita) → F3 Contexto (chips passivos + StatusPill + "?") → F4 Conteúdo
 - Botão diz o que FAZ; toast diz o que FEZ; confirm nomeia o alvo e o efeito.
 - Número sempre com unidade, em mono; formato pt-BR (`2.496 × 2.912 px`,
   vírgula decimal, `·` separa fatos).
-- **Vocabulário fixo**: Tela (bloco de gabinetes — conceito nosso) · Screen (o
-  sistema do NovaLCT) · Gabinete (receiving card) · Porta (saída Gigabit) ·
-  Predefinição (nunca "preset" na UI) · Cachê.
+- **Vocabulário**: a convenção completa é o §12.1 abaixo — uma palavra por
+  conceito, um conceito por palavra. Texto novo segue o §12.1 SEMPRE.
+
+## 12.1 · Vocabulário — a convenção de termos
+
+Cravada pelo dono em 03/08/2026 (auditoria completa de UI + conteúdo; as
+decisões Circuito / aba Caderno / Proporção + Fração / cadeia são escolhas
+explícitas dele). Caso novo → propõe aqui, aprova, commita — nunca inventa
+termo solto no código.
+
+**O núcleo do domínio**
+- **Tela** — bloco de gabinetes iguais montados juntos (conceito NOSSO).
+- **Screen** — o sistema como a controladora enxerga (NovaLCT); maiúscula, sem
+  tradução. "Sistema" só como glosa didática única.
+- **Gabinete** — o módulo físico COMPLETO (cabinet + receiving card). A
+  receiving card é o cartão dentro dele, campo do cadastro — não sinônimo.
+  Nunca "módulo", "case", "cabinet", "painel".
+- **Painel** — o objeto físico montado inteiro (a parede de LED real).
+  "Parede" só no nome consagrado *parede voada* (KB Estrutura).
+- **Controladora** — a caixa NovaStar/Colorlight (sempre no feminino). Nunca
+  "processador", "controlador", "dispositivo". **Media server** é OUTRO
+  equipamento (máquina de conteúdo) e só aparece quando é dele que se fala.
+- **Grade** — a matriz colunas × linhas de gabinetes.
+- **Canvas de conteúdo** — a caixa envolvente da Composição (par fixo:
+  "Canvas de conteúdo (caixa envolvente)").
+
+**Sinal × AC (a distinção que mais escorregava)**
+- **Porta** — a saída Gigabit numerada = a unidade do SINAL. Nunca "cabo".
+- **Circuito** — a unidade numerada de ENERGIA (com fase). Nunca "Cabo 3".
+  **Cabo AC** = só o objeto físico (bitola, margem, comprimento).
+- **Cadeia** — o encadeamento físico de gabinetes que a porta/circuito
+  percorre. **Corrente é SÓ ampères** (a corrente de aço da talha na KB é
+  literal e fica).
+- **Régua** — SÓ o critério de alocação de porta: **Pixels (Free Topology)**
+  × **Área (retângulo)** — grafia única. **Regra** = fórmula (regra dos 80%,
+  regra 1×/10×). As quatro **distâncias de visão** (Mínima · Ótima · Retina ·
+  Máxima) NÃO são réguas.
+- **Serpentina** — o desenho da rota. **Zigzag** (sem hífen) — ordem de
+  numeração.
+
+**Elétrica**
+- **Consumo** em W: **Pico** (pwrMax, branco pleno — dimensiona tudo) ×
+  **Típico** (médio em operação — estima) × **Base** (tela preta/black level).
+  "Máximo" não substitui Pico em rótulo.
+- **Carga** — SÓ a solicitação de um circuito AC (A · % do conector). kW da
+  Visão Geral = **Pico**; pixels da controladora = **Ocupação**.
+- **Fases R/S/T** em **rodízio**, reiniciando a cada Screen. **Quadro** = só o
+  quadro elétrico. **Proteção/disjuntor** é do eletricista (Ib ≤ In ≤ Iz);
+  nunca "breaker". Gerador = faixa (pico × 1,25 + % ocupado).
+
+**Vídeo e distância**
+- **Pitch** nos rótulos ("pixel pitch" só na 1ª menção didática) ·
+  **Proporção** (16:9) · **Fração** (0,429) · **Resolução (px)** ·
+  crop = **preencher (corta)** × **encaixar (barras)** · **Frequência** (Hz,
+  nunca "Refresh") · **Test Card** sem tradução.
+- Distâncias de visão: **Mínima · Ótima · Retina · Máxima** (nesta ordem);
+  vereditos Pixel visível / Aceitável / Confortável / Retina / Longe demais;
+  **"1 minuto de arco"** (nunca "arcminuto"); "mín/máx" só dentro de desenho.
+
+**O produto impresso**
+- **Caderno Técnico** (o produto; "o Caderno" em texto corrido) — a ABA se
+  chama **Caderno**. "Relatório" é só o de Reembolso. As 7 seções têm par
+  título·tag cravado (Visão Geral · Composição do painel — Vídeo / Resolução ·
+  Sinal e proporção — Informações Elétricas · Energia, dimensionamento —
+  Cabeamento de Sinal · Portas de dados — Cabeamento AC · Circuitos de força —
+  Critérios de Cálculo · Normas e referências — Glossário · Termos técnicos).
+- **Prancha · carimbo · FOLHA N/M · REV · Nº DOC**. "Gab." só em tabela densa
+  (a exceção documentada do §10.1). **Planilha de pagamento** (pra aprovar) ×
+  **Recibo de mão de obra** (validado).
+
+**Trabalho e dinheiro**
+- **Cachê** (o dinheiro e o módulo) · **Turno** (check-in→checkout aberto) ·
+  **Atividade** (o tipo) · **Lançamento** (o registro salvo) · **fixo** (nunca
+  "flat") · grafias **check-in** / **checkout**. "Diária" não existe na UI.
+
+**Interface**
+- Título da página = rótulo do nav (no mobile ele é o único).
+- Três endereços (R3): **Ajustes** (como se vê) · **Avançado** (o que a Screen
+  é) · **Configurações** (global).
+- **Adicionar X** (item em lista do contexto) · **Novo X** (entidade de topo) ·
+  nunca "Criar" · sentence case ("Novo projeto").
+- Toasts no passado, sem emoji. Toggles SIM/NÃO; selects "Desligado" (nunca
+  "Off"). Placeholders **"Ex.:"** com ponto. Cantos: **Inf-esq · Inf-dir ·
+  Sup-esq · Sup-dir** nos controles; por extenso no Caderno.
+- StatusPill só com problema (§7) — nunca OK permanente.
+
+**Anglicismos — lista fechada**
+- Sancionados: Screen · Test Card · Aspect Ratio (nome da aba) · Overclock ·
+  Free Topology · crop · canvas · check-in/checkout · backup · status ·
+  Indoor/Outdoor · nit · receiving/sending card · All-in-One · black level
+  (com a glosa "base") · letterbox/pillarbox (só como glosa) · media server ·
+  snap · preview.
+- Banidos: preset → Predefinição · display → tela/painel · breaker →
+  disjuntor · flat → fixo · Off → Desligado · Refresh → Frequência ·
+  controller → controladora · KB → Base de Conhecimento (por extenso, sempre).
+
+**Grafias fixas**
+- **NovaStar · NovaLCT · SmartLCT · Tessera · Brompton · Colorlight ·
+  COEX (VMP) · Unico** (nunca "Novastar", nunca "LCT" solto).
+- **powerCON · powerCON TRUE1** (grafia Neutrik — nunca "PowerCON"/"True1").
 
 ## 13 · Movimento & acessibilidade
 

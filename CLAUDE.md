@@ -51,7 +51,10 @@ Regras de decisão:
   (44px em abas); `useIsMobile()` pro breakpoint; features desktop-only marcam
   `desktopOnly` no `nav.js`.
 - **Vocabulário**: Tela = bloco de gabinetes iguais (conceito NOSSO) · Screen = o
-  sistema do NovaLCT (portas moram nela) · Gabinete = receiving card.
+  sistema do NovaLCT (portas moram nela) · Gabinete = o módulo físico completo
+  (cabinet + receiving card; a receiving card é o cartão DENTRO dele) ·
+  Porta = sinal · Circuito = AC · cadeia = encadeamento (corrente é só ampère).
+  **A convenção completa é o §12.1 do `docs/marca/manual.md` — texto novo segue ela.**
 - **Testes**: `npm test` (vitest) — motor de cálculo tem que passar sempre;
   `npx eslint src --max-warnings 0` é bloqueante no CI.
 - **Release**: trabalho novo em BRANCH; merge/deploy na main SÓ com o "pode
