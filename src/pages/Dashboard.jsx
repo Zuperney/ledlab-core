@@ -67,7 +67,7 @@ export default function Dashboard({ nav }) {
   const abertoTipo = aberto ? typesById[aberto.tipoId] : null;
   // eslint-disable-next-line react-hooks/purity -- relógio de parede só p/ exibir "há Xh Ym"; cada render mantém fresco
   const abertoMin = aberto ? Math.max(0, Math.round((Date.now() - Date.parse(aberto.checkin)) / 60000)) : 0;
-  const doCheckout = () => { updateEntry({ id: aberto.id, checkout: new Date().toISOString() }); toast("Checkout feito ✓"); };
+  const doCheckout = () => { updateEntry({ id: aberto.id, checkout: new Date().toISOString() }); toast("Checkout feito"); };
 
   // check-in num toque: sem turno aberto, começa o turno JÁ com o tipo mais recente
   // (fallback pro 1º ativo) e anexa o GPS quando resolver — sem sheet, sem espera.
@@ -81,9 +81,9 @@ export default function Dashboard({ nav }) {
     const d = new Date();
     const dataRef = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
     const e = addEntry({ dataRef, tipoId: tipoPadrao, checkin: d.toISOString() });
-    toast("Check-in feito ✓");
+    toast("Check-in feito");
     const loc = await getPosition();
-    if (loc) { updateEntry({ id: e.id, local: loc }); toast("Local salvo 📍"); }
+    if (loc) { updateEntry({ id: e.id, local: loc }); toast("Local salvo"); }
     setCheckinBusy(false);
   };
 

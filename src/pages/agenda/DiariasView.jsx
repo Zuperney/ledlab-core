@@ -99,7 +99,7 @@ export default function DiariasView() {
       local: loc || undefined,
     });
     setCheckinForm(null);
-    toast(loc ? "Check-in feito · local salvo 📍" : "Check-in feito");
+    toast(loc ? "Check-in feito · local salvo" : "Check-in feito");
   };
   const fazerCheckout = (entry, checkoutISO, late = false) => {
     updateEntry({ id: entry.id, checkout: checkoutISO, ...(late ? { lateCheckout: true } : {}) });

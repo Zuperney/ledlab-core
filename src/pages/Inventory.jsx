@@ -27,8 +27,8 @@ const COLS = [
   { key: "pitch", label: "Pitch" },
   { key: "resolucao", label: "Resolução" },
   { key: "dimensoes", label: "Dimensões" },
-  { key: "pwrMax", label: "W Máx." },
-  { key: "pwrMed", label: "W Méd." },
+  { key: "pwrMax", label: "Pico (W)" },
+  { key: "pwrMed", label: "Médio (W)" },
   { key: "peso", label: "Peso" },
   { key: "ip", label: "IP" },
 ];
@@ -98,7 +98,7 @@ export default function Inventory() {
 
   return (
     <div>
-      <SectionHeader title="Biblioteca de gabinetes" subtitle={`${cabs.length} cadastrados · cadastre uma vez, use em todos os projetos.`}>
+      <SectionHeader title="Gabinetes" subtitle={`${cabs.length} na biblioteca · cadastre uma vez, use em todos os projetos.`}>
         {!isMobile && <button style={btn("primary")} onClick={openNew}><Plus size={16} /> Novo gabinete</button>}
       </SectionHeader>
 
@@ -108,8 +108,8 @@ export default function Inventory() {
         <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={input({ width: "auto" })}>
           <option value="nome">Nome</option>
           <option value="marca">Marca</option>
-          <option value="pitch">Pixel pitch</option>
-          <option value="pwrMax">Potência</option>
+          <option value="pitch">Pitch</option>
+          <option value="pwrMax">Consumo</option>
         </Select>
         <span style={{ color: T.mut, fontSize: 11, textTransform: "uppercase" }}>Marca</span>
         <Select value={marcaFilter} onChange={(e) => setMarcaFilter(e.target.value)} style={input({ width: "auto" })}>
@@ -204,31 +204,31 @@ export default function Inventory() {
       >
         {d && (
           <div style={{ display: "grid", gap: 14 }}>
-            <Field lbl="Nome do gabinete" ph="Ex: P2.6 Indoor, P3.9 Outdoor" value={d.nome} onChange={(v) => setField("nome", v)} full />
+            <Field lbl="Nome do gabinete" ph="Ex.: P2.6 Indoor, P3.9 Outdoor" value={d.nome} onChange={(v) => setField("nome", v)} full />
             <div>
               <Label>Marca / Fabricante <Hint>(vazio = Genérico)</Hint></Label>
-              <input list="ll-marcas" placeholder="Ex: ROE, Absen, Unilumin…" value={d.marca ?? ""} onChange={(e) => setField("marca", e.target.value)} style={input()} />
+              <input list="ll-marcas" placeholder="Ex.: ROE, Absen, Unilumin…" value={d.marca ?? ""} onChange={(e) => setField("marca", e.target.value)} style={input()} />
               <datalist id="ll-marcas">{brands.filter((b) => b !== "Todas").map((b) => <option key={b} value={b} />)}</datalist>
             </div>
             <Grid2>
-              <Field lbl="Resolução — largura (px)" ph="Ex: 256" type="number" value={d.resX} onChange={(v) => setField("resX", v)} />
-              <Field lbl="Resolução — altura (px)" ph="Ex: 256" type="number" value={d.resY} onChange={(v) => setField("resY", v)} />
+              <Field lbl="Resolução — largura (px)" ph="Ex.: 256" type="number" value={d.resX} onChange={(v) => setField("resX", v)} />
+              <Field lbl="Resolução — altura (px)" ph="Ex.: 256" type="number" value={d.resY} onChange={(v) => setField("resY", v)} />
             </Grid2>
             <Grid2>
-              <Field lbl="Largura do gabinete (mm)" ph="Ex: 500" type="number" value={d.dimW} onChange={(v) => setField("dimW", v)} />
-              <Field lbl="Altura do gabinete (mm)" ph="Ex: 500" type="number" value={d.dimH} onChange={(v) => setField("dimH", v)} />
+              <Field lbl="Largura do gabinete (mm)" ph="Ex.: 500" type="number" value={d.dimW} onChange={(v) => setField("dimW", v)} />
+              <Field lbl="Altura do gabinete (mm)" ph="Ex.: 500" type="number" value={d.dimH} onChange={(v) => setField("dimH", v)} />
             </Grid2>
             <Grid2>
               <div>
                 <Label>Pixel pitch <Hint>(calculado)</Hint></Label>
                 <input readOnly value={pitch(d)} style={input({ color: T.acM, fontFamily: "ui-monospace,monospace", background: T.card })} />
               </div>
-              <Field lbl="Peso por gabinete (kg)" ph="Ex: 7.5" type="number" value={d.peso} onChange={(v) => setField("peso", v)} />
+              <Field lbl="Peso por gabinete (kg)" ph="Ex.: 7.5" type="number" value={d.peso} onChange={(v) => setField("peso", v)} />
             </Grid2>
             <Grid2>
               <div>
                 <Label>Consumo máximo (W) <Hint color={T.red}>obrigatório</Hint></Label>
-                <input type="number" placeholder="Ex: 300" value={d.pwrMax} onChange={(e) => setField("pwrMax", e.target.value)} style={input()} />
+                <input type="number" placeholder="Ex.: 300" value={d.pwrMax} onChange={(e) => setField("pwrMax", e.target.value)} style={input()} />
               </div>
               <div>
                 <Label>Consumo médio (W) <Hint>auto (1/3 do máx.)</Hint></Label>
@@ -237,12 +237,12 @@ export default function Inventory() {
             </Grid2>
             <div>
               <Label>Consumo no preto (W) <Hint color={T.acM}>black level — base do consumo típico</Hint></Label>
-              <input type="number" placeholder="Ex: 45 (datasheet; ~15% do máx. se vazio)" value={d.pwrBlack} onChange={(e) => setField("pwrBlack", e.target.value)} style={input()} />
+              <input type="number" placeholder="Ex.: 45 (datasheet; ~15% do máx. se vazio)" value={d.pwrBlack} onChange={(e) => setField("pwrBlack", e.target.value)} style={input()} />
             </div>
 
             {/* Especificações avançadas */}
             <button onClick={() => setAdvOpen((o) => !o)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", justifyContent: "space-between", background: T.sel, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: T.acM, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Settings size={15} /> Especificações Avançadas (opcional)</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Settings size={15} /> Avançado (opcional)</span>
               {advOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
             {advOpen && (
@@ -255,8 +255,8 @@ export default function Inventory() {
                   </div>
                 </Grid2>
                 <Grid2>
-                  <Field lbl="Brilho (nit)" ph="Ex: 5000" type="number" value={d.brilho} onChange={(v) => setField("brilho", v)} />
-                  <Field lbl="Receiving card" ph="Ex: MRV328, Armor…" value={d.receivingCard} onChange={(v) => setField("receivingCard", v)} />
+                  <Field lbl="Brilho (nit)" ph="Ex.: 5000" type="number" value={d.brilho} onChange={(v) => setField("brilho", v)} />
+                  <Field lbl="Receiving card" ph="Ex.: MRV328, Armor…" value={d.receivingCard} onChange={(v) => setField("receivingCard", v)} />
                 </Grid2>
                 <div>
                   <Label>Conector de energia</Label>

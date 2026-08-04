@@ -259,7 +259,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   const screensById = Object.fromEntries((project.screens || []).map((s) => [s.id, s]));
   const gabsUsados = [...new Map(telas.filter((t) => t.gabinete?.nome).map((t) => [t.gabinete.nome, t.gabinete])).values()];
   const fpLabel = [...new Set(gabsUsados.map((g) => parseFloat(g.fp) || 0.85))].sort((a, b) => a - b).map((f) => f.toFixed(2).replace(".", ",")).join(" · ");
-  // specs de configuração de uma Screen (o que o operador precisa no processador)
+  // specs de configuração de uma Screen (o que o operador precisa na controladora)
   const screenSpec = (s) => {
     const scr = screensById[s.id];
     const g = (scr?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)[0]?.gabinete;
@@ -343,7 +343,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           headerRows: 1,
           widths: ["*", "auto", "auto", "auto", "*", "auto", "auto", "auto"],
           body: [
-            [th("Tela"), th("Dimensão"), th("Grade"), th("Resolução (px)"), th("Modelo"), th("Gabinetes", "right"), th("Peso", "right"), th(showElec ? "Carga" : "Peso por gabinete", "right")],
+            [th("Tela"), th("Dimensão"), th("Grade"), th("Resolução (px)"), th("Modelo"), th("Gabinetes", "right"), th("Peso", "right"), th(showElec ? "Pico" : "Peso por gabinete", "right")],
             ...rows,
             [
               { text: "Total", bold: true }, mono(`${roll.area_m2.toFixed(1)} m²`, { bold: true }), "", "", "",
@@ -385,7 +385,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         headerRows: 1,
         widths: ["*", "auto", "auto", "auto", "auto", "auto", "auto"],
         body: [
-          [th("Tela"), th("Resolução (px)"), th("Aspecto"), th("Fração"), th("Pitch"), th("Grade"), th("Pixel por gabinete", "right")],
+          [th("Tela"), th("Resolução (px)"), th("Proporção"), th("Fração"), th("Pitch"), th("Grade"), th("Pixel por gabinete", "right")],
           ...telas.map((t) => {
             const v = videoOf(t);
             return [
@@ -516,11 +516,11 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       return [
         // ── página de ABERTURA da seção: o resumo geral do sinal ──
         head,
-        { text: "Cabos de dados organizados por Screen — cada sistema abre na própria página, com o mapa e a tabela de portas.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+        { text: "Portas de dados organizadas por Screen — cada sistema abre na própria página, com o mapa e a tabela de portas.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
         statRow([
           ["Screens", screenReport.length],
           ["Telas", totTelas],
-          ["Cabos de sinal", totCabos],
+          ["Portas de sinal", totCabos],
           ["Frequência", `${hzs} Hz`],
         ]),
         {
@@ -562,7 +562,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               ["Frequência", `${sp.hz} Hz`],
               ["Gabinete", `${sp.resX} × ${sp.resY} px`],
               ["Grade da Screen", `${sp.cols} × ${sp.rows} gabinetes`],
-              ["Total de cabos", String(s.ports.length)],
+              ["Total de portas", String(s.ports.length)],
               // premissa declarada: passar do nominal foi ESCOLHA (documento datado)
               ...(sp.overclock ? [["Overclock", "ligado"]] : []),
             ]),
@@ -582,7 +582,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     return [
       // ── página de ABERTURA da seção (modo legado, por tela) ──
       head,
-      { text: "Portas de dados por tela — régua de pixels reais (processadores VX/série A/Colorlight) ou de área retangular (controlador básico), conforme a configuração da tela. Cada tela abre na própria página.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+      { text: "Portas de dados por tela — régua de pixels reais (controladoras VX/série A/Colorlight) ou de área retangular (controladora básica), conforme a configuração da tela. Cada tela abre na própria página.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
       statRow([["Telas", telas.length], ["Portas de sinal", totPortas]]),
       {
         table: {
@@ -627,7 +627,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
             ]),
           ]),
           ...(tipo === "Mapa de cabos" ? [
-            { text: "Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) para transcrever no processador (NovaLCT / Tessera).", fontSize: 8, color: PRINT.mut, margin: [0, 6, 0, 3] },
+            { text: "Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) para transcrever no software da controladora (NovaLCT / Tessera).", fontSize: 8, color: PRINT.mut, margin: [0, 6, 0, 3] },
             {
               table: {
                 headerRows: 1,
@@ -660,7 +660,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       return [
         // ── página de ABERTURA da seção: aviso de segurança + resumo geral do AC ──
         ...head,
-        { text: `Cabos de energia por Screen, na mesma organização do sinal — carga por cabo × corrente do conector. Cada sistema abre na própria página, com circuitos numerados 1..N${phaseOf(1, agg.vc) ? `; a fase segue o rodízio (cabo 1→${phaseOf(1, agg.vc)}, 2→${phaseOf(2, agg.vc)}, 3→${phaseOf(3, agg.vc)}…), reiniciando a cada Screen` : ""}.`, fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+        { text: `Cabos de energia por Screen, na mesma organização do sinal — carga por circuito × corrente do conector. Cada sistema abre na própria página, com circuitos numerados 1..N${phaseOf(1, agg.vc) ? `; a fase segue o rodízio (circuito 1→${phaseOf(1, agg.vc)}, 2→${phaseOf(2, agg.vc)}, 3→${phaseOf(3, agg.vc)}…), reiniciando a cada Screen` : ""}.`, fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
         statRow([
           ["Screens", screenReportAc.length],
           ["Circuitos AC", totCirc],
@@ -706,7 +706,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
             ]),
             ...mapNode(mapa),
             densePortTable(s.ports, [
-              { label: "Cabo", cell: (p) => portCell(p.n - 1, p.n) },
+              { label: "Circuito", cell: (p) => portCell(p.n - 1, p.n) },
               ...(bal.temRodizio ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
               { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
               { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink }) },
@@ -720,7 +720,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     return [
       // ── página de ABERTURA da seção (modo legado, por tela) ──
       ...head,
-      { text: "Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo. Cada tela abre na própria página.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+      { text: "Cabos de energia por tela: quantidade, capacidade do conector e carga por circuito. Cada tela abre na própria página.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
       statRow([["Telas", telas.length], ["Circuitos AC", totCabosAc]]),
       {
         table: {
@@ -755,14 +755,14 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         return bloco([
           subHead(`${S}.${i + 1}`, t.nome),
           specBox([
-            ["Cabos", portLabel(off, ports.length, "cabo")],
-            ["Máx por cabo", `${acBudget} gabinetes`],
+            ["Circuitos", portLabel(off, ports.length, "circuito")],
+            ["Máx por circuito", `${acBudget} gabinetes`],
             ["Corrente", `${ampCab.toFixed(2)} A/gabinete`],
             ["Conector", `${connRating} A`],
           ]),
           ...mapNode(mapa),
           densePortTable(rows, [
-            { label: "Cabo", cell: (p) => portCell(p.idx, p.n) },
+            { label: "Circuito", cell: (p) => portCell(p.idx, p.n) },
             ...(temFase ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
             { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
             { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: acTone(p.pct) === "over" ? PRINT.red : acTone(p.pct) === "warn" ? PRINT.amb : PRINT.ink }) },

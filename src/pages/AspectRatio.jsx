@@ -1,6 +1,6 @@
 // pages/AspectRatio.jsx — Calculadora de Aspect Ratio (proporção de tela) com
 // visualização e comparação com resoluções padrão de vídeo, e o modo DISTÂNCIA
-// (Fase 02: recomendador pitch × distância — as quatro réguas de visão).
+// (Fase 02: recomendador pitch × distância — as quatro distâncias de visão).
 // Ferramenta avulsa: parte de valores manuais OU de um gabinete + grade.
 import { useState, useRef } from "react";
 import { ArrowLeftRight, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
@@ -24,7 +24,7 @@ import cropSample from "../assets/crop-sample.jpg";
 // LLC-08: didática dos números mora no tooltip do rótulo (R4 — zero parágrafo fixo)
 const STAT_TIP = {
   "Proporção": "Razão largura:altura simplificada (ou o nome comercial quando bate).",
-  "Decimal": "Largura ÷ altura — o número que processadores e media servers usam.",
+  "Fração": "Largura ÷ altura — o número que controladoras e media servers usam.",
   "Formato": "O formato de vídeo conhecido mais próximo (≈ quando não é exato).",
   "Resolução": "Pixels reais do painel: largura × altura.",
   "Orientação": "Paisagem (deitado), retrato (em pé) ou quadrado.",
@@ -46,7 +46,7 @@ const FAIXA_UI = {
 const fmtM = (n) => (n >= 99.95 ? String(Math.round(n)) : n.toFixed(1).replace(".", ","));
 
 // A CENA do modo Distância (mockup aprovado, 02/08): vista de perfil com a
-// parede em escala, a pessoa de 1,70 m, o chão pintado pelas quatro réguas e
+// parede em escala, a pessoa de 1,70 m, o chão pintado pelas quatro distâncias e
 // o detalhe "o que o olho vê". Arrastar/tocar no chão reposiciona a pessoa —
 // mesmo estado do NumField "Primeira fila" (onFila = setFilaM). Drag no
 // dialeto da casa (Composição/Screens): pointer events no próprio elemento,
@@ -99,7 +99,7 @@ function CenaDistancia({ vd, alturaM, filaM, onFila }) {
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
           {bands.map(([a, b, f], i) => <rect key={i} x={X(a)} y={groundY} width={Math.max(0, X(b) - X(a))} height={16} fill={f} />)}
           <line x1={wallX} y1={groundY} x2={W - pad + 10} y2={groundY} stroke={T.bd} strokeWidth={1.5} />
-          {/* rótulos alternam de linha — réguas vizinhas (ótima/retina) colidiriam */}
+          {/* rótulos alternam de linha — distâncias vizinhas (ótima/retina) colidiriam */}
           {ticks.map(([l, m], i) => (
             <g key={l}>
               <line x1={X(m)} y1={groundY - 4} x2={X(m)} y2={groundY + 16} stroke={T.mut} strokeWidth={1} />
@@ -263,7 +263,7 @@ export default function AspectRatio() {
 
   return (
     <div>
-      <SectionHeader title="Calculadora de Aspect Ratio" subtitle="Proporção da tela, crop do sinal e distância de visão pelo pitch." />
+      <SectionHeader title="Aspect Ratio" subtitle="Proporção da tela, crop do sinal e distância de visão pelo pitch." />
 
       {/* F1 · MODO — fora do acordeão mobile de propósito */}
       <div style={{ marginBottom: 14 }}>
@@ -305,12 +305,12 @@ export default function AspectRatio() {
         {mode === "prop" ? (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.bd}` }}>
           {chipStat("Proporção", friendly(W, H), T.acM)}
-          {chipStat("Decimal", `${dec.toFixed(3)}:1`)}
+          {chipStat("Fração", `${dec.toFixed(3)}:1`)}
           {chipStat("Formato", `${namedExact ? "" : "≈ "}${named[0]}`, namedExact ? T.grn : undefined)}
           {chipStat("Resolução", `${W} × ${H}`)}
           {chipStat("Orientação", orient)}
           <HelpTip title="Os números da proporção">
-            <b style={{ color: T.txt }}>Proporção</b> — razão simplificada (ou nome comercial). <b style={{ color: T.txt }}>Decimal</b> — largura ÷ altura. <b style={{ color: T.txt }}>Formato</b> — o padrão de vídeo mais próximo (≈ quando aproximado). <b style={{ color: T.txt }}>Resolução</b> — pixels reais do painel. <b style={{ color: T.txt }}>Orientação</b> — paisagem, retrato ou quadrado.
+            <b style={{ color: T.txt }}>Proporção</b> — razão simplificada (ou nome comercial). <b style={{ color: T.txt }}>Fração</b> — largura ÷ altura em decimal. <b style={{ color: T.txt }}>Formato</b> — o padrão de vídeo mais próximo (≈ quando aproximado). <b style={{ color: T.txt }}>Resolução</b> — pixels reais do painel. <b style={{ color: T.txt }}>Orientação</b> — paisagem, retrato ou quadrado.
           </HelpTip>
         </div>
         ) : (
@@ -320,7 +320,7 @@ export default function AspectRatio() {
           {vd && chipStat("Retina", `${fmtM(vd.retinaM)} m`, T.grn)}
           {vd && chipStat("Máxima", vd.maxM ? `${fmtM(vd.maxM)} m` : "—")}
           {fx && <StatusPill color={T[FAIXA_UI[fx].c]} label={`1ª fila: ${FAIXA_UI[fx].l}`} />}
-          <HelpTip title="As quatro réguas de distância">
+          <HelpTip title="As quatro distâncias de visão">
             <b style={{ color: T.txt }}>Mínima</b> — regra 1×: pitch em mm vira metros; antes disso as cores não fundem. <b style={{ color: T.txt }}>Ótima</b> — regra 10×: pitch × 10 pés (≈ ×3 m). <b style={{ color: T.txt }}>Retina</b> — pitch × 3,438 (1 minuto de arco, visão 20/20): o pixel some. <b style={{ color: T.txt }}>Máxima</b> — altura da tela × 30 (regra de outdoor). Fórmulas com fontes no artigo <b style={{ color: T.txt }}>Pixel pitch e distância de visão</b> da Base de Conhecimento.
           </HelpTip>
         </div>
@@ -398,7 +398,7 @@ export default function AspectRatio() {
               </>
             )}
           </svg>
-          <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>{vizMode === "crop" ? "A janela roxa mostra o que aparece na tela; o resto da fonte fica escondido. A linha tracejada marca o deslocamento." : "A imagem inteira cabe no painel preservando a proporção; o preto em volta são as barras (letterbox/pillarbox)."}</div>
+          <div style={{ color: T.dim, fontSize: 12, marginTop: 10 }}>{vizMode === "crop" ? "A janela destacada mostra o que aparece na tela; o resto da fonte fica escondido. A linha tracejada marca o deslocamento." : "A imagem inteira cabe no painel preservando a proporção; o preto em volta são as barras (letterbox/pillarbox)."}</div>
         </div>
         {/* números dos dois modos, abaixo do preview */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginTop: 14 }}>
@@ -434,7 +434,7 @@ export default function AspectRatio() {
           Chrome 100% tokens T (vive nos DOIS temas). */}
       {mode === "dist" && (
       <div style={card({ marginBottom: 16 })}>
-        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Cena · parede × público — arraste a pessoa</div>
+        <div style={{ color: T.mut, fontSize: 11, textTransform: "uppercase", marginBottom: 12 }}>Cena · painel × público — arraste a pessoa</div>
         {vd ? (
           <>
               <CenaDistancia vd={vd} alturaM={alturaIn} filaM={filaM} onFila={setFilaM} />

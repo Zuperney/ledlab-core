@@ -21,7 +21,7 @@ import { overlappingIds } from "../../services/layout.js";
 import { dimOf, modelKey } from "../../services/canvasCabling.js";
 import { makeScreen, unassignedTelas, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela } from "../../services/screens.js";
 
-// cor por modelo de gabinete (estável no projeto): mesma cor = a corrente pode
+// cor por modelo de gabinete (estável no projeto): mesma cor = a cadeia pode
 // encadear entre as telas. Numa Screen que mistura modelos, isso mostra o que junta.
 const MODEL_COLORS = [T.acM, T.grn, T.amb, "#60a5fa", "#f472b6", "#2dd4bf"];
 const iconBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, background: "transparent", border: `1px solid ${T.bd}`, color: T.mut, cursor: "pointer", padding: 0, flexShrink: 0 };
@@ -86,7 +86,7 @@ export default function ProjectScreens({ project, patch }) {
           Junte as telas que quer, do jeito que faz sentido pro evento.
         </p>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-          <button style={btn("primary")} onClick={createScreen}><Plus size={15} /> Criar uma Screen</button>
+          <button style={btn("primary")} onClick={createScreen}><Plus size={15} /> Nova Screen</button>
           <button style={btn("ghost")} onClick={perTela} title="Cada tela vira uma Screen sozinha — pra quem não quer agrupar">1 Screen por tela</button>
         </div>
       </div>
@@ -188,7 +188,7 @@ export default function ProjectScreens({ project, patch }) {
         {overlapIds.size > 0 && (
           <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: T.card2, border: `1px solid ${T.red}`, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
             <AlertTriangle size={15} color={T.red} style={{ flexShrink: 0, marginTop: 1 }} />
-            <span style={{ color: T.mut, fontSize: 12 }}>Telas sobrepostas ocupam a mesma coordenada — o processador não aceita. Arraste até encostarem sem invadir.</span>
+            <span style={{ color: T.mut, fontSize: 12 }}>Telas sobrepostas ocupam a mesma coordenada — a controladora não aceita. Arraste até encostarem sem invadir.</span>
           </div>
         )}
 
@@ -222,7 +222,7 @@ export default function ProjectScreens({ project, patch }) {
                 <span style={{ width: 9, height: 9, borderRadius: 2, background: MODEL_COLORS[i % MODEL_COLORS.length] }} />{m} px
               </span>
             ))}
-            <span style={{ color: T.dim, fontSize: 11, marginLeft: "auto" }}>Mesma cor = a corrente pode encadear entre as telas</span>
+            <span style={{ color: T.dim, fontSize: 11, marginLeft: "auto" }}>Mesma cor = a cadeia pode continuar entre as telas</span>
           </div>
         )}
       </div>
@@ -243,9 +243,9 @@ export default function ProjectScreens({ project, patch }) {
 
       {/* didática sob demanda (o parágrafo fixo era teto permanente) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.dim, fontSize: 11 }}>
-        Screens do jeito do controlador
+        Screens do jeito da controladora
         <HelpTip title="Como montar as Screens" align="left">
-          Você monta as Screens do jeito que configuraria no controlador — junte só o que vai no <b style={{ color: T.txt }}>mesmo sistema</b>. O cabeamento de cada Screen fica na aba Cabeamento. A montagem física fica no galpão; o canvas de conteúdo, na aba Composição.
+          Você monta as Screens do jeito que configuraria na controladora — junte só o que vai no <b style={{ color: T.txt }}>mesmo sistema</b>. O cabeamento de cada Screen fica na aba Cabeamento. A montagem física fica no galpão; o canvas de conteúdo, na aba Composição.
         </HelpTip>
       </div>
     </div>

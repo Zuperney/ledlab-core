@@ -22,7 +22,7 @@ const TABS = [
   // vem ANTES do Cabeamento: as Screens é que definem o que vai no mesmo sistema
   { id: "screens", label: "Screens", Icon: Layers, Comp: ProjectScreens },
   { id: "cabeamento", label: "Cabeamento", Icon: GitBranch, Comp: ProjectCabeamento },
-  { id: "relatorio", label: "Relatório", Icon: FileText, Comp: ProjectRelatorio },
+  { id: "relatorio", label: "Caderno", Icon: FileText, Comp: ProjectRelatorio },
   { id: "testcard", label: "Test Card", Icon: Monitor, Comp: ProjectTestCard },
   { id: "composicao", label: "Composição", Icon: LayoutGrid, Comp: ProjectComposicao },
 ];

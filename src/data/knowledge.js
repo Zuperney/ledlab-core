@@ -3,12 +3,12 @@ export const KB_CATEGORIES = ["Guia do App", "Energia", "Sinal", "Cabeamento AC"
 
 export const KB_ARTICLES = [
   { id: "guia-inicio", category: "Guia do App", title: "Primeiros passos", summary: "Como o LedLab Core organiza gabinetes, projetos e ferramentas.",
-    sections: [{ h: "Fluxo básico", blocks: [{ t: "p", text: "Cadastre seus gabinetes uma vez na Biblioteca, crie um Projeto e adicione telas. As abas de Energia, Cabeamento, Test Card e Relatório usam esses dados automaticamente." }, { t: "note", text: "Tudo é salvo no navegador (localStorage). Use Configurações para fazer backup." }] }] },
+    sections: [{ h: "Fluxo básico", blocks: [{ t: "p", text: "Cadastre seus gabinetes uma vez na Biblioteca, crie um Projeto e adicione telas. As abas de Energia, Cabeamento, Test Card e Caderno usam esses dados automaticamente." }, { t: "note", text: "Tudo é salvo no navegador (localStorage). Use Configurações para fazer backup." }] }] },
   { id: "guia-gabinetes", category: "Guia do App", title: "Biblioteca de gabinetes", summary: "Campos técnicos e o gabinete favorito.", sections: [{ h: "Campos", blocks: [{ t: "ul", items: ["pwrMax: consumo máximo (dimensionamento)", "pwrMed: consumo médio", "pwrBlack: black level", "fp: fator de potência"] }] }] },
   { id: "guia-projetos", category: "Guia do App", title: "Projetos e telas", summary: "Estruture eventos com múltiplas telas.", sections: [{ h: "Telas", blocks: [{ t: "p", text: "Cada tela tem um gabinete e uma grade (colunas × linhas). Os totais do projeto somam todas as telas." }] }] },
   { id: "guia-cabeamento", category: "Guia do App", title: "Cabeamento", summary: "Sinal e AC em serpentina.", sections: [{ h: "Modos", blocks: [{ t: "p", text: "Sinal agrupa por capacidade da porta Gigabit; AC agrupa por corrente do conector." }] }] },
-  { id: "guia-testcard", category: "Guia do App", title: "Test Card", summary: "Gere cartões de teste e exporte PNG 1:1.", sections: [{ h: "Export", blocks: [{ t: "p", text: "O PNG sai na resolução nativa da tela para mapeamento 1:1 no processador." }] }] },
-  { id: "guia-relatorio", category: "Guia do App", title: "Relatório", summary: "Completo, Resumido, Elétrico, Mapa de cabos, Design ou Gabinetes.", sections: [{ h: "PDF", blocks: [{ t: "p", text: "Use o botão Baixar PDF (motor nativo) ou Imprimir / Salvar PDF do navegador." }] }] },
+  { id: "guia-testcard", category: "Guia do App", title: "Test Card", summary: "Gere test cards e exporte PNG 1:1.", sections: [{ h: "Export", blocks: [{ t: "p", text: "O PNG sai na resolução nativa da tela para mapeamento 1:1 na controladora." }] }] },
+  { id: "guia-relatorio", category: "Guia do App", title: "Caderno", summary: "Completo, Resumido, Elétrico, Mapa de cabos, Design ou Gabinetes.", sections: [{ h: "PDF", blocks: [{ t: "p", text: "Use o botão Baixar PDF (motor nativo) ou Imprimir / Salvar PDF do navegador." }] }] },
   { id: "guia-ferramentas", category: "Guia do App", title: "Ferramentas rápidas", summary: "Diagramação, Test Cards e Aspect Ratio sem abrir um projeto.", sections: [{ h: "Uso", blocks: [{ t: "p", text: "Diagramação (portas de sinal), Test Cards e Aspect Ratio rodam de forma avulsa — você escolhe um gabinete e uma grade, ou parte de pixels." }, { t: "note", text: "São para estudo/planejamento rápido; não salvam em um projeto." }] }] },
   { id: "guia-config", category: "Guia do App", title: "Configurações e backup", summary: "Exporte, importe e restaure de fábrica.", sections: [{ h: "Backup", blocks: [{ t: "p", text: "Exporte um backup completo antes de limpar dados ou trocar de máquina." }] }] },
   { id: "pico-tipico", category: "Energia", title: "Pico × Típico — cálculo do consumo", summary: "Por que dimensionar a instalação pelo PICO e estimar energia/gerador pelo TÍPICO — com a fórmula (modelo Barco) e as fontes.",
@@ -101,13 +101,13 @@ export const KB_ARTICLES = [
   { id: "free-topology", category: "Sinal", title: "Regra do retângulo e Free Topology", summary: "Quando os buracos da tela consomem banda da porta — e o interruptor que desliga isso.",
     sections: [
       { h: "O que a regra do retângulo faz", blocks: [
-        { t: "p", text: "Sem Free Topology, a controladora desenha um retângulo circunscrito em volta dos gabinetes daquela porta — e cobra banda por TODO o retângulo, inclusive pelos buracos. Numa corrente que sobe uma coluna, atravessa uma linha e sobe outra, o retângulo engole a tela inteira." },
+        { t: "p", text: "Sem Free Topology, a controladora desenha um retângulo circunscrito em volta dos gabinetes daquela porta — e cobra banda por TODO o retângulo, inclusive pelos buracos. Numa cadeia que sobe uma coluna, atravessa uma linha e sobe outra, o retângulo engole a tela inteira." },
         { t: "note", text: "Isto NÃO é teoria de manual: foi medido no simulador do Unico com uma VX2000, mudando só o interruptor e sem tocar no cabeamento." },
         { t: "table", cols: ["Free Topology", "Porta 1 marca", "O que ele contou"], rows: [
           ["Ligado", "90%", "os 16 gabinetes reais"],
           ["Desligado", "405% (vermelho)", "o retângulo inteiro: 8 × 9 = 72 posições"],
         ] },
-        { t: "p", text: "Mesma corrente de 16 gabinetes de 192×192. Ligado cobra 16; desligado cobra 72. A diferença é de 4,5× — é o que decide se a sua tela vazada cabe em 1 porta ou em 5." },
+        { t: "p", text: "Mesma cadeia de 16 gabinetes de 192×192. Ligado cobra 16; desligado cobra 72. A diferença é de 4,5× — é o que decide se a sua tela vazada cabe em 1 porta ou em 5." },
       ] },
       { h: "O interruptor", blocks: [
         { t: "p", text: "No Unico, “Free Topology” fica em Screen Properties › Screen. É configuração POR TELA — dá pra ligar numa tela e deixar desligada na outra, dentro do mesmo projeto." },
@@ -159,26 +159,26 @@ export const KB_ARTICLES = [
         { t: "note", text: "Regra de bolso enquanto não há teste: planeje como se a regra do retângulo valesse. Errar pra mais custa uma porta sobrando; errar pra menos custa a parede não fechar no dia." },
       ] },
     ] },
-  { id: "mapa-pixels", category: "Sinal", title: "Mapa de pixels (NovaLCT / Tessera)", summary: "Exporte gabinete → porta → X/Y pra transcrever no controlador, sem redesenhar na régua.",
+  { id: "mapa-pixels", category: "Sinal", title: "Mapa de pixels (NovaLCT / Tessera)", summary: "Exporte gabinete → porta → X/Y pra transcrever na controladora, sem redesenhar no layout.",
     sections: [
       { h: "Pra que serve", blocks: [
-        { t: "p", text: "Fecha o ciclo projeto → operação: em vez de redesenhar o painel na régua no local, você leva pronto qual gabinete entra em qual porta e em que coordenada. X/Y em pixels, sempre com origem no canto SUPERIOR-esquerdo do painel (padrão do NovaLCT e do Tessera)." },
+        { t: "p", text: "Fecha o ciclo projeto → operação: em vez de redesenhar o painel no layout do software no local, você leva pronto qual gabinete entra em qual porta e em que coordenada. X/Y em pixels, sempre com origem no canto SUPERIOR-esquerdo do painel (padrão do NovaLCT e do Tessera)." },
       ] },
       { h: "Como exportar", blocks: [
         { t: "ul", items: [
           "Aba Cabeamento (modo Sinal) → botão “Mapa de pixels”: baixa um CSV com uma linha por gabinete (porta, ordem no cabo, coluna/linha, X/Y).",
-          "Relatório → tipo “Mapa de cabos”: versão impressa com o desenho da rota + tabela do início de cada porta (coluna/linha e X/Y).",
+          "Caderno → tipo “Mapa de cabos”: versão impressa com o desenho da rota + tabela do início de cada porta (coluna/linha e X/Y).",
         ] },
-        { t: "note", text: "No NovaLCT (Novastar) ou no Tessera (Brompton), monte a topologia porta por porta seguindo a ordem e as coordenadas do mapa. A ordem do cabo começa no canto escolhido no seletor “Início” (aba Cabeamento); a coordenada X/Y é sempre do canto superior-esquerdo." },
+        { t: "note", text: "No NovaLCT (NovaStar) ou no Tessera (Brompton), monte a topologia porta por porta seguindo a ordem e as coordenadas do mapa. A ordem do cabo começa no canto escolhido no seletor “Início” (aba Cabeamento); a coordenada X/Y é sempre do canto superior-esquerdo." },
       ] },
     ] },
-  { id: "ac-conectores", category: "Cabeamento AC", title: "Conectores AC", summary: "PowerCON, True1 e suas correntes (padrão IEC/Brasil).", sections: [{ h: "Amperagens", blocks: [{ t: "kv", rows: [["PowerCON Azul/Branco", "20 A"], ["PowerCON TRUE1", "16 A"], ["Neutrik True1 TOP", "16 A"]] }, { t: "note", text: "Ratings sob EN 60320-1/VDE (regime do Brasil). O True1 TOP também é 16 A aqui — os 20 A que se vê por aí são o rating UL (EUA). Conectores 'aviation' genéricos (ex.: SD20) não têm certificação: trate o limite com cautela." }] }] },
+  { id: "ac-conectores", category: "Cabeamento AC", title: "Conectores AC", summary: "powerCON, TRUE1 e suas correntes (padrão IEC/Brasil).", sections: [{ h: "Amperagens", blocks: [{ t: "kv", rows: [["powerCON azul/branco", "20 A"], ["powerCON TRUE1", "16 A"], ["powerCON TRUE1 TOP", "16 A"]] }, { t: "note", text: "Ratings sob EN 60320-1/VDE (regime do Brasil). O TRUE1 TOP também é 16 A aqui — os 20 A que se vê por aí são o rating UL (EUA). Conectores 'aviation' genéricos (ex.: SD20) não têm certificação: trate o limite com cautela." }] }] },
   { id: "seguranca-ac", category: "Cabeamento AC", title: "Segurança elétrica (AC & campo)", summary: "Antes de energizar: conector, cabo, tensão, DR e inrush.",
     sections: [
-      { h: "Conector sob carga", blocks: [{ t: "p", text: "powerCON azul/branco NÃO tem breaking capacity: nunca conecte ou desconecte sob carga — desligue o disjuntor do circuito antes de mexer na daisy-chain. True1 e True1 TOP têm breaking capacity e podem ser plugados energizados." }] },
+      { h: "Conector sob carga", blocks: [{ t: "p", text: "powerCON azul/branco NÃO tem breaking capacity: nunca conecte ou desconecte sob carga — desligue o disjuntor do circuito antes de mexer na daisy-chain. TRUE1 e TRUE1 TOP têm breaking capacity e podem ser plugados energizados." }] },
       { h: "O cabo importa", blocks: [{ t: "p", text: "Link cables prontos de 1,5 mm² ou 14 AWG limitam em 15–16 A — abaixo dos 20 A do powerCON azul. Use 2,5 mm²/12 AWG em chains a plena ocupação. A 40 °C ao sol a capacidade do cabo cai ~15%." }] },
       { h: "Tensão", blocks: [{ t: "note", text: "O cálculo de gabinetes por cabo assume 220 V. Em 110–127 V (F-N de praça 127 V) a corrente sobe ~73% e o nº de gabinetes por cabo cai pela metade." }] },
-      { h: "Instalação temporária", blocks: [{ t: "ul", items: ["DR ≤ 30 mA obrigatório em área externa/molhada (NBR 5410)", "Aterre gerador e estrutura", "Corrente de fuga (~3 mA/painel) pode limitar a ~5 painéis por circuito com DR de 30 mA"] }] },
+      { h: "Instalação temporária", blocks: [{ t: "ul", items: ["DR ≤ 30 mA obrigatório em área externa/molhada (NBR 5410)", "Aterre gerador e estrutura", "Corrente de fuga (~3 mA/gabinete) pode limitar a ~5 gabinetes por circuito com DR de 30 mA"] }] },
       { h: "Energização (inrush)", blocks: [{ t: "p", text: "Fontes SMPS puxam 50–100× a corrente nominal por alguns ms no cold start (~60 A por fonte). Ligue a tela por seções e prefira disjuntor curva C (ou D em telas grandes) para não desarmar." }] },
     ] },
   { id: "estrutura-checklist", category: "Estrutura", title: "Checklist de montagem — parede voada", summary: "Condições de campo que não aparecem em conta nenhuma: corrente livre, torção, gancho, nivelamento e içamento.",
@@ -213,19 +213,19 @@ export const KB_ARTICLES = [
         { t: "note", text: "Talha manual não tem classificação D8+ (essas são de hoist elétrico), e a ASME B30.16 exclui içamento de pessoas do escopo. Carga parada sobre público ou artista pede secundário — aço de segurança — e decisão do rigger habilitado." },
       ] },
     ] },
-  { id: "pixel-pitch", category: "Painéis", title: "Pixel pitch e distância de visão", summary: "As quatro réguas que respondem \"de longe fica bom?\" — e qual pitch comprar pra cada distância.",
+  { id: "pixel-pitch", category: "Painéis", title: "Pixel pitch e distância de visão", summary: "As quatro distâncias que respondem \"de longe fica bom?\" — e qual pitch comprar pra cada distância.",
     // números batem com as constantes de services/viewing.js (MIN_K/OTIMA_K/
     // RETINA_K/MAX_ALTURA_K) — mudou lá, muda aqui
     sections: [
       { h: "O que é", blocks: [
         { t: "p", text: "Pitch é a distância entre os centros de dois LEDs vizinhos, em milímetros. O app calcula do cadastro do gabinete: pitch (mm) = largura do gabinete (mm) ÷ resolução X. Menor pitch = mais resolução por m² — e menor distância mínima de visão." },
       ] },
-      { h: "As quatro réguas", blocks: [
+      { h: "As quatro distâncias", blocks: [
         { t: "p", text: "Quatro regras da indústria transformam o pitch em distâncias práticas (exemplo com P3, tela de 3 m de altura):" },
-        { t: "table", cols: ["Régua", "Fórmula", "P3"], rows: [
+        { t: "table", cols: ["Distância", "Regra", "P3"], rows: [
           ["Mínima (fusão de cores)", "pitch em mm vira METROS (regra 1×)", "3,0 m"],
           ["Ótima (regra 10×)", "pitch × 10 pés ≈ × 3,05 m", "9,1 m"],
-          ["Retina / VAD", "pitch × 3,438 (1 arcminuto, visão 20/20)", "10,3 m"],
+          ["Retina / VAD", "pitch × 3,438 (1 minuto de arco, visão 20/20)", "10,3 m"],
           ["Máxima", "altura da tela × 30", "90 m"],
         ] },
         { t: "p", text: "Mais perto que a mínima, as cores não fundem — dá pra trabalhar, não pra assistir. Entre a ótima e a retina o conforto é pleno; da retina em diante o pixel simplesmente não existe pro olho. Além da máxima, a imagem perde presença (regra de outdoor)." },
@@ -237,7 +237,7 @@ export const KB_ARTICLES = [
       { h: "Exemplo de campo", blocks: [
         { t: "p", text: "Gabinete de 600 mm com 104 px (pitch 5,77 mm): mínima 5,8 m, ótima 17,6 m, retina 19,8 m. Serve pra palco com público a partir de ~6 m; pra um stand com gente a 2 m, a conta pede pitch ≤ 2 ÷ 3,438 ≈ 0,6 mm — ou aceitar pixel visível. A aba Aspect Ratio › Distância faz essa conta com o seu cadastro." },
       ] },
-      { h: "E a régua de leitura (AVIXA)", blocks: [
+      { h: "E o critério de leitura (AVIXA)", blocks: [
         { t: "note", text: "O critério AVIXA DISCAS (público a no máximo 6–8× a altura da tela) responde OUTRA pergunta: ler texto na tela — menu, planilha, legenda. É mais rígido que \"ver imagem\" e não entra no motor do app; se o painel vai mostrar conteúdo de leitura, aplique-o por cima." },
       ] },
       { h: "Fontes", blocks: [
@@ -252,7 +252,7 @@ export const KB_ARTICLES = [
     ] },
   { id: "resolucoes-padrao", category: "Painéis", title: "Resoluções padrão de vídeo", summary: "Referência de resoluções comuns — nome, pixels e aspecto.",
     sections: [{ h: "Tabela de referência", blocks: [
-      { t: "p", text: "Resoluções comuns pra configurar processador/mídia e comparar com a resolução do seu painel (veja a proporção na ferramenta Aspect Ratio)." },
+      { t: "p", text: "Resoluções comuns pra configurar controladora/media server e comparar com a resolução do seu painel (veja a proporção na ferramenta Aspect Ratio)." },
       { t: "table", cols: ["Nome", "Resolução", "Aspecto", "Pixels"], rows: [
         ["nHD", "640 × 360", "16:9", "0.23 Mpx"],
         ["HD 720p", "1280 × 720", "16:9", "0.92 Mpx"],

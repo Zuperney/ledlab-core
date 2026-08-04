@@ -38,7 +38,7 @@ _Aponte a câmera do celular para o QR code._
 
 ## 🧾 Versões
 
-**Atual: v1.17.0** — **A cena do pitch**: no modo Distância, a parede de LED em escala, uma pessoa de 1,70 m arrastável e o quadro "o que o olho vê" — os LEDs se separam quando perto demais e a imagem fica lisa da retina em diante. E o preview de crop agora recorta uma **imagem de verdade**. *(890 testes automáticos, código 100% limpo, CI travado contra regressão)*
+**Atual: v1.17.0** — **A cena do pitch**: no modo Distância, a parede de LED em escala, uma pessoa de 1,70 m arrastável e o quadro "o que o olho vê" — os LEDs se separam quando perto demais e a imagem fica lisa da retina em diante. E o preview de crop agora recorta uma **imagem de verdade**. *(334 testes automáticos, código 100% limpo, CI travado contra regressão)*
 
 | Versão | Destaques |
 |---|---|

@@ -11,22 +11,9 @@ const COV_SANS = '"Helvetica Neue", Helvetica, Arial, system-ui, sans-serif';
 const COV_MONO = 'ui-monospace, "SF Mono", "Cascadia Code", monospace';
 const covLabel = { fontFamily: COV_MONO, fontSize: "1.05cqi", fontWeight: 700, letterSpacing: "0.11em", textTransform: "uppercase", color: "#8d8b7e" };
 
-// capa: faixa escura com a marca + título do projeto + meta e geração
-export function ReportCover({ docType, name, meta, generated, config }) {
-  return (
-    <div style={{ background: PRINT.ink, borderRadius: 14, padding: "24px 26px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 9.5, letterSpacing: "0.16em", color: "#c4b5fd", fontWeight: 700, textTransform: "uppercase" }}>Documentação técnica{docType ? ` · ${docType}` : ""}</div>
-        <div style={{ fontSize: 25, fontWeight: 800, margin: "6px 0 4px", letterSpacing: "0.01em" }}>{name}</div>
-        {meta && <div style={{ color: "#cbd5e1", fontSize: 12.5 }}>{meta}</div>}
-      </div>
-      <div style={{ textAlign: "right", fontSize: 11, color: "#94a3b8", lineHeight: 1.6, whiteSpace: "nowrap" }}>
-        {generated && <div>Gerado em {generated}</div>}
-        {config && <div>{config}</div>}
-      </div>
-    </div>
-  );
-}
+// (o antigo ReportCover — "Documentação técnica", capa inline — morreu órfão na
+// convenção de vocabulário: o produto é o Caderno Técnico e a capa é a
+// ReportCoverPage abaixo. Removido em 03/08/2026.)
 
 // PÁGINA DE ROSTO dedicada: título + resumo executivo (stats em cards) + rodapé.
 // breakAfter:page → o conteúdo começa na página seguinte. É a "capa".

@@ -18,7 +18,7 @@ export default function ProjectEnergia({ project, patch }) {
   const setCfg = (partial) => patch({ config: { ...cfg, ...partial } });
   const [open, setOpen] = useState(null); // "brilho" | "conteudo" | null — qual slider está aberto
   const [telaOpen, setTelaOpen] = useState(null); // mobile: qual card de tela está expandido
-  // BALANÇO POR FASE: rodízio dos cabos AC (por Screen; legado = numeração global)
+  // BALANÇO POR FASE: rodízio dos circuitos AC (por Screen; legado = numeração global)
   const acCabos = projectAcCabos(project, prefs.cableNumbering || "row-tb-lr");
   const balFases = phaseBalance(acCabos, agg.vc);
   const balTip = phaseBalance(acCabos.map((c) => ({ n: c.n, load: c.loadTip || 0 })), agg.vc);
@@ -76,9 +76,9 @@ export default function ProjectEnergia({ project, patch }) {
         <Row tag="TÍPICO" tagColor={T.acM} isMobile={isMobile} cols={[["Carga", `${Math.round(agg.typW).toLocaleString()} W`, T.txt], ["kVA", agg.typKva, T.grn], ["A/fase", agg.typI, T.amb], ["No gerador", `${agg.geradorPct}%`, T.acM]]} />
       </div>
 
-      {/* BALANÇO POR FASE — o rodízio dos cabos AC (cabo 1→R, 2→S, 3→T…) somado
+      {/* BALANÇO POR FASE — o rodízio dos circuitos AC (circuito 1→R, 2→S, 3→T…) somado
           por fase. Só aparece quando a tensão tem rodízio (tri / 380 bi) e há
-          cabos. A soma é ARITMÉTICA: par (220 tri) conta nas duas fases. */}
+          circuitos. A soma é ARITMÉTICA: par (220 tri) conta nas duas fases. */}
       {balFases.temRodizio && acCabos.length > 0 && (
         <div style={card({ marginTop: 10 })}>
           <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12, marginBottom: 10 }}>
@@ -90,12 +90,12 @@ export default function ProjectEnergia({ project, patch }) {
                 <div style={{ fontFamily: "ui-monospace,monospace", fontWeight: 800, fontSize: 16, color: T.acM }}>{f.fase}</div>
                 <div style={{ fontFamily: "ui-monospace,monospace", fontWeight: 700, color: T.amb, marginTop: 2 }}>{f.A.toFixed(1).replace(".", ",")} A <span style={{ fontSize: 10, color: T.dim, fontWeight: 600, textTransform: "uppercase" }}>pico</span></div>
                 <div style={{ fontFamily: "ui-monospace,monospace", color: T.mut, fontSize: 12.5 }}>{(balTip.fases[i]?.A ?? 0).toFixed(1).replace(".", ",")} A <span style={{ fontSize: 10, color: T.dim, fontWeight: 600, textTransform: "uppercase" }}>típ.</span></div>
-                <div style={{ color: T.dim, fontSize: 11.5, marginTop: 2 }}>{f.cabos} {f.cabos === 1 ? "cabo" : "cabos"}</div>
+                <div style={{ color: T.dim, fontSize: 11.5, marginTop: 2 }}>{f.cabos} {f.cabos === 1 ? "circuito" : "circuitos"}</div>
               </div>
             ))}
           </div>
           <div style={{ color: T.dim, fontSize: 11.5, marginTop: 8, lineHeight: 1.5 }}>
-            Rodízio {usaScreens ? "reinicia a cada Screen (cada Screen é um quadro)" : "pela numeração do projeto"}: cabo 1→{phaseOf(1, agg.vc)}, 2→{phaseOf(2, agg.vc)}, 3→{phaseOf(3, agg.vc)}…
+            Rodízio {usaScreens ? "reinicia a cada Screen (cada Screen é um quadro)" : "pela numeração do projeto"}: circuito 1→{phaseOf(1, agg.vc)}, 2→{phaseOf(2, agg.vc)}, 3→{phaseOf(3, agg.vc)}…
             {agg.vc.g === "220" && agg.vc.ph === 3 ? " Em 220 V trifásico o circuito usa um PAR de fases (F+F) — a corrente conta nas duas." : ""} Soma aritmética (leitura conservadora de quadro).
           </div>
         </div>

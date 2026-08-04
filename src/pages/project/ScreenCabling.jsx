@@ -32,7 +32,8 @@ const sep = { width: 1, height: 22, background: T.bd, margin: "0 2px" };
 
 export default function ScreenCabling({ project, patch, kind = "sinal", advOpen = false, onAdvClose }) {
   const isAc = kind === "ac";
-  const word = isAc ? "Cabo" : "Porta";
+  const word = isAc ? "Circuito" : "Porta"; // vocabulário §12.1: sinal = Porta, AC = Circuito
+  const novoWord = isAc ? "Novo circuito" : "Nova porta";
   const telas = project.telas || [];
   const screens = project.screens || [];
   const { colorOf } = useCablePalette();
@@ -134,7 +135,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const novoCabo = () => { setActiveCable(cables.length); setCables([...cables, []]); };
   const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActiveCable(null); };
   const inverter = () => { if (cables[activeCable]?.length) setCables(cables.map((c, i) => (i === activeCable ? [...c].reverse() : c))); };
-  const limpar = async () => { if (await confirm({ title: "Limpar cabeamento?", message: `Todos os cabos livres de ${active.nome} serão removidos.` })) { setCables([]); setActiveCable(null); } };
+  const limpar = async () => { if (await confirm({ title: "Limpar cabeamento?", message: `${isAc ? "Todos os circuitos livres" : "Todas as portas livres"} de ${active.nome} serão removid${isAc ? "os" : "as"}.` })) { setCables([]); setActiveCable(null); } };
   const exportCSV = () => {
     const csv = projectPixelMapCSV(project, numbering, active.id);
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
@@ -183,14 +184,14 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
             <div style={card({ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
               <button onClick={importAuto} style={{ ...ibtn(), width: "auto", padding: "0 12px", gap: 6, fontSize: 13 }} title="Começa dos cabos que o automático sugere e edita"><Download size={15} /> Importar do auto</button>
               <span style={sep} />
-              <button onClick={novoCabo} style={ibtn()} title="Novo cabo"><Plus size={16} /></button>
-              <button onClick={inverter} style={ibtn()} title="Inverter início/fim do cabo"><Repeat2 size={15} /></button>
+              <button onClick={novoCabo} style={ibtn()} title={novoWord}><Plus size={16} /></button>
+              <button onClick={inverter} style={ibtn()} title="Inverter início/fim da cadeia"><Repeat2 size={15} /></button>
               <button onClick={() => setActiveCable(null)} disabled={activeCable == null} style={ibtn({ opacity: activeCable == null ? 0.4 : 1, cursor: activeCable == null ? "not-allowed" : "pointer" })} title="Sair da edição"><X size={15} /></button>
               <span style={sep} />
               <button onClick={undo} disabled={!history.length} style={ibtn({ opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" })} title="Desfazer"><Undo2 size={15} /></button>
-              <button onClick={limpar} style={ibtn()} title="Limpar cabos"><Eraser size={15} /></button>
+              <button onClick={limpar} style={ibtn()} title={isAc ? "Limpar circuitos" : "Limpar portas"}><Eraser size={15} /></button>
               <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
-                {activeCable != null ? <>Editando <b style={{ color: colorOf(activeCable) }}>{word} {activeCable + 1}</b> · clique nos gabinetes</> : cables.length ? `Selecione ${isAc ? "um cabo" : "uma porta"} na legenda` : "Importe do auto ou clique “Novo cabo”"}
+                {activeCable != null ? <>Editando <b style={{ color: colorOf(activeCable) }}>{word} {activeCable + 1}</b> · clique nos gabinetes</> : cables.length ? `Selecione ${isAc ? "um circuito" : "uma porta"} na legenda` : `Importe do auto ou clique “${novoWord}”`}
               </span>
             </div>
           )}
@@ -200,8 +201,8 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
               <div style={{ minWidth: 0 }}>
                 <div style={{ color: T.acM, fontWeight: 700, textTransform: "uppercase", fontSize: 12 }}>{active.nome} · {isAc ? "Energia AC" : "Sinal"}</div>
                 <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
-                  {bbox.w.toLocaleString("pt-BR")} × {bbox.h.toLocaleString("pt-BR")} px · {ports.length} {isAc ? (ports.length === 1 ? "cabo" : "cabos") : (ports.length === 1 ? "porta" : "portas")}
-                  {mode === "sinal" ? " · seguindo a rota do sinal" : " · a corrente atravessa as telas do mesmo modelo"}
+                  {bbox.w.toLocaleString("pt-BR")} × {bbox.h.toLocaleString("pt-BR")} px · {ports.length} {isAc ? (ports.length === 1 ? "circuito" : "circuitos") : (ports.length === 1 ? "porta" : "portas")}
+                  {mode === "sinal" ? " · seguindo a rota do sinal" : " · a cadeia atravessa as telas do mesmo modelo"}
                 </div>
                 {isAc && balFases.temRodizio && (
                   <div style={{ color: T.dim, fontSize: 12, marginTop: 2 }}>
@@ -261,7 +262,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                 const isAct = mode === "livre" && i === activeCable;
                 return (
                   <div key={i} onClick={mode === "livre" ? () => setActiveCable(activeCable === i ? null : i) : undefined}
-                    title={p.oc ? "Overclock: acima da capacidade nominal por escolha" : p.cruza ? "Único cabo que atravessa entre telas" : undefined}
+                    title={p.oc ? "Overclock: acima da capacidade nominal por escolha" : p.cruza ? "Única cadeia que atravessa entre telas" : undefined}
                     style={{ display: "flex", alignItems: "center", gap: 8, background: isAct ? T.sel : T.card2, border: `1px solid ${p.over ? T.red : p.oc || p.warn ? T.amb : isAct ? T.acc : T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: mode === "livre" ? "pointer" : "default" }}>
                     <span style={{ width: 12, height: 12, borderRadius: 3, background: colorOf(i), flexShrink: 0 }} />
                     <span style={{ color: T.txt, fontWeight: 600 }}>{word} {p.n}</span>
@@ -273,7 +274,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                   </div>
                 );
               })}
-              {mode === "livre" && <button onClick={novoCabo} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, color: T.mut, cursor: "pointer" }}><Plus size={13} /> Novo cabo</button>}
+              {mode === "livre" && <button onClick={novoCabo} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${T.bd}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, color: T.mut, cursor: "pointer" }}><Plus size={13} /> {novoWord}</button>}
             </div>
           </div>
         </>
@@ -284,11 +285,11 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
       {advOpen && (
         <LightModal title={`Avançado · ${active.nome} · ${isAc ? "AC" : "Sinal"}`} onClose={onAdvClose}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {!isAc && <Drop fluid label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controlador com a função)." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
-            <Drop fluid label="Disposição" title="Como a corrente é cortada em cabos" options={dispOpts} value={disp} onChange={setDisp} />
+            {!isAc && <Drop fluid label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controladora com a função)." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
+            <Drop fluid label="Disposição" title={`Como a cadeia é cortada em ${isAc ? "circuitos" : "portas"}`} options={dispOpts} value={disp} onChange={setDisp} />
             {mode === "auto" && <>
               <Drop fluid label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={cfg.routing || "updown"} onChange={(v) => setCfg({ routing: v })} />
-              <Drop fluid label="Início" title="Canto onde a corrente começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
+              <Drop fluid label="Início" title="Canto onde a cadeia começa — case com a montagem física" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={cfg.corner || "bl"} onChange={(v) => setCfg({ corner: v })} />
             </>}
             {!isAc && <Drop fluid label="Cor" title="10-bit dobra os dados por pixel — metade dos px por porta" options={[[8, "8-bit"], [10, "10-bit"]]} value={cfg.bits === 10 ? 10 : 8} onChange={(v) => setCfg({ bits: Number(v) })} />}
             {!isAc && (

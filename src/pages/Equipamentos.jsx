@@ -43,7 +43,7 @@ export default function Equipamentos({ nav }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.dim, fontSize: 12.5 }}>
         Escolha a controladora de cada Screen — o app confere se cabe.
         <HelpTip title="Como funciona" align="left">
-          Traga um <b style={{ color: T.txt }}>projeto</b> e escolha a <b style={{ color: T.txt }}>controladora</b> de cada Screen — o app confere se cabem nas portas, na carga do dispositivo e na resolução, com a dica de Hz quando não cabe. Os modelos vêm de um <b style={{ color: T.txt }}>catálogo certificado</b> (não editável): você seleciona, o dado é conferido por nós nos datasheets.
+          Traga um <b style={{ color: T.txt }}>projeto</b> e escolha a <b style={{ color: T.txt }}>controladora</b> de cada Screen — o app confere se cabem nas portas, na ocupação da controladora e na resolução, com a dica de Hz quando não cabe. Os modelos vêm de um <b style={{ color: T.txt }}>catálogo certificado</b> (não editável): você seleciona, o dado é conferido por nós nos datasheets.
         </HelpTip>
       </div>
 
@@ -116,7 +116,7 @@ export default function Equipamentos({ nav }) {
                 </div>
                 <div style={{ color: T.dim, fontSize: 12 }}>
                   {r.screens.map((x) => `${x.screen.nome} (${x.portas})`).join(" · ")}
-                  <span style={{ color: r.cargaOver ? T.red : T.dim }}> · carga {fmtPx(r.pxUsados)} de {fmtPx(r.carga)} px</span>
+                  <span style={{ color: r.cargaOver ? T.red : T.dim }}> · ocupação {fmtPx(r.pxUsados)} de {fmtPx(r.carga)} px</span>
                 </div>
                 {lever && (
                   <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: T.amb, fontWeight: 600 }}>
@@ -125,7 +125,7 @@ export default function Equipamentos({ nav }) {
                 )}
                 {r.cargaOver && (
                   <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: T.red, fontWeight: 600 }}>
-                    <AlertTriangle size={13} /> As Screens somam {fmtPx(r.pxUsados)} px — acima do que o dispositivo processa ({fmtPx(r.carga)} px).
+                    <AlertTriangle size={13} /> As Screens somam {fmtPx(r.pxUsados)} px — acima do que a controladora processa ({fmtPx(r.carga)} px).
                   </div>
                 )}
                 {r.algumResOver && (
@@ -166,7 +166,7 @@ export default function Equipamentos({ nav }) {
                   <div style={{ color: T.dim, fontSize: 11.5, marginBottom: 8 }}>{e.marca} · {e.categoria === "all-in-one" ? "All-in-One" : "Sending card"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "3px 10px", fontSize: 12.5, color: T.mut }}>
                     <span style={{ color: T.dim }}>Portas</span><b style={{ color: T.txt }}>{e.portas} × {fmtPx(e.pxPorta)} px</b>
-                    <span style={{ color: T.dim }}>Carga</span><b style={{ color: T.txt }}>{fmtPx(cargaTotal(e))} px</b>
+                    <span style={{ color: T.dim }}>Ocupação</span><b style={{ color: T.txt }}>{fmtPx(cargaTotal(e))} px</b>
                     <span style={{ color: T.dim }}>Máx</span><b style={{ color: T.txt }}>{e.maxW ? `${e.maxW.toLocaleString("pt-BR")} × ${e.maxH.toLocaleString("pt-BR")}` : "—"}</b>
                     <span style={{ color: T.dim }}>Cor</span><b style={{ color: T.txt }}>{e.bits.join("/")}-bit</b>
                     <span style={{ color: T.dim }}>Entradas</span><b style={{ color: T.txt }}>{e.entradas.join(" · ")}</b>

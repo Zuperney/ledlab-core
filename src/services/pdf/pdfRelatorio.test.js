@@ -169,7 +169,9 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(json).not.toContain("ENERGIA — CABEAMENTO AC"); // título encurtou (31/07)
     expect(json).toContain("ATENÇÃO — ENERGIZAÇÃO");
     expect(json).toContain("powerCON azuis");
-    expect(json).toContain("MÁX POR CABO");
+    // vocabulário §12.1: a unidade numerada do AC é CIRCUITO (cabo = o físico)
+    expect(json).toContain("MÁX POR CIRCUITO");
+    expect(json).not.toContain("MÁX POR CABO");
     expect(json).toContain("A/gabinete");
   });
 

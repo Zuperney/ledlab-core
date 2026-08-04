@@ -26,7 +26,7 @@ export default function TestCards() {
 
   return (
     <div>
-      <SectionHeader title="Test Cards" subtitle="Gere cartões de teste a partir de um projeto ou de uma grade manual." />
+      <SectionHeader title="Test Cards" subtitle="Gere test cards a partir de um projeto ou de uma grade manual." />
       {/* LLC-07: mesma linguagem de formulário das telas principais — rótulo CAPS
           em cima do campo, Select/NumField com input(), nada de rótulo inline */}
       <div style={card({ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 })}>

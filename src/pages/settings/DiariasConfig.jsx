@@ -129,7 +129,7 @@ export default function DiariasConfig() {
               <div style={{ color: T.txt, fontWeight: 600 }}>{t.nome} {!t.ativo && <span style={{ color: T.dim, fontWeight: 400, fontSize: 12 }}>(inativo)</span>}</div>
               <div style={{ color: T.dim, fontSize: 12 }}>
                 R$ {(t.valorBase || 0).toLocaleString("pt-BR")}
-                {t.geraHoraExtra ? " · hora extra" : " · flat"}
+                {t.geraHoraExtra ? " · hora extra" : " · fixo"}
                 {t.podeSegundoCache ? " · empilha" : " · não empilha"}
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function DiariasConfig() {
               <div><div style={lbl}>Cachê base (R$)</div><input type="number" value={edit.valorBase} onChange={(e) => setEdit({ ...edit, valorBase: e.target.value })} placeholder="Ex.: 350" style={input()} /></div>
             </div>
             <Toggle on={edit.geraHoraExtra} onClick={() => setEdit({ ...edit, geraHoraExtra: !edit.geraHoraExtra })}
-              titulo="Gera hora extra" desc="Passou da jornada, cobra extra (senão é flat, ex.: deslocamento)." />
+              titulo="Gera hora extra" desc="Passou da jornada, cobra extra (senão é fixo, ex.: deslocamento)." />
             <Toggle on={edit.podeSegundoCache} onClick={() => setEdit({ ...edit, podeSegundoCache: !edit.podeSegundoCache })}
               titulo="Empilha no dia" desc="Pode ser um 2º cachê no mesmo dia (deslocamento = não)." />
             <Toggle on={edit.ativo} onClick={() => setEdit({ ...edit, ativo: !edit.ativo })}

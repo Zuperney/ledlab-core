@@ -194,7 +194,7 @@ export default function ProjectComposicao({ project, patch }) {
           <span style={{ background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 999, padding: "3px 10px" }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px · {telas.length} tela{telas.length === 1 ? "" : "s"}</span>
           {overlapIds.size > 0 && <span style={{ color: T.red, fontWeight: 700 }}>⚠ telas sobrepostas</span>}
           <HelpTip title="Como funciona a composição" align="left">
-            <b style={{ color: T.txt }}><Move size={12} style={{ verticalAlign: "-1px" }} /> Arraste as telas</b> pra posicionar — elas encaixam nas bordas umas das outras (snap). O canvas é automático: envolve todas as telas. A exportação gera UM PNG com o test card de cada tela na sua posição, e as regiões (x · y · largura × altura) servem pro mapeamento no processador/media server.
+            <b style={{ color: T.txt }}><Move size={12} style={{ verticalAlign: "-1px" }} /> Arraste as telas</b> pra posicionar — elas encaixam nas bordas umas das outras (snap). O canvas é automático: envolve todas as telas. A exportação gera UM PNG com o test card de cada tela na sua posição, e as regiões (x · y · largura × altura) servem pro mapeamento no controladora/media server.
           </HelpTip>
         </div>
       </div>
@@ -241,7 +241,7 @@ export default function ProjectComposicao({ project, patch }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
           <div style={{ ...lbl, display: "inline-flex", alignItems: "center", gap: 8 }}>Posição das telas
             <HelpTip title="Pra que servem as regiões" align="left">
-              Canvas de fonte <b style={{ color: T.txt }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px</b>. Cada tela é uma região (x · y · largura × altura) pra usar no mapeamento do processador/media server — o "Copiar" leva tudo pronto pra colar.
+              Canvas de fonte <b style={{ color: T.txt }}>{Math.round(bbox.w)}×{Math.round(bbox.h)} px</b>. Cada tela é uma região (x · y · largura × altura) pra usar no mapeamento do controladora/media server — o "Copiar" leva tudo pronto pra colar.
             </HelpTip>
           </div>
           <button onClick={copyRegions} style={btn("ghost", { padding: "6px 11px", fontSize: 12.5 })}><IconRegioes size={14} /> Copiar</button>

@@ -2,6 +2,23 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [Não publicado]
+
+**O vocabulário cravado — uma palavra por conceito, no app inteiro.**
+
+A convenção de termos virou a seção §12.1 do manual de marca (auditoria completa de UI + conteúdo; decisões do dono em 03/08) e o app foi varrido pra obedecê-la:
+
+- **Porta = sinal · Circuito = AC**: sumiu o "Cabo 3" da energia (aba, Caderno, chips, specs) e o "cabo" perdido nas seções de sinal ("Total de portas", "início de cada porta"). Cabo AC segue existindo — como o objeto físico.
+- **A aba "Relatório" virou "Caderno"** — um nome só do clique à capa (KB e nome de arquivo do Imprimir juntos). O componente órfão "Documentação técnica" morreu.
+- **Cadeia** é o encadeamento de gabinetes; **corrente** voltou a ser só ampères ("a cadeia atravessa as telas").
+- **Controladora** unificou processador/controlador/dispositivo (a caixa NovaStar tinha 5 nomes); media server ficou pro equipamento de conteúdo.
+- **Carga** agora é só a do circuito AC (A · %): a coluna em kW da Visão Geral virou **Pico** e os pixels de Equipamentos viraram **Ocupação**.
+- As quatro **distâncias de visão** deixaram de se chamar "réguas" (régua é a de alocação de porta); "1 minuto de arco" padronizado.
+- **Proporção** (16:9) e **Fração** (0,429) em todo lugar — a coluna "Aspecto" do Caderno e o chip "Decimal" da aba alinharam.
+- Grafias fixas: **powerCON / powerCON TRUE1** (Neutrik) e **NovaStar** na KB; "Gab." no espelho DOM (paridade com o PDF).
+- Miúdas de voz (§12): toasts no passado e sem emoji, "Ex.:" com ponto, "Desligado" no lugar de "Off", "Frequência" no lugar de "Refresh", "fixo" no lugar de "flat", "Novo projeto" em sentence case, cantos "Sup-esq", veredito da Diagramação só quando há problema (era um "OK" verde permanente), Agenda "Grade" → "Calendário", "Cachês (Diárias)" → "Cachês".
+- **Correção honesta**: a contagem de testes divulgada estava inflada — o vitest contava as cópias de worktrees antigos dentro do repo. A suíte real tem **334 testes** (todos verdes); os números anteriores (555–890) somavam duplicatas.
+
 ## [1.17.0] — 2026-08-03
 
 **A cena do pitch: parede, pessoa e "o que o olho vê".**

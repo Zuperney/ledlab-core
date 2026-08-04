@@ -85,7 +85,7 @@ export default function Projects({ nav }) {
   }, [sorted, agrupar]);
 
   const create = () => {
-    const p = createProject({ name: "Novo Projeto" });
+    const p = createProject({ name: "Novo projeto" });
     setOpenId(p.id);
   };
   const remove = async (p) => {
@@ -106,7 +106,7 @@ export default function Projects({ nav }) {
   return (
     <div>
       <SectionHeader title="Projetos / Eventos" subtitle={`${projects.length} projetos · abra um para energia, sinal, test card e relatório.`}>
-        {!isMobile && <button style={btn("primary")} onClick={create}><Plus size={16} /> Novo Projeto</button>}
+        {!isMobile && <button style={btn("primary")} onClick={create}><Plus size={16} /> Novo projeto</button>}
       </SectionHeader>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
@@ -164,7 +164,7 @@ export default function Projects({ nav }) {
       )}
 
       {sorted.length === 0 ? (
-        <Placeholder icon={FolderOpen} title="Nenhum projeto" description="Ajuste os filtros ou clique em “Novo Projeto” para começar." />
+        <Placeholder icon={FolderOpen} title="Nenhum projeto" description="Ajuste os filtros ou clique em “Novo projeto” para começar." />
       ) : (
         groups.map((g) => (
           <div key={g.key} style={{ marginBottom: g.label ? 18 : 0 }}>

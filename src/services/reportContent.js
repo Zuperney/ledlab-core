@@ -33,7 +33,7 @@ export const videoOf = (t) => {
 };
 
 // distância de visão da seção Vídeo, AGRUPADA (DOM+PDF — fonte única): telas
-// com o mesmo pitch e a mesma altura têm as mesmas quatro réguas — listar por
+// com o mesmo pitch e a mesma altura têm as mesmas quatro distâncias — listar por
 // tela repetia os mesmos números N vezes e virava parede de texto (dono,
 // 02/08). Uma linha por combinação; tela sem pitch (gabinete sem dimW) é
 // omitida. Números já formatados (vírgula) pros dois renderizadores.
@@ -77,7 +77,7 @@ export const GLOSSARIO = [
   { t: "FP (fator de potência)", d: "Relação entre potência real e aparente do gabinete (ex.: 0,90). Entra na corrente e no kVA." },
   { t: "Pitch", d: "Distância entre centros de LEDs (mm). Menor pitch = mais resolução por m² e menor distância mínima de visão." },
   { t: "APL / conteúdo", d: "Nível médio da imagem — quanto do branco pleno o vídeo acende, em média. Escala o consumo típico." },
-  { t: "Gabinete", d: "Módulo físico de LED (cabinet + receiving card). Menor unidade de montagem e cabeamento." },
+  { t: "Gabinete", d: "A unidade física de LED (cabinet + receiving card). Menor unidade de montagem e cabeamento." },
   { t: "Tela", d: "Bloco de gabinetes iguais montados juntos — a unidade de projeto do app." },
   { t: "Screen", d: "O sistema como a controladora enxerga, onde correm as portas 1..N. Pode reunir várias telas." },
   { t: "Porta × Circuito", d: "Porta = saída de dados Gigabit da controladora que alimenta uma cadeia de gabinetes (sinal). Circuito = cabo de energia (AC) que alimenta outra cadeia. São contagens independentes: o mesmo gabinete pertence a uma porta E a um circuito, e as duas cadeias não precisam coincidir." },
@@ -95,7 +95,7 @@ export const CRITERIOS = [
     "Potência aparente S = W ÷ FP (fator de potência do gabinete; sem cadastro, 0,85). Corrente por fase I = S ÷ (√3 × V de linha) no trifásico; cada configuração de tensão (220/380 V) tem seu divisor.",
     "Consumo típico por gabinete = base + (pico − base) × brilho × conteúdo (modelo Barco). Sem black level cadastrado, base = 15% do pico.",
   ] },
-  { h: "Cabos AC e fases", itens: [
+  { h: "Circuitos AC e fases", itens: [
     "Corrente por gabinete = pico ÷ (220 V × FP) — o circuito de alimentação é 220 V em qualquer rede brasileira (F+N na rede 380/220; F+F na 127/220).",
     "Regra dos 80%: cabo/conector de carga contínua satura em 80% do nominal (prática NEC de carga contínua).",
     "Fases em rodízio (R/S/T) reiniciando a cada Screen — cada Screen é um quadro. Em 220 V trifásico o circuito usa um PAR de fases e a corrente conta nas duas; o balanço soma aritmético (leitura conservadora: nunca subestima).",
@@ -108,8 +108,8 @@ export const CRITERIOS = [
     "Porta Gigabit: 655.360 px a 8-bit/60 Hz — a capacidade escala com a profundidade de cor (10-bit = metade) e com o refresh (× 60 ÷ Hz). Porta acima do teto só por OVERCLOCK declarado.",
   ] },
   { h: "Vídeo e distância de visão", itens: [
-    "Quatro réguas sobre o pitch (mm): MÍNIMA = pitch em metros (fusão de cores, regra 1×) · ÓTIMA = pitch × 10 pés (≈ × 3,05 m) · RETINA = pitch × 3,438 (1 minuto de arco, visão 20/20 — o pixel some) · MÁXIMA = altura da tela × 30.",
-    "O critério AVIXA DISCAS (6–8× a altura) responde outra pergunta — LER texto na tela, não ver imagem — e por isso não entra no motor. O caderno entrega as réguas; o \"fica bom\" final é do diretor de vídeo.",
+    "Quatro distâncias a partir do pitch (mm): MÍNIMA = pitch em metros (fusão de cores, regra 1×) · ÓTIMA = pitch × 10 pés (≈ × 3,05 m) · RETINA = pitch × 3,438 (1 minuto de arco, visão 20/20 — o pixel some) · MÁXIMA = altura da tela × 30.",
+    "O critério AVIXA DISCAS (6–8× a altura) responde outra pergunta — LER texto na tela, não ver imagem — e por isso não entra no motor. O caderno entrega as distâncias; o \"fica bom\" final é do diretor de vídeo.",
   ] },
 ];
 
@@ -124,10 +124,10 @@ export const REFERENCIAS = [
   "Barco — “The truth about the power consumption of LED walls” (LEDTalks, 2020): o modelo do consumo típico.",
   "Absen — HC Series User Manual: dimensionamento pelo consumo máximo e gabinetes por cabo de energia.",
   "Neutrik — datasheets BDA 452 (powerCON) e BDA 697 (powerCON TRUE1).",
-  "Novastar / Colorlight — capacidade de porta Gigabit por profundidade de cor e refresh.",
+  "NovaStar / Colorlight — capacidade de porta Gigabit por profundidade de cor e refresh.",
   "Mean Well — corrente de inrush de fontes chaveadas e partida sequencial.",
-  "Planar — “Understanding Viewing Distance”: a distância retina (pitch × 3.438, 1 arcminuto).",
-  "Daktronics (KB 000030569) e Linsn — regra 10× e réguas práticas de distância de visão.",
+  "Planar — “Understanding Viewing Distance”: a distância retina (pitch × 3,438 — 1 minuto de arco).",
+  "Daktronics (KB 000030569) e Linsn — regra 10× e distâncias práticas de distância de visão.",
   "AVIXA — DISCAS: dimensionamento de imagem pra leitura de conteúdo (6–8× a altura).",
   "Auditoria de engenharia LedLab (07/2026): fórmulas do motor confrontadas com as fontes acima — artigos completos na Base de Conhecimento do app.",
 ];

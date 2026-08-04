@@ -47,7 +47,7 @@ export default function Agenda({ nav }) {
   const views = [
     { id: "linha", label: "Linha", Icon: Rows3 },
     { id: "coluna", label: "Coluna", Icon: Columns3 },
-    { id: "grade", label: "Grade", Icon: CalendarDays },
+    { id: "grade", label: "Calendário", Icon: CalendarDays },
   ];
 
   const statusItems = [{ k: "all", l: "Todos" }, ...STATUS_ORDER.map((s) => ({ k: s, l: STATUS[s].l }))];

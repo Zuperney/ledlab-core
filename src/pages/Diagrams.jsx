@@ -1,7 +1,7 @@
 // pages/Diagrams.jsx — Diagramação: planejador rápido de portas de SINAL.
 //
 // Usa o MESMO motor de cabeamento (services/cabling.js) da aba Cabeamento e do
-// Test Card, então a contagem de portas (regra de ÁREA quadrada da Novastar), o
+// Test Card, então a contagem de portas (regra de ÁREA quadrada da NovaStar), o
 // desenho (linha branca + selo no canto inferior-esquerdo) e a numeração global
 // dos cabos ficam CONSISTENTES em todo o app. Ferramenta avulsa: escolhe um
 // gabinete e uma grade, sem precisar de projeto (não persiste).
@@ -19,6 +19,7 @@ import NumField from "../components/NumField.jsx";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { key, bboxArea, cableMeta, cablePorts } from "../services/cabling.js";
 import SectionHeader from "../components/SectionHeader.jsx";
+import StatusPill from "../components/StatusPill.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const CELL = 64; // tamanho da célula no canvas (o zoom escala)
@@ -60,7 +61,6 @@ export default function Diagrams() {
   // ocupação: régua de pixels = contagem real de gabinetes; régua de área = bounding box
   const usage = (port) => (rule === "px" ? port.length : bboxArea(port)) / sinalBudget;
   const anyOver = ports.some((p) => usage(p) > 1.001);
-  const status = anyOver ? { l: "Alerta", c: T.red } : { l: "OK", c: T.grn };
 
   const fit = useCallback(() => {
     const el = stageRef.current; if (!el) return;
@@ -107,9 +107,9 @@ export default function Diagrams() {
             <div><label style={lbl}>Gabinete</label><Select value={cabId} onChange={(e) => setCabId(Number(e.target.value))} style={inp}>{cabs.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select></div>
             <div><label style={lbl}>Colunas</label><NumField value={cols} onChange={(n) => setCols(Math.max(1, n))} style={{ ...inp, width: 80 }} /></div>
             <div><label style={lbl}>Linhas</label><NumField value={rows} onChange={(n) => setRows(Math.max(1, n))} style={{ ...inp, width: 80 }} /></div>
-            <div><label style={lbl}>Refresh</label><Select value={hz} onChange={(e) => setHz(parseInt(e.target.value))} style={inp}>{[60, 50, 30].map((r) => <option key={r} value={r}>{r} Hz</option>)}</Select></div>
+            <div><label style={lbl}>Frequência</label><Select value={hz} onChange={(e) => setHz(parseInt(e.target.value))} style={inp}>{[60, 50, 30].map((r) => <option key={r} value={r}>{r} Hz</option>)}</Select></div>
             <div><label style={lbl}>Cor</label><Select value={bits} title="Profundidade de cor — 10-bit dobra os dados por pixel (metade dos px por porta)" onChange={(e) => setBits(Number(e.target.value))} style={inp}><option value={8}>8-bit</option><option value={10}>10-bit</option></Select></div>
-            <div><label style={lbl}>Porta</label><Select value={rule} title="Régua da porta: pixels reais (VX/série A/Colorlight) ou área retangular (controlador básico)" onChange={(e) => setRule(e.target.value)} style={inp}><option value="px">Pixels (real)</option><option value="area">Área (básico)</option></Select></div>
+            <div><label style={lbl}>Régua</label><Select value={rule} title="Régua da porta: pixels reais (VX/série A/Colorlight) ou área retangular (controladora básica)" onChange={(e) => setRule(e.target.value)} style={inp}><option value="px">Pixels (real)</option><option value="area">Área (básico)</option></Select></div>
             {rule === "area" && <Seg label="Disposição" options={[["linha", "Linha"], ["coluna", "Coluna"], ["area", "Área"]]} value={strategy} onChange={setStrategy} />}
             <Seg label="Sentido" options={[["updown", "Sobe/desce"], ["zigzag", "Zig-zag"]]} value={routing} onChange={setRouting} />
             <Seg label="Início" options={[["bl", "Inf-esq"], ["br", "Inf-dir"], ["tl", "Sup-esq"], ["tr", "Sup-dir"]]} value={corner} onChange={setCorner} />
@@ -131,7 +131,8 @@ export default function Diagrams() {
               style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", minHeight: 40, borderRadius: 8, cursor: "pointer", fontSize: 13.5, fontWeight: 600, border: `1px solid ${ajustes ? T.acc : T.bd}`, background: ajustes ? T.sel : T.card2, color: ajustes ? T.acM : T.mut, flexShrink: 0 }}>
               <SlidersHorizontal size={15} />{!isMobile && " Ajustes"}
             </button>
-            <span style={{ background: status.c + "22", color: status.c, padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{status.l}</span>
+            {/* §7 do manual: veredito só com problema — nada de OK permanente */}
+            {anyOver && <StatusPill color={T.red} label="Alerta" />}
           </div>
         </div>
 

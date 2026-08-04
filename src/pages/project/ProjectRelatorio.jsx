@@ -102,7 +102,7 @@ export default function ProjectRelatorio({ project }) {
   const gabsUsados = [...new Map(telas.filter((t) => t.gabinete?.nome).map((t) => [t.gabinete.nome, t.gabinete])).values()]; // modelos distintos p/ chips
   const fpLabel = [...new Set(gabsUsados.map((g) => parseFloat(g.fp) || 0.85))].sort((a, b) => a - b).map((f) => f.toFixed(2).replace(".", ",")).join(" · "); // FP dos gabinetes do projeto
   const telaBlock = { marginBottom: 16, breakInside: "avoid" };
-  // specs de configuração de uma Screen (o que o operador precisa no processador)
+  // specs de configuração de uma Screen (o que o operador precisa na controladora)
   const screenSpec = (s) => {
     const scr = screensById[s.id];
     const g = (scr?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)[0]?.gabinete;
@@ -123,7 +123,7 @@ export default function ProjectRelatorio({ project }) {
           <button style={btn("primary", gerandoPdf ? { opacity: 0.6, cursor: "wait" } : {})} disabled={gerandoPdf} onClick={baixarPdf}>
             <Download size={15} /> {gerandoPdf ? "Gerando…" : "Baixar PDF"}
           </button>
-          <button style={btn("ghost")} onClick={() => printAs(fileName([project.name, "relatorio", type]))} title="Imprimir pelo navegador (fallback)"><Printer size={15} />{!isMobile && " Imprimir"}</button>
+          <button style={btn("ghost")} onClick={() => printAs(fileName([project.name, "caderno", type]))} title="Imprimir pelo navegador (fallback)"><Printer size={15} />{!isMobile && " Imprimir"}</button>
           <HelpTip title="Dica pro Imprimir do navegador">
             O <b style={{ color: T.txt }}>Baixar PDF</b> já sai pronto. Se usar o Imprimir do navegador, ative <b style={{ color: T.txt }}>“Gráficos de segundo plano”</b> — sem isso a capa e as cores saem apagadas.
           </HelpTip>
@@ -152,7 +152,7 @@ export default function ProjectRelatorio({ project }) {
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Visão Geral" tag="Composição do painel" color={DISC.prod} Icon={LayoutGrid} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Dimensão</th><th style={th}>Grade</th><th style={th}>Resolução (px)</th><th style={th}>Modelo</th><th style={th}>Gabinetes</th><th style={th}>Peso</th><th style={th}>{showElec ? "Carga" : "Peso por gabinete"}</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Dimensão</th><th style={th}>Grade</th><th style={th}>Resolução (px)</th><th style={th}>Modelo</th><th style={th}>Gabinetes</th><th style={th}>Peso</th><th style={th}>{showElec ? "Pico" : "Peso por gabinete"}</th></tr></thead>
               <tbody>
                 {telas.map((t) => { const r = screenRollup(t); const v = videoOf(t); return (
                   <tr key={t.id}><td style={td}>{t.nome}</td><td style={td}>{r.dim.largura_m.toFixed(1)}×{r.dim.altura_m.toFixed(1)} m</td><td style={td}>{t.cols}×{t.rows}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{v.pxW && v.pxH ? `${v.pxW.toLocaleString("pt-BR")} × ${v.pxH.toLocaleString("pt-BR")}` : "—"}</td><td style={td}>{t.gabinete?.nome}</td><td style={td}>{r.gab}</td><td style={td}>{fmtPeso(r.peso_kg)}</td>{showElec ? <td style={{ ...td, color: PRINT.red }}>{(r.pwrMax_w / 1000).toFixed(1)} kW</td> : <td style={td}>{(parseFloat(t.gabinete?.peso) || 0).toFixed(1)} kg</td>}</tr>
@@ -177,7 +177,7 @@ export default function ProjectRelatorio({ project }) {
             <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas na disposição da Composição (nome de cada uma no seu bloco); a caixa envolvente é o canvas de conteúdo do projeto.</p>
             <ReportTelasCanvas project={project} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Aspecto</th><th style={th}>Fração</th><th style={th}>Pitch</th><th style={th}>Grade</th><th style={th}>Pixel por gabinete</th></tr></thead>
+              <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Proporção</th><th style={th}>Fração</th><th style={th}>Pitch</th><th style={th}>Grade</th><th style={th}>Pixel por gabinete</th></tr></thead>
               <tbody>
                 {telas.map((t) => { const v = videoOf(t); return (
                   <tr key={t.id}><td style={td}>{t.nome}</td><td style={{ ...td, fontWeight: 600 }}>{v.pxW} × {v.pxH}</td><td style={{ ...td, color: PRINT.acc, fontWeight: 600 }}>{v.ar}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{String(v.dec).replace(".", ",")}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{v.pitch ? `${v.pitch.toFixed(2).replace(".", ",")} mm` : "—"}</td><td style={td}>{t.cols}×{t.rows}</td><td style={td}>{t.gabinete?.resX && t.gabinete?.resY ? `${t.gabinete.resX}×${t.gabinete.resY}` : "—"}</td></tr>
@@ -218,7 +218,7 @@ export default function ProjectRelatorio({ project }) {
               <div style={{ marginTop: 10 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: PRINT.ink, letterSpacing: 0.5, marginBottom: 4 }}>Balanço por fase</div>
                 <table style={{ borderCollapse: "collapse", minWidth: 320 }}>
-                  <thead><tr><th style={th}>Fase</th><th style={th}>Cabos</th><th style={th}>Pico A</th><th style={th}>Típico A</th></tr></thead>
+                  <thead><tr><th style={th}>Fase</th><th style={th}>Circuitos</th><th style={th}>Pico A</th><th style={th}>Típico A</th></tr></thead>
                   <tbody>
                     {balPico.fases.map((f, i) => (
                       <tr key={f.fase}><td style={{ ...td, fontFamily: "ui-monospace,monospace", fontWeight: 700 }}>{f.fase}</td><td style={td}>{f.cabos}</td><td style={{ ...td, color: PRINT.amb, fontWeight: 600 }}>{f.A.toFixed(1).replace(".", ",")}</td><td style={td}>{(balTip.fases[i]?.A ?? 0).toFixed(1).replace(".", ",")}</td></tr>
@@ -246,14 +246,14 @@ export default function ProjectRelatorio({ project }) {
                   <span>Frequência <b style={{ color: PRINT.ink }}>{sp.hz} Hz</b></span>
                   <span>Gabinete <b style={{ color: PRINT.ink }}>{sp.resX} × {sp.resY} px</b></span>
                   <span>Grade da Screen <b style={{ color: PRINT.ink }}>{sp.cols} × {sp.rows} gabinetes</b></span>
-                  <span>Total de cabos <b style={{ color: PRINT.ink }}>{s.ports.length}</b></span>
+                  <span>Total de portas <b style={{ color: PRINT.ink }}>{s.ports.length}</b></span>
                   {/* premissa declarada: documento datado registra que passar do nominal foi escolha */}
                   {sp.overclock && <span>Overclock <b style={{ color: PRINT.amb }}>ligado — porta pode passar da capacidade nominal</b></span>}
                 </div>
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}
                 <DenseTable data={s.ports} maxCols={4} columns={[
                   { key: "n", label: "Porta", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
-                  { key: "count", label: "Gabinetes", align: "right", render: (p) => p.count },
+                  { key: "count", label: "Gab.", align: "right", render: (p) => p.count },
                   { key: "pct", label: "Uso", align: "right", render: (p) => `${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : p.oc ? PRINT.amb : PRINT.ink }) },
                 ]} />
               </div>
@@ -269,7 +269,7 @@ export default function ProjectRelatorio({ project }) {
         {showSignal && !usaScreens && (() => { const sn = sec(); const S = String(sn).padStart(2, "0"); return (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Cabeamento de Sinal" tag="Portas de dados" color={DISC.video} Icon={Network} />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (processadores VX/série A/Colorlight) ou de <b>área retangular</b> (controlador básico), conforme a configuração da tela. O selo numerado indica o início de cada cabo.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Portas de dados por tela — régua de <b>pixels reais</b> (controladoras VX/série A/Colorlight) ou de <b>área retangular</b> (controladora básica), conforme a configuração da tela. O selo numerado indica o início de cada porta.</p>
             {telas.map((t, i) => {
               const { sinalBudget, sinalRule, sinalBits, pxPort } = cableMeta(t);
               const ports = cablePorts(t, "sinal", numbering);
@@ -285,7 +285,7 @@ export default function ProjectRelatorio({ project }) {
                   </div>
                   {type === "Mapa de cabos" && (
                     <>
-                      <div style={{ color: PRINT.mut, fontSize: 11, margin: "10px 0 4px" }}>Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) para transcrever no processador (NovaLCT / Tessera).</div>
+                      <div style={{ color: PRINT.mut, fontSize: 11, margin: "10px 0 4px" }}>Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) para transcrever no software da controladora (NovaLCT / Tessera).</div>
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead><tr>
                           <th style={th}>Porta</th><th style={th}>Gab.</th><th style={th}>Início (col, lin)</th><th style={th}>Início X, Y (px)</th><th style={th}>Área C×L</th>
@@ -314,18 +314,18 @@ export default function ProjectRelatorio({ project }) {
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
             <WarnBox title={AVISO_AC.titulo} tone="amber">{AVISO_AC.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por cabo × corrente do conector. Circuitos numerados 1..N por Screen{phaseOf(1, agg.vc) ? <>; a <b>fase</b> segue o rodízio (cabo 1→{phaseOf(1, agg.vc)}, 2→{phaseOf(2, agg.vc)}, 3→{phaseOf(3, agg.vc)}…), reiniciando a cada Screen</> : null}.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia <b>por Screen</b>, na mesma organização do sinal — carga por circuito × corrente do conector. Circuitos numerados 1..N por Screen{phaseOf(1, agg.vc) ? <>; a <b>fase</b> segue o rodízio (circuito 1→{phaseOf(1, agg.vc)}, 2→{phaseOf(2, agg.vc)}, 3→{phaseOf(3, agg.vc)}…), reiniciando a cada Screen</> : null}.</p>
             {screenReportAc.map((s, i) => {
               const bal = phaseBalance(s.ports, agg.vc);
               return (
               <div key={s.id} className="rp-block" style={telaBlock}>
-                <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.ports.length} ${s.ports.length === 1 ? "cabo" : "cabos"}`} />
+                <SubHead n={`${S}.${i + 1}`} title={s.nome} right={`${s.ports.length} ${s.ports.length === 1 ? "circuito" : "circuitos"}`} />
                 {bal.temRodizio && <div style={{ color: PRINT.mut, fontSize: 11, margin: "0 0 8px" }}>Carga por fase: <b style={{ color: PRINT.ink, fontFamily: "ui-monospace, monospace" }}>{fmtFases(bal)}</b> <span style={{ color: PRINT.dim }}>(soma aritmética — par conta nas duas fases)</span></div>}
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="ac" numbering={numbering} /></div>}
                 <DenseTable data={s.ports} maxCols={4} columns={[
                   { key: "n", label: "Cabo", render: (p) => <><span style={{ ...sw(p.n - 1), display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />{p.n}</> },
                   ...(bal.temRodizio ? [{ key: "fase", label: "Fase", render: (p) => <b style={{ fontFamily: "ui-monospace, monospace" }}>{phaseOf(p.n, agg.vc)}</b> }] : []),
-                  { key: "count", label: "Gabinetes", align: "right", render: (p) => p.count },
+                  { key: "count", label: "Gab.", align: "right", render: (p) => p.count },
                   { key: "load", label: "Carga", align: "right", render: (p) => `${p.load.toFixed(1)} A · ${p.pct}%`, tdStyle: (p) => ({ fontWeight: 600, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink, whiteSpace: "nowrap" }) },
                 ]} />
               </div>
@@ -337,18 +337,18 @@ export default function ProjectRelatorio({ project }) {
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sn} title="Cabeamento AC" tag="Circuitos de força" color={DISC.elec} Icon={Plug} />
             <WarnBox title={AVISO_AC.titulo} tone="amber">{AVISO_AC.partes.map((p, i) => (p.b ? <b key={i}>{p.t}</b> : <span key={i}>{p.t}</span>))}</WarnBox>
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por cabo.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>Cabos de energia por tela: quantidade, capacidade do conector e carga por circuito.</p>
             {telas.map((t, i) => {
               const { ampCab, connRating, acBudget } = cableMeta(t);
               const ports = cablePorts(t, "ac", numbering);
               const off = portOffset(telas, t.id, "ac", numbering); // circuitos 1..N do projeto
               return (
                 <div key={t.id} className="rp-block" style={telaBlock}>
-                  <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${portLabel(off, ports.length, "cabo")} · máx ${acBudget} gabinetes/cabo · ${ampCab.toFixed(2)} A/gabinete · conector ${connRating} A`} />
+                  <SubHead n={`${S}.${i + 1}`} title={t.nome} right={`${portLabel(off, ports.length, "circuito")} · máx ${acBudget} gabinetes/circuito · ${ampCab.toFixed(2)} A/gabinete · conector ${connRating} A`} />
                   <CableMap tela={t} mode="ac" numbering={numbering} offset={off} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {ports.map((p, i) => { const load = p.length * ampCab; const pct = Math.round((load / connRating) * 100); const tone = acTone(pct); const fase = phaseOf(off + i + 1, agg.vc); return (
-                      <span key={i} style={{ ...chip, borderColor: tone === "over" ? PRINT.red : tone === "warn" ? PRINT.amb : PRINT.line }}><span style={sw(off + i)} />Cabo {off + i + 1}{fase ? <> · fase <b style={{ fontFamily: "ui-monospace, monospace" }}>{fase}</b></> : null} · {load.toFixed(1)} A ({pct}%) · {p.length} gabinetes</span>
+                      <span key={i} style={{ ...chip, borderColor: tone === "over" ? PRINT.red : tone === "warn" ? PRINT.amb : PRINT.line }}><span style={sw(off + i)} />Circuito {off + i + 1}{fase ? <> · fase <b style={{ fontFamily: "ui-monospace, monospace" }}>{fase}</b></> : null} · {load.toFixed(1)} A ({pct}%) · {p.length} gabinetes</span>
                     ); })}
                   </div>
                 </div>

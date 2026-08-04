@@ -192,7 +192,7 @@ export default function Settings({ embedded = false }) {
           titulo="Ocultar valores em R$" desc="Esconde o total de cachês na tela inicial — também no ícone de olho do card." />
       </Section>
 
-      <Section icon={Receipt} title="Cachês (Diárias)" subtitle="Cálculo, fixo mensal, recibo e tipos" defaultOpen={open}>
+      <Section icon={Receipt} title="Cachês" subtitle="Cálculo, fixo mensal, recibo e tipos" defaultOpen={open}>
         <DiariasConfig />
       </Section>
       </>)}
