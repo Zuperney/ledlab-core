@@ -23,21 +23,19 @@ create policy lembretes_update on public.lembretes for update
   using (public.eh_gestor_do_evento(evento_id)) with check (public.eh_gestor_do_evento(evento_id));
 create policy lembretes_delete on public.lembretes for delete using (public.eh_gestor_do_evento(evento_id));
 
--- varredura: a cada 5 min o pg_cron cutuca a Edge Function (mesma anon key
--- pública do app; a função usa service role por dentro e não confia em input)
+-- varredura: a cada 5 min o pg_cron cutuca a Edge Function. SEM header de
+-- autorização: processar-lembretes é deployada com verify_jwt DESLIGADO —
+-- é um worker de fila que não confia em input nenhum (cutucar é inofensivo).
 create extension if not exists pg_cron;
 
 select cron.schedule(
   'ledlab-lembretes',
   '*/5 * * * *',
-  $$
+  $CRON$
   select net.http_post(
     url := 'https://hjcbwyhxmczmehdqfnkc.supabase.co/functions/v1/processar-lembretes',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqY2J3eWh4bWN6bWVoZHFmbmtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NTYyNDAsImV4cCI6MjA5OTEzMjI0MH0.QEVoClFsgQGbZSV4YQel6Klb4Wp2DZu4KKBDwn-x1cg'
-    ),
+    headers := jsonb_build_object('Content-Type', 'application/json'),
     body := '{}'::jsonb
   );
-  $$
+  $CRON$
 );

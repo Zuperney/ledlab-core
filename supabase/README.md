@@ -34,15 +34,19 @@ formato esperado.
    `supabase secrets set`): `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` — valores
    em `supabase/.env.local` (arquivo local, fora do git). `SUPABASE_URL`,
    `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` já vêm injetados.
-3. **Deploy das functions** (CLI): 
+3. **Deploy das functions** (CLI ou editor do dashboard):
 
    ```
    supabase functions deploy enviar-avisos
    supabase functions deploy convocar
-   supabase functions deploy processar-lembretes
+   supabase functions deploy processar-lembretes --no-verify-jwt
    ```
 
-   (Todas com verify_jwt padrão — o anon key do trigger/cron passa.)
+   `enviar-avisos` e `convocar` ficam com verify_jwt LIGADO (trigger e app
+   mandam a anon key). `processar-lembretes` fica com verify_jwt DESLIGADO —
+   o pg_cron chama sem token; a função é um worker sem input confiável.
+   Obs.: deploy feito pelo editor do dashboard usa uma versão auto-contida
+   (o _shared inlinado); o repo continua sendo a fonte canônica.
 4. **Conferir o cron**: `select * from cron.job;` deve listar
    `ledlab-lembretes` (a cada 5 min). Log de disparos: `cron.job_run_details`.
 5. **Teste de fumaça**: criar equipe no app → entrar com um 2º usuário →
