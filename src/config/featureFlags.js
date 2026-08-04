@@ -3,4 +3,5 @@
 
 export const FLAGS = {
   advancedCablingOnMobile: false, // edição avançada de cabeamento (modo livre) no celular
+  equipe: true, // módulo Equipe & avisos (agenda escalada) — desligar esconde a Section inteira
 };

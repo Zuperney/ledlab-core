@@ -367,6 +367,23 @@ termo solto no código.
   **Atividade** (o tipo) · **Lançamento** (o registro salvo) · **fixo** (nunca
   "flat") · grafias **check-in** / **checkout**. "Diária" não existe na UI.
 
+**Equipe e avisos** (aprovado pelo dono em 04/08/2026, junto com o plano do
+módulo)
+- **Equipe** — o grupo; **Gestor** (quem montou a equipe) × **Técnico**
+  (quem entrou). Papel é POR EQUIPE, não da conta.
+- **Escala / Escalar / Escalado** — quem trabalha o evento. Nunca "assign".
+- **Publicar na agenda da equipe / Publicação** — o ato de compartilhar um
+  evento com a equipe (sobe o mínimo: nome, cliente, local, datas, chamada).
+- **Aviso** — a mensagem que chega (in-app e no celular). A central é
+  **Avisos**. "Push"/"notification" NÃO existem na UI; didática: "avisos no
+  celular".
+- **Convocar equipe / Convocação** — o disparo manual do gestor. Toast:
+  "Equipe convocada".
+- **Lembrete** — o aviso automático por horário · **Chamada / horário de
+  chamada** — a hora de apresentação no evento.
+- **Código de convite** — o vínculo (formato `LED-XXXXXX`). Botões: "Entrar
+  na equipe" · "Sair da equipe" · "Montar equipe" (nunca "Criar").
+
 **Interface**
 - Título da página = rótulo do nav (no mobile ele é o único).
 - Três endereços (R3): **Ajustes** (como se vê) · **Avançado** (o que a Screen

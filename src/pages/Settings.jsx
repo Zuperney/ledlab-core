@@ -2,7 +2,7 @@
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
 import { useRef, useState, useEffect } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard, Cable, EyeOff } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard, Cable, EyeOff, Users } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { VERSION } from "../nav.js";
 import { useAuth } from "../store/AuthContext.jsx";
@@ -21,6 +21,8 @@ import { T } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
 import DiariasConfig from "./settings/DiariasConfig.jsx";
+import EquipeConfig from "./settings/EquipeConfig.jsx";
+import { FLAGS } from "../config/featureFlags.js";
 import { fileName } from "../services/filenames.js";
 
 const download = (name, obj) => {
@@ -236,6 +238,12 @@ export default function Settings({ embedded = false }) {
           <input value={prefs.assinatura || ""} onChange={(e) => setPrefs({ ...prefs, assinatura: e.target.value })} placeholder="Ex.: Ney · LedLab" style={selStyle} />
         </div>
       </Section>
+
+      {FLAGS.equipe && (
+        <Section icon={Users} title="Equipe & avisos" subtitle="Monte a equipe e escale os técnicos nos eventos" defaultOpen={false}>
+          <EquipeConfig />
+        </Section>
+      )}
 
       <Section icon={Database} title="Dados & backup" subtitle="Exportar / importar arquivos (.json)" defaultOpen={open}>
         <StorageStatus />
