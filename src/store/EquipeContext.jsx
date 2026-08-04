@@ -105,9 +105,20 @@ export function EquipeProvider({ children }) {
     try { await equipeApi.marcarAvisosLidos(ids); } catch { /* re-tenta no próximo refresh */ }
   }, [avisos]);
 
-  // ações: chamam o serviço e re-buscam (a lista local nunca é editada à mão)
-  const agir = useCallback(async (fn) => { const r = await fn(); await refresh(); return r; }, [refresh]);
-  const criarEquipe = useCallback((nome) => agir(() => equipeApi.criarEquipe(nome)), [agir]);
+  // ações: chamam o serviço e re-buscam (a lista local nunca é editada à mão).
+  // console.error com o erro CRU: o toast mostra a tradução amigável, mas o
+  // diagnóstico de campo precisa da mensagem real do Supabase.
+  const agir = useCallback(async (fn) => {
+    try {
+      const r = await fn();
+      await refresh();
+      return r;
+    } catch (err) {
+      console.error("[equipe]", err);
+      throw err;
+    }
+  }, [refresh]);
+  const criarEquipe = useCallback((nome) => agir(() => equipeApi.criarEquipe(nome, user?.id)), [agir, user]);
   const entrarNaEquipe = useCallback((codigo, nome) => agir(() => equipeApi.entrarNaEquipe(codigo, nome)), [agir]);
   const sairDaEquipe = useCallback((id) => agir(() => equipeApi.sairDaEquipe(id, user?.id)), [agir, user]);
   const removerMembro = useCallback((id, uid) => agir(() => equipeApi.removerMembro(id, uid)), [agir]);

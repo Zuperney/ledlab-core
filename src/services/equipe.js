@@ -41,9 +41,11 @@ export async function carregarVinculos(userId) {
 
 // Cria a equipe + código de convite. Colisão de código (unique) é rara
 // (31^6 combinações) — tenta de novo com outro código até 3×.
-export async function criarEquipe(nome) {
+// gestor_id vai explícito: a coluna é not-null e o RLS confere = auth.uid().
+export async function criarEquipe(nome, gestorId) {
   const client = await sb();
-  const { data, error } = await client.from("equipes").insert({ nome }).select("id, nome").single();
+  const { data, error } = await client.from("equipes")
+    .insert({ nome, gestor_id: gestorId }).select("id, nome").single();
   lanca(error);
   let ultimoErro = null;
   for (let i = 0; i < 3; i++) {
