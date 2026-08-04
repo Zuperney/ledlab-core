@@ -2,7 +2,7 @@
 // Padrão do sync.js: sem estado, sem React; quem orquestra é o EquipeContext.
 // Regras puras (código de convite, mensagens) moram em avisosCalc.js.
 import { getSupabase } from "../config/supabase.js";
-import { gerarCodigoConvite, normalizarCodigoConvite } from "./avisosCalc.js";
+import { gerarCodigoConvite, normalizarCodigoConvite, disparoDoLembrete } from "./avisosCalc.js";
 
 async function sb() {
   const client = await getSupabase();
@@ -101,7 +101,9 @@ export async function excluirEquipe(equipeId) {
 
 // Publica (ou atualiza) o Project na agenda da equipe e acerta a escala.
 // Sobe SÓ o mínimo — nada financeiro/técnico (LGPD/minimização).
-export async function publicarEvento(equipeId, project, escaladosIds) {
+// opts: { horaChamada: "HH:MM"|null, antecedenciaMin: number|null } —
+// null em antecedenciaMin = lembrete desligado.
+export async function publicarEvento(equipeId, project, escaladosIds, opts = {}) {
   const client = await sb();
   const { data: ev, error } = await client.from("eventos_publicados").upsert({
     equipe_id: equipeId,
@@ -111,11 +113,30 @@ export async function publicarEvento(equipeId, project, escaladosIds) {
     local: project.local || "",
     data_inicio: project.dataInicio,
     data_fim: project.dataFim || null,
+    hora_chamada: opts.horaChamada || null,
     obs: project.obs || "",
     cancelado: !!project.cancelled,
     atualizado_em: new Date().toISOString(),
   }, { onConflict: "equipe_id,project_id" }).select("id").single();
   lanca(error);
+
+  // lembrete: zera os pendentes e re-arma o escolhido (upsert cobre o caso de
+  // já existir um ENVIADO com a mesma antecedência — re-arma por cima)
+  const { error: eLem } = await client.from("lembretes").delete()
+    .eq("evento_id", ev.id).is("enviado_em", null);
+  lanca(eLem);
+  if (opts.antecedenciaMin != null) {
+    const disparo = disparoDoLembrete(project.dataInicio, opts.horaChamada, opts.antecedenciaMin);
+    if (disparo && Date.parse(disparo) > Date.now()) {
+      const { error: eLem2 } = await client.from("lembretes").upsert({
+        evento_id: ev.id,
+        antecedencia_min: opts.antecedenciaMin,
+        disparar_em: disparo,
+        enviado_em: null,
+      }, { onConflict: "evento_id,antecedencia_min" });
+      lanca(eLem2);
+    }
+  }
 
   // diff da escala: insere quem entrou, remove quem saiu (triggers avisam)
   const { data: atuais, error: e2 } = await client.from("escalas")
@@ -150,14 +171,24 @@ export async function removerPublicacao(equipeId, projectId) {
 // o que eu gerencio ou onde estou escalado; o filtro por equipe vem de fora.
 export async function carregarPublicacoes() {
   const client = await sb();
-  const [ev, esc] = await Promise.all([
+  const [ev, esc, lem] = await Promise.all([
     client.from("eventos_publicados").select("id, equipe_id, project_id, nome, data_inicio, data_fim, hora_chamada, cancelado, atualizado_em, cliente, local, obs"),
     client.from("escalas").select("evento_id, user_id, funcao"),
+    client.from("lembretes").select("evento_id, antecedencia_min, enviado_em"), // RLS: só o gestor recebe
   ]);
-  lanca(ev.error); lanca(esc.error);
+  lanca(ev.error); lanca(esc.error); lanca(lem.error);
   const escaladosPor = {};
   for (const r of esc.data || []) (escaladosPor[r.evento_id] ||= []).push(r.user_id);
-  return (ev.data || []).map((e) => ({ ...e, escalados: escaladosPor[e.id] || [] }));
+  const lembretePor = {};
+  for (const r of lem.data || []) {
+    // pendente ganha do enviado (é o que está configurado "pra frente")
+    if (!lembretePor[r.evento_id] || !r.enviado_em) lembretePor[r.evento_id] = r.antecedencia_min;
+  }
+  return (ev.data || []).map((e) => ({
+    ...e,
+    escalados: escaladosPor[e.id] || [],
+    lembreteAntecedencia: lembretePor[e.id] ?? null,
+  }));
 }
 
 // Convocação manual: a Edge Function valida o gestor, cria os avisos com

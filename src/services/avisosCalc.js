@@ -33,6 +33,44 @@ export function codigoConviteValido(texto) {
   return [...norm.slice(PREFIXO_CONVITE.length)].every((c) => ALFABETO_CONVITE.includes(c));
 }
 
+// ── lembrete por horário (fase 4) ──────────────────────────────────────────
+// Datas de Project são "YYYY-MM-DD" SEM fuso; o horário de chamada é local.
+// America/Sao_Paulo = UTC−3 FIXO (sem horário de verão desde 2019) — a conta
+// inteira vive em ms UTC pra virada de dia/mês/ano sair de graça.
+
+const TZ_OFFSET_MIN = 3 * 60; // São Paulo: UTC = local + 3h
+
+// Instante do disparo do lembrete, em ISO UTC (o que o Postgres grava).
+// Regra: com hora de chamada → `chamada − antecedência`; sem chamada (ou
+// antecedência 0 = "véspera") → VÉSPERA às 18h. Inválido → null.
+export function disparoDoLembrete(dataInicio, horaChamada, antecedenciaMin) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dataInicio || "");
+  if (!m) return null;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+
+  const temChamada = /^\d{2}:\d{2}/.test(horaChamada || "");
+  const ant = Number(antecedenciaMin) || 0;
+
+  let ms;
+  if (temChamada && ant > 0) {
+    const [hh, mm] = horaChamada.split(":").map(Number);
+    ms = Date.UTC(y, mo - 1, d, hh, mm + TZ_OFFSET_MIN) - ant * 60000;
+  } else {
+    ms = Date.UTC(y, mo - 1, d - 1, 18, TZ_OFFSET_MIN); // véspera, 18h local
+  }
+  return new Date(ms).toISOString();
+}
+
+// Opções do Select de antecedência (0 = véspera às 18h, a regra sem chamada)
+export const ANTECEDENCIAS = [
+  { v: 0, l: "Véspera às 18h" },
+  { v: 60, l: "1 h antes da chamada" },
+  { v: 120, l: "2 h antes da chamada" },
+  { v: 360, l: "6 h antes da chamada" },
+  { v: 720, l: "12 h antes da chamada" },
+  { v: 1440, l: "24 h antes da chamada" },
+];
+
 // Mensagens de erro do RPC entrar_na_equipe → texto de UI (toast "info").
 // O banco lança exceções com códigos estáveis; a tradução mora aqui pra ser
 // testável e pra UI não ter string solta.
