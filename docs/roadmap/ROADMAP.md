@@ -11,7 +11,7 @@ De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma 
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
 **Horizonte:** v1.20 (hoje) → **v2.0**. Quatro fases + backlog, ordenadas por dependência.
-**Estado:** Fase 01 ✅ concluída (v1.0.0) · **Fase 02 ✅ concluída** (v1.16.0) · **Fase 03 em andamento** — Reembolso, "Esta semana", Caderno em PDF, prancha de engenharia e **Escala de equipe** entregues; falta o **Orçamento** · **Fase 04 iniciada** — sync (v0.12) e **agenda compartilhada** (v1.19–v1.20) entregues; a próxima grande é o **Preview 3D**.
+**Estado:** Fase 01 ✅ concluída (v1.0.0) · **Fase 02 ✅ concluída** (v1.16.0) · **Fase 03 em andamento** — Reembolso, "Esta semana", Caderno em PDF, prancha de engenharia e **Escala de equipe** entregues; o **Orçamento saiu do escopo** (05/08) · **Fase 04 iniciada** — sync (v0.12) e **agenda compartilhada** (v1.19–v1.20) entregues; a próxima grande é o **Preview 3D**.
 
 ---
 
@@ -42,12 +42,13 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 - ✅ **Persistência** — *resolvido:* saiu do `localStorage` puro para IndexedDB + backup + **sync na nuvem** (v0.10–v0.12). Ver "Já entregue" abaixo.
 - ✅ **Testes** — *resolvido:* vitest nos motores puros — elétrico, cabeamento, projeto, crop, layout, cachês, distância de visão e avisos (**354 testes na v1.20.0**) + CI a cada push, com **lint bloqueante** desde a v1.0.0. *(A contagem foi auditada na v1.18: os números antigos de 555–890 somavam cópias de worktrees.)*
 - ✅ **Portas de sinal por "área"** — *resolvido (v1.1.0):* a régua de **pixels reais** (px/porta, 8/10-bit, escalando com refresh) virou o padrão; a régua de área continua como opção pra controlador básico.
-- ✅ **Distância de visão** — *resolvido (v1.16.0):* recomendador pitch × distância na aba Aspect Ratio. **Falta o orçamento** (Fase 03) pra fechar o negócio. *(O rigging entrou na v1.10 e SAIU na v1.15 — decisão do dono: estrutura é de quem é do ofício, volta com o 3D.)*
+- ✅ **Distância de visão** — *resolvido (v1.16.0):* recomendador pitch × distância na aba Aspect Ratio. *(O rigging entrou na v1.10 e SAIU na v1.15 — decisão do dono: estrutura é de quem é do ofício, volta com o 3D.)*
 - ✅ **Multiusuário** — *resolvido (v1.19–v1.20):* equipe, escala por evento, agenda do técnico e avisos (in-app + push). O que era o "boss final" da Fase 04 saiu pela rota recomendada: read-only primeiro, Supabase + RLS, login pronto, offline-first intacto.
 - **Preview do painel ainda é 2D** — a Composição (v0.20) monta várias telas num render; falta o 3D/previz da Fase 04. **É a próxima grande** (decisão do dono, 05/08/2026) — e é ela que destrava o retorno do rigging.
 - **Cachê e evento ainda são mundos separados** — a escala já sabe *quem* trabalha o evento, mas o lançamento de cachê não se amarra a ele (`eventoId` está na spec de cachês §7, nunca implementado). Sem isso não dá pra responder "quanto custou este evento".
 - ~~Desktop (Electron)~~ — **fora do escopo** (decisão de produto, jul/2026): o PWA atende o desktop; o empacotamento segue no repo, sem investimento.
 - ~~Página Equipamentos~~ — **em espera** (decisão do dono, v1.18.0): saiu do menu e da rota; código, catálogo certificado e testes seguem no repo, sem investimento até voltar a fazer sentido.
+- ~~Orçamento & proposta~~ — **fora do escopo** (decisão do dono, 05/08/2026): orçamento se faz fora do app. O app entra depois do "sim" — projeto, obra, equipe e o que se recebe por isso.
 
 ---
 
@@ -108,7 +109,7 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **Identidade pessoal + convite pronto** — "Seu nome" na conta (preenche o entrar-na-equipe), **Copiar convite** com link do app e passo a passo pro WhatsApp, push religando sozinho em aparelho já autorizado | **3** | **v1.20.0** |
 
 O **backend (Supabase + RLS) existe desde a v0.12** — e foi ele que destravou a **agenda escalada**, entregue na v1.19.
-Sobre ele mora agora uma **infra de avisos**: chave VAPID, `push_assinaturas`, Edge Functions (`enviar-avisos`, `convocar`, `processar-lembretes`) e `pg_cron` de 5 em 5 minutos. *Toda feature futura que precise **avisar alguém** (conflito de data, aprovação de proposta, lembrete de devolução) já tem o cano pronto.*
+Sobre ele mora agora uma **infra de avisos**: chave VAPID, `push_assinaturas`, Edge Functions (`enviar-avisos`, `convocar`, `processar-lembretes`) e `pg_cron` de 5 em 5 minutos. *Toda feature futura que precise **avisar alguém** (conflito de data, checklist de OS pendente, lembrete de devolução de equipamento) já tem o cano pronto.*
 
 ---
 
@@ -140,16 +141,16 @@ Sobre ele mora agora uma **infra de avisos**: chave VAPID, `push_assinaturas`, E
 | ✅ **Peso e estrutura** *(ex-"Peso e ancoragens" · v1.10.0, revisada 30/07)* | 🟣 | G | **Entregue e enxugada:** o app **REGISTRA**, não dimensiona — peso da parede + **cadeia de limites do fabricante** no **tipo de montagem escolhido** (voada × sentada, escolha na aba Relatório, com toggle de exibição no Caderno Completo) + campos com **procedência** no cadastro do gabinete + a **seção no Caderno e no PDF** + 2 artigos de KB na categoria Estrutura. Regra dura: **ausência de dado nunca vira "ok"** — sai *não informado*. **Removido em 30/07/2026:** dimensionamento de bumper, ancoragem, carga e talha (eram estimativa da casa; quem dimensiona é o rigger). *Fora de escopo por decisão: truss, vento, lastro e a palavra "aprovado".* | `docs/rigging-spec.md` |
 | ✅ **Catálogo de controladoras (ex-"Biblioteca de processadores")** *(v1.6.0 · **em espera** desde a v1.18)* | 🟣 | M | **Feito (1ª leva):** página **Equipamentos** (Gestão, desktop) com catálogo **certificado nos datasheets** (read-only — o usuário seleciona, não cadastra): séries **VX** (650.000 px/porta) e **MX/COEX** (659.722), com teto de carga do dispositivo (MX40 Pro = 9M px). "Verificar projeto": controladora por Screen → portas usadas × disponíveis, carga, resolução e a dica de Hz. **Em espera** *(decisão do dono, v1.18.0)*: a página saiu do menu e da rota — código, catálogo e testes seguem no repo. As próximas levas (modulares H9/MX2000-6000 Pro, Colorlight/Brompton, "Sending Card + Porta" no mapa de pixels) **saem do plano** até a página voltar. | datasheets NovaStar (acervo) |
 
-> **Fase 02 concluída** ✅ *(v1.16.0)* — portas reais, mapa de pixels, Screens/canvas do processador, catálogo de controladoras e o recomendador pitch × distância entregues; peso/estrutura foi entregue (v1.10) e depois **retirado por decisão de produto** (v1.15 — estrutura é do rigger; volta com o 3D). A engenharia que nenhum app de aluguel faz está fechada. *(Atualização de 05/08/2026: a Fase 03 avançou pelo lado das **pessoas** — a Escala de equipe entregou nas v1.19–v1.20 — e o próximo salto grande escolhido pelo dono é o **Preview 3D** da Fase 04; o **Orçamento** segue de pé na Fase 03, sem data.)*
+> **Fase 02 concluída** ✅ *(v1.16.0)* — portas reais, mapa de pixels, Screens/canvas do processador, catálogo de controladoras e o recomendador pitch × distância entregues; peso/estrutura foi entregue (v1.10) e depois **retirado por decisão de produto** (v1.15 — estrutura é do rigger; volta com o 3D). A engenharia que nenhum app de aluguel faz está fechada. *(Atualização de 05/08/2026: a Fase 03 avançou pelo lado das **pessoas** — a Escala de equipe entregou nas v1.19–v1.20 — enquanto o **Orçamento saiu do escopo**; o próximo salto grande escolhido pelo dono é o **Preview 3D** da Fase 04.)*
 
 ---
 
-## Fase 03 — Fluxo & negócio · `v1.9 → v1.20+` · **em andamento**
-**Do projeto ao pagamento, num app só.** *O cálculo já mora aqui — o orçamento e a logística também deveriam.*
+## Fase 03 — Fluxo & obra · `v1.9 → v1.20+` · **em andamento**
+**Do "sim" do cliente ao pagamento da equipe.** *O orçamento fica fora do app (decisão de 05/08/2026) — daqui pra frente é obra: quem vai, o que faz, quanto custou e o que ainda falta receber.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
-| **Orçamento & proposta (PDF)** | 🟣 | G | Proposta a partir do projeto: m²/gabinetes + mão de obra (puxa das diárias) + logística, com PDF de aceite/assinatura. *Hoje o técnico projeta aqui mas orça no WhatsApp/planilha à parte.* | propostas Flex/Rentman/Goodshuffle |
+| ~~**Orçamento & proposta (PDF)**~~ | 🟣 | G | **Fora do escopo** *(decisão do dono, 05/08/2026)*: o orçamento é feito **fora do app** e está resolvido assim. Era proposta a partir do projeto (m²/gabinetes + mão de obra + logística) com PDF de aceite. *O eixo comercial que fica é o de depois do "sim": Cachês → Recibos → Reembolso, e a ponte pra nota.* | propostas Flex/Rentman/Goodshuffle |
 | ✅ **Despesas & reembolso** *(v0.17–v0.18)* | 🟣 | M | **Feito:** aba própria — despesa (data/categoria/valor/descrição/cliente) com **foto do comprovante comprimida e local no IndexedDB** (não sobe pra nuvem, por decisão de custo) + relatório imprimível com comprovantes embutidos, PDF/Copiar/WhatsApp. **Falta (se pedir):** vínculo despesa↔evento e período custom (hoje é por mês). | demanda de campo |
 | ✅ **Recibo por cadência (semana/mês)** *(v1.9.0 · parcial)* | 🟣 | P | **Feito:** período **"Esta semana"** nos Recibos (semana seg→dom identificada e rotulada). **Falta (se pedir):** "semana passada" e a mesma estratégia no relatório de reembolso. *Tem freela que recebe semanalmente.* | demanda de campo |
 | **Disponibilidade & conflito** | 🟣 | M | A agenda cruza eventos e avisa quando o mesmo gabinete/tela está reservado em datas sobrepostas. *Dupla-reserva é o erro clássico — e o mais caro.* **Ficou mais barato:** a agenda já é compartilhada e o cano de **aviso no celular** já existe — o alerta chega sem o técnico abrir o app. | conflito Current RMS/Rentman |
@@ -171,7 +172,7 @@ Sobre ele mora agora uma **infra de avisos**: chave VAPID, `push_assinaturas`, E
 | **🎯 Preview do painel (2D → 3D)** — **a próxima grande** *(2D parcial: v0.20.0)* | 🟣 | G | Render do painel em escala real (gabinetes, conteúdo de exemplo, moldura do palco) em vista frontal e isométrica/3D. *A previsualização acelera a aprovação e reduz erro em obra.* **Parcial:** a **Composição** já monta várias telas num render 2D (arraste + snap + aviso de sobreposição + export PNG); falta a escala real com moldura e o 3D. **Escolhida como a próxima grande** *(dono, 05/08/2026)* — e é o gatilho combinado pro **retorno do rigging**, que saiu na v1.15 justamente esperando por ela. *Exportar o mapeamento como `.xml` de slices do Resolume ficou adiado.* | previz Vectorworks/disguise |
 | ✅ **Sync em nuvem opcional** *(v0.12.0)* | 🟣 | G | **Feito:** login por código (OTP, Supabase + RLS) + sync offline-first last-write-wins por fatia entre aparelhos. Opt-in, à prova de loop. | sync PWA (LWW) |
 | ✅ **Agenda compartilhada (ex-"agenda universal")** *(v1.19.0–v1.20.0)* | ⚪ | G | **Feito, com escopo deliberadamente estreito:** a agenda é compartilhada **dentro de uma equipe** — o gestor publica o evento e escala; o técnico vê **só onde foi escalado**, read-only, e é avisado (sino + push). Papéis por vínculo, RLS por linha, offline-first intacto. **Aposentado:** o "colega vê a agenda do colega" **fora** de uma equipe (repasse de trampo entre autônomos) — decisão do dono em 05/08/2026: a equipe já resolve a coordenação que importa. | demanda de campo |
-| **Compartilhar por link** | ⚪ | M | Projeto/proposta num link read-only, pro **cliente** ver sem instalar nada nem ter conta. *Único pedaço do "compartilhar" que segue de pé (dono, 05/08).* | — |
+| **Compartilhar por link** | ⚪ | M | **Projeto** num link read-only, pro **cliente** ver sem instalar nada nem ter conta. *Único pedaço do "compartilhar" que segue de pé (dono, 05/08). Note que é o projeto técnico — proposta comercial saiu do escopo no mesmo dia.* | — |
 | **Simulação de conteúdo** | ⚪ | M | Testar aspect/arte no painel e exportar imagem de apresentação. *Mostra na hora se a arte "cabe" no pitch e formato reais.* | — |
 | **Formas criativas** | ⚪ | G | Telas não-retangulares, curvas e recortes, além do grid regular. *Painel curvo e recorte viraram padrão em palco.* | — |
 
@@ -187,7 +188,7 @@ Sobre ele mora agora uma **infra de avisos**: chave VAPID, `push_assinaturas`, E
 - **Cálculo de gerador** — kVA, folga e combustível pra eventos sem rede elétrica.
 - **Companion de campo** — fotos da montagem e assinatura de entrega junto do check-in GPS.
 - **Acento configurável** — trocar a cor de destaque (3 tokens em `ui/tokens.js`). *Segue adiado, e agora com menos motivo ainda:* o **modo claro foi entregue** como **modo Sol** (v1.7.0), que era o único pedaço com ganho funcional real — legibilidade em campo. O resto é cosmético, e o diferencial é engenharia.
-- **Avisar além da escala** — o cano de push já existe (VAPID + Edge Functions + `pg_cron`); dá pra pendurar nele conflito de data, proposta aprovada, devolução de equipamento. *Só depois que cada uma dessas features existir — o aviso é o último passo, não o primeiro.*
+- **Avisar além da escala** — o cano de push já existe (VAPID + Edge Functions + `pg_cron`); dá pra pendurar nele conflito de data, item de OS em aberto, devolução de equipamento. *Só depois que cada uma dessas features existir — o aviso é o último passo, não o primeiro.*
 
 ---
 
@@ -212,4 +213,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-08-05 (v1.20.0 · **revisão de escopo com o dono**). O que mudou nesta revisão: a **Escala de equipe** (Fase 03) e a **agenda compartilhada** (Fase 04) saíram de "planejado" para **entregue** (v1.19–v1.20, com o "boss final" resolvido pela rota que o próprio roadmap recomendava); **Equipamentos** foi para **em espera** (oculta na v1.18, sem investimento) e suas próximas levas saíram do plano; o **colega-vê-colega fora de equipe** foi **aposentado** (sobra o link read-only pro cliente); entraram três itens novos na Fase 03 (**mão de obra**, **categoria de equipe**, **cachê ↔ evento**); o **modo claro** do backlog foi reconhecido como entregue (modo Sol, v1.7.0); e o **Preview 3D** foi eleito a próxima grande — o que também define quando o rigging volta._
+_Última atualização: 2026-08-05 (v1.20.0 · **revisão de escopo com o dono**). O que mudou nesta revisão: a **Escala de equipe** (Fase 03) e a **agenda compartilhada** (Fase 04) saíram de "planejado" para **entregue** (v1.19–v1.20, com o "boss final" resolvido pela rota que o próprio roadmap recomendava); o **Orçamento & proposta saiu do escopo** — orçamento se faz fora do app, e a Fase 03 virou "Fluxo & obra", começando depois do "sim" do cliente; **Equipamentos** foi para **em espera** (oculta na v1.18) e suas próximas levas saíram do plano; o **colega-vê-colega fora de equipe** foi **aposentado** (sobra o link read-only pro cliente); entraram três itens novos na Fase 03 (**mão de obra**, **categoria de equipe**, **cachê ↔ evento**); o **modo claro** do backlog foi reconhecido como entregue (modo Sol, v1.7.0); e o **Preview 3D** foi eleito a próxima grande — o que também define quando o rigging volta._
