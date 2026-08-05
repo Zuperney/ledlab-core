@@ -1,6 +1,7 @@
 # Roadmap — LedLab Core
 
-> **Versão visual (dossiê interativo):** [`roadmap.html`](./roadmap.html) — abra no navegador.
+> ⚠️ **Versão visual (dossiê interativo):** [`roadmap.html`](./roadmap.html) — **desatualizado desde a v1.12**.
+> Este arquivo (`.md`) é o plano de registro; o HTML só volta a valer quando for regerado.
 >
 > Este é um **plano de produto**, não código. Serve para decidir a ordem da próxima versão.
 > Fundamentado em pesquisa do setor (fabricantes, plataformas de locação, previz, offline-first)
@@ -9,8 +10,8 @@
 De ferramenta de **engenharia + faturamento** do técnico solo → **plataforma completa de projeto LED**,
 mantendo o app 100% offline-first e feito para a obra brasileira (R$, recibo, MEI, WhatsApp).
 
-**Horizonte:** v1.16 (hoje) → **v2.0**. São 25 iniciativas em 4 fases + backlog, ordenadas por dependência.
-**Estado:** Fase 01 ✅ concluída (v1.0.0) · **Fase 02 ✅ concluída** (5 de 5 — fechada pelo pitch × distância, v1.16.0) · Fase 03 iniciada (Reembolso, "Esta semana", Caderno em PDF nativo e a prancha de engenharia entregues).
+**Horizonte:** v1.20 (hoje) → **v2.0**. Quatro fases + backlog, ordenadas por dependência.
+**Estado:** Fase 01 ✅ concluída (v1.0.0) · **Fase 02 ✅ concluída** (v1.16.0) · **Fase 03 em andamento** — Reembolso, "Esta semana", Caderno em PDF, prancha de engenharia e **Escala de equipe** entregues; falta o **Orçamento** · **Fase 04 iniciada** — sync (v0.12) e **agenda compartilhada** (v1.19–v1.20) entregues; a próxima grande é o **Preview 3D**.
 
 ---
 
@@ -31,17 +32,22 @@ A coluna **Ref.** aponta a pesquisa que embasa a proposta.
 ### ✅ Forças — a base é sólida
 - **Motor de engenharia real** — consumo elétrico, circuitos e mapa de cabos por porta.
 - **Ferramentas raras juntas** — Test Card paramétrico, Aspect Ratio e Diagramação num só app.
-- **Módulo de Diárias/Cachês** — check-in por GPS, recibo e cópia pro WhatsApp; diferencial pro técnico BR, com motor testado (vitest).
-- **PWA offline + tema escuro** e um passe recente de densidade mobile.
-- **QA feito** — 5 lotes: fuso corrigido, backup seguro, código limpo, lint + testes.
+- **Módulo de Cachês** — check-in por GPS, recibo e cópia pro WhatsApp; diferencial pro técnico BR, com motor testado (vitest).
+- **Equipe & avisos** — o app deixou de ser de um técnico só: equipe por código de convite, escala por evento e **aviso no celular** (push real, com o app fechado).
+- **PWA offline + dois temas** (Palco e Sol) e um passe de densidade mobile.
+- **Uma palavra por conceito** — o vocabulário está cravado no manual (§12.1) e varrido no app inteiro (v1.18.0).
+- **QA feito** — 5 lotes: fuso corrigido, backup seguro, código limpo, lint + testes bloqueantes no CI.
 
 ### ⚠️ A resolver — antes de escalar
 - ✅ **Persistência** — *resolvido:* saiu do `localStorage` puro para IndexedDB + backup + **sync na nuvem** (v0.10–v0.12). Ver "Já entregue" abaixo.
-- ✅ **Testes** — *resolvido:* vitest no motor elétrico, cabeamento, projeto, crop, layout e cachês (**113 testes**) + CI a cada push, com **lint bloqueante** desde a v1.0.0.
+- ✅ **Testes** — *resolvido:* vitest nos motores puros — elétrico, cabeamento, projeto, crop, layout, cachês, distância de visão e avisos (**354 testes na v1.20.0**) + CI a cada push, com **lint bloqueante** desde a v1.0.0. *(A contagem foi auditada na v1.18: os números antigos de 555–890 somavam cópias de worktrees.)*
 - ✅ **Portas de sinal por "área"** — *resolvido (v1.1.0):* a régua de **pixels reais** (px/porta, 8/10-bit, escalando com refresh) virou o padrão; a régua de área continua como opção pra controlador básico.
 - ✅ **Distância de visão** — *resolvido (v1.16.0):* recomendador pitch × distância na aba Aspect Ratio. **Falta o orçamento** (Fase 03) pra fechar o negócio. *(O rigging entrou na v1.10 e SAIU na v1.15 — decisão do dono: estrutura é de quem é do ofício, volta com o 3D.)*
-- **Preview do painel ainda é 2D** — a Composição (v0.20) monta várias telas num render; falta o 3D/previz da Fase 04.
+- ✅ **Multiusuário** — *resolvido (v1.19–v1.20):* equipe, escala por evento, agenda do técnico e avisos (in-app + push). O que era o "boss final" da Fase 04 saiu pela rota recomendada: read-only primeiro, Supabase + RLS, login pronto, offline-first intacto.
+- **Preview do painel ainda é 2D** — a Composição (v0.20) monta várias telas num render; falta o 3D/previz da Fase 04. **É a próxima grande** (decisão do dono, 05/08/2026) — e é ela que destrava o retorno do rigging.
+- **Cachê e evento ainda são mundos separados** — a escala já sabe *quem* trabalha o evento, mas o lançamento de cachê não se amarra a ele (`eventoId` está na spec de cachês §7, nunca implementado). Sem isso não dá pra responder "quanto custou este evento".
 - ~~Desktop (Electron)~~ — **fora do escopo** (decisão de produto, jul/2026): o PWA atende o desktop; o empacotamento segue no repo, sem investimento.
+- ~~Página Equipamentos~~ — **em espera** (decisão do dono, v1.18.0): saiu do menu e da rota; código, catálogo certificado e testes seguem no repo, sem investimento até voltar a fazer sentido.
 
 ---
 
@@ -92,8 +98,17 @@ A **rota de durabilidade** saiu do papel — do "dado preso num navegador" ao "d
 | **🟣 Peso e ancoragens no Caderno** — seção nova (Caderno + PDF) com peso da parede, bumpers, ancoragens e a **cadeia** do que trava primeiro; limites do fabricante com procedência no cadastro do gabinete; checklist de campo; categoria **Estrutura** na Base de Conhecimento. Campo vazio sai **não informado**, nunca "ok". *(Em 30/07 o dimensionamento de bumper/ancoragem/talha foi removido — a seção virou "Peso e estrutura" com tipo de montagem escolhível.)* | **3** | **v1.10.0** |
 | **🟣 Overclock de porta + link único entre telas** — botão por Screen que arredonda gabinetes/porta **pra cima** (porta acima do nominal sai **laranja** com o % real; escolha registrada no Caderno) · a corrente completa uma tela antes de pular pra outra (máx. 1 cabo cruzando) e, na régua de Área, **bloco nunca atravessa vão** (nem cobra o vão no %) · **logo do projeto** cadastrável | **2** | **v1.11.0** |
 | **🟣 Prancha de engenharia no PDF** — moldura + **carimbo** em toda página (nos moldes da prancha clássica): logo do projeto, campos do evento, **Projetou** (assinatura na conta), **REV manual** e **FOLHA N/M** automática. Capa segue sendo a Folha Técnica da marca | **3** | **v1.12.0** |
+| **🟣 Auditoria elétrica + fases R/S/T** — fórmulas conferidas com fonte, balanço por fase (pico **e** típico), tensão visível no projeto | **2** | **v1.13.0** |
+| **🟣 Caderno v2** — mapa de cabos em modo montagem, telas na **disposição real** da Composição, folha "Critérios de Cálculo" (normas + fontes do motor), coluna Resolução/Fração, zero folha vazia | **3** | **v1.14.0** |
+| **🟣 Mapa de cabos estilo SmartLCT** — região pastel por cabo, serpentina azul na ordem elétrica, selo verde de entrada e ponto vermelho de fim; cena compartilhada PDF/DOM (`cableScene.js`). *No mesmo passe, o **rigging saiu do app** — volta com o 3D* | **2** | **v1.15.0** |
+| **🟣 Recomendador pitch × distância** — as 4 réguas (mínima, ótima, retina/VAD, máxima) com veredito da primeira fila e sugestão do próprio cadastro; motor `viewing.js` com fontes travadas em teste. **Fecha a Fase 02** | **2** | **v1.16.0** |
+| **🟣 A cena do pitch** — a régua abstrata virou cena de perfil: parede em escala, pessoa de 1,70 m arrastável, quadro "o que o olho vê" (LED separado × imagem lisa) + crop com **imagem real** no preview | **2** | **v1.17.0** |
+| **📖 O vocabulário cravado** — §12.1 do manual vira lei e o app é varrido: Porta=sinal · Circuito=AC · Cadeia=encadeamento · Controladora unificada · Relatório→**Caderno**; dezenas de miúdas de voz. *(Equipamentos ficou oculta; contagem de testes corrigida — 334 reais)* | 1 | **v1.18.0** |
+| **🟣 Equipe & avisos — o app deixou de ser de um só** — equipe por **código de convite**, escala por evento, agenda do técnico (read-only), central de avisos (sino) e **push no celular** com o app fechado: ao escalar/alterar, botão **Convocar** e **lembrete por horário de chamada**. Backend versionado (`supabase/`: 4 migrations + 3 Edge Functions + pg_cron). LGPD de fábrica: e-mail nunca exposto, sobe só o básico do evento | **3–4** | **v1.19.0** |
+| **Identidade pessoal + convite pronto** — "Seu nome" na conta (preenche o entrar-na-equipe), **Copiar convite** com link do app e passo a passo pro WhatsApp, push religando sozinho em aparelho já autorizado | **3** | **v1.20.0** |
 
-O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda escalada* no futuro (mesma infra).
+O **backend (Supabase + RLS) existe desde a v0.12** — e foi ele que destravou a **agenda escalada**, entregue na v1.19.
+Sobre ele mora agora uma **infra de avisos**: chave VAPID, `push_assinaturas`, Edge Functions (`enviar-avisos`, `convocar`, `processar-lembretes`) e `pg_cron` de 5 em 5 minutos. *Toda feature futura que precise **avisar alguém** (conflito de data, aprovação de proposta, lembrete de devolução) já tem o cano pronto.*
 
 ---
 
@@ -123,13 +138,13 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 | ✅ **Mapa de pixels exportável** *(v1.1.0)* | 🟣 | M | **Feito:** CSV com uma linha por gabinete (porta · ordem no cabo · coluna/linha · X/Y, origem sup-esq) + tabela de início por porta no relatório "Mapa de cabos". Modelo conferido **contra o NovaLCT real** (aba *Screen Connection*): bate 1:1 com o que o operador digita. **Gerar `.scr` binário foi descartado** — formato proprietário (`DSCI`+checksum), risco de desconfigurar parede em campo. | workflow Novastar/Brompton |
 | ✅ **Recomendador pitch × distância** *(v1.16.0)* | 🟣 | M | **Feito:** modo "Distância" na aba Aspect Ratio — as quatro réguas (mínima 1×, ótima 10×, retina ×3,438, máxima altura×30) com régua visual, veredito da primeira fila e **sugestão de gabinete do próprio cadastro**; motor puro (`services/viewing.js`) com fontes travadas em teste; pitch + distâncias no Caderno (seção Vídeo) e artigo completo na KB. | regra 10×, VAD 3438, altura×30 |
 | ✅ **Peso e estrutura** *(ex-"Peso e ancoragens" · v1.10.0, revisada 30/07)* | 🟣 | G | **Entregue e enxugada:** o app **REGISTRA**, não dimensiona — peso da parede + **cadeia de limites do fabricante** no **tipo de montagem escolhido** (voada × sentada, escolha na aba Relatório, com toggle de exibição no Caderno Completo) + campos com **procedência** no cadastro do gabinete + a **seção no Caderno e no PDF** + 2 artigos de KB na categoria Estrutura. Regra dura: **ausência de dado nunca vira "ok"** — sai *não informado*. **Removido em 30/07/2026:** dimensionamento de bumper, ancoragem, carga e talha (eram estimativa da casa; quem dimensiona é o rigger). *Fora de escopo por decisão: truss, vento, lastro e a palavra "aprovado".* | `docs/rigging-spec.md` |
-| ✅ **Catálogo de controladoras (ex-"Biblioteca de processadores")** *(v1.6.0)* | 🟣 | M | **Feito (1ª leva):** página **Equipamentos** (Gestão, desktop) com catálogo **certificado nos datasheets** (read-only — o usuário seleciona, não cadastra): séries **VX** (650.000 px/porta) e **MX/COEX** (659.722), com teto de carga do dispositivo (MX40 Pro = 9M px). "Verificar projeto": controladora por Screen → portas usadas × disponíveis, carga, resolução e a dica de Hz. **Próximas levas:** modulares (H9, MX2000/6000 Pro), Colorlight/Brompton, "Sending Card + Porta" no mapa de pixels. | datasheets NovaStar (acervo) |
+| ✅ **Catálogo de controladoras (ex-"Biblioteca de processadores")** *(v1.6.0 · **em espera** desde a v1.18)* | 🟣 | M | **Feito (1ª leva):** página **Equipamentos** (Gestão, desktop) com catálogo **certificado nos datasheets** (read-only — o usuário seleciona, não cadastra): séries **VX** (650.000 px/porta) e **MX/COEX** (659.722), com teto de carga do dispositivo (MX40 Pro = 9M px). "Verificar projeto": controladora por Screen → portas usadas × disponíveis, carga, resolução e a dica de Hz. **Em espera** *(decisão do dono, v1.18.0)*: a página saiu do menu e da rota — código, catálogo e testes seguem no repo. As próximas levas (modulares H9/MX2000-6000 Pro, Colorlight/Brompton, "Sending Card + Porta" no mapa de pixels) **saem do plano** até a página voltar. | datasheets NovaStar (acervo) |
 
-> **Fase 02 concluída** ✅ *(v1.16.0)* — portas reais, mapa de pixels, Screens/canvas do processador, catálogo de controladoras e o recomendador pitch × distância entregues; peso/estrutura foi entregue (v1.10) e depois **retirado por decisão de produto** (v1.15 — estrutura é do rigger; volta com o 3D). A engenharia que nenhum app de aluguel faz está fechada — o salto de valor agora é a **Fase 03** (orçamento & negócio).
+> **Fase 02 concluída** ✅ *(v1.16.0)* — portas reais, mapa de pixels, Screens/canvas do processador, catálogo de controladoras e o recomendador pitch × distância entregues; peso/estrutura foi entregue (v1.10) e depois **retirado por decisão de produto** (v1.15 — estrutura é do rigger; volta com o 3D). A engenharia que nenhum app de aluguel faz está fechada. *(Atualização de 05/08/2026: a Fase 03 avançou pelo lado das **pessoas** — a Escala de equipe entregou nas v1.19–v1.20 — e o próximo salto grande escolhido pelo dono é o **Preview 3D** da Fase 04; o **Orçamento** segue de pé na Fase 03, sem data.)*
 
 ---
 
-## Fase 03 — Fluxo & negócio · `v1.8`
+## Fase 03 — Fluxo & negócio · `v1.9 → v1.20+` · **em andamento**
 **Do projeto ao pagamento, num app só.** *O cálculo já mora aqui — o orçamento e a logística também deveriam.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
@@ -137,27 +152,30 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 | **Orçamento & proposta (PDF)** | 🟣 | G | Proposta a partir do projeto: m²/gabinetes + mão de obra (puxa das diárias) + logística, com PDF de aceite/assinatura. *Hoje o técnico projeta aqui mas orça no WhatsApp/planilha à parte.* | propostas Flex/Rentman/Goodshuffle |
 | ✅ **Despesas & reembolso** *(v0.17–v0.18)* | 🟣 | M | **Feito:** aba própria — despesa (data/categoria/valor/descrição/cliente) com **foto do comprovante comprimida e local no IndexedDB** (não sobe pra nuvem, por decisão de custo) + relatório imprimível com comprovantes embutidos, PDF/Copiar/WhatsApp. **Falta (se pedir):** vínculo despesa↔evento e período custom (hoje é por mês). | demanda de campo |
 | ✅ **Recibo por cadência (semana/mês)** *(v1.9.0 · parcial)* | 🟣 | P | **Feito:** período **"Esta semana"** nos Recibos (semana seg→dom identificada e rotulada). **Falta (se pedir):** "semana passada" e a mesma estratégia no relatório de reembolso. *Tem freela que recebe semanalmente.* | demanda de campo |
-| **Disponibilidade & conflito** | 🟣 | M | A agenda cruza eventos e avisa quando o mesmo gabinete/tela está reservado em datas sobrepostas. *Dupla-reserva é o erro clássico — e o mais caro.* | conflito Current RMS/Rentman |
-| **Escala de equipe** | 🟣 | M | Ligar as diárias a pessoas (função, custo, disponibilidade) e montar a equipe do evento. *O módulo de cachês já sabe quanto; falta saber quem.* | — |
-| **Kits & presets reutilizáveis** | ⚪ | P | Salvar telas-modelo e presets de tensão/cabeamento pra montar projeto novo em segundos. *A maioria dos eventos repete configurações.* | — |
+| **Disponibilidade & conflito** | 🟣 | M | A agenda cruza eventos e avisa quando o mesmo gabinete/tela está reservado em datas sobrepostas. *Dupla-reserva é o erro clássico — e o mais caro.* **Ficou mais barato:** a agenda já é compartilhada e o cano de **aviso no celular** já existe — o alerta chega sem o técnico abrir o app. | conflito Current RMS/Rentman |
+| ✅ **Escala de equipe** *(v1.19.0–v1.20.0)* | 🟣 | M | **Feito:** equipe por **código de convite** (papel por vínculo — quem cria é gestor DELA), escala por evento na aba **Equipe** do projeto, agenda do técnico **read-only** com os eventos em que foi escalado, central de avisos e **push**. **Falta:** *quem faz o quê* e *quanto custa* — ver as duas linhas abaixo. | — |
+| **Mão de obra (habilidades por técnico)** *(fase 7 do módulo)* | 🟣 | M | Catálogo de habilidades por equipe (Montagem, Cabeamento, Endereçamento, Processamento, Resolume, Operação, Elétrica — editável) e chips por membro, **definidos pelo gestor**; na escala do evento, filtro "quem faz Resolume". *Hoje as habilidades da equipe moram na cabeça do gestor.* | demanda do dono (05/08) |
+| **Categoria da equipe** *(fase 8 do módulo)* | ⚪ | P | Etiqueta livre por equipe (AAA, BCC, "casa", "freela novo") **visível só pro gestor**, em tabela própria — pra decidir qual equipe pega o evento complexo sem rotular ninguém publicamente. | demanda do dono (05/08) |
+| **Cachê vinculado ao evento** | 🟣 | M | Amarrar o lançamento de cachê ao evento escalado (`eventoId`, na spec §7 desde sempre): o check-in do técnico já nasce ligado ao evento e o app passa a responder **quanto custou cada evento, por pessoa**. *Fecha o par que a escala abriu: já sabemos quem; falta o quanto voltar amarrado.* | `docs/diarias-spec.md` §7 |
+| **Kits & predefinições reutilizáveis** | ⚪ | P | Salvar telas-modelo e predefinições de tensão/cabeamento pra montar projeto novo em segundos. *A maioria dos eventos repete configurações.* *(Nome alinhado ao §12.1 — "preset" é anglicismo banido.)* | — |
 | **Ordem de serviço & checklists** | ⚪ | M | Checklist de montagem/desmontagem e OS por evento. *Padroniza a obra e evita esquecer cabo/peça no galpão.* | — |
 | **Recibo → nota (BR)** | ⚪ | M | Ponte opcional recibo → NF-e (MEI) e faturamento por evento. *O recibo já existe; formalizar é o que o cliente corporativo pede.* | — |
 
 ---
 
-## Fase 04 — Visualização & nuvem · `v2.0`
+## Fase 04 — Visualização & nuvem · `v2.0` · **iniciada**
 **Veja antes de montar. Leve pra qualquer tela.** *O cliente aprova o que enxerga — e os dados deixam de viver num aparelho só.*
 
 | Iniciativa | Prio. | Esf. | O que entrega — e por quê | Ref. |
 |---|:---:|:---:|---|---|
-| **Preview do painel (2D → 3D)** *(2D parcial: v0.20.0)* | 🟣 | G | Render do painel em escala real (gabinetes, conteúdo de exemplo, moldura do palco) em vista frontal e isométrica/3D. *A previsualização acelera a aprovação e reduz erro em obra.* **Parcial:** a **Composição** já monta várias telas num render 2D (arraste + snap + aviso de sobreposição + export PNG); falta a escala real com moldura e o 3D. *Exportar o mapeamento como `.xml` de slices do Resolume ficou adiado.* | previz Vectorworks/disguise |
+| **🎯 Preview do painel (2D → 3D)** — **a próxima grande** *(2D parcial: v0.20.0)* | 🟣 | G | Render do painel em escala real (gabinetes, conteúdo de exemplo, moldura do palco) em vista frontal e isométrica/3D. *A previsualização acelera a aprovação e reduz erro em obra.* **Parcial:** a **Composição** já monta várias telas num render 2D (arraste + snap + aviso de sobreposição + export PNG); falta a escala real com moldura e o 3D. **Escolhida como a próxima grande** *(dono, 05/08/2026)* — e é o gatilho combinado pro **retorno do rigging**, que saiu na v1.15 justamente esperando por ela. *Exportar o mapeamento como `.xml` de slices do Resolume ficou adiado.* | previz Vectorworks/disguise |
 | ✅ **Sync em nuvem opcional** *(v0.12.0)* | 🟣 | G | **Feito:** login por código (OTP, Supabase + RLS) + sync offline-first last-write-wins por fatia entre aparelhos. Opt-in, à prova de loop. | sync PWA (LWW) |
-| **Agenda universal (compartilhada)** | ⚪ | G | Colega vê a agenda de eventos do outro — coordenar cobertura, repasse de trampo, evitar choque de data. Estende o Sync: é sync + compartilhamento + papéis de acesso. *A agenda local (só você vê) já existe hoje.* | demanda de campo |
-| **Compartilhar por link** | ⚪ | M | Projeto/proposta num link read-only, pro cliente ver sem instalar nada. | — |
+| ✅ **Agenda compartilhada (ex-"agenda universal")** *(v1.19.0–v1.20.0)* | ⚪ | G | **Feito, com escopo deliberadamente estreito:** a agenda é compartilhada **dentro de uma equipe** — o gestor publica o evento e escala; o técnico vê **só onde foi escalado**, read-only, e é avisado (sino + push). Papéis por vínculo, RLS por linha, offline-first intacto. **Aposentado:** o "colega vê a agenda do colega" **fora** de uma equipe (repasse de trampo entre autônomos) — decisão do dono em 05/08/2026: a equipe já resolve a coordenação que importa. | demanda de campo |
+| **Compartilhar por link** | ⚪ | M | Projeto/proposta num link read-only, pro **cliente** ver sem instalar nada nem ter conta. *Único pedaço do "compartilhar" que segue de pé (dono, 05/08).* | — |
 | **Simulação de conteúdo** | ⚪ | M | Testar aspect/arte no painel e exportar imagem de apresentação. *Mostra na hora se a arte "cabe" no pitch e formato reais.* | — |
 | **Formas criativas** | ⚪ | G | Telas não-retangulares, curvas e recortes, além do grid regular. *Painel curvo e recorte viraram padrão em palco.* | — |
 
-> **Sobre a agenda universal — é o "boss final", sequencie com cuidado.** Não é uma feature, é virar um serviço: servidor, login, uptime e **responsabilidade legal (LGPD)** por dado pessoal de terceiros. Caminho recomendado, só quando a nuvem já existir: **(1)** começar por *publicar a agenda em link read-only* — colegas **veem** sem precisar de conta (≈10% do trabalho, ~60% do valor); **(2)** se precisar de multi-usuário, usar **Supabase/Firebase** (auth + banco + regra de acesso por linha + free tier) — **nunca** escrever o próprio login; **(3)** manter offline-first: a nuvem é camada opcional por cima, não substituta.
+> **Sobre a agenda compartilhada — o "boss final" caiu, e foi pela rota prevista.** *(nota histórica, atualizada em 05/08/2026)* O plano dizia: **(1)** começar read-only; **(2)** usar Supabase, nunca escrever o próprio login; **(3)** manter offline-first, com a nuvem como camada opcional. Foi exatamente assim — o técnico recebe o evento em modo leitura, o login por OTP já existia desde a v0.12 e o app segue 100% funcional sem conta. A **responsabilidade LGPD** virou desenho, não aviso: e-mail nunca é exposto (circula o nome de exibição que a própria pessoa escolhe), o técnico só enxerga os eventos em que está escalado, a publicação sobe o mínimo do evento (nada financeiro ou técnico) e sair da equipe/revogar aparelho é sempre do próprio usuário. O checklist de deploy e o roteiro de teste de RLS moram em [`supabase/README.md`](../../supabase/README.md).
 
 ---
 
@@ -168,7 +186,8 @@ O **backend (Supabase + RLS) agora existe** — o que também destrava a *agenda
 - **Base de gabinetes da comunidade** — specs compartilhadas entre usuários (um catálogo que se preenche sozinho).
 - **Cálculo de gerador** — kVA, folga e combustível pra eventos sem rede elétrica.
 - **Companion de campo** — fotos da montagem e assinatura de entrega junto do check-in GPS.
-- **Sistema de cores / temas** — acento configurável e **modo claro**. *Avaliado em jul/2026 e adiado:* é cosmético e o diferencial é engenharia. O acento já é barato (3 tokens em `ui/tokens.js`); o modo claro é o degrau caro — só vale pelo ganho funcional de **legibilidade no sol**, se isso virar dor real em campo.
+- **Acento configurável** — trocar a cor de destaque (3 tokens em `ui/tokens.js`). *Segue adiado, e agora com menos motivo ainda:* o **modo claro foi entregue** como **modo Sol** (v1.7.0), que era o único pedaço com ganho funcional real — legibilidade em campo. O resto é cosmético, e o diferencial é engenharia.
+- **Avisar além da escala** — o cano de push já existe (VAPID + Edge Functions + `pg_cron`); dá pra pendurar nele conflito de data, proposta aprovada, devolução de equipamento. *Só depois que cada uma dessas features existir — o aviso é o último passo, não o primeiro.*
 
 ---
 
@@ -193,4 +212,4 @@ ferramentas de previz (Vectorworks, disguise) e arquitetura offline-first:
 - [Resolução de conflito em PWA offline-first](https://dev.to/crisiscoresystems/sync-conflict-handling-in-offline-first-pwas-how-to-merge-without-lying-to-the-user-59i3)
 - [Apps offline-first — Locize](https://www.locize.com/blog/offline-first-apps)
 
-_Última atualização: 2026-08-02 (v1.16.0 · **Fase 02 concluída** — pitch × distância fecha a profundidade de engenharia; no caminho, o mapa de cabos virou SmartLCT (v1.15) e o rigging saiu do app, reservado pro 3D)._
+_Última atualização: 2026-08-05 (v1.20.0 · **revisão de escopo com o dono**). O que mudou nesta revisão: a **Escala de equipe** (Fase 03) e a **agenda compartilhada** (Fase 04) saíram de "planejado" para **entregue** (v1.19–v1.20, com o "boss final" resolvido pela rota que o próprio roadmap recomendava); **Equipamentos** foi para **em espera** (oculta na v1.18, sem investimento) e suas próximas levas saíram do plano; o **colega-vê-colega fora de equipe** foi **aposentado** (sobra o link read-only pro cliente); entraram três itens novos na Fase 03 (**mão de obra**, **categoria de equipe**, **cachê ↔ evento**); o **modo claro** do backlog foi reconhecido como entregue (modo Sol, v1.7.0); e o **Preview 3D** foi eleito a próxima grande — o que também define quando o rigging volta._
