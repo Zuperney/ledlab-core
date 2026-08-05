@@ -16,6 +16,10 @@ function chaveComoBytes(b64url) {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
+// Opt-out explícito por aparelho: quem DESLIGOU não pode ser re-assinado
+// pelo automático (a permissão do navegador continua "granted").
+const OPT_OUT_KEY = "ledlab.avisosOptOut";
+
 const ehIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
 const ehInstalado = () =>
   window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
@@ -70,6 +74,22 @@ export async function ativarAvisos(userId) {
     user_agent: navigator.userAgent.slice(0, 200),
   }, { onConflict: "endpoint" });
   if (error) { try { await sub.unsubscribe(); } catch { /* melhor esforço */ } throw new Error(error.message); }
+  try { localStorage.removeItem(OPT_OUT_KEY); } catch { /* ok */ }
+}
+
+// "Vem ativo" até onde o navegador deixa: se a permissão JÁ está concedida
+// neste aparelho (usuário permitiu antes) e ele não desligou de propósito,
+// re-assina sozinho ao logar — sem prompt, que prompt exige gesto.
+export async function reassinarSeConcedido(userId) {
+  try {
+    if (!import.meta.env.PROD) return false;
+    if (suportePush() !== "ok") return false;
+    if (Notification.permission !== "granted") return false;
+    if (localStorage.getItem(OPT_OUT_KEY) === "1") return false;
+    if (await assinaturaAtiva()) return false; // já está de pé
+    await ativarAvisos(userId); // permissão granted → não abre prompt
+    return true;
+  } catch { return false; } // silencioso: é conveniência, não fluxo principal
 }
 
 // Aparelhos assinados da conta (pra revisar/revogar nas Configurações).
@@ -118,7 +138,9 @@ export function rotuloDoAparelho(userAgent = "") {
 }
 
 // Desliga neste aparelho: remove do Supabase e cancela a assinatura local.
+// Marca o opt-out — o auto-assinar (reassinarSeConcedido) passa a respeitar.
 export async function desativarAvisos() {
+  try { localStorage.setItem(OPT_OUT_KEY, "1"); } catch { /* ok */ }
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager?.getSubscription();
   if (!sub) return;

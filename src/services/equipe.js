@@ -14,6 +14,35 @@ function lanca(error) {
   if (error) throw new Error(error.message || String(error));
 }
 
+// ── perfil pessoal (fase 6) ────────────────────────────────────────────────
+// UM nome por conta (tabela profiles): pré-preenche o "entrar na equipe" e
+// alimenta o que os colegas veem. O apelido por equipe continua possível
+// (nome_exibicao é do vínculo).
+
+export async function carregarPerfil(userId) {
+  const client = await sb();
+  const { data, error } = await client.from("profiles")
+    .select("nome").eq("id", userId).maybeSingle();
+  lanca(error);
+  return data?.nome || "";
+}
+
+export async function salvarPerfil(userId, nome) {
+  const client = await sb();
+  const { error } = await client.from("profiles")
+    .upsert({ id: userId, nome: nome.trim() });
+  lanca(error);
+}
+
+// O próprio membro corrige como aparece pra equipe (policy própria no banco)
+export async function atualizarMeuNome(equipeId, userId, nome) {
+  const client = await sb();
+  const { error } = await client.from("equipe_membros")
+    .update({ nome_exibicao: nome.trim() })
+    .eq("equipe_id", equipeId).eq("user_id", userId);
+  lanca(error);
+}
+
 // Carrega todos os vínculos do usuário logado numa tacada:
 // equipes que gerencio (com código) e equipes em que sou membro, com a lista
 // de membros de cada uma. RLS decide o que cada select devolve.

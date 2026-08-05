@@ -7,6 +7,7 @@ import { useAuth } from "./AuthContext.jsx";
 import { CACHE_KEYS } from "../config/storageConfig.js";
 import { FLAGS } from "../config/featureFlags.js";
 import * as equipeApi from "../services/equipe.js";
+import { reassinarSeConcedido } from "../services/pushAssinatura.js";
 
 const EquipeContext = createContext(null);
 
@@ -25,8 +26,10 @@ export function EquipeProvider({ children }) {
   const [equipes, setEquipes] = useState(() => lerCache(CACHE_KEYS.equipe, [])); // [{ id, nome, souGestor, codigo, membros }]
   const [eventos, setEventos] = useState(() => lerCache(CACHE_KEYS.escala, []));  // eventos_publicados visíveis + escalados[]
   const [avisos, setAvisos] = useState(() => lerCache(CACHE_KEYS.avisos, []));
+  const [perfilNome, setPerfilNome] = useState(""); // profiles.nome (um por conta)
   const [status, setStatus] = useState("idle"); // idle | loading | ready | error
   const running = useRef(false);
+  const reassinou = useRef(false); // auto-assinatura de push: uma vez por sessão
 
   const refresh = useCallback(async () => {
     if (!FLAGS.equipe || !user || running.current) return;
@@ -34,15 +37,23 @@ export function EquipeProvider({ children }) {
     running.current = true;
     setStatus("loading");
     try {
-      const [vinculos, pubs, avs] = await Promise.all([
+      const [vinculos, pubs, avs, nome] = await Promise.all([
         equipeApi.carregarVinculos(user.id),
         equipeApi.carregarPublicacoes(),
         equipeApi.carregarAvisos(),
+        equipeApi.carregarPerfil(user.id),
       ]);
       setEquipes(vinculos); gravarCache(CACHE_KEYS.equipe, vinculos);
       setEventos(pubs); gravarCache(CACHE_KEYS.escala, pubs);
       setAvisos(avs); gravarCache(CACHE_KEYS.avisos, avs);
+      setPerfilNome(nome);
       setStatus("ready");
+      // "vem ativo": se a permissão de aviso já foi dada neste aparelho e o
+      // usuário não desligou de propósito, re-assina sozinho (sem prompt)
+      if (!reassinou.current && vinculos.length) {
+        reassinou.current = true;
+        reassinarSeConcedido(user.id);
+      }
     } catch {
       setStatus("error"); // cache continua valendo na tela
     } finally {
@@ -124,8 +135,15 @@ export function EquipeProvider({ children }) {
   const removerMembro = useCallback((id, uid) => agir(() => equipeApi.removerMembro(id, uid)), [agir]);
   const regerarCodigo = useCallback((id) => agir(() => equipeApi.regerarCodigo(id)), [agir]);
   const excluirEquipe = useCallback((id) => agir(() => equipeApi.excluirEquipe(id)), [agir]);
-  const publicarEvento = useCallback((equipeId, project, ids) => agir(() => equipeApi.publicarEvento(equipeId, project, ids)), [agir]);
+  // opts (horaChamada/antecedenciaMin) PRECISA seguir viagem — sem ele o
+  // lembrete da fase 4 morre calado no caminho
+  const publicarEvento = useCallback((equipeId, project, ids, opts) => agir(() => equipeApi.publicarEvento(equipeId, project, ids, opts)), [agir]);
   const removerPublicacao = useCallback((equipeId, projectId) => agir(() => equipeApi.removerPublicacao(equipeId, projectId)), [agir]);
+  const salvarPerfil = useCallback(async (nome) => {
+    await equipeApi.salvarPerfil(user?.id, nome);
+    setPerfilNome(nome.trim());
+  }, [user]);
+  const atualizarMeuNome = useCallback((equipeId, nome) => agir(() => equipeApi.atualizarMeuNome(equipeId, user?.id, nome)), [agir, user]);
 
   const value = {
     equipes, gerencio, participo, status, refresh,
@@ -133,6 +151,7 @@ export function EquipeProvider({ children }) {
     avisos, naoLidos, marcarTudoLido,
     criarEquipe, entrarNaEquipe, sairDaEquipe, removerMembro, regerarCodigo, excluirEquipe,
     publicarEvento, removerPublicacao,
+    perfilNome, salvarPerfil, atualizarMeuNome,
   };
   return <EquipeContext.Provider value={value}>{children}</EquipeContext.Provider>;
 }
@@ -142,5 +161,6 @@ export function useEquipe() {
     equipes: [], gerencio: [], participo: [], status: "idle", refresh: () => {},
     eventos: [], eventosEscalados: [], publicacaoDoProjeto: {},
     avisos: [], naoLidos: 0, marcarTudoLido: () => {},
+    perfilNome: "", salvarPerfil: () => {}, atualizarMeuNome: () => {},
   };
 }

@@ -7,6 +7,7 @@ import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppC
 import { VERSION } from "../nav.js";
 import { useAuth } from "../store/AuthContext.jsx";
 import { useSync } from "../store/SyncContext.jsx";
+import { useEquipe } from "../store/EquipeContext.jsx";
 import { genId, genNumericId } from "../services/ids.js";
 import { isPersisted, requestPersist, storageUsage } from "../services/storage.js";
 import { VOLT } from "../services/electricalCalc.js";
@@ -229,6 +230,7 @@ export default function Settings({ embedded = false }) {
 
       <Section icon={Cloud} title="Conta & sincronização" subtitle="Acesse seus dados de qualquer aparelho (opcional)" defaultOpen={false}>
         <AccountSection />
+        <SeuNome />
         {/* assinatura do Caderno mora na CONTA (pedido do dono): um nome só,
             que não muda de impressão pra impressão — sincroniza junto com as
             prefs quando conectado; vira o nome do perfil quando houver perfil */}
@@ -410,6 +412,33 @@ function AccountSection() {
           <button style={btn("primary")} onClick={enviar} disabled={busy}>{busy ? "Enviando…" : "Enviar código"}</button>
         </div>
       )}
+    </div>
+  );
+}
+
+// nome pessoal da CONTA (profiles.nome): um só, vale em todas as equipes —
+// pré-preenche o "entrar na equipe" e é o que os colegas veem por padrão
+function SeuNome() {
+  const { user } = useAuth();
+  const { perfilNome, salvarPerfil } = useEquipe();
+  const toast = useToast();
+  const [nome, setNome] = useState(perfilNome);
+  // re-sincroniza quando o perfil chega do servidor (ajuste durante o render)
+  const [prev, setPrev] = useState(perfilNome);
+  if (prev !== perfilNome) { setPrev(perfilNome); setNome(perfilNome); }
+  if (!user) return null;
+
+  const salvar = async () => {
+    const n = nome.trim();
+    if (n === perfilNome) return;
+    try { await salvarPerfil(n); toast("Nome salvo"); }
+    catch { toast("Falha ao salvar o nome — tente de novo", "info"); }
+  };
+  return (
+    <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.bd}` }}>
+      <div style={subLabel}>Seu nome</div>
+      <div style={subDesc}>Como você aparece pras equipes (dá pra ajustar por equipe em Equipe &amp; avisos).</div>
+      <input value={nome} onChange={(e) => setNome(e.target.value)} onBlur={salvar} placeholder="Ex.: Ney." style={selStyle} />
     </div>
   );
 }

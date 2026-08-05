@@ -33,6 +33,22 @@ export function codigoConviteValido(texto) {
   return [...norm.slice(PREFIXO_CONVITE.length)].every((c) => ALFABETO_CONVITE.includes(c));
 }
 
+// ── convite pronto pra WhatsApp (fase 6) ───────────────────────────────────
+// O botão Copiar leva a mensagem completa: link do app + passo a passo +
+// código. O técnico não deve precisar perguntar "e agora?".
+
+export const APP_URL = "https://zuperney.github.io/ledlab-core/";
+
+export function mensagemConvite(equipeNome, codigo, url = APP_URL) {
+  return [
+    `Você foi convidado pra equipe *${equipeNome}* no LedLab.`,
+    "",
+    `1. Abra ${url} no celular e adicione à tela de início;`,
+    "2. Conecte seu e-mail (Configurações → Conta & sincronização);",
+    `3. Em *Equipe & avisos*, entre com o código: *${codigo}*`,
+  ].join("\n");
+}
+
 // ── lembrete por horário (fase 4) ──────────────────────────────────────────
 // Datas de Project são "YYYY-MM-DD" SEM fuso; o horário de chamada é local.
 // America/Sao_Paulo = UTC−3 FIXO (sem horário de verão desde 2019) — a conta

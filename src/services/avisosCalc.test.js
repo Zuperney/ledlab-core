@@ -8,6 +8,8 @@ import {
   codigoConviteValido,
   mensagemErroEquipe,
   disparoDoLembrete,
+  mensagemConvite,
+  APP_URL,
 } from "./avisosCalc.js";
 
 describe("gerarCodigoConvite", () => {
@@ -79,6 +81,19 @@ describe("disparoDoLembrete", () => {
     expect(disparoDoLembrete(null, "07:00", 60)).toBe(null);
     expect(disparoDoLembrete("15/08/2026", "07:00", 60)).toBe(null);
     expect(disparoDoLembrete("", null, 0)).toBe(null);
+  });
+});
+
+describe("mensagemConvite", () => {
+  it("leva equipe, link do app e código — o convidado não precisa perguntar nada", () => {
+    const msg = mensagemConvite("Mega Led", "LED-AB2CD3");
+    expect(msg).toContain("Mega Led");
+    expect(msg).toContain("LED-AB2CD3");
+    expect(msg).toContain(APP_URL);
+    expect(msg).toContain("tela de início");
+  });
+  it("aceita URL própria (ambiente de teste)", () => {
+    expect(mensagemConvite("X", "LED-AAAAAA", "http://localhost:5173/")).toContain("http://localhost:5173/");
   });
 });
 

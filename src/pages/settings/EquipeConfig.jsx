@@ -7,7 +7,8 @@ import { Copy, RotateCcw, Trash2, Users, LogOut, UserMinus, BellRing } from "luc
 import { useAuth } from "../../store/AuthContext.jsx";
 import { useEquipe } from "../../store/EquipeContext.jsx";
 import { useConfirm, useToast } from "../../store/UIContext.jsx";
-import { codigoConviteValido, mensagemErroEquipe } from "../../services/avisosCalc.js";
+import { codigoConviteValido, mensagemErroEquipe, mensagemConvite } from "../../services/avisosCalc.js";
+import { usePrompt } from "../../store/UIContext.jsx";
 import { suportePush, assinaturaAtiva, ativarAvisos, desativarAvisos, listarAparelhos, revogarAparelho, rotuloDoAparelho } from "../../services/pushAssinatura.js";
 import { PrefToggle } from "../../components/CablingPrefs.jsx";
 import { T } from "../../ui/tokens.js";
@@ -51,7 +52,7 @@ function AvisosCelular() {
   useEffect(recarregar, []);
 
   const alternar = async () => {
-    setBusy(true);
+    setBusy(true); // o toggle mostra "Ativando…"/"Desligando…" na hora
     try {
       if (ativo) { await desativarAvisos(); toast("Avisos desligados neste aparelho"); }
       else { await ativarAvisos(user.id); toast("Avisos ligados neste aparelho"); }
@@ -84,7 +85,8 @@ function AvisosCelular() {
           <div style={desc}>Este navegador não tem suporte a avisos. No celular, instale o app na tela de início.</div>
         ) : (
           <PrefToggle on={ativo} onClick={busy ? undefined : alternar}
-            titulo="Avisar neste aparelho" desc="A permissão é do navegador — dá pra desligar quando quiser." />
+            titulo={busy ? (ativo ? "Desligando…" : "Ativando…") : "Avisar neste aparelho"}
+            desc={busy ? "Falando com o navegador e o servidor." : "A permissão é do navegador — dá pra desligar quando quiser."} />
         )}
       </div>
 
@@ -115,7 +117,15 @@ function EquipeGerencio({ equipe }) {
   const confirm = useConfirm();
   const toast = useToast();
 
-  const copiar = async () => {
+  // copia a MENSAGEM completa (link do app + passos + código) pronta pro
+  // WhatsApp; quem quiser só o código tem o botão menor ao lado
+  const copiarConvite = async () => {
+    try {
+      await navigator.clipboard.writeText(mensagemConvite(equipe.nome, equipe.codigo));
+      toast("Convite copiado — é só colar no WhatsApp");
+    } catch { toast("Não deu pra copiar — anote o código", "info"); }
+  };
+  const copiarSoCodigo = async () => {
     try {
       await navigator.clipboard.writeText(equipe.codigo);
       toast("Código copiado");
@@ -150,10 +160,13 @@ function EquipeGerencio({ equipe }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
         <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, letterSpacing: "0.08em", color: T.txt, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 12px" }}>{equipe.codigo || "······"}</span>
-        <button style={btn("ghost")} onClick={copiar}><Copy size={14} /> Copiar</button>
+        <button style={btn("ghost")} onClick={copiarConvite}><Copy size={14} /> Copiar convite</button>
         <button style={btn("ghost")} onClick={regerar}><RotateCcw size={14} /> Novo código</button>
       </div>
-      <div style={desc}>Mande o código pro técnico (WhatsApp serve). Ele conecta o e-mail dele no app e entra por aqui.</div>
+      <div style={desc}>
+        O convite já vai com o link do app e o passo a passo — é colar no WhatsApp.{" "}
+        <button onClick={copiarSoCodigo} style={{ background: "none", border: "none", color: T.mut, fontSize: 12, cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>Copiar só o código</button>
+      </div>
 
       {equipe.membros.length > 0 && (
         <div style={{ marginTop: 8 }}>
@@ -178,14 +191,21 @@ function EquipeGerencio({ equipe }) {
 // ── técnico: equipe em que eu participo ──
 function EquipeParticipo({ equipe }) {
   const { user } = useAuth();
-  const { sairDaEquipe } = useEquipe();
+  const { sairDaEquipe, atualizarMeuNome } = useEquipe();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const toast = useToast();
   const eu = equipe.membros.find((m) => m.user_id === user?.id);
 
   const sair = async () => {
     if (!(await confirm({ title: "Sair da equipe?", message: `Você sai de "${equipe.nome}" e deixa de ver os eventos em que foi escalado. O gestor pode te convidar de novo.`, confirmLabel: "Sair" }))) return;
     try { await sairDaEquipe(equipe.id); toast("Você saiu da equipe"); }
+    catch (err) { toast(mensagemErroEquipe(err), "info"); }
+  };
+  const renomear = async () => {
+    const nome = await prompt({ title: "Seu nome nesta equipe", message: "É como o gestor e os colegas te veem.", defaultValue: eu?.nome_exibicao || "", placeholder: "Ex.: Ney." });
+    if (!nome?.trim()) return;
+    try { await atualizarMeuNome(equipe.id, nome); toast("Nome atualizado"); }
     catch (err) { toast(mensagemErroEquipe(err), "info"); }
   };
 
@@ -195,7 +215,11 @@ function EquipeParticipo({ equipe }) {
         <Users size={16} style={{ color: T.acM, flexShrink: 0 }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={titulo}>{equipe.nome}</div>
-          <div style={desc}>Você participa como <b>{eu?.nome_exibicao || "—"}</b> · {equipe.membros.length} membro{equipe.membros.length === 1 ? "" : "s"}</div>
+          <div style={desc}>
+            Você participa como <b>{eu?.nome_exibicao || "—"}</b>{" "}
+            <button onClick={renomear} style={{ background: "none", border: "none", color: T.mut, fontSize: 12, cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>alterar</button>
+            {" "}· {equipe.membros.length} membro{equipe.membros.length === 1 ? "" : "s"}
+          </div>
         </div>
         <button style={btn("ghost")} onClick={sair}><LogOut size={14} /> Sair da equipe</button>
       </div>
@@ -235,11 +259,17 @@ function NovaEquipe() {
 
 // ── entrar numa equipe (técnico) ──
 function EntrarComCodigo({ temAlgo }) {
-  const { entrarNaEquipe } = useEquipe();
+  const { entrarNaEquipe, perfilNome } = useEquipe();
   const toast = useToast();
   const [codigo, setCodigo] = useState("");
   const [nome, setNome] = useState("");
   const [busy, setBusy] = useState(false);
+  // pré-preenche com o nome do perfil (o "Seu nome" da Conta) — ainda editável
+  const [prevPerfil, setPrevPerfil] = useState(perfilNome);
+  if (prevPerfil !== perfilNome) {
+    setPrevPerfil(perfilNome);
+    if (!nome) setNome(perfilNome);
+  }
 
   const entrar = async () => {
     if (!codigoConviteValido(codigo)) { toast("Código incompleto — confira com quem te convidou", "info"); return; }
