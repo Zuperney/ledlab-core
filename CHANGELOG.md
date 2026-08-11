@@ -2,6 +2,33 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.20.0] — 2026-08-05
+
+**Identidade pessoal, convite que se explica sozinho e aviso que religa.**
+
+Refino do módulo Equipe a partir do primeiro uso real em campo:
+
+- **Seu nome na conta** (Conta & sincronização): um nome só, guardado no perfil, que **pré-preenche** o campo ao entrar numa equipe. Em cada equipe ainda dá pra ajustar como você aparece (link "alterar"). Resolve a confusão de digitar o nome de novo a cada vínculo — e usa a tabela `profiles`, que existia desde a v1.19 esperando por isso.
+- **Convite pronto pro WhatsApp**: o botão Copiar agora leva a mensagem completa — link do app, os três passos e o código em negrito. Quem recebe não precisa perguntar "e agora?". O "copiar só o código" continua ali, menor.
+- **Avisos religam sozinhos**: aparelho que já concedeu permissão volta a assinar ao logar, sem prompt (o navegador não deixa ir além disso — permissão exige gesto). Quem desligou de propósito continua desligado.
+- **Fim do botão mudo**: o toggle "Avisar neste aparelho" mostra "Ativando…" enquanto fala com navegador e servidor, em vez de parecer travado.
+- **Correção**: a hora de chamada e o lembrete automático da v1.19 **nunca chegavam ao servidor** — o contexto descartava os parâmetros no caminho. O lembrete por horário só passou a funcionar de verdade agora.
+
+## [1.19.0] — 2026-08-05
+
+**Equipe & avisos: a agenda escalada, do convite ao push no celular.**
+
+O maior módulo desde os Screens, e o "boss final" que o roadmap reservava pra v2 — resolvido pela rota que ele mesmo recomendava: começar read-only, sem escrever login próprio. Seis fases numa versão:
+
+- **Equipe por código de convite** (`LED-XXXXXX`): o gestor monta a equipe e manda o código; o técnico conecta o e-mail dele e entra escolhendo como quer ser chamado. **Papel é por vínculo** — quem cria a equipe é gestor DELA, e a mesma pessoa pode ser técnica na equipe de outro.
+- **Escala no evento**: aba **Equipe** no projeto (só pra quem gerencia equipe) — marque quem trabalha e **publique na agenda da equipe**. Sobe só o básico do evento (nome, cliente, local, datas, chamada, observação); valores e projeto técnico **não saem** do seu aparelho.
+- **A agenda do técnico**: quem foi escalado vê o evento na própria Agenda com selo "Escalado" (somente leitura, nas três visualizações) e um detalhe leve ao tocar.
+- **Central de avisos**: sino no topo com contagem de não lidos, abrindo o histórico. Aviso que chega sozinho **não** vira toast — o manual proíbe, e a central é a resposta.
+- **Avisos no celular** (Web Push): escalação e alteração de evento avisam automaticamente; **Convocar equipe** dispara na hora; e o **lembrete** por horário de chamada roda de 5 em 5 minutos no servidor. Com o app instalado na tela de início, o aviso chega **com o app fechado** — validado no Android e no Chrome do desktop.
+- **LGPD de fábrica**: o e-mail de ninguém aparece pra ninguém (circula o nome escolhido pelo próprio técnico); o técnico só enxerga eventos em que está escalado; sair da equipe e revogar aparelho são sempre possíveis; excluir a conta apaga tudo em cascata.
+
+**Por baixo**: o backend saiu do dashboard e virou código versionado em `supabase/` — migrations numeradas com RLS em toda tabela, avisos nascendo em trigger com dedupe por chave única, e uma fila de push drenada por Edge Function com reivindicação atômica. O `iniciar.bat` também aprendeu a servir pra rede local (`--host`), pra testar no celular.
+
 ## [1.18.0] — 2026-08-04
 
 **O vocabulário cravado — uma palavra por conceito, no app inteiro.**
