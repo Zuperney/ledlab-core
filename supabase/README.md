@@ -26,7 +26,8 @@ formato esperado.
 ## Checklist de deploy do módulo Equipe & avisos (uma vez)
 
 1. **Migrations** no SQL Editor, em ordem: `01_equipes.sql` →
-   `02_eventos_avisos.sql` → `03_push.sql` → `04_lembretes.sql`.
+   `02_eventos_avisos.sql` → `03_push.sql` → `04_lembretes.sql` →
+   `05_mao_de_obra.sql`.
    (03 exige a extensão `pg_net`; 04 exige `pg_cron` — os `create extension`
    estão nos arquivos, mas o projeto precisa tê-las habilitadas em
    Database → Extensions se o create falhar.)
@@ -80,3 +81,7 @@ navegadores/perfis:
 | B `delete` do próprio vínculo | sai da equipe |
 | A `delete` de um membro | remove |
 | A apaga a equipe | cascade limpa convite + membros |
+| Equipe nova (após a 05) | nasce com 7 habilidades no catálogo (trigger) |
+| B tenta marcar habilidade em si mesmo | 0 linhas (só o gestor define) |
+| B chama `definir_funcao(...)` | erro `so_gestor` |
+| A remove um membro | as habilidades dele somem junto (FK composta) |

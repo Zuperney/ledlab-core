@@ -87,6 +87,31 @@ export const ANTECEDENCIAS = [
   { v: 1440, l: "24 h antes da chamada" },
 ];
 
+// ── mão de obra (fase 7) ───────────────────────────────────────────────────
+
+// Nome de habilidade como entra no catálogo: sem espaço sobrando, primeira
+// letra maiúscula, e nunca vazio. Duplicata é barrada pelo unique do banco,
+// mas comparar aqui evita a ida perdida ao servidor.
+export function normalizarHabilidade(texto) {
+  const limpo = String(texto ?? "").trim().replace(/\s+/g, " ");
+  if (!limpo) return "";
+  return limpo[0].toUpperCase() + limpo.slice(1);
+}
+
+export function habilidadeJaExiste(nome, catalogo) {
+  const alvo = normalizarHabilidade(nome).toLowerCase();
+  return (catalogo || []).some((h) => h.nome.toLowerCase() === alvo);
+}
+
+// Filtra membros por habilidade exigida. `exigidas` vazio = ninguém é
+// filtrado (o gestor ainda não escolheu nada). Com N exigidas, o membro
+// precisa ter TODAS — quem monta escala procura quem resolve o pacote.
+export function filtrarPorHabilidades(membros, exigidas) {
+  if (!exigidas?.length) return membros || [];
+  return (membros || []).filter((m) =>
+    exigidas.every((id) => (m.habilidades || []).includes(id)));
+}
+
 // Mensagens de erro do RPC entrar_na_equipe → texto de UI (toast "info").
 // O banco lança exceções com códigos estáveis; a tradução mora aqui pra ser
 // testável e pra UI não ter string solta.
@@ -95,5 +120,7 @@ export function mensagemErroEquipe(err) {
   if (raw.includes("codigo_invalido")) return "Código não encontrado — confira com quem te convidou.";
   if (raw.includes("nome_obrigatorio")) return "Digite seu nome antes de entrar.";
   if (raw.includes("sem_sessao")) return "Conecte-se primeiro (Conta & sincronização).";
+  if (raw.includes("so_gestor")) return "Só o gestor da equipe pode fazer isso.";
+  if (raw.includes("duplicate") || raw.includes("23505")) return "Essa habilidade já existe no catálogo.";
   return "Falha ao falar com o servidor — tente de novo.";
 }

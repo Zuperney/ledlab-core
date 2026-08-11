@@ -383,6 +383,13 @@ módulo)
   chamada** — a hora de apresentação no evento.
 - **Código de convite** — o vínculo (formato `LED-XXXXXX`). Botões: "Entrar
   na equipe" · "Sair da equipe" · "Montar equipe" (nunca "Criar").
+- **Mão de obra** — o cadastro do que cada técnico faz; **Habilidade** é
+  cada item (Montagem, Resolume, Endereçamento…), e o conjunto delas é o
+  **catálogo** da equipe. Nunca "skill", "competência" ou "tag". Na escala,
+  o filtro pergunta **"Precisa de:"**.
+- **Função** — o posto do membro na equipe ("Técnico de LED", "Operador"),
+  texto livre. Não confundir com **Habilidade**: função é o cargo, a
+  habilidade é o que ele sabe fazer.
 
 **Interface**
 - Título da página = rótulo do nav (no mobile ele é o único).

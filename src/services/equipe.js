@@ -45,27 +45,81 @@ export async function atualizarMeuNome(equipeId, userId, nome) {
 
 // Carrega todos os vínculos do usuário logado numa tacada:
 // equipes que gerencio (com código) e equipes em que sou membro, com a lista
-// de membros de cada uma. RLS decide o que cada select devolve.
+// de membros e o catálogo de habilidades. RLS decide o que cada select devolve.
 export async function carregarVinculos(userId) {
   const client = await sb();
-  const [eq, mem, conv] = await Promise.all([
+  const [eq, mem, conv, hab, mh] = await Promise.all([
     client.from("equipes").select("id, nome, gestor_id"),
     client.from("equipe_membros").select("equipe_id, user_id, nome_exibicao, funcao"),
     client.from("equipe_convites").select("equipe_id, codigo"),
+    client.from("habilidades").select("id, equipe_id, nome, ordem"),
+    client.from("membro_habilidades").select("equipe_id, user_id, habilidade_id"),
   ]);
-  lanca(eq.error); lanca(mem.error); lanca(conv.error);
+  lanca(eq.error); lanca(mem.error); lanca(conv.error); lanca(hab.error); lanca(mh.error);
 
   const codigoPor = Object.fromEntries((conv.data || []).map((c) => [c.equipe_id, c.codigo]));
+  const habPor = {};
+  for (const h of hab.data || []) (habPor[h.equipe_id] ||= []).push(h);
+  // habilidades de cada membro, indexadas por "equipe:user"
+  const habDoMembro = {};
+  for (const r of mh.data || []) (habDoMembro[`${r.equipe_id}:${r.user_id}`] ||= []).push(r.habilidade_id);
+
   const membrosPor = {};
-  for (const m of mem.data || []) (membrosPor[m.equipe_id] ||= []).push(m);
+  for (const m of mem.data || []) {
+    (membrosPor[m.equipe_id] ||= []).push({
+      ...m,
+      habilidades: habDoMembro[`${m.equipe_id}:${m.user_id}`] || [],
+    });
+  }
 
   return (eq.data || []).map((e) => ({
     id: e.id,
     nome: e.nome,
     souGestor: e.gestor_id === userId,
     codigo: codigoPor[e.id] || null, // só vem pro gestor (RLS)
+    habilidades: (habPor[e.id] || []).sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR")),
     membros: (membrosPor[e.id] || []).sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR")),
   }));
+}
+
+// ── mão de obra: catálogo da equipe e o que cada um faz (fase 7) ───────────
+
+// Liga/desliga uma habilidade do membro (só o gestor, por RLS).
+export async function marcarHabilidade(equipeId, userId, habilidadeId, ligar) {
+  const client = await sb();
+  const { error } = ligar
+    ? await client.from("membro_habilidades")
+        .upsert({ equipe_id: equipeId, user_id: userId, habilidade_id: habilidadeId })
+    : await client.from("membro_habilidades").delete()
+        .eq("equipe_id", equipeId).eq("user_id", userId).eq("habilidade_id", habilidadeId);
+  lanca(error);
+}
+
+export async function adicionarHabilidade(equipeId, nome, ordem) {
+  const client = await sb();
+  const { data, error } = await client.from("habilidades")
+    .insert({ equipe_id: equipeId, nome: nome.trim(), ordem })
+    .select("id, equipe_id, nome, ordem").single();
+  lanca(error);
+  return data;
+}
+
+// Apaga do catálogo — o vínculo com os membros cai em cascata.
+export async function excluirHabilidade(habilidadeId) {
+  const client = await sb();
+  const { error } = await client.from("habilidades").delete().eq("id", habilidadeId);
+  lanca(error);
+}
+
+// Função do membro na equipe (texto livre: "Técnico de LED", "Operador"…).
+// Via RPC: a policy de UPDATE da tabela é do próprio membro — o gestor mexe
+// só na coluna `funcao`, e o nome de exibição segue sendo de quem entrou.
+export async function definirFuncao(equipeId, userId, funcao) {
+  const client = await sb();
+  const { error } = await client.rpc("definir_funcao", {
+    p_equipe: equipeId, p_user: userId, p_funcao: funcao,
+  });
+  lanca(error);
 }
 
 // Cria a equipe + código de convite. Colisão de código (unique) é rara

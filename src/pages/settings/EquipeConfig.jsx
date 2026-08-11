@@ -11,6 +11,7 @@ import { codigoConviteValido, mensagemErroEquipe, mensagemConvite } from "../../
 import { usePrompt } from "../../store/UIContext.jsx";
 import { suportePush, assinaturaAtiva, ativarAvisos, desativarAvisos, listarAparelhos, revogarAparelho, rotuloDoAparelho } from "../../services/pushAssinatura.js";
 import { PrefToggle } from "../../components/CablingPrefs.jsx";
+import MaoDeObraModal from "../../components/MaoDeObraModal.jsx";
 import { T } from "../../ui/tokens.js";
 import { btn } from "../../ui/styles.js";
 
@@ -116,6 +117,7 @@ function EquipeGerencio({ equipe }) {
   const { removerMembro, regerarCodigo, excluirEquipe } = useEquipe();
   const confirm = useConfirm();
   const toast = useToast();
+  const [maoDeObra, setMaoDeObra] = useState(null); // membro aberto no modal
 
   // copia a MENSAGEM completa (link do app + passos + código) pronta pro
   // WhatsApp; quem quiser só o código tem o botão menor ao lado
@@ -170,19 +172,34 @@ function EquipeGerencio({ equipe }) {
 
       {equipe.membros.length > 0 && (
         <div style={{ marginTop: 8 }}>
-          {equipe.membros.map((m) => (
-            <div key={m.user_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 0", borderTop: `1px solid ${T.bd}` }}>
-              <div style={{ minWidth: 0 }}>
-                <span style={{ color: T.txt, fontSize: 14 }}>{m.nome_exibicao}</span>
-                {m.user_id === user?.id && <span style={{ color: T.dim, fontSize: 12 }}> · você</span>}
-                {m.funcao && <span style={{ color: T.dim, fontSize: 12 }}> · {m.funcao}</span>}
+          {equipe.membros.map((m) => {
+            const nomesHab = (m.habilidades || [])
+              .map((id) => equipe.habilidades?.find((h) => h.id === id)?.nome)
+              .filter(Boolean);
+            return (
+              <div key={m.user_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 0", borderTop: `1px solid ${T.bd}` }}>
+                <button onClick={() => setMaoDeObra(m)} title="Mão de obra e função"
+                  style={{ flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+                  <span style={{ color: T.txt, fontSize: 14 }}>{m.nome_exibicao}</span>
+                  {m.user_id === user?.id && <span style={{ color: T.dim, fontSize: 12 }}> · você</span>}
+                  {m.funcao && <span style={{ color: T.dim, fontSize: 12 }}> · {m.funcao}</span>}
+                  <span style={{ display: "block", color: nomesHab.length ? T.mut : T.dim2, fontSize: 11.5, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {nomesHab.length ? nomesHab.join(" · ") : "sem mão de obra cadastrada"}
+                  </span>
+                </button>
+                {m.user_id !== user?.id && (
+                  <button style={btn("ghost")} onClick={() => remover(m)} title="Remover da equipe"><UserMinus size={14} /></button>
+                )}
               </div>
-              {m.user_id !== user?.id && (
-                <button style={btn("ghost")} onClick={() => remover(m)} title="Remover da equipe"><UserMinus size={14} /></button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+
+      {maoDeObra && (
+        <MaoDeObraModal equipe={equipe}
+          membro={equipe.membros.find((m) => m.user_id === maoDeObra.user_id) || maoDeObra}
+          onClose={() => setMaoDeObra(null)} />
       )}
     </div>
   );

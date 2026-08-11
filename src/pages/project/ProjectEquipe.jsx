@@ -6,7 +6,7 @@ import { useState, useMemo } from "react";
 import { Megaphone, Users, CalendarDays, MapPin, BellRing, Clock3 } from "lucide-react";
 import { useEquipe } from "../../store/EquipeContext.jsx";
 import { useToast, useConfirm } from "../../store/UIContext.jsx";
-import { mensagemErroEquipe, ANTECEDENCIAS } from "../../services/avisosCalc.js";
+import { mensagemErroEquipe, ANTECEDENCIAS, filtrarPorHabilidades } from "../../services/avisosCalc.js";
 import { convocarEquipe } from "../../services/equipe.js";
 import { formatRange } from "../../services/dates.js";
 import { T } from "../../ui/tokens.js";
@@ -35,6 +35,7 @@ export default function ProjectEquipe({ project }) {
   const [horaChamada, setHoraChamada] = useState(pub?.hora_chamada?.slice(0, 5) || "");
   const [antecedencia, setAntecedencia] = useState(pub?.lembreteAntecedencia ?? null); // null = desligado
   const [lembreteAberto, setLembreteAberto] = useState(false);
+  const [filtroHab, setFiltroHab] = useState([]); // ids de habilidade exigidos
   const pubKey = `${pub?.id || ""}:${(pub?.escalados || []).join(",")}:${pub?.hora_chamada || ""}:${pub?.lembreteAntecedencia ?? ""}`;
   const [prevPubKey, setPrevPubKey] = useState(pubKey);
   if (prevPubKey !== pubKey) {
@@ -50,6 +51,15 @@ export default function ProjectEquipe({ project }) {
     if (antes.size !== escalados.size) return true;
     return [...escalados].some((u) => !antes.has(u));
   }, [pub, escalados]);
+  // filtro de mão de obra — mas quem JÁ está escalado nunca some da lista:
+  // sumir esconderia gente escalada do gestor, que é como se desescala sem ver
+  const visiveis = useMemo(() => {
+    const membros = equipe?.membros || [];
+    if (!filtroHab.length) return membros;
+    const passa = new Set(filtrarPorHabilidades(membros, filtroHab).map((m) => m.user_id));
+    return membros.filter((m) => passa.has(m.user_id) || escalados.has(m.user_id));
+  }, [equipe, filtroHab, escalados]);
+
   const lembreteDiferente =
     horaChamada !== (pub?.hora_chamada?.slice(0, 5) || "") ||
     (antecedencia ?? null) !== (pub?.lembreteAntecedencia ?? null);
@@ -155,22 +165,57 @@ export default function ProjectEquipe({ project }) {
         <div style={{ padding: "10px 16px", color: T.mut, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", borderBottom: `1px solid ${T.bd}` }}>
           Escala — {equipe?.nome}
         </div>
+
+        {/* filtro por mão de obra: "quem faz Resolume?" em vez de decorar */}
+        {(equipe?.habilidades || []).length > 0 && (equipe?.membros || []).length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "10px 16px", borderBottom: `1px solid ${T.bd}` }}>
+            <span style={{ color: T.dim, fontSize: 11.5, marginRight: 2 }}>Precisa de:</span>
+            {equipe.habilidades.map((h) => {
+              const on = filtroHab.includes(h.id);
+              return (
+                <button key={h.id} aria-pressed={on}
+                  onClick={() => setFiltroHab((f) => on ? f.filter((x) => x !== h.id) : [...f, h.id])}
+                  style={{ padding: "5px 11px", borderRadius: 999, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", border: `1px solid ${on ? T.acc : T.bd}`, background: on ? T.sel : "transparent", color: on ? T.acM : T.mut }}>
+                  {h.nome}
+                </button>
+              );
+            })}
+            {filtroHab.length > 0 && (
+              <button onClick={() => setFiltroHab([])}
+                style={{ background: "none", border: "none", color: T.dim, fontSize: 11.5, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit", padding: "0 4px" }}>limpar</button>
+            )}
+          </div>
+        )}
+
         {(equipe?.membros || []).length === 0 && (
           <div style={{ padding: 16, color: T.dim, fontSize: 13 }}>
             Ninguém entrou na equipe ainda — compartilhe o código de convite (Configurações → Equipe &amp; avisos).
           </div>
         )}
-        {(equipe?.membros || []).map((m) => {
+        {visiveis.map((m) => {
           const on = escalados.has(m.user_id);
+          const nomesHab = (m.habilidades || [])
+            .map((id) => equipe.habilidades?.find((h) => h.id === id)?.nome)
+            .filter(Boolean);
           return (
             <button key={m.user_id} onClick={() => alternar(m.user_id)} aria-pressed={on}
               style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", minHeight: 44, background: on ? T.sel : "transparent", border: "none", borderBottom: `1px solid ${T.bd}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
               <span aria-hidden style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, border: `2px solid ${on ? T.acc : T.bd}`, background: on ? T.acc : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.accInk, fontSize: 12, fontWeight: 800 }}>{on ? "✓" : ""}</span>
-              <span style={{ color: T.txt, fontSize: 14, fontWeight: on ? 600 : 500, flex: 1, minWidth: 0 }}>{m.nome_exibicao}</span>
-              {m.funcao && <span style={{ color: T.dim, fontSize: 12 }}>{m.funcao}</span>}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", color: T.txt, fontSize: 14, fontWeight: on ? 600 : 500 }}>{m.nome_exibicao}</span>
+                {nomesHab.length > 0 && (
+                  <span style={{ display: "block", color: T.mut, fontSize: 11.5, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nomesHab.join(" · ")}</span>
+                )}
+              </span>
+              {m.funcao && <span style={{ color: T.dim, fontSize: 12, flexShrink: 0 }}>{m.funcao}</span>}
             </button>
           );
         })}
+        {(equipe?.membros || []).length > 0 && visiveis.length === 0 && (
+          <div style={{ padding: 16, color: T.dim, fontSize: 13 }}>
+            Ninguém na equipe tem toda essa mão de obra. Ajuste o filtro ou cadastre as habilidades em Configurações → Equipe &amp; avisos.
+          </div>
+        )}
       </div>
 
       {/* F5 · ajuste rápido de contexto → LightModal (manual §6) */}

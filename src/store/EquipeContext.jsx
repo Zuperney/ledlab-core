@@ -144,6 +144,11 @@ export function EquipeProvider({ children }) {
     setPerfilNome(nome.trim());
   }, [user]);
   const atualizarMeuNome = useCallback((equipeId, nome) => agir(() => equipeApi.atualizarMeuNome(equipeId, user?.id, nome)), [agir, user]);
+  // mão de obra (fase 7)
+  const marcarHabilidade = useCallback((equipeId, uid, habId, ligar) => agir(() => equipeApi.marcarHabilidade(equipeId, uid, habId, ligar)), [agir]);
+  const adicionarHabilidade = useCallback((equipeId, nome, ordem) => agir(() => equipeApi.adicionarHabilidade(equipeId, nome, ordem)), [agir]);
+  const excluirHabilidade = useCallback((habId) => agir(() => equipeApi.excluirHabilidade(habId)), [agir]);
+  const definirFuncao = useCallback((equipeId, uid, funcao) => agir(() => equipeApi.definirFuncao(equipeId, uid, funcao)), [agir]);
 
   const value = {
     equipes, gerencio, participo, status, refresh,
@@ -152,6 +157,7 @@ export function EquipeProvider({ children }) {
     criarEquipe, entrarNaEquipe, sairDaEquipe, removerMembro, regerarCodigo, excluirEquipe,
     publicarEvento, removerPublicacao,
     perfilNome, salvarPerfil, atualizarMeuNome,
+    marcarHabilidade, adicionarHabilidade, excluirHabilidade, definirFuncao,
   };
   return <EquipeContext.Provider value={value}>{children}</EquipeContext.Provider>;
 }

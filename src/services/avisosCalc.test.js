@@ -10,6 +10,9 @@ import {
   disparoDoLembrete,
   mensagemConvite,
   APP_URL,
+  normalizarHabilidade,
+  habilidadeJaExiste,
+  filtrarPorHabilidades,
 } from "./avisosCalc.js";
 
 describe("gerarCodigoConvite", () => {
@@ -94,6 +97,53 @@ describe("mensagemConvite", () => {
   });
   it("aceita URL própria (ambiente de teste)", () => {
     expect(mensagemConvite("X", "LED-AAAAAA", "http://localhost:5173/")).toContain("http://localhost:5173/");
+  });
+});
+
+describe("normalizarHabilidade", () => {
+  it("apara, colapsa espaço e sobe a inicial", () => {
+    expect(normalizarHabilidade("  resolume ")).toBe("Resolume");
+    expect(normalizarHabilidade("mapeamento   de tela")).toBe("Mapeamento de tela");
+    expect(normalizarHabilidade("LED")).toBe("LED"); // já maiúsculo fica como está
+  });
+  it("vazio continua vazio (o botão não deve salvar)", () => {
+    expect(normalizarHabilidade("   ")).toBe("");
+    expect(normalizarHabilidade(null)).toBe("");
+  });
+});
+
+describe("habilidadeJaExiste", () => {
+  const cat = [{ nome: "Montagem" }, { nome: "Resolume" }];
+  it("pega duplicata ignorando caixa e espaço — antes de bater no servidor", () => {
+    expect(habilidadeJaExiste("  resolume ", cat)).toBe(true);
+    expect(habilidadeJaExiste("MONTAGEM", cat)).toBe(true);
+  });
+  it("nome novo passa", () => {
+    expect(habilidadeJaExiste("Elétrica", cat)).toBe(false);
+    expect(habilidadeJaExiste("Montagens", cat)).toBe(false); // plural é outra coisa
+  });
+});
+
+describe("filtrarPorHabilidades", () => {
+  const membros = [
+    { nome_exibicao: "Ney", habilidades: ["a", "b", "c"] },
+    { nome_exibicao: "Ciclano", habilidades: ["a"] },
+    { nome_exibicao: "Novato", habilidades: [] },
+  ];
+  it("sem filtro devolve todo mundo", () => {
+    expect(filtrarPorHabilidades(membros, [])).toHaveLength(3);
+    expect(filtrarPorHabilidades(membros, null)).toHaveLength(3);
+  });
+  it("uma habilidade filtra quem tem", () => {
+    expect(filtrarPorHabilidades(membros, ["a"]).map((m) => m.nome_exibicao))
+      .toEqual(["Ney", "Ciclano"]);
+  });
+  it("duas habilidades exigem AS DUAS (quem resolve o pacote)", () => {
+    expect(filtrarPorHabilidades(membros, ["a", "b"]).map((m) => m.nome_exibicao))
+      .toEqual(["Ney"]);
+  });
+  it("membro sem habilidade nenhuma some assim que há filtro", () => {
+    expect(filtrarPorHabilidades(membros, ["c"]).map((m) => m.nome_exibicao)).toEqual(["Ney"]);
   });
 });
 
