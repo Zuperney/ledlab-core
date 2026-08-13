@@ -110,12 +110,15 @@ function specBox(pairs) {
 }
 
 // linha de STATS da página de abertura de seção (rótulo caps + número grande)
+// terceiro item opcional = cor do VALOR: só pra número que carrega veredito
+// (carga apertada em laranja, estouro em vermelho). Sem ele, tinta normal —
+// a régua da casa é colorir quando há o que avisar, não o tempo todo.
 const statRow = (items) => ({
-  columns: items.map(([l, v]) => ({
+  columns: items.map(([l, v, cor]) => ({
     width: "auto",
     stack: [
       { text: String(l).toUpperCase(), fontSize: 7.5, color: PRINT.dim, characterSpacing: 0.8 },
-      { text: String(v), bold: true, fontSize: 19, color: PRINT.ink, margin: [0, 2, 0, 0] },
+      { text: String(v), bold: true, fontSize: 19, color: cor || PRINT.ink, margin: [0, 2, 0, 0] },
     ],
   })),
   columnGap: 34,
@@ -207,7 +210,15 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // do mapa — acima disso a folha vira só o mapa (grande) e a tabela inteira
   // abre na página seguinte (antes, 2-3 linhas órfãs vazavam pra outra folha)
   const denseAlto = (nRows, nColsTable) => Math.ceil(nRows / denseColsOf(nRows, nColsTable)) > 15;
-  const MAPA_CHEIO = { maxWidth: 720, maxHeight: 300 }; // mapa sozinho na página
+  // MAPA SOZINHO NA PÁGINA: ocupa a folha inteira (pedido do dono, 13/08).
+  // Orçamento vertical da folha A4 paisagem: 595,3 − 36 (topo) − 94 (carimbo)
+  // = 465 pt úteis. Acima do mapa moram subHead (~24) e specBox (~44), e o
+  // próprio mapa tem margem de 6 embaixo → sobram ~391. O SVG ainda soma 12 de
+  // padding interno (6 por lado), então maxHeight 360 renderiza 372 e fecha em
+  // ~446: cabe com folga. Subir mais que isso é tentador e perigoso — se o
+  // bloco não couber, o pdfmake joga o mapa pra folha seguinte e sobra uma
+  // página só com o cabeçalho. Largura: 761,9 úteis − 12 de padding → 748.
+  const MAPA_CHEIO = { maxWidth: 748, maxHeight: 360, upscale: true };
 
   function densePortTable(rows, columns) {
     const nCols = denseColsOf(rows.length, columns.length);
@@ -776,35 +787,147 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // Pedido do dono (31/07): o caderno declara COMO os números foram calculados,
   // em que normas se apoia e quais fontes sustentam o motor. Conteúdo em
   // reportContent.js (compartilhado com o DOM); mesmo gate do glossário.
+  // ── CAPACIDADE DE CABOS — a folha de fecho (pedido do dono, 13/08) ──
+  // "Quanto cada porta e cada circuito aguenta", num lugar só. As páginas de
+  // Screen mostram o uso REAL cabo a cabo; aqui fica a régua que gerou aqueles
+  // números — capacidade nominal por MODELO de gabinete (cada modelo tem
+  // resolução e consumo próprios, logo capacidade própria), o cabo/conector
+  // que se leva pra obra, e o pior caso do projeto contra essa régua.
+  const capacidade = (!showSignal && !showAC) || !telas.length ? [] : (() => {
+    // Agrupa por modelo + configuração de sinal: o mesmo gabinete em duas
+    // telas com réguas diferentes TEM capacidades diferentes, e esconder isso
+    // numa linha só seria mentir. As colunas de régua/bits/Hz explicam a
+    // duplicata pra quem lê.
+    const grupos = new Map();
+    for (const t of telas) {
+      const m = cableMeta(t);
+      const nome = t.gabinete?.nome || "sem gabinete";
+      const chave = `${nome}|${m.sinalRule}|${m.sinalBits}|${m.pxPort}|${m.overclock}|${m.connRating}|${m.ampCab.toFixed(3)}`;
+      const g = grupos.get(chave) || { nome, meta: m, tela: t, gabs: 0 };
+      g.gabs += (t.cols || 1) * (t.rows || 1);
+      grupos.set(chave, g);
+    }
+    const linhas = [...grupos.values()];
+
+    // pior caso do projeto: a porta/circuito mais carregado de todos. Sai das
+    // MESMAS fontes das seções de sinal e AC — recalcular por fora abriria
+    // espaço pros dois números divergirem no mesmo documento.
+    const pctsSinal = usaScreens
+      ? screenReport.flatMap((s) => s.ports.map((p) => p.pct))
+      : telas.flatMap((t) => {
+        const { sinalBudget, sinalRule } = cableMeta(t);
+        return cablePorts(t, "sinal", numbering).map((p) => Math.round(((sinalRule === "px" ? p.length : bboxArea(p)) / sinalBudget) * 100));
+      });
+    const pctsAc = usaScreens
+      ? screenReportAc.flatMap((s) => s.ports.map((p) => p.pct))
+      : telas.flatMap((t) => {
+        const { ampCab, connRating } = cableMeta(t);
+        return cablePorts(t, "ac", numbering).map((p) => Math.round(((p.length * ampCab) / connRating) * 100));
+      });
+    const pior = (arr) => (arr.length ? Math.max(...arr) : 0);
+    const piorSinal = pior(pctsSinal), piorAc = pior(pctsAc);
+
+    // tom do pior caso: mesma semântica do resto do caderno (laranja = apertado,
+    // vermelho = passou). Folga é o que sobra da porta mais carregada — é ela
+    // que limita quanto ainda dá pra crescer sem repuxar cabo.
+    const tomPct = (p) => (p > 100 ? PRINT.red : p >= 80 ? PRINT.amb : PRINT.ink);
+    const folga = (p) => (p >= 100 ? "0%" : `${100 - p}%`);
+
+    const tabela = (cols, body) => ({
+      table: { headerRows: 1, widths: cols.map((c) => c.w || "auto"), body: [cols.map((c) => th(c.label, c.align)), ...body] },
+      layout: zebraLayout(),
+      margin: [0, 0, 0, 4],
+    });
+
+    const blocoSinal = !showSignal ? [] : [
+      { text: "SINAL — CAPACIDADE POR PORTA", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 10, 0, 4] },
+      tabela(
+        [{ label: "Gabinete", w: "*" }, { label: "Resolução" }, { label: "Régua" }, { label: "Capacidade da porta", align: "right" }, { label: "Máx gab./porta", align: "right" }],
+        linhas.map((g) => {
+          const m = g.meta;
+          return [
+            { text: g.nome, bold: true, fontSize: 8.5 },
+            mono(`${ptBR(parseFloat(g.tela.gabinete?.resX) || 0)} × ${ptBR(parseFloat(g.tela.gabinete?.resY) || 0)} px`, { fontSize: 8 }),
+            { text: m.sinalRule === "px" ? `pixels reais · ${m.sinalBits}-bit` : "área quadrada", fontSize: 8, color: PRINT.mut },
+            mono(m.sinalRule === "px" ? `${ptBR(m.pxPort)} px` : "—", { alignment: "right", fontSize: 8 }),
+            mono(`${m.sinalBudget}${m.overclock ? " *" : ""}`, { alignment: "right", bold: true, fontSize: 8, color: m.overclock ? PRINT.amb : PRINT.ink }),
+          ];
+        }),
+      ),
+      ...(linhas.some((g) => g.meta.overclock)
+        ? [{ text: "* overclock ligado: a última fatia vira gabinete inteiro e a porta pode passar da capacidade nominal — escolha registrada neste caderno.", fontSize: 7.5, color: PRINT.amb, margin: [0, 0, 0, 2] }]
+        : []),
+    ];
+
+    const blocoAc = !showAC ? [] : [
+      { text: "ENERGIA — CAPACIDADE POR CIRCUITO", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 10, 0, 4] },
+      tabela(
+        [{ label: "Gabinete", w: "*" }, { label: "Consumo" }, { label: "Cabo / conector" }, { label: "Teto do conector", align: "right" }, { label: "Máx gab./circuito", align: "right" }],
+        linhas.map((g) => {
+          const m = g.meta;
+          return [
+            { text: g.nome, bold: true, fontSize: 8.5 },
+            mono(`${m.ampCab.toFixed(2)} A/gab.`, { fontSize: 8 }),
+            { text: g.tela.gabinete?.conector || "não informado", fontSize: 8, color: g.tela.gabinete?.conector ? PRINT.mut : PRINT.amb },
+            mono(`${m.connRating} A`, { alignment: "right", fontSize: 8 }),
+            mono(String(m.acBudget), { alignment: "right", bold: true, fontSize: 8 }),
+          ];
+        }),
+      ),
+      { text: `Dimensionamento em ${voltFull(agg.vc)}; corrente por gabinete = potência de pico ÷ (tensão de fase × fator de potência). O máximo por circuito já aplica a margem de segurança configurada.`, fontSize: 7.5, color: PRINT.mut, margin: [0, 0, 0, 2] },
+    ];
+
+    return [
+      sectionHead(sec(), "Capacidade de cabos", "Quanto cada porta e circuito aguenta", DISC.elec),
+      { text: "A régua que gerou os números deste caderno: capacidade nominal por modelo de gabinete e o pior caso do projeto contra ela. O uso cabo a cabo está nas páginas de cada sistema.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+      statRow([
+        ...(showSignal ? [["Porta mais cheia", `${piorSinal}%`, tomPct(piorSinal)], ["Folga de sinal", folga(piorSinal)]] : []),
+        ...(showAC ? [["Circuito mais carregado", `${piorAc}%`, tomPct(piorAc)], ["Folga de energia", folga(piorAc)]] : []),
+        ["Modelos", String(new Set(linhas.map((g) => g.nome)).size)],
+      ]),
+      ...(piorSinal > 100 || piorAc > 100
+        ? [warnBox({ titulo: "Capacidade excedida", partes: [{ t: "Há " }, { t: piorSinal > 100 && piorAc > 100 ? "porta de sinal e circuito de energia" : piorSinal > 100 ? "porta de sinal" : "circuito de energia", b: true }, { t: " acima do nominal neste projeto. Confira as páginas do sistema antes de fechar a montagem." }] }, "red")]
+        : []),
+      ...blocoSinal,
+      ...blocoAc,
+    ];
+  })();
+
+  // Tipografia apertada de propósito (dono, 13/08): a folha vinha quebrando em
+  // DUAS e a segunda página ficava com um resto órfão de referências. O
+  // conteúdo é de consulta — cabe reduzir corpo (8 → 7) e entrelinha (1,3 →
+  // 1,15) pra fechar numa folha só, mantendo os títulos legíveis. Se um dia o
+  // texto crescer a ponto de estourar de novo, o próximo passo é a terceira
+  // coluna, não encolher mais a fonte: abaixo de 7 pt o impresso sofre.
   const criterios = !showGloss ? [] : [
     sectionHead(sec(), "Critérios de Cálculo", "Normas e referências", DISC.elec),
     {
-      columnGap: 26,
+      columnGap: 22,
       columns: [
         {
           width: "*",
           stack: [
-            { text: "COMO OS NÚMEROS SÃO CALCULADOS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 0, 0, 5] },
+            { text: "COMO OS NÚMEROS SÃO CALCULADOS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 0, 0, 4] },
             ...CRITERIOS.flatMap((g) => [
-              { text: g.h, bold: true, fontSize: 9.5, color: PRINT.ink, margin: [0, 3, 0, 2] },
+              { text: g.h, bold: true, fontSize: 8.5, color: PRINT.ink, margin: [0, 2, 0, 1] },
               // [...itens]: o pdfmake MUTA o array do `ul` (troca string por nó
               // com positions/_inlines) — passar o array compartilhado quebrava
               // o Caderno DOM depois de gerar um PDF (React: "Objects are not
               // valid as a child"). Clonar na fronteira é obrigatório.
-              { ul: [...g.itens], fontSize: 8, color: PRINT.mut, lineHeight: 1.3, margin: [0, 0, 0, 4], markerColor: PRINT.dim },
+              { ul: [...g.itens], fontSize: 7, color: PRINT.mut, lineHeight: 1.15, margin: [0, 0, 0, 3], markerColor: PRINT.dim },
             ]),
           ],
         },
         {
           width: "*",
           stack: [
-            { text: "NORMAS E PRÁTICAS ADOTADAS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 0, 0, 5] },
+            { text: "NORMAS E PRÁTICAS ADOTADAS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 0, 0, 4] },
             ...NORMAS.flatMap(([n, d]) => [
-              { text: n, bold: true, fontSize: 9.5, color: PRINT.ink, margin: [0, 3, 0, 1] },
-              { text: d, fontSize: 8, color: PRINT.mut, lineHeight: 1.3, margin: [0, 0, 0, 3] },
+              { text: n, bold: true, fontSize: 8.5, color: PRINT.ink, margin: [0, 2, 0, 1] },
+              { text: d, fontSize: 7, color: PRINT.mut, lineHeight: 1.15, margin: [0, 0, 0, 2] },
             ]),
-            { text: "REFERÊNCIAS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 10, 0, 5] },
-            { ul: [...REFERENCIAS], fontSize: 8, color: PRINT.mut, lineHeight: 1.3, markerColor: PRINT.dim }, // clone: ver nota acima
+            { text: "REFERÊNCIAS", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 7, 0, 4] },
+            { ul: [...REFERENCIAS], fontSize: 7, color: PRINT.mut, lineHeight: 1.15, markerColor: PRINT.dim }, // clone: ver nota acima
           ],
         },
       ],
@@ -951,7 +1074,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // rodapé em TODA página (menos a capa): o CARIMBO da prancha
     footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
-      const secoes = [visaoGeral, video, eletrica, sinal, ac, criterios, gloss].filter((s) => s.length);
+      const secoes = [visaoGeral, video, eletrica, sinal, ac, capacidade, criterios, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
       // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
       // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead

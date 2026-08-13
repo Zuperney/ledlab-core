@@ -78,12 +78,18 @@ function layerSvg(cells, ports, colorOf, { portOffset = 0 }) {
 // normaliza células/portas pro retângulo do documento e fecha o <svg> com fundo.
 // `cr` (prefs cablingRender: setas/números) NÃO afeta mais o impresso — são
 // knobs das ferramentas de trabalho; o Caderno usa sempre a cena impressa.
-function wrapSvg(cells, ports, colorOf, cr, { portOffset = 0, maxWidth = 480, maxHeight = 160 } = {}) {
+function wrapSvg(cells, ports, colorOf, cr, { portOffset = 0, maxWidth = 480, maxHeight = 160, upscale = false } = {}) {
   if (!cells.length) return null;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const c of cells) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); maxX = Math.max(maxX, c.x + c.w); maxY = Math.max(maxY, c.y + c.h); }
   const bw = maxX - minX || 1, bh = maxY - minY || 1;
-  const scale = Math.min(maxWidth / bw, maxHeight / bh, 1);
+  // `upscale` só no mapa que tem a folha inteira pra si: sem ele, parede pequena
+  // (poucos gabinetes = bbox de poucos px) parava no tamanho natural e deixava
+  // meia página vazia. Nos mapas que dividem a folha com a tabela o teto de 1
+  // continua valendo — crescer ali empurraria a tabela pra outra página.
+  const scale = upscale
+    ? Math.min(maxWidth / bw, maxHeight / bh)
+    : Math.min(maxWidth / bw, maxHeight / bh, 1);
   const W = bw * scale, H = bh * scale;
   const put = (c) => ({ k: c.k, x: (c.x - minX) * scale, y: (c.y - minY) * scale, w: c.w * scale, h: c.h * scale, port: c.port });
   const drawCells = cells.map(put);

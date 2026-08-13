@@ -226,6 +226,25 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(JSON.stringify(build("Resumido").content)).not.toContain("CRITÉRIOS DE CÁLCULO");
   });
 
+  it("Capacidade de cabos: a régua nominal de sinal e AC fecha o caderno (dono, 13/08)", () => {
+    expect(json).toContain("CAPACIDADE DE CABOS");
+    // as duas metades: quanto a porta aguenta e quanto o circuito aguenta
+    expect(json).toContain("SINAL — CAPACIDADE POR PORTA");
+    expect(json).toContain("ENERGIA — CAPACIDADE POR CIRCUITO");
+    // capacidade nominal + cabo/conector que se leva pra obra (th() sobe caps)
+    expect(json).toContain("MÁX GAB./PORTA");
+    expect(json).toContain("CABO / CONECTOR");
+    expect(json).toContain("TETO DO CONECTOR");
+    // uso real do projeto (o pior caso contra a régua) e a folga que sobra
+    expect(json).toContain("PORTA MAIS CHEIA");
+    expect(json).toContain("FOLGA DE ENERGIA");
+    // fecha o caderno: depois dos mapas, antes dos critérios
+    expect(json.indexOf("CAPACIDADE DE CABOS")).toBeGreaterThan(json.indexOf("MAPA DE CABOS · SINAL"));
+    expect(json.indexOf("CAPACIDADE DE CABOS")).toBeLessThan(json.indexOf("CRITÉRIOS DE CÁLCULO"));
+    // segue o gate das seções de cabo: o Resumido não tem mapa, não tem régua
+    expect(JSON.stringify(build("Resumido").content)).not.toContain("CAPACIDADE DE CABOS");
+  });
+
   it("o doc do PDF não compartilha arrays com o conteúdo do DOM (pdfmake MUTA o ul)", () => {
     // Regressão de 31/07: passar CRITERIOS[i].itens/REFERENCIAS direto no `ul`
     // fazia o pdfmake trocar as strings por nós (positions/_inlines) — e o
@@ -310,11 +329,11 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
   it("um tópico por página + uma página por Screen/tela — quebra CONDICIONAL (headlineLevel)", () => {
     // A quebra é decidida pelo pageBreakBefore do docDefinition (só quebra se a
     // página atual tem conteúdo — mata a página em branco); os nós de início de
-    // seção/bloco carregam headlineLevel 1. Completo sem Screens: 7 seções (com
-    // sumário, todas marcam) + 4 blocos (2 telas × sinal e AC) → 11 marcas.
+    // seção/bloco carregam headlineLevel 1. Completo sem Screens: 8 seções (com
+    // sumário, todas marcam) + 4 blocos (2 telas × sinal e AC) → 12 marcas.
     const doc = build("Completo");
     const completo = JSON.stringify(doc.content);
-    expect(completo.match(/"headlineLevel":1/g)?.length).toBe(11); // 7 seções + 4 blocos (estrutura saiu, 02/08)
+    expect(completo.match(/"headlineLevel":1/g)?.length).toBe(12); // 8 seções + 4 blocos (capacidade entrou, 13/08)
     expect(completo.match(/"pageBreak":"before"/g)).toBeNull(); // nunca incondicional
     expect(typeof doc.pageBreakBefore).toBe("function");
     // quebra só com conteúdo na página atual (assinatura do pdfmake: getters no 2º arg)
@@ -339,8 +358,8 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     const completo = JSON.stringify(build("Completo").content);
     expect(completo).toContain('"toc"');
     expect(completo).toContain("SUMÁRIO");
-    // 7 seções marcadas (marcador invisível com a linha "NN · TÍTULO")
-    expect(completo.match(/"tocItem":true/g)?.length).toBe(7);
+    // 8 seções marcadas (marcador invisível com a linha "NN · TÍTULO")
+    expect(completo.match(/"tocItem":true/g)?.length).toBe(8);
     expect(completo).toContain("01  ·  VISÃO GERAL");
     // Elétrico/Mapa de cabos: sem sumário (mas os marcadores são inofensivos)
     expect(JSON.stringify(build("Elétrico").content)).not.toContain('"toc"');
@@ -388,8 +407,8 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
   it("numeração de seção segue a ordem exibida (Completo começa em 01)", () => {
     const j = JSON.stringify(build("Completo").content);
     expect(j).toContain('"01"');
-    // VG, vídeo, elétrica, sinal, AC, critérios, glossário = 7 (estrutura saiu)
-    expect(j).toContain('"07"');
-    expect(j).not.toContain('"08"');
+    // VG, vídeo, elétrica, sinal, AC, capacidade, critérios, glossário = 8
+    expect(j).toContain('"08"');
+    expect(j).not.toContain('"09"');
   });
 });
