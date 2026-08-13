@@ -226,23 +226,35 @@ describe("buildRelatorioDoc (motor de PDF, F2)", () => {
     expect(JSON.stringify(build("Resumido").content)).not.toContain("CRITÉRIOS DE CÁLCULO");
   });
 
-  it("Capacidade de cabos: a régua nominal de sinal e AC fecha o caderno (dono, 13/08)", () => {
-    expect(json).toContain("CAPACIDADE DE CABOS");
-    // as duas metades: quanto a porta aguenta e quanto o circuito aguenta
+  it("seção Cabos: a listagem sai das folhas de mapa e se junta no fim (dono, 13/08)", () => {
+    // a régua abre a seção — é ela que explica os % das tabelas logo abaixo
     expect(json).toContain("SINAL — CAPACIDADE POR PORTA");
     expect(json).toContain("ENERGIA — CAPACIDADE POR CIRCUITO");
-    // capacidade nominal + cabo/conector que se leva pra obra (th() sobe caps)
     expect(json).toContain("MÁX GAB./PORTA");
     expect(json).toContain("CABO / CONECTOR");
-    expect(json).toContain("TETO DO CONECTOR");
-    // uso real do projeto (o pior caso contra a régua) e a folga que sobra
     expect(json).toContain("PORTA MAIS CHEIA");
     expect(json).toContain("FOLGA DE ENERGIA");
+    // e a listagem cabo a cabo, que era das páginas de mapa
+    expect(json).toContain("PORTAS DE SINAL, CABO A CABO");
+    expect(json).toContain("CIRCUITOS DE ENERGIA, CABO A CABO");
     // fecha o caderno: depois dos mapas, antes dos critérios
-    expect(json.indexOf("CAPACIDADE DE CABOS")).toBeGreaterThan(json.indexOf("MAPA DE CABOS · SINAL"));
-    expect(json.indexOf("CAPACIDADE DE CABOS")).toBeLessThan(json.indexOf("CRITÉRIOS DE CÁLCULO"));
-    // segue o gate das seções de cabo: o Resumido não tem mapa, não tem régua
-    expect(JSON.stringify(build("Resumido").content)).not.toContain("CAPACIDADE DE CABOS");
+    expect(json.indexOf("PORTAS DE SINAL, CABO A CABO")).toBeGreaterThan(json.indexOf("CABEAMENTO DE SINAL"));
+    expect(json.indexOf("PORTAS DE SINAL, CABO A CABO")).toBeLessThan(json.indexOf("CRITÉRIOS DE CÁLCULO"));
+    // segue o gate das seções de cabo: o Resumido não tem mapa, não tem lista
+    expect(JSON.stringify(build("Resumido").content)).not.toContain("CABO A CABO");
+  });
+
+  it("folha de mapa fica SÓ com o mapa — a tabela de cabos não divide mais a página", () => {
+    // a tabela de porta/circuito aparece UMA vez no caderno (na seção Cabos),
+    // não mais grudada em cada folha de mapa. Antes de 13/08 ela saía nas duas.
+    const jm = JSON.stringify(build("Mapa de cabos").content);
+    const iMapaSinal = jm.indexOf("CABEAMENTO DE SINAL");
+    const iLista = jm.indexOf("PORTAS DE SINAL, CABO A CABO");
+    expect(iMapaSinal).toBeGreaterThanOrEqual(0);
+    expect(iLista).toBeGreaterThan(iMapaSinal);
+    // entre a abertura do mapa de sinal e a listagem não há cabeçalho "USO"
+    // (coluna exclusiva da tabela de portas) — prova que a folha ficou limpa
+    expect(jm.slice(iMapaSinal, iLista)).not.toContain('"USO"');
   });
 
   it("o doc do PDF não compartilha arrays com o conteúdo do DOM (pdfmake MUTA o ul)", () => {

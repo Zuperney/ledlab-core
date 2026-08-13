@@ -513,6 +513,16 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     },
   ];
 
+  // ── LISTAGEM DE CABOS: sai das páginas de mapa, vira seção própria ──
+  // Pedido do dono (13/08): a folha do mapa fica SÓ com o mapa (grande, fácil
+  // de ler em obra) e as tabelas de porta/circuito se juntam numa seção no
+  // fim. As seções de sinal e AC empurram suas tabelas pra cá enquanto montam
+  // as páginas — assim a linha de cada cabo continua sendo construída UMA vez,
+  // no lugar que já tem os dados; recalcular na outra ponta abriria espaço pros
+  // números divergirem dentro do mesmo caderno. As IIFEs de `sinal` e `ac`
+  // rodam antes da de `cabos`, então quando ela lê, isto aqui já está cheio.
+  const tabelasCabo = { sinal: [], ac: [] };
+
   // ── CABEAMENTO DE SINAL ──
   const sinal = !showSignal ? [] : (() => {
     const sn = sec(); const S = String(sn).padStart(2, "0");
@@ -562,10 +572,19 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         // ── uma página por Screen ──
         ...screenReport.map((s, i) => {
           const sp = specsDe[s.id];
-          // tabela alta (coluna > 15 linhas) → ela abre na próxima página e o
-          // mapa fica GRANDE na folha; senão, mapa mais baixo pra caber junto
-          const alto = denseAlto(s.ports.length, 3);
-          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "sinal", numbering, colorOf, cr, alto ? MAPA_CHEIO : s.ports.length > 48 ? { maxHeight: 100 } : s.ports.length > 36 ? { maxHeight: 130 } : undefined) : null;
+          // a folha é do MAPA: sem a tabela dividindo o espaço, ele usa sempre
+          // o tamanho cheio (a listagem foi pra seção de Cabos)
+          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "sinal", numbering, colorOf, cr, MAPA_CHEIO) : null;
+          tabelasCabo.sinal.push({
+            titulo: `${S}.${i + 1}  ${s.nome}`,
+            nota: `${s.ports.length} porta(s)`,
+            tabela: densePortTable(s.ports, [
+              { label: "Porta", cell: (p) => portCell(p.n - 1, p.n) },
+              { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              // laranja = overclock (acima do nominal por escolha); vermelho = estouro real
+              { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : p.oc ? PRINT.amb : PRINT.ink }) },
+            ]),
+          });
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
@@ -578,12 +597,6 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               ...(sp.overclock ? [["Overclock", "ligado"]] : []),
             ]),
             ...mapNode(mapa),
-            densePortTable(s.ports, [
-              { label: "Porta", cell: (p) => portCell(p.n - 1, p.n) },
-              { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-              // laranja = overclock (acima do nominal por escolha); vermelho = estouro real
-              { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.over ? PRINT.red : p.oc ? PRINT.amb : PRINT.ink }) },
-            ]),
           ]);
         }),
       ];
@@ -620,7 +633,16 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         const ports = cablePorts(t, "sinal", numbering);
         const off = portOffset(telas, t.id, "sinal", numbering);
         const rows = ports.map((p, pi) => ({ n: off + pi + 1, idx: off + pi, count: p.length, pct: Math.round(((sinalRule === "px" ? p.length : bboxArea(p)) / sinalBudget) * 100) }));
-        const mapa = telaMapSvg(t, "sinal", numbering, off, colorOf, cr, denseAlto(rows.length, 3) ? MAPA_CHEIO : undefined);
+        const mapa = telaMapSvg(t, "sinal", numbering, off, colorOf, cr, MAPA_CHEIO);
+        tabelasCabo.sinal.push({
+          titulo: `${S}.${i + 1}  ${t.nome}`,
+          nota: portLabel(off, ports.length, "porta"),
+          tabela: densePortTable(rows, [
+            { label: "Porta", cell: (p) => portCell(p.idx, p.n) },
+            { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+            { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
+          ]),
+        });
         return [
           bloco([
             subHead(`${S}.${i + 1}`, t.nome),
@@ -631,11 +653,6 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               ["Grade", `${t.cols} × ${t.rows} gabinetes`],
             ]),
             ...mapNode(mapa),
-            densePortTable(rows, [
-              { label: "Porta", cell: (p) => portCell(p.idx, p.n) },
-              { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-              { label: "Uso", align: "right", cell: (p) => mono(`${p.pct}%`, { alignment: "right", bold: true, color: p.pct > 100 ? PRINT.red : PRINT.ink }) },
-            ]),
           ]),
           ...(tipo === "Mapa de cabos" ? [
             { text: "Mapa de pixels — coordenada do 1º gabinete de cada porta (origem no canto superior-esquerdo) para transcrever no software da controladora (NovaLCT / Tessera).", fontSize: 8, color: PRINT.mut, margin: [0, 6, 0, 3] },
@@ -701,12 +718,19 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         // ── uma página por Screen ──
         ...screenReportAc.map((s, i) => {
           const bal = phaseBalance(s.ports, agg.vc);
-          // tabela alta (coluna > 15 linhas — com Fase o teto de 4 grupos chega
-          // lá com 61+ cabos) → tabela na próxima página, mapa GRANDE na folha;
-          // senão, mapa mais baixo pra folha fechar em UMA (folhas 14-18 do
-          // caderno real de 31/07)
-          const alto = denseAlto(s.ports.length, bal.temRodizio ? 4 : 3);
-          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr, alto ? MAPA_CHEIO : s.ports.length > 48 ? { maxHeight: 100 } : s.ports.length > 36 ? { maxHeight: 130 } : undefined) : null;
+          // folha do mapa, tamanho cheio: a listagem de circuitos foi pra
+          // seção de Cabos (dono, 13/08)
+          const mapa = screensById[s.id] ? screenMapSvg(screensById[s.id], telas, "ac", numbering, colorOf, cr, MAPA_CHEIO) : null;
+          tabelasCabo.ac.push({
+            titulo: `${S}.${i + 1}  ${s.nome}`,
+            nota: `${s.ports.length} circuito(s)${bal.temRodizio ? ` · ${fmtFases(bal)}` : ""}`,
+            tabela: densePortTable(s.ports, [
+              { label: "Circuito", cell: (p) => portCell(p.n - 1, p.n) },
+              ...(bal.temRodizio ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
+              { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+              { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink }) },
+            ]),
+          });
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
@@ -716,12 +740,6 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               ...(bal.temRodizio ? [["Carga por fase", fmtFases(bal)]] : []),
             ]),
             ...mapNode(mapa),
-            densePortTable(s.ports, [
-              { label: "Circuito", cell: (p) => portCell(p.n - 1, p.n) },
-              ...(bal.temRodizio ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
-              { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-              { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: p.over ? PRINT.red : p.warn ? PRINT.amb : PRINT.ink }) },
-            ]),
           ]);
         }),
       ];
@@ -762,7 +780,17 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           return { n: off + pi + 1, idx: off + pi, count: p.length, load, pct: Math.round((load / connRating) * 100) };
         });
         const temFase = phaseOf(1, agg.vc) != null;
-        const mapa = telaMapSvg(t, "ac", numbering, off, colorOf, cr, denseAlto(rows.length, temFase ? 4 : 3) ? MAPA_CHEIO : undefined);
+        const mapa = telaMapSvg(t, "ac", numbering, off, colorOf, cr, MAPA_CHEIO);
+        tabelasCabo.ac.push({
+          titulo: `${S}.${i + 1}  ${t.nome}`,
+          nota: portLabel(off, ports.length, "circuito"),
+          tabela: densePortTable(rows, [
+            { label: "Circuito", cell: (p) => portCell(p.idx, p.n) },
+            ...(temFase ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
+            { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
+            { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: acTone(p.pct) === "over" ? PRINT.red : acTone(p.pct) === "warn" ? PRINT.amb : PRINT.ink }) },
+          ]),
+        });
         return bloco([
           subHead(`${S}.${i + 1}`, t.nome),
           specBox([
@@ -772,12 +800,6 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
             ["Conector", `${connRating} A`],
           ]),
           ...mapNode(mapa),
-          densePortTable(rows, [
-            { label: "Circuito", cell: (p) => portCell(p.idx, p.n) },
-            ...(temFase ? [{ label: "Fase", cell: (p) => mono(phaseOf(p.n, agg.vc), { bold: true }) }] : []),
-            { label: "Gab.", align: "right", cell: (p) => mono(String(p.count), { alignment: "right" }) },
-            { label: "Carga", align: "right", cell: (p) => mono(`${p.load.toFixed(1)}A ${p.pct}%`, { alignment: "right", bold: true, noWrap: true, color: acTone(p.pct) === "over" ? PRINT.red : acTone(p.pct) === "warn" ? PRINT.amb : PRINT.ink }) },
-          ]),
         ]);
       }),
     ];
@@ -787,13 +809,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // Pedido do dono (31/07): o caderno declara COMO os números foram calculados,
   // em que normas se apoia e quais fontes sustentam o motor. Conteúdo em
   // reportContent.js (compartilhado com o DOM); mesmo gate do glossário.
-  // ── CAPACIDADE DE CABOS — a folha de fecho (pedido do dono, 13/08) ──
-  // "Quanto cada porta e cada circuito aguenta", num lugar só. As páginas de
-  // Screen mostram o uso REAL cabo a cabo; aqui fica a régua que gerou aqueles
-  // números — capacidade nominal por MODELO de gabinete (cada modelo tem
-  // resolução e consumo próprios, logo capacidade própria), o cabo/conector
-  // que se leva pra obra, e o pior caso do projeto contra essa régua.
-  const capacidade = (!showSignal && !showAC) || !telas.length ? [] : (() => {
+  // ── CABOS — a seção de fecho (pedido do dono, 13/08) ──
+  // Reúne o que saiu das páginas de mapa: a listagem cabo a cabo de sinal e de
+  // energia. Abre com a RÉGUA que gerou aqueles números — capacidade nominal
+  // por MODELO de gabinete (cada modelo tem resolução e consumo próprios, logo
+  // capacidade própria), o cabo/conector que se leva pra obra e o pior caso do
+  // projeto — porque é ela que explica os % das tabelas logo abaixo.
+  const cabos = (!showSignal && !showAC) || !telas.length ? [] : (() => {
     // Agrupa por modelo + configuração de sinal: o mesmo gabinete em duas
     // telas com réguas diferentes TEM capacidades diferentes, e esconder isso
     // numa linha só seria mentir. As colunas de régua/bits/Hz explicam a
@@ -877,9 +899,28 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       { text: `Dimensionamento em ${voltFull(agg.vc)}; corrente por gabinete = potência de pico ÷ (tensão de fase × fator de potência). O máximo por circuito já aplica a margem de segurança configurada.`, fontSize: 7.5, color: PRINT.mut, margin: [0, 0, 0, 2] },
     ];
 
+    // as listagens que saíram das páginas de mapa. Elas FLUEM (sem bloco/
+    // headlineLevel): marcar cada tabela como bloco gastaria uma folha por
+    // Screen, e essas tabelas são baixas — várias cabem na mesma página. Se
+    // uma passar do fim da folha, o pdfmake continua na seguinte repetindo o
+    // cabeçalho, que é o comportamento que a densePortTable já assume.
+    const listagem = (titulo, itens) => (!itens.length ? [] : [
+      { text: titulo, fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 12, 0, 2] },
+      ...itens.flatMap((it) => [
+        {
+          columns: [
+            { width: "*", text: it.titulo, bold: true, fontSize: 10, color: PRINT.ink },
+            { width: "auto", text: it.nota, fontSize: 8, color: PRINT.dim, alignment: "right", margin: [0, 2, 0, 0] },
+          ],
+          margin: [0, 6, 0, 3],
+        },
+        it.tabela,
+      ]),
+    ]);
+
     return [
-      sectionHead(sec(), "Capacidade de cabos", "Quanto cada porta e circuito aguenta", DISC.elec),
-      { text: "A régua que gerou os números deste caderno: capacidade nominal por modelo de gabinete e o pior caso do projeto contra ela. O uso cabo a cabo está nas páginas de cada sistema.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
+      sectionHead(sec(), "Cabos", "Portas de sinal e circuitos de energia", DISC.elec),
+      { text: "A lista completa de cabos do projeto: cada porta de sinal e cada circuito de energia, com a carga que leva. Os mapas de montagem estão nas seções anteriores, um por folha.", fontSize: 9, color: PRINT.mut, margin: [0, 0, 0, 10] },
       statRow([
         ...(showSignal ? [["Porta mais cheia", `${piorSinal}%`, tomPct(piorSinal)], ["Folga de sinal", folga(piorSinal)]] : []),
         ...(showAC ? [["Circuito mais carregado", `${piorAc}%`, tomPct(piorAc)], ["Folga de energia", folga(piorAc)]] : []),
@@ -890,6 +931,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         : []),
       ...blocoSinal,
       ...blocoAc,
+      ...listagem("PORTAS DE SINAL, CABO A CABO", tabelasCabo.sinal),
+      ...listagem("CIRCUITOS DE ENERGIA, CABO A CABO", tabelasCabo.ac),
     ];
   })();
 
@@ -1074,7 +1117,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // rodapé em TODA página (menos a capa): o CARIMBO da prancha
     footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
-      const secoes = [visaoGeral, video, eletrica, sinal, ac, capacidade, criterios, gloss].filter((s) => s.length);
+      const secoes = [visaoGeral, video, eletrica, sinal, ac, cabos, criterios, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
       // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
       // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead
