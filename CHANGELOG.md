@@ -2,6 +2,22 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.21.0] — 2026-08-13
+
+**Quem faz o quê — e o Caderno com o mapa do tamanho da folha.**
+
+- **Mão de obra** (Equipe & avisos): toque no nome de um membro e cadastre o que ele faz. Toda equipe nasce com um catálogo de sete habilidades do ofício — Montagem, Cabeamento, Endereçamento, Processamento, Resolume, Operação e Elétrica — e você edita/adiciona o que a sua operação usa. Também dá pra definir a **função** dele ("Técnico de LED", "Operador").
+- **Filtro na escala**: na aba Equipe do evento, a faixa **"Precisa de:"** mostra só quem tem a habilidade — marque duas e a lista fica com quem resolve as duas. Cada nome exibe suas habilidades ao lado. Quem já está escalado **nunca some** do filtro: sumir esconderia gente escalada e o gestor a desescalaria sem ver.
+- **Quem define é o gestor** — é o cadastro dele, na avaliação dele. A equipe enxerga (ajuda a saber quem chamar), mas não escreve. O nome de exibição continua sendo de quem entrou: a função é alterada por uma rota que mexe **só** naquele campo, pra ninguém reescrever o nome de outra pessoa.
+
+**Caderno Técnico** — três mudanças a partir de um caderno real de obra:
+
+- **A folha do mapa é só o mapa.** A lista de portas/circuitos saiu de lá e o mapa passou a usar a página inteira (ele também cresce quando a parede é pequena — antes parava no tamanho natural e deixava meia folha vazia).
+- **Seção CABOS**, nova, fechando o caderno: abre com a **capacidade** de cada porta e circuito por modelo de gabinete (régua, cabo/conector, pior caso do projeto e a folga que sobra) e traz a **listagem cabo a cabo** de sinal e de energia. Estouro acima de 100% abre aviso vermelho.
+- **Critérios de Cálculo** voltou a caber em **uma folha** — vinha quebrando em duas com um resto órfão de referências.
+
+**Por baixo**: três skills de projeto (`release`, `migration`, `nova-aba`) versionadas em `.claude/skills/` — os rituais da casa viraram arquivo, com as armadilhas que já custaram tempo anotadas. E o CHANGELOG ganhou as v1.19.0 e v1.20.0 retroativas, que tinham sido soltas sem entrada.
+
 ## [1.20.0] — 2026-08-05
 
 **Identidade pessoal, convite que se explica sozinho e aviso que religa.**
