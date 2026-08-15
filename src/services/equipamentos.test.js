@@ -1,61 +1,116 @@
+// equipamentos.test.js — biblioteca editável de equipamentos de vídeo.
 import { describe, it, expect } from "vitest";
-import { CATALOGO, makeEquip, equipById, equipOf, cargaTotal, effectiveSinalCfg, PX_PORTA_PADRAO } from "./equipamentos.js";
+import { makeEquip, makePorta, equipSnapshot, dataOuts, screenEquipStatus, effectiveSinalCfg, withEquip, CATEGORIAS, categoriaLabel } from "./equipamentos.js";
+import { SEED_EQUIPS } from "../data/seedEquips.js";
 
-describe("catálogo de equipamentos (certificado)", () => {
-  it("tem as séries VX e MX, todas NovaStar all-in-one", () => {
-    expect(CATALOGO.map((e) => e.modelo)).toEqual([
-      "VX400", "VX600", "VX1000", "VX400 Pro", "VX600 Pro", "VX1000 Pro", "VX2000 Pro",
-      "MX20", "MX30", "MX40 Pro",
-    ]);
-    expect(CATALOGO.every((e) => e.marca === "NovaStar" && e.categoria === "all-in-one")).toBe(true);
-    expect(CATALOGO.every((e) => e.serie === "VX" || e.serie === "MX")).toBe(true);
+// fixture mínima no molde de screenCabling.test.js
+const gabImag = { resX: "192", resY: "192", pwrMax: "150", fp: "0.9" };
+const telas = [{ id: "imag", gabinete: gabImag, cols: 6, rows: 3, nome: "IMAG" }];
+// 18 gab de 192×192 → budget 655.360/36.864 = 17/porta → 2 portas de dados
+const scImag = { id: "s2", nome: "IMAG", telaIds: ["imag"], pos: { imag: { x: 0, y: 0 } }, sinal: { rule: "px", strategy: "auto" } };
+
+const vx400 = SEED_EQUIPS.find((e) => e.id === "nova-vx400");
+const mx30 = SEED_EQUIPS.find((e) => e.id === "nova-mx30");
+
+describe("seed herdado do catálogo v1.18.0", () => {
+  it("preserva os ids nova-* (screens antigas seguem resolvendo o link vivo)", () => {
+    expect(SEED_EQUIPS.map((e) => e.id)).toContain("nova-vx1000");
+    expect(SEED_EQUIPS.every((e) => e.marca === "NovaStar" && e.categoria === "controladora")).toBe(true);
   });
 
-  it("VX1000 = 10 portas, descontinuada; VX2000 Pro = 20 portas, ativa", () => {
-    expect(equipById("nova-vx1000")).toMatchObject({ portas: 10, status: "descontinuado", maxW: 10240 });
-    expect(equipById("nova-vx2000pro")).toMatchObject({ portas: 20, status: "ativo", maxW: 16384 });
+  it("portas viraram lista nomeada: VX400 = 2 in de vídeo + 4 saídas ethernet + OPT fibra", () => {
+    expect(vx400.portas.filter((p) => p.dir === "in").map((p) => p.sinal)).toEqual(["hdmi", "sdi"]);
+    expect(vx400.portas.filter((p) => p.dir === "out" && p.sinal === "ethernet")).toHaveLength(4);
+    expect(vx400.portas.filter((p) => p.sinal === "fibra")).toHaveLength(1);
   });
 
-  it("legacy VX400/VX600 só 8-bit (datasheet: 10/12-bit not supported); Pro tem 8/10/12", () => {
-    expect(equipById("nova-vx400").bits).toEqual([8]);
-    expect(equipById("nova-vx600").bits).toEqual([8]);
-    expect(equipById("nova-vx600pro").bits).toEqual([8, 10, 12]);
+  it("px/porta por datasheet: VX 650.000, MX 659.722", () => {
+    expect(vx400.pxPorta).toBe(650000);
+    expect(mx30.pxPorta).toBe(659722);
+  });
+});
+
+describe("makeEquip / makePorta / categorias", () => {
+  it("defaults sãos", () => {
+    const e = makeEquip();
+    expect(e).toMatchObject({ marca: "", categoria: "controladora", portas: [], largura: 0, pxPorta: 0 });
+    expect(typeof e.id).toBe("string");
+    expect(e.id.length).toBeGreaterThan(6);
+    expect(makePorta().dir).toBe("in");
   });
 
-  it("série VX = 650.000 px/porta; MX (COEX) = 659.722 (fórmula do gigabit)", () => {
-    expect(equipById("nova-vx1000").pxPorta).toBe(650000);
-    expect(equipById("nova-mx30").pxPorta).toBe(659722);
+  it("categoriaLabel resolve e cai no id cru pra categoria desconhecida", () => {
+    expect(categoriaLabel("controladora")).toBe("Controladora");
+    expect(CATEGORIAS.length).toBeGreaterThan(3);
+    expect(categoriaLabel("zzz")).toBe("zzz");
+  });
+});
+
+describe("equipSnapshot — congelado, portas sem id (formato template)", () => {
+  it("copia identidade e portas, descartando os ids das portas", () => {
+    const snap = equipSnapshot(vx400);
+    expect(snap.nome).toBe("VX400");
+    expect(snap.portas.every((p) => !("id" in p))).toBe(true);
+    expect(snap.portas).toHaveLength(vx400.portas.length);
   });
 
-  it("MX sem limite de tela declarado no spec → maxW/maxH = 0 (sem limite conhecido)", () => {
-    expect(equipById("nova-mx40pro")).toMatchObject({ maxW: 0, maxH: 0 });
+  it("null → undefined (screen sem vínculo não ganha campo)", () => {
+    expect(equipSnapshot(null)).toBeUndefined();
   });
 
-  it("equipById/equipOf resolvem e caem em null", () => {
-    expect(equipById("xxx")).toBeNull();
-    expect(equipOf({ equipamentoId: "nova-vx400pro" }).modelo).toBe("VX400 Pro");
-    expect(equipOf({})).toBeNull();
+  it("dir inválida normaliza pra in; sinal ausente vira custom", () => {
+    const snap = equipSnapshot(makeEquip({ portas: [{ nome: "X", dir: "sideways", sinal: "" }] }));
+    expect(snap.portas[0]).toEqual({ nome: "X", dir: "in", sinal: "custom" });
+  });
+});
+
+describe("dataOuts — a fila de saídas que alimenta LED", () => {
+  it("prefere ethernet; OPT fica de fora quando há ethernet", () => {
+    const outs = dataOuts(equipSnapshot(vx400));
+    expect(outs).toHaveLength(4);
+    expect(outs.every((p) => p.sinal === "ethernet")).toBe(true);
   });
 
-  it("cargaTotal = teto do DISPOSITIVO: portas × px/porta na VX, cargaMax explícita na MX", () => {
-    expect(cargaTotal(equipById("nova-vx1000"))).toBe(6500000); // 10 × 650k
-    expect(cargaTotal(equipById("nova-vx2000pro"))).toBe(13000000); // 20 × 650k
-    expect(cargaTotal(equipById("nova-mx40pro"))).toBe(9000000); // 20 portas, mas o box processa 9M
-    expect(cargaTotal(null)).toBe(0);
+  it("cai pra fibra quando o equipamento só transmite por óptica", () => {
+    const optico = equipSnapshot(makeEquip({ portas: [
+      { nome: "HDMI In", dir: "in", sinal: "hdmi" },
+      { nome: "OPT 1", dir: "out", sinal: "fibra" },
+      { nome: "OPT 2", dir: "out", sinal: "fibra" },
+    ] }));
+    expect(dataOuts(optico).map((p) => p.sinal)).toEqual(["fibra", "fibra"]);
   });
 
-  it("effectiveSinalCfg injeta pxPortaBase mas NÃO força a régua (Free Topology saiu)", () => {
-    const eff = effectiveSinalCfg({ rule: "px", strategy: "livre" }, equipById("nova-vx1000"));
-    expect(eff.pxPortaBase).toBe(650000);
-    expect(eff.rule).toBe("px");
-    expect(effectiveSinalCfg({ rule: "px" }, null)).toEqual({ rule: "px" });
+  it("sem saídas de dados → fila vazia (saída HDMI não alimenta LED)", () => {
+    const player = equipSnapshot(makeEquip({ portas: [{ nome: "HDMI Out", dir: "out", sinal: "hdmi" }] }));
+    expect(dataOuts(player)).toEqual([]);
+  });
+});
+
+describe("screenEquipStatus — precisa N × tem M", () => {
+  it("sem snapshot → null (feedback cinza, régua manual)", () => {
+    expect(screenEquipStatus(scImag, telas)).toBeNull();
   });
 
-  it("makeEquip tem defaults sãos e sem freeTopology", () => {
-    const e = makeEquip("x", {});
-    expect(e).toMatchObject({ marca: "NovaStar", categoria: "all-in-one", portas: 4, pxPorta: PX_PORTA_PADRAO, status: "ativo" });
-    expect(e.cargaMax).toBe(4 * PX_PORTA_PADRAO);
-    expect(e.bits).toEqual([8, 10, 12]);
-    expect("freeTopology" in e).toBe(false);
+  it("IMAG pede 2 portas; VX400 tem 4 → ok", () => {
+    const s = { ...scImag, equipamentoId: vx400.id, equipamento: equipSnapshot(vx400) };
+    expect(screenEquipStatus(s, telas)).toEqual({ necessarias: 2, disponiveis: 4, ok: true });
+  });
+
+  it("equipamento com 1 saída só → não ok (informa, não bloqueia)", () => {
+    const um = makeEquip({ portas: [{ nome: "Porta 1", dir: "out", sinal: "ethernet" }] });
+    const s = { ...scImag, equipamento: equipSnapshot(um) };
+    expect(screenEquipStatus(s, telas)).toEqual({ necessarias: 2, disponiveis: 1, ok: false });
+  });
+});
+
+describe("effectiveSinalCfg / withEquip — capacidade por porta do snapshot", () => {
+  it("injeta pxPortaBase quando o snapshot declara, sem forçar a régua", () => {
+    const s = { ...scImag, equipamento: equipSnapshot(vx400) };
+    expect(withEquip(s).sinal).toMatchObject({ rule: "px", pxPortaBase: 650000 });
+  });
+
+  it("pxPorta 0/ausente não polui a config", () => {
+    expect(effectiveSinalCfg({ rule: "px" }, { pxPorta: 0 })).toEqual({ rule: "px" });
+    expect(effectiveSinalCfg({ rule: "px" }, undefined)).toEqual({ rule: "px" });
   });
 });

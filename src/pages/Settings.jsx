@@ -18,6 +18,7 @@ import Select from "../components/Select.jsx";
 import { NumeracaoPrefs, MapaCabosPrefs, CoresPrefs, PrefToggle } from "../components/CablingPrefs.jsx";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
+import { SEED_EQUIPS } from "../data/seedEquips.js";
 import { T } from "../ui/tokens.js";
 import { card, btn } from "../ui/styles.js";
 import SectionHeader from "../components/SectionHeader.jsx";
@@ -37,12 +38,13 @@ const download = (name, obj) => {
 // `embedded`: renderizado dentro do Drawer de Configurações (o Drawer já dá o título
 // e o X), então esconde o SectionHeader próprio pra não duplicar o cabeçalho.
 export default function Settings({ embedded = false }) {
-  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, setDespesas, exportBackup } = useLedLabContext();
+  const { cabs, setCabs, projects, setProjects, prefs, setPrefs, tcPresets, setTcPresets, setWorklog, setActivityTypes, setDespesas, equips, setEquips, exportBackup } = useLedLabContext();
   const confirm = useConfirm();
   const toast = useToast();
   const backupRef = useRef(null);
   const projRef = useRef(null);
   const cabRef = useRef(null);
+  const equipRef = useRef(null);
 
   // ── Backup completo ──
   const onExportBackup = () => { exportBackup(); toast("Backup exportado"); };
@@ -54,7 +56,7 @@ export default function Settings({ embedded = false }) {
       let d;
       try { d = JSON.parse(reader.result); } catch { toast("Arquivo inválido", "info"); return; }
       if (!d || typeof d !== "object" || (d.schema && !String(d.schema).startsWith("ledlab.backup"))) { toast("Este arquivo não é um backup do LedLab", "info"); return; }
-      const campos = ["cabs", "projects", "prefs", "tcPresets", "worklog", "activityTypes"];
+      const campos = ["cabs", "projects", "prefs", "tcPresets", "worklog", "activityTypes", "equips"];
       if (!campos.some((k) => d[k] != null)) { toast("Backup vazio ou não reconhecido", "info"); return; }
       if (!(await confirm({ title: "Importar backup?", message: "Isso substitui seus dados atuais (gabinetes, projetos, cachês e preferências) pelos do arquivo. Não pode ser desfeito.", confirmLabel: "Importar" }))) return;
       if (Array.isArray(d.cabs)) setCabs(d.cabs);
@@ -64,6 +66,7 @@ export default function Settings({ embedded = false }) {
       if (Array.isArray(d.worklog)) setWorklog(d.worklog);
       if (Array.isArray(d.activityTypes)) setActivityTypes(d.activityTypes);
       if (Array.isArray(d.despesas)) setDespesas(d.despesas); // fotos não vêm no .json (ficam no aparelho)
+      if (Array.isArray(d.equips)) setEquips(d.equips); // backups antigos sem o campo mantêm a biblioteca atual
       toast("Backup importado");
     };
     reader.readAsText(file);
@@ -120,6 +123,33 @@ export default function Settings({ embedded = false }) {
     e.target.value = "";
   };
 
+  // ── Biblioteca de equipamentos de vídeo ──
+  const exportEquips = () => download(fileName(["equipamentos-ledlab"], "json"), { schema: "ledlab.equips.v1", equips });
+  const importEquips = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const incoming = Array.isArray(parsed) ? parsed : parsed.equips || [];
+        if (!Array.isArray(incoming) || !incoming.length) { toast("Nenhum equipamento no arquivo.", "info"); return; }
+        const byName = new Map(equips.map((q) => [String(q.nome).toLowerCase(), q]));
+        let added = 0, updated = 0;
+        for (const raw of incoming) {
+          if (!raw || !raw.nome || !Array.isArray(raw.portas)) continue;
+          const k = String(raw.nome).toLowerCase();
+          if (byName.has(k)) { const ex = byName.get(k); byName.set(k, { ...ex, ...raw, id: ex.id }); updated++; }
+          else { byName.set(k, { ...raw, id: raw.id && !equips.some((q) => q.id === raw.id) ? raw.id : genId("equip") }); added++; }
+        }
+        setEquips(Array.from(byName.values()));
+        toast(`Importado: ${added} novo(s), ${updated} atualizado(s).`);
+      } catch { toast("Arquivo inválido. Use um .json exportado do LedLab Core.", "info"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   // ── Manutenção ──
   const clearProjects = async () => {
     if (await confirm({ title: "Limpar todos os projetos?", message: "Todos os projetos serão removidos. Os gabinetes da biblioteca são mantidos." })) {
@@ -131,7 +161,7 @@ export default function Settings({ embedded = false }) {
     if (!(await confirm({ title: "Restaurar de fábrica?", message: "Isso apaga TODOS os seus dados (gabinetes e projetos) e recarrega os dados de exemplo. Não pode ser desfeito." }))) return;
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
     setCabs(SEED_CABINETS); setProjects(SEED_PROJECTS); setPrefs(DEFAULT_PREFS); setTcPresets([]);
-    setWorklog([]); setActivityTypes(SEED_ACTIVITY_TYPES); setDespesas([]);
+    setWorklog([]); setActivityTypes(SEED_ACTIVITY_TYPES); setDespesas([]); setEquips(SEED_EQUIPS);
     toast("Dados restaurados de fábrica");
   };
 
@@ -255,6 +285,8 @@ export default function Settings({ embedded = false }) {
         <input ref={projRef} type="file" accept=".json,application/json" onChange={importProjects} style={{ display: "none" }} />
         <IoRow title="Biblioteca de gabinetes" desc="Só os gabinetes — mescla por nome (adiciona novos, atualiza iguais)." onExport={exportCabs} onImport={() => cabRef.current?.click()} />
         <input ref={cabRef} type="file" accept="application/json" onChange={importCabs} style={{ display: "none" }} />
+        <IoRow title="Equipamentos de vídeo" desc="Só os equipamentos — mescla por nome (adiciona novos, atualiza iguais)." onExport={exportEquips} onImport={() => equipRef.current?.click()} />
+        <input ref={equipRef} type="file" accept="application/json" onChange={importEquips} style={{ display: "none" }} />
       </Section>
 
       <Section icon={TriangleAlert} title="Manutenção" subtitle="Ações destrutivas — não podem ser desfeitas" defaultOpen={false}>

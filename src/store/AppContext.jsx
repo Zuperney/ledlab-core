@@ -9,6 +9,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
+import { SEED_EQUIPS } from "../data/seedEquips.js";
 import { recomputeStatus, isoDate } from "../services/projectCalc.js";
 import { setAcMargin } from "../services/cabling.js";
 import { fullSnapshot } from "../services/cabinets.js";
@@ -179,6 +180,7 @@ export function AppProvider({ children }) {
   const [worklog, setWorklog] = useState([]);
   const [activityTypes, setActivityTypes] = useState(SEED_ACTIVITY_TYPES);
   const [despesas, setDespesas] = useState([]);
+  const [equips, setEquips] = useState(SEED_EQUIPS);
   const [lastBackupAt, setLastBackupAt] = useState(() => getLastBackupAt());
 
   // hidratação: IndexedDB é a fonte primária. Na 1ª abertura (IndexedDB vazio),
@@ -188,7 +190,7 @@ export function AppProvider({ children }) {
     let alive = true;
     (async () => {
       try {
-        const [c, p, pr, tc, wl, at, dp] = await Promise.all([
+        const [c, p, pr, tc, wl, at, dp, eq] = await Promise.all([
           hydrateArray(KEYS.cabs, SEED_CABINETS),
           hydrateArray(KEYS.projects, SEED_PROJECTS),
           hydrateObject(KEYS.prefs, DEFAULT_PREFS),
@@ -196,6 +198,7 @@ export function AppProvider({ children }) {
           hydrateArray(KEYS.worklog, []),
           hydrateArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES),
           hydrateArray(KEYS.despesas, []),
+          hydrateArray(KEYS.equips, SEED_EQUIPS),
         ]);
         if (!alive) return;
         setCabs(c);
@@ -205,6 +208,7 @@ export function AppProvider({ children }) {
         setWorklog(wl);
         setActivityTypes(at);
         setDespesas(dp);
+        setEquips(eq);
       } catch {
         if (!alive) return;
         setCabs(loadArray(KEYS.cabs, SEED_CABINETS));
@@ -214,6 +218,7 @@ export function AppProvider({ children }) {
         setWorklog(loadArray(KEYS.worklog, []));
         setActivityTypes(loadArray(KEYS.activityTypes, SEED_ACTIVITY_TYPES));
         setDespesas(loadArray(KEYS.despesas, []));
+        setEquips(loadArray(KEYS.equips, SEED_EQUIPS));
       } finally {
         if (alive) setHydrated(true);
       }
@@ -230,6 +235,7 @@ export function AppProvider({ children }) {
   useEffect(() => { if (hydrated) persist(KEYS.worklog, worklog); }, [worklog, hydrated]);
   useEffect(() => { if (hydrated) persist(KEYS.activityTypes, activityTypes); }, [activityTypes, hydrated]);
   useEffect(() => { if (hydrated) persist(KEYS.despesas, despesas); }, [despesas, hydrated]);
+  useEffect(() => { if (hydrated) persist(KEYS.equips, equips); }, [equips, hydrated]);
 
   // sincroniza a margem de segurança do cabo AC (módulo em cabling.js) com a pref
   useEffect(() => { setAcMargin(prefs.acMargin); }, [prefs.acMargin]);
@@ -237,7 +243,7 @@ export function AppProvider({ children }) {
   // backup completo (baixa .json + registra a data). lastBackupAt é reativo, então
   // o lembrete de backup no <App> some sozinho — seja pelo banner ou pelo Settings.
   const exportBackup = () => {
-    downloadJSON(fileName(["ledlab-backup"], "json"), { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes, despesas });
+    downloadJSON(fileName(["ledlab-backup"], "json"), { schema: "ledlab.backup.v2", exportedAt: new Date().toISOString(), cabs, projects, prefs, tcPresets, worklog, activityTypes, despesas, equips });
     setLastBackupAt(markBackupNow());
   };
 
@@ -249,6 +255,7 @@ export function AppProvider({ children }) {
     worklog, setWorklog,
     activityTypes, setActivityTypes,
     despesas, setDespesas,
+    equips, setEquips,
     lastBackupAt, exportBackup,
     storageOk: STORAGE_WRITABLE,
   };

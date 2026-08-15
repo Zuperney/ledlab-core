@@ -9,6 +9,7 @@ export const KEYS = {
   worklog: "ledlab.worklog.v1",           // módulo Diárias: lançamentos (WorkEntry[])
   activityTypes: "ledlab.activitytypes.v1", // módulo Diárias: tipos de atividade
   despesas: "ledlab.despesas.v1",         // módulo Reembolso: despesas (Despesa[]); fotos ficam em idb à parte
+  equips: "ledlab.equips.v1",             // biblioteca de equipamentos de vídeo (Equip[])
 };
 
 // Caches read-only do módulo Equipe (a fonte da verdade é o Supabase; isto é

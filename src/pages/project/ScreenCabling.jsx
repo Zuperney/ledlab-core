@@ -22,6 +22,9 @@ import { genId } from "../../services/ids.js";
 import { fileName } from "../../services/filenames.js";
 import { oneScreenPerTela, screenTelas } from "../../services/screens.js";
 import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV } from "../../services/screenCabling.js";
+import { equipSnapshot, screenEquipStatus } from "../../services/equipamentos.js";
+import { buildLoomexExport } from "../../services/loomex.js";
+import { downloadJSON } from "../../services/storage.js";
 import { VOLT, phaseOf, phaseBalance } from "../../services/electricalCalc.js";
 import { fmtFases } from "../../services/reportContent.js";
 import { PrefToggle } from "../../components/CablingPrefs.jsx";
@@ -40,7 +43,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const isMobile = useIsMobile();
   const confirm = useConfirm();
   const toast = useToast();
-  const { prefs } = useLedLabContext();
+  const { prefs, equips } = useLedLabContext();
   const numbering = prefs.cableNumbering || "row-tb-lr";
   const cr = { arrows: true, numbers: true, numberSize: "sm", numberPos: "bl", ...(prefs.cablingRender || {}) };
 
@@ -136,6 +139,15 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const removerCabo = (i) => { setCables(cables.filter((_, j) => j !== i)); setActiveCable(null); };
   const inverter = () => { if (cables[activeCable]?.length) setCables(cables.map((c, i) => (i === activeCable ? [...c].reverse() : c))); };
   const limpar = async () => { if (await confirm({ title: "Limpar cabeamento?", message: `${isAc ? "Todos os circuitos livres" : "Todas as portas livres"} de ${active.nome} serão removid${isAc ? "os" : "as"}.` })) { setCables([]); setActiveCable(null); } };
+  // o handshake com o Loomex: baixa o .loomex.json do PROJETO inteiro (todas as
+  // Screens + equipamentos vinculados), pronto pro Importar de lá — o projeto
+  // nasce no Loomex com blocos e conexões desenhadas.
+  const exportLoomex = () => {
+    const out = buildLoomexExport(project, numbering);
+    downloadJSON(fileName([project.name || "projeto", "loomex"], "loomex.json"), out);
+    const aConfirmar = out.conexoes.filter((c) => c.estilo === "dashed").length;
+    toast(`Loomex: ${out.blocos.length} blocos, ${out.conexoes.length} conexões${aConfirmar ? ` (${aConfirmar} a confirmar)` : ""}.`);
+  };
   const exportCSV = () => {
     const csv = projectPixelMapCSV(project, numbering, active.id);
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
@@ -227,6 +239,12 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                     <Download size={14} /> Mapa de pixels
                   </button>
                 )}
+                {!isAc && !isMobile && (
+                  <button onClick={exportLoomex} title="Baixa o projeto como .loomex.json — abre no Loomex (Importar) já com equipamentos, Screens e conexões desenhadas"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 38, background: T.card2, border: `1px solid ${T.bd}`, color: T.txt, borderRadius: 8, padding: "7px 11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                    <Download size={14} /> Loomex
+                  </button>
+                )}
               </span>
             </div>
 
@@ -285,6 +303,17 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
       {advOpen && (
         <LightModal title={`Avançado · ${active.nome} · ${isAc ? "AC" : "Sinal"}`} onClose={onAdvClose}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {/* vínculo equipamento→Screen: link vivo (id) + snapshot congelado —
+                mesmo padrão cabId+gabinete das telas. Reselecionar = atualizar. */}
+            {!isAc && (
+              <span style={{ gridColumn: "1 / -1" }}>
+                <Drop fluid label="Equipamento" title="Quem alimenta esta Screen — as saídas de dados dele viram as conexões do export Loomex"
+                  options={[["", "— sem equipamento"], ...equips.map((e) => [e.id, e.nome])]}
+                  value={active.equipamentoId || ""}
+                  onChange={(v) => { const eq = equips.find((e) => e.id === v); patchActive({ equipamentoId: eq ? eq.id : undefined, equipamento: equipSnapshot(eq) }); }} />
+                <EquipStatus st={screenEquipStatus(active, telas, numbering)} />
+              </span>
+            )}
             {!isAc && <Drop fluid label="Régua" title="Área = regra do retângulo (a porta reserva o retângulo; a mais usada). Pixels = Free Topology (conta o gabinete real; exige controladora com a função)." options={[["area", "Área (retângulo)"], ["px", "Pixels (real)"]]} value={rule} onChange={setRegua} />}
             <Drop fluid label="Disposição" title={`Como a cadeia é cortada em ${isAc ? "circuitos" : "portas"}`} options={dispOpts} value={disp} onChange={setDisp} />
             {mode === "auto" && <>
@@ -314,6 +343,15 @@ function bboxOf(screen, telas) {
 
 function Info({ text }) {
   return <div style={card({ color: T.dim, fontSize: 13, textAlign: "center", padding: 24 })}>{text}</div>;
+}
+
+// feedback do vínculo: precisa N × tem M — informa, não bloqueia (padrão da casa)
+function EquipStatus({ st }) {
+  const color = !st ? T.dim : st.ok ? T.grn : T.amb;
+  const texto = !st
+    ? "Sem equipamento — a régua segue manual."
+    : `Portas de dados: precisa ${st.necessarias} · o equipamento tem ${st.disponiveis} saída${st.disponiveis === 1 ? "" : "s"}.`;
+  return <div style={{ color, fontSize: 11.5, marginTop: 6, fontWeight: 500, textTransform: "none" }}>{texto}</div>;
 }
 
 const dropSel = { background: T.card2, color: T.txt, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "7px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
