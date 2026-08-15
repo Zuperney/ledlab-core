@@ -21,7 +21,7 @@ import { useLedLabContext } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { fileName } from "../../services/filenames.js";
 import { oneScreenPerTela, screenTelas } from "../../services/screens.js";
-import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV } from "../../services/screenCabling.js";
+import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV, neighborCell } from "../../services/screenCabling.js";
 import { equipSnapshot, screenEquipStatus } from "../../services/equipamentos.js";
 import { buildLoomexExport } from "../../services/loomex.js";
 import { downloadJSON } from "../../services/storage.js";
@@ -90,20 +90,9 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const onTouchMove = (e) => { const t = e.touches[0]; if (!drag.current || !t) return; drag.current.moved = true; setPan({ x: drag.current.px + (t.clientX - drag.current.x), y: drag.current.py + (t.clientY - drag.current.y) }); };
   const zoomBy = (f) => { const el = stageRef.current, cw = el.clientWidth / 2, ch = el.clientHeight / 2; setZoom((z) => Math.min(6, Math.max(0.05, z * f))); setPan((p) => ({ x: cw - (cw - p.x) * f, y: ch - (ch - p.y) * f })); };
 
-  if (!telas.length) return <Info text="Adicione telas na aba Dados para cabear." />;
-  if (!screens.length) {
-    return (
-      <div style={card({ textAlign: "center", padding: "28px 20px" })}>
-        <Layers size={28} color={T.acM} style={{ marginBottom: 8 }} />
-        <div style={{ color: T.txt, fontWeight: 600, marginBottom: 6 }}>Nenhuma Screen pra cabear</div>
-        <p style={{ color: T.mut, fontSize: 13, maxWidth: 420, margin: "0 auto 14px", lineHeight: 1.5 }}>
-          O cabeamento é por Screen. Monte as Screens na aba <b style={{ color: T.txt }}>Screens</b> — ou crie uma por tela pra começar.
-        </p>
-        <button style={btn("ghost")} onClick={() => patch({ screens: oneScreenPerTela(telas, () => genId("screen")) })}>1 Screen por tela</button>
-      </div>
-    );
-  }
-
+  // (os retornos antecipados de "sem telas"/"sem Screens" moram no fim do
+  //  componente, DEPOIS de todos os hooks — o do teclado incluído. Daqui pra
+  //  baixo `active` pode ser undefined; o que dereferencia na hora tem guard.)
   const setScreens = (next) => patch({ screens: next });
   const patchActive = (partial) => setScreens(screens.map((s) => (s.id === active.id ? { ...s, ...partial } : s)));
   const setCfg = (partial) => patchActive({ [kind]: { ...cfg, ...partial } });
@@ -111,14 +100,14 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const setCables = (next) => { setHistory((h) => [...h.slice(-29), cables]); setCfg({ cables: next }); };
   const undo = () => { if (!history.length) return; setCfg({ cables: history[history.length - 1] }); setHistory(history.slice(0, -1)); };
 
-  const ports = screenPorts(active, telas, kind, numbering);
+  const ports = active ? screenPorts(active, telas, kind, numbering) : [];
   const portIdx = cellPortIndex(ports);
-  const summary = screenPortSummary(active, telas, kind, numbering);
+  const summary = active ? screenPortSummary(active, telas, kind, numbering) : [];
   // FASES (só AC): rodízio por Screen conforme a tensão do projeto (aba Energia)
   const vc = VOLT[(project.config || {}).vk] || VOLT["220_tri"];
   const balFases = isAc ? phaseBalance(summary, vc) : { temRodizio: false };
-  const cells = screenCells(active, telas);
-  const faltam = mode === "livre" ? unassignedCount(active, telas, kind) : 0;
+  const cells = active ? screenCells(active, telas) : [];
+  const faltam = mode === "livre" && active ? unassignedCount(active, telas, kind) : 0;
   const anyOver = summary.some((p) => p.over);
   const anyOc = summary.some((p) => p.oc); // overclock: acima do nominal POR ESCOLHA
   // regra dos 80%: cabo AC acima da margem de carga contínua = atenção (laranja)
@@ -159,6 +148,44 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
     toast(`Mapa de pixels: ${ports.length} portas, coordenada da Screen.`);
   };
 
+  // ── teclado do modo livre — o fluxo clique-por-clique vira seta-por-seta ──
+  // Clique escolhe o 1º gabinete; daí as SETAS estendem o cabo ativo pro vizinho
+  // geométrico (atravessa telas encostadas). Seta pra um gabinete que JÁ está no
+  // cabo = volta um passo (backtrack). Backspace tira o último; N abre um cabo
+  // novo; Ctrl+Z desfaz; Esc sai da edição. Ignora foco em campo de texto e o
+  // Avançado aberto (o modal tem o próprio Esc). Sem array de deps de propósito:
+  // re-assina a cada render pra fechar sempre sobre os valores atuais.
+  useEffect(() => {
+    if (mode !== "livre" || advOpen || !active) return undefined;
+    const onKey = (e) => {
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      const dirKey = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" }[e.key];
+      if (dirKey) {
+        if (activeCable == null || activeCable >= cables.length) return;
+        const cabo = cables[activeCable] || [];
+        if (!cabo.length) return; // o primeiro gabinete é escolhido no clique
+        e.preventDefault();
+        const next = neighborCell(cells, cabo[cabo.length - 1], dirKey);
+        if (!next) return;
+        const inActive = cabo.some((c) => c.telaId === next.telaId && c.c === next.c && c.r === next.r);
+        if (inActive) setCables(cables.map((c, i) => (i === activeCable ? c.slice(0, -1) : c)));
+        else setCables(assignCell(cables, activeCable, next));
+        return;
+      }
+      if ((e.key === "Backspace" || e.key === "Delete") && activeCable != null && cables[activeCable]?.length) {
+        e.preventDefault();
+        setCables(cables.map((c, i) => (i === activeCable ? c.slice(0, -1) : c)));
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); return; }
+      if (e.key.toLowerCase() === "n" && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); novoCabo(); return; }
+      if (e.key === "Escape" && activeCable != null) setActiveCable(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   const R = (v) => v * zoom;
   // disposições disponíveis conforme régua/kind (px não tem Linha/Coluna/Área; AC tem "Atrelar ao sinal")
   const dispOpts = isAc
@@ -166,6 +193,21 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
     : rule === "px"
       ? [["auto", "Automática"], ["livre", "Livre"]]
       : [["area", "Área"], ["linha", "Linha"], ["coluna", "Coluna"], ["livre", "Livre"]];
+
+  // estados vazios — depois de TODOS os hooks (regra de hooks), antes do render
+  if (!telas.length) return <Info text="Adicione telas na aba Dados para cabear." />;
+  if (!screens.length) {
+    return (
+      <div style={card({ textAlign: "center", padding: "28px 20px" })}>
+        <Layers size={28} color={T.acM} style={{ marginBottom: 8 }} />
+        <div style={{ color: T.txt, fontWeight: 600, marginBottom: 6 }}>Nenhuma Screen pra cabear</div>
+        <p style={{ color: T.mut, fontSize: 13, maxWidth: 420, margin: "0 auto 14px", lineHeight: 1.5 }}>
+          O cabeamento é por Screen. Monte as Screens na aba <b style={{ color: T.txt }}>Screens</b> — ou crie uma por tela pra começar.
+        </p>
+        <button style={btn("ghost")} onClick={() => patch({ screens: oneScreenPerTela(telas, () => genId("screen")) })}>1 Screen por tela</button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -196,14 +238,16 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
             <div style={card({ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 })}>
               <button onClick={importAuto} style={{ ...ibtn(), width: "auto", padding: "0 12px", gap: 6, fontSize: 13 }} title="Começa dos cabos que o automático sugere e edita"><Download size={15} /> Importar do auto</button>
               <span style={sep} />
-              <button onClick={novoCabo} style={ibtn()} title={novoWord}><Plus size={16} /></button>
+              <button onClick={novoCabo} style={ibtn()} title={`${novoWord} (N)`}><Plus size={16} /></button>
               <button onClick={inverter} style={ibtn()} title="Inverter início/fim da cadeia"><Repeat2 size={15} /></button>
-              <button onClick={() => setActiveCable(null)} disabled={activeCable == null} style={ibtn({ opacity: activeCable == null ? 0.4 : 1, cursor: activeCable == null ? "not-allowed" : "pointer" })} title="Sair da edição"><X size={15} /></button>
+              <button onClick={() => setActiveCable(null)} disabled={activeCable == null} style={ibtn({ opacity: activeCable == null ? 0.4 : 1, cursor: activeCable == null ? "not-allowed" : "pointer" })} title="Sair da edição (Esc)"><X size={15} /></button>
               <span style={sep} />
-              <button onClick={undo} disabled={!history.length} style={ibtn({ opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" })} title="Desfazer"><Undo2 size={15} /></button>
+              <button onClick={undo} disabled={!history.length} style={ibtn({ opacity: history.length ? 1 : 0.4, cursor: history.length ? "pointer" : "not-allowed" })} title="Desfazer (Ctrl+Z)"><Undo2 size={15} /></button>
               <button onClick={limpar} style={ibtn()} title={isAc ? "Limpar circuitos" : "Limpar portas"}><Eraser size={15} /></button>
               <span style={{ marginLeft: "auto", color: T.dim, fontSize: 12 }}>
-                {activeCable != null ? <>Editando <b style={{ color: colorOf(activeCable) }}>{word} {activeCable + 1}</b> · clique nos gabinetes</> : cables.length ? `Selecione ${isAc ? "um circuito" : "uma porta"} na legenda` : `Importe do auto ou clique “${novoWord}”`}
+                {activeCable != null
+                  ? <>Editando <b style={{ color: colorOf(activeCable) }}>{word} {activeCable + 1}</b>{isMobile ? " · toque nos gabinetes" : " · clique no 1º gabinete e estenda com as setas ↑↓←→ · Backspace volta"}</>
+                  : cables.length ? `Selecione ${isAc ? "um circuito" : "uma porta"} na legenda` : `Importe do auto ou clique “${novoWord}”`}
               </span>
             </div>
           )}

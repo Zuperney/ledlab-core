@@ -1,6 +1,6 @@
 ﻿// screenCabling.test.js — cabeamento de sinal por Screen (auto + livre).
 import { describe, it, expect } from "vitest";
-import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV, projectAcCabos } from "./screenCabling.js";
+import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV, projectAcCabos, neighborCell } from "./screenCabling.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
 const gabImag = { resX: "192", resY: "192", pwrMax: "150", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -370,3 +370,25 @@ describe("telaIds órfãos (tela excluída sem limpar a Screen) — LLC-11", () 
   });
 });
 
+
+describe("neighborCell — as setas do teclado no modo livre", () => {
+  const cells = screenCells(scTiras, telas);
+
+  it("anda dentro da tela (linha seguinte na vertical)", () => {
+    const n = neighborCell(cells, { telaId: "t1", c: 0, r: 0 }, "down");
+    expect(n).toMatchObject({ telaId: "t1", c: 0, r: 1 });
+  });
+
+  it("atravessa pra tela ENCOSTADA à direita (t1 → t2, geometria e não c/r)", () => {
+    const n = neighborCell(cells, { telaId: "t1", c: 0, r: 0 }, "right");
+    expect(n).toMatchObject({ telaId: "t2", c: 0, r: 0 });
+  });
+
+  it("borda do painel → null (não dá a volta)", () => {
+    expect(neighborCell(cells, { telaId: "t1", c: 0, r: 0 }, "left")).toBeNull();
+  });
+
+  it("célula que não existe na Screen → null", () => {
+    expect(neighborCell(cells, { telaId: "zz", c: 0, r: 0 }, "down")).toBeNull();
+  });
+});

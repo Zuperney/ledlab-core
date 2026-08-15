@@ -172,6 +172,20 @@ export function assignCell(cables, activeIdx, cell) {
   return cleaned;
 }
 
+// vizinho GEOMÉTRICO de uma célula (as setas do teclado no modo livre): dá um
+// passo pra fora da borda na direção pedida e acha a célula que contém o ponto.
+// Por ser por geometria (e não por c/r), atravessa telas encostadas mesmo com
+// gabinetes de dimensões diferentes; buraco entre telas ou borda → null.
+export function neighborCell(cells, from, dir) {
+  const cell = cells.find((c) => c.telaId === from.telaId && c.c === from.c && c.r === from.r);
+  if (!cell) return null;
+  const dx = dir === "left" ? -1 : dir === "right" ? 1 : 0;
+  const dy = dir === "up" ? -1 : dir === "down" ? 1 : 0;
+  const px = dx === 0 ? cell.x + cell.w / 2 : dx > 0 ? cell.x + cell.w + 2 : cell.x - 2;
+  const py = dy === 0 ? cell.y + cell.h / 2 : dy > 0 ? cell.y + cell.h + 2 : cell.y - 2;
+  return cells.find((c) => px >= c.x && px < c.x + c.w && py >= c.y && py < c.y + c.h) || null;
+}
+
 // gabinetes da Screen que ainda não estão em nenhum cabo (livre incompleto)
 export function unassignedCount(screen, telas, kind = "sinal") {
   const cells = screenCells(screen, telas);
