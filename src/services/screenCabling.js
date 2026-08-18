@@ -208,13 +208,31 @@ export function telasSemScreen(project) {
   return unassignedTelas(project?.screens, project?.telas);
 }
 
+// Grade e contagem de gabinetes da Screen. A caixa envolvente (screenSize) inclui
+// o VÃO entre telas afastadas no canvas — dividi-la pela resolução do gabinete
+// contava gabinetes que NÃO existem (o caderno mostrava "Grade da Screen 20 × 6"
+// = 120 numa Screen de 96 gabinetes com um vão no meio). `gabs` é a contagem real
+// (os mesmos gabinetes que o mapa desenha e as portas somam); `cols × rows` só
+// significa algo quando a Screen é UM retângulo cheio de um único modelo — é o
+// que `exato` diz, e o caderno só imprime a grade nesse caso.
+export function screenGrid(screen, telas) {
+  const membros = screenTelas(screen, telas);
+  const gabs = screenCells(screen, telas).length;
+  const g = membros[0]?.gabinete || {};
+  const resX = parseFloat(g.resX) || 128, resY = parseFloat(g.resY) || 128;
+  const { w, h } = screenSize(screen, telas);
+  const cols = Math.round(w / resX), rows = Math.round(h / resY);
+  const umModelo = new Set(membros.map(modelKey)).size <= 1;
+  return { gabs, cols, rows, exato: umModelo && gabs > 0 && cols * rows === gabs };
+}
+
 // Relatório: cada Screen com tamanho + resumo (numeração 1..N POR Screen, porque
 // cada Screen é um controlador). `kind` = "sinal" ou "ac".
 export function projectScreenReport(project, kind = "sinal", numbering = "row-tb-lr", elCfg) {
   const telas = project?.telas || [];
   return (project?.screens || [])
     .filter((s) => screenTelas(s, telas).length) // só telas existentes (LLC-11)
-    .map((s) => ({ id: s.id, nome: s.nome, size: screenSize(s, telas), ports: screenPortSummary(s, telas, kind, numbering, elCfg) }));
+    .map((s) => ({ id: s.id, nome: s.nome, size: screenSize(s, telas), grid: screenGrid(s, telas), ports: screenPortSummary(s, telas, kind, numbering, elCfg) }));
 }
 
 // Todos os cabos AC do projeto como [{ n, load, loadTip }] — o insumo do rodízio

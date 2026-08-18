@@ -275,7 +275,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     const scr = screensById[s.id];
     const g = (scr?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)[0]?.gabinete;
     const resX = parseFloat(g?.resX) || 128, resY = parseFloat(g?.resY) || 128;
-    return { resX, resY, cols: Math.round(s.size.w / resX), rows: Math.round(s.size.h / resY), hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true };
+    return { resX, resY, hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true };
   };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
@@ -591,7 +591,10 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               ["Resolução da Screen", `${ptBR(s.size.w)} × ${ptBR(s.size.h)} px`],
               ["Frequência", `${sp.hz} Hz`],
               ["Gabinete", `${sp.resX} × ${sp.resY} px`],
-              ["Grade da Screen", `${sp.cols} × ${sp.rows} gabinetes`],
+              // contagem REAL: a bbox da Screen inclui o vão entre telas
+              // afastadas, então a grade só sai quando é um retângulo cheio
+              ["Gabinetes", String(s.grid.gabs)],
+              ...(s.grid.exato ? [["Grade da Screen", `${s.grid.cols} × ${s.grid.rows}`]] : []),
               ["Total de portas", String(s.ports.length)],
               // premissa declarada: passar do nominal foi ESCOLHA (documento datado)
               ...(sp.overclock ? [["Overclock", "ligado"]] : []),

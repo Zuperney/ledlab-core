@@ -1,6 +1,6 @@
 ﻿// screenCabling.test.js — cabeamento de sinal por Screen (auto + livre).
 import { describe, it, expect } from "vitest";
-import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV, projectAcCabos, neighborCell } from "./screenCabling.js";
+import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV, projectAcCabos, neighborCell, screenGrid } from "./screenCabling.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
 const gabImag = { resX: "192", resY: "192", pwrMax: "150", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -204,6 +204,34 @@ describe("telaPortSlices — número real por Screen, com fallback legado", () =
   });
 });
 
+describe("screenGrid — contagem real de gabinetes (o vão não conta)", () => {
+  it("Screen encostada de um modelo: grade exata, gabs = soma das telas", () => {
+    // 12 col × 3 lin de 128×256 = 36 gabinetes, retângulo cheio
+    expect(screenGrid(scTiras, telas)).toEqual({ gabs: 36, cols: 12, rows: 3, exato: true });
+  });
+
+  it("VÃO entre telas: gabs continua o real e a grade sai de cena", () => {
+    // Central afastada 1.280 px da tira: a bbox vira 2.560 px = 20 colunas (60
+    // gabinetes), mas existem 33. Sem `exato`, o caderno não imprime a grade.
+    const comVao = { ...scTiras, telaIds: ["t1", "central"], pos: { t1: { x: 0, y: 0 }, central: { x: 1280, y: 0 } } };
+    const g = screenGrid(comVao, telas);
+    expect(g.gabs).toBe(33); // 1×3 + 10×3 — os gabinetes que existem
+    expect(g.cols * g.rows).toBe(60); // o que a bbox sugeriria (o bug antigo)
+    expect(g.exato).toBe(false);
+  });
+
+  it("modelos diferentes: nunca exato (a grade não tem um gabinete só)", () => {
+    const mista = { id: "m", nome: "Mista", telaIds: ["t1", "imag"], pos: { t1: { x: 0, y: 0 }, imag: { x: 128, y: 0 } }, sinal: {} };
+    const g = screenGrid(mista, telas);
+    expect(g.gabs).toBe(21); // 3 + 18
+    expect(g.exato).toBe(false);
+  });
+
+  it("Screen sem tela: 0 gabinetes, sem grade", () => {
+    expect(screenGrid({ id: "v", telaIds: [], pos: {} }, telas)).toEqual({ gabs: 0, cols: 0, rows: 0, exato: false });
+  });
+});
+
 describe("projectScreenReport", () => {
   it("uma entrada por Screen com tela, com tamanho e portas 1..N por Screen", () => {
     const proj = { telas, screens: [scTiras, scImag, { id: "vazia", nome: "Vazia", telaIds: [], pos: {} }] };
@@ -211,6 +239,9 @@ describe("projectScreenReport", () => {
     expect(rep.map((r) => r.nome)).toEqual(["Tiras", "IMAG"]); // a vazia fica de fora
     expect(rep[0].ports[0].n).toBe(1); // cada Screen começa em 1
     expect(rep[0].size.w).toBeGreaterThan(0);
+    // a contagem de gabinetes vem pronta pros dois renderizadores do caderno
+    expect(rep[0].grid.gabs).toBe(36);
+    expect(rep[0].grid.gabs).toBe(rep[0].ports.reduce((n, p) => n + p.count, 0));
   });
 });
 

@@ -107,7 +107,7 @@ export default function ProjectRelatorio({ project }) {
     const scr = screensById[s.id];
     const g = (scr?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)[0]?.gabinete;
     const resX = parseFloat(g?.resX) || 128, resY = parseFloat(g?.resY) || 128;
-    return { resX, resY, cols: Math.round(s.size.w / resX), rows: Math.round(s.size.h / resY), hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true };
+    return { resX, resY, hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true };
   };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
@@ -245,7 +245,9 @@ export default function ProjectRelatorio({ project }) {
                   <span>Resolução da Screen <b style={{ color: PRINT.ink }}>{s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px</b></span>
                   <span>Frequência <b style={{ color: PRINT.ink }}>{sp.hz} Hz</b></span>
                   <span>Gabinete <b style={{ color: PRINT.ink }}>{sp.resX} × {sp.resY} px</b></span>
-                  <span>Grade da Screen <b style={{ color: PRINT.ink }}>{sp.cols} × {sp.rows} gabinetes</b></span>
+                  {/* contagem REAL: a bbox da Screen inclui o vão entre telas afastadas, então a grade só sai quando a Screen é um retângulo cheio */}
+                  <span>Gabinetes <b style={{ color: PRINT.ink }}>{s.grid.gabs}</b></span>
+                  {s.grid.exato && <span>Grade da Screen <b style={{ color: PRINT.ink }}>{s.grid.cols} × {s.grid.rows}</b></span>}
                   <span>Total de portas <b style={{ color: PRINT.ink }}>{s.ports.length}</b></span>
                   {/* premissa declarada: documento datado registra que passar do nominal foi escolha */}
                   {sp.overclock && <span>Overclock <b style={{ color: PRINT.amb }}>ligado — porta pode passar da capacidade nominal</b></span>}

@@ -338,6 +338,27 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).not.toContain('"text":"101%","font":"PlexMono","alignment":"right","bold":true,"color":"#b91c1c"'); // não é estouro
   });
 
+  it("Screen com VÃO: specBox conta os gabinetes REAIS e não imprime grade", () => {
+    // duas telas 4×3 de 128 px afastadas: bbox 1.536 px = 12 col × 3 lin = 36
+    // gabinetes que não existem. A Screen tem 24 — e sem retângulo cheio a
+    // linha "Grade da Screen" some (a bbox não descreve a montagem).
+    const g128 = { ...gab, resX: 128, resY: 128 };
+    const mk = (id, nome) => ({ id, nome, cols: 4, rows: 3, gabinete: g128 });
+    const scr = (posB) => ({ id: "s1", nome: "Screen 1", telaIds: ["tA", "tB"], pos: { tA: { x: 0, y: 0 }, tB: { x: posB, y: 0 } }, sinal: { rule: "px", strategy: "auto" } });
+    const doc = (posB) => JSON.stringify(buildRelatorioDoc({ project: { ...project, telas: [mk("tA", "Tela A"), mk("tB", "Tela B")], screens: [scr(posB)] }, tipo: "Mapa de cabos", cfg, logo: null }).content);
+
+    const comVao = doc(1024);
+    expect(comVao).toContain('"GABINETES"');
+    expect(comVao).toContain('"text":"24"');
+    expect(comVao).not.toContain('"GRADE DA SCREEN"');
+    expect(comVao).not.toContain('"12 × 3"'); // a grade fantasma da bbox
+
+    // encostadas (8 × 3 = 24): a grade volta, porque agora descreve a Screen
+    const encostadas = doc(512);
+    expect(encostadas).toContain('"GRADE DA SCREEN"');
+    expect(encostadas).toContain('"text":"8 × 3"');
+  });
+
   it("um tópico por página + uma página por Screen/tela — quebra CONDICIONAL (headlineLevel)", () => {
     // A quebra é decidida pelo pageBreakBefore do docDefinition (só quebra se a
     // página atual tem conteúdo — mata a página em branco); os nós de início de
