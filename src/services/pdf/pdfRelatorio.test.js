@@ -359,6 +359,34 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(encostadas).toContain('"text":"8 × 3"');
   });
 
+  it("Design com Test Cards: folha de referência de imagem, com as imagens no dicionário", () => {
+    // as imagens vêm DESENHADAS de fora (canvas é do browser; o builder é puro) —
+    // e entram por NOME no dicionário `images`, nunca dataURL inline no nó
+    const testCards = [
+      { telaId: "t1", nome: "Main", cols: 10, rows: 6, url: "data:image/png;base64,AAA", pxW: 1040, pxH: 624 },
+      { telaId: "t2", nome: "Side", cols: 4, rows: 6, url: "data:image/png;base64,BBB", pxW: 416, pxH: 624 },
+    ];
+    const doc = buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null, testCards });
+    const j = JSON.stringify(doc.content);
+    expect(j).toContain("TEST CARD");
+    expect(j).toContain("REFERÊNCIA DE IMAGEM");
+    expect(j).toContain('"image":"tc_t1"');
+    expect(j).toContain('"image":"tc_t2"');
+    expect(j).not.toContain("data:image/png;base64,AAA"); // nada de dataURL no nó
+    expect(doc.images.tc_t1).toBe("data:image/png;base64,AAA");
+    expect(doc.images.tc_t2).toBe("data:image/png;base64,BBB");
+    expect(j).toContain('"fit":[364,190]'); // duas por linha, em fit (nunca width cru)
+  });
+
+  it("sem cards desenhados — ou fora do Design — não nasce folha de Test Card", () => {
+    const semCards = JSON.stringify(buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null }).content);
+    expect(semCards).not.toContain("REFERÊNCIA DE IMAGEM");
+    // o mesmo insumo num caderno Completo não vira folha (a folha é do Design)
+    const cards = [{ telaId: "t1", nome: "Main", cols: 10, rows: 6, url: "data:x", pxW: 1040, pxH: 624 }];
+    const completo = JSON.stringify(buildRelatorioDoc({ project, tipo: "Completo", cfg, logo: null, testCards: cards }).content);
+    expect(completo).not.toContain("REFERÊNCIA DE IMAGEM");
+  });
+
   it("um tópico por página + uma página por Screen/tela — quebra CONDICIONAL (headlineLevel)", () => {
     // A quebra é decidida pelo pageBreakBefore do docDefinition (só quebra se a
     // página atual tem conteúdo — mata a página em branco); os nós de início de

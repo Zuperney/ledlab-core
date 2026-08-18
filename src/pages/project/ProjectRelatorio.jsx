@@ -20,6 +20,7 @@ import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
 import ReportTelasCanvas from "../../components/ReportTelasCanvas.jsx";
+import ReportTestCards from "../../components/ReportTestCards.jsx";
 import { ReportCoverPage, SectionHead, SubHead, Chip, DenseTable, WarnBox } from "./reportUi.jsx";
 import { T, PRINT } from "../../ui/tokens.js";
 import { useCablePalette } from "../../hooks/useCablePalette.js";
@@ -81,6 +82,9 @@ export default function ProjectRelatorio({ project }) {
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
   const showPhys = ["Completo", "Resumido", "Gabinetes", "Design"].includes(type);
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
+  // folha de referência de imagem: só no Design (o caderno que vai pra produção
+  // e pro cliente ver COMO a tela fica, não só as medidas dela)
+  const showCards = type === "Design";
   const showSignal = ["Completo", "Mapa de cabos"].includes(type);
   const showAC = ["Completo", "Mapa de cabos"].includes(type); // AC saiu do Elétrico → foco em tabelas
   const showGloss = type === "Completo"; // glossário só no caderno completo (leitor leigo/cliente)
@@ -197,6 +201,14 @@ export default function ProjectRelatorio({ project }) {
                 </table>
               </div>
             ) : null; })()}
+          </section>
+        )}
+
+        {showCards && (
+          <section style={{ marginBottom: 22 }}>
+            <SectionHead n={sec()} title="Test Card" tag="Referência de imagem" color={DISC.video} Icon={Monitor} />
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>O Test Card de cada tela como ele vai aparecer no painel — referência de imagem pra conferir grade, numeração de gabinete e cor antes da montagem. O arquivo em resolução real sai na aba Test Card.</p>
+            <ReportTestCards project={project} />
           </section>
         )}
 

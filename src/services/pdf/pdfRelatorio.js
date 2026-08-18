@@ -176,7 +176,7 @@ const coverRow = (label, value, { bold = false, first = false } = {}) => ({
 // cadastrado em Dados (bloco de marca do carimbo) · `assinatura` = "Projetou"
 // do carimbo (Configurações › Conta — global de propósito: o nome não pode
 // mudar de impressão pra impressão).
-export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render }) {
+export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render, testCards = [] }) {
   const pal = Array.isArray(palette) && palette.length ? palette : PALETTE;
   const colorOf = (i) => pal[(((i | 0) % pal.length) + pal.length) % pal.length];
   // render do mapa (setas/números/tamanho/canto) — mesmas prefs do DOM
@@ -259,6 +259,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(tipo);
   const showPhys = ["Completo", "Resumido", "Gabinetes", "Design"].includes(tipo);
   const showVideo = ["Completo", "Resumido", "Design"].includes(tipo);
+  // folha de referência de imagem: só no Design, e só se o chamador desenhou os
+  // cards (o builder é puro — quem tem canvas é o pdfEngine, no browser)
+  const cards = tipo === "Design" ? testCards || [] : [];
   const showSignal = ["Completo", "Mapa de cabos"].includes(tipo);
   const showAC = ["Completo", "Mapa de cabos"].includes(tipo);
   const showGloss = tipo === "Completo";
@@ -439,6 +442,43 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         },
       ] : [];
     })(),
+  ];
+
+  // ── TEST CARD (referência de imagem) — só no Design ──
+  // Duas por linha em `fit` (nunca `width` cru: card mais alto que largo estouraria
+  // a folha), tabela sem borda com dontBreakRows pra imagem e legenda nunca se
+  // separarem. As imagens entram pelo dicionário `images` por NOME — dataURL
+  // inline no nó era o que inflava o PDF (comentário do dicionário lá embaixo).
+  const cardNodes = !cards.length ? [] : (() => {
+    const porLinha = cards.length === 1 ? 1 : 2;
+    const larg = porLinha === 1 ? 520 : 364; // 748 úteis - 20 de gap, dividido
+    const alt = porLinha === 1 ? 300 : 190;
+    const celula = (c) => ({
+      stack: [
+        { image: `tc_${c.telaId}`, fit: [larg, alt], margin: [0, 0, 0, 3] },
+        { text: [
+          { text: c.nome, bold: true, fontSize: 9, color: PRINT.ink },
+          { text: `  ${ptBR(c.pxW)} × ${ptBR(c.pxH)} px`, font: "PlexMono", fontSize: 7.5, color: PRINT.mut },
+          { text: `  ·  grade ${c.cols}×${c.rows}`, font: "PlexMono", fontSize: 7.5, color: PRINT.dim },
+        ] },
+      ],
+      margin: [0, 0, 0, 8],
+    });
+    const linhas = [];
+    for (let i = 0; i < cards.length; i += porLinha) {
+      const fatia = cards.slice(i, i + porLinha).map(celula);
+      while (fatia.length < porLinha) fatia.push({ text: "" }); // linha ímpar: célula vazia
+      linhas.push(fatia);
+    }
+    return [{
+      table: { widths: Array.from({ length: porLinha }, () => "*"), body: linhas, dontBreakRows: true },
+      layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: (i) => (i ? 10 : 0), paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+    }];
+  })();
+  const cardsSecao = !cards.length ? [] : [
+    sectionHead(sec(), "Test Card", "Referência de imagem", DISC.video),
+    { text: "O Test Card de cada tela como ele vai aparecer no painel — referência de imagem pra conferir grade, numeração de gabinete e cor antes da montagem. O arquivo em resolução real sai na aba Test Card.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 8] },
+    ...cardNodes,
   ];
 
   // ── INFORMAÇÕES ELÉTRICAS ──
@@ -1109,6 +1149,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     images: {
       ...(logo ? { marcaLedlab: logo } : {}),
       ...(logoProjeto ? { logoProjeto } : {}),
+      ...Object.fromEntries(cards.map((c) => [`tc_${c.telaId}`, c.url])),
     },
     defaultStyle: { font: "PlexSans", fontSize: 9, color: PRINT.ink, lineHeight: 1.25 },
     info: { title: `${project.name || "Projeto"} — Caderno Técnico (${tipo})`, author: "LedLab Core" },
@@ -1120,7 +1161,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // rodapé em TODA página (menos a capa): o CARIMBO da prancha
     footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
-      const secoes = [visaoGeral, video, eletrica, sinal, ac, cabos, criterios, gloss].filter((s) => s.length);
+      const secoes = [visaoGeral, video, cardsSecao, eletrica, sinal, ac, cabos, criterios, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
       // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
       // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead

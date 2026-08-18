@@ -15,6 +15,7 @@ import Helvetica from "pdfmake/build/standard-fonts/Helvetica.js";
 import Courier from "pdfmake/build/standard-fonts/Courier.js";
 import { buildRelatorioDoc } from "./pdfRelatorio.js";
 import { fileName } from "../filenames.js";
+import { testCardImages } from "../testcardImage.js";
 import ledlabSquare from "../../assets/ledlab-square.png";
 import plexSans from "../../assets/fonts/IBMPlexSans-Regular.ttf";
 import plexSansBold from "../../assets/fonts/IBMPlexSans-Bold.ttf";
@@ -55,7 +56,10 @@ async function logoDataUrl() {
 // PROJETO (project.logo, cadastrado em Dados) sai no carimbo das pranchas.
 export async function baixarRelatorioPdf({ project, tipo, cfg, gerado, numbering, palette, render, assinatura }) {
   const logo = await logoDataUrl();
-  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render });
+  // os Test Cards são desenhados AQUI (canvas é do browser; o builder é puro) e
+  // entram como imagens da folha de referência — só o caderno de Design tem essa folha
+  const testCards = tipo === "Design" ? testCardImages(project, { style: project.comp?.style, palette, numbering }) : [];
+  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render, testCards });
   await pdfMake.createPdf(doc).download(fileName([project.name, "caderno", tipo], "pdf"));
 }
 

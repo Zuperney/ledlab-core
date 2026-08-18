@@ -277,6 +277,15 @@ Botão-ícone 36-40px com borda. FAB só em lista de criação.
    "A4 · s/ esc." declara que o Caderno não é desenho em escala. A capa segue
    sendo a única página SEM moldura — e é da marca LedLab; o logo do projeto
    mora no carimbo.
+8. **REFERÊNCIA DE IMAGEM (18/08/2026)** — o caderno de **Design** carrega a
+   folha **Test Card · Referência de imagem**: o card de cada tela desenhado de
+   verdade (o estilo que o projeto escolheu na Composição, com o número REAL da
+   porta), duas por linha, legenda nome · resolução · grade. É REFERÊNCIA — o
+   arquivo pra controladora sai na aba Test Card, em resolução real. Card de
+   calibração **nunca vai em formato com perda**: PNG reduzido pra ~200 dpi no
+   slot da folha (JPEG borra a junção e suja a cor). Imagem no PDF entra pelo
+   dicionário `images` por NOME; dataURL inline no nó multiplica o embed e
+   inflou um caderno real de 236 KB pra 1,4 MB.
 
 ## 11 · A gramática (estrutura de toda tela)
 
@@ -360,11 +369,12 @@ termo solto no código.
 
 **O produto impresso**
 - **Caderno Técnico** (o produto; "o Caderno" em texto corrido) — a ABA se
-  chama **Caderno**. "Relatório" é só o de Reembolso. As 7 seções têm par
+  chama **Caderno**. "Relatório" é só o de Reembolso. As 8 seções têm par
   título·tag cravado (Visão Geral · Composição do painel — Vídeo / Resolução ·
-  Sinal e proporção — Informações Elétricas · Energia, dimensionamento —
-  Cabeamento de Sinal · Portas de dados — Cabeamento AC · Circuitos de força —
-  Critérios de Cálculo · Normas e referências — Glossário · Termos técnicos).
+  Sinal e proporção — Test Card · Referência de imagem — Informações Elétricas ·
+  Energia, dimensionamento — Cabeamento de Sinal · Portas de dados — Cabeamento
+  AC · Circuitos de força — Critérios de Cálculo · Normas e referências —
+  Glossário · Termos técnicos).
 - **Prancha · carimbo · FOLHA N/M · REV · Nº DOC**. "Gab." só em tabela densa
   (a exceção documentada do §10.1). **Planilha de pagamento** (pra aprovar) ×
   **Recibo de mão de obra** (validado).
