@@ -299,14 +299,26 @@ Botão-ícone 36-40px com borda. FAB só em lista de criação.
 10. **A FOLHA DE TEST CARDS não é caderno (18/08/2026)** — é a exceção
     documentada a estas leis, e a única saída do app com **tamanho de folha fora
     do padrão**: a folha tem a PROPORÇÃO do canvas de conteúdo, lado maior de
-    **1,20 m** (rolo de plotter), cada Test Card em **resolução nativa** na
-    posição real da Composição, fundo preto e um rótulo vetorial por tela (nome ·
-    x · y · resolução). Sem prancha, sem moldura, sem carimbo, sem "s/ esc." —
-    quem carimba é o Caderno. Arquivo separado por imposição do motor: o pdfmake
-    aceita UM tamanho de página por documento, então folha fora do padrão nunca
-    seria página do caderno. O rótulo é limitado pela altura do bloco que ele
-    nomeia (nunca maior que a tela) e tem piso de legibilidade — numa folha de
-    1,20 m, tipo pequeno demais é o mesmo que tipo nenhum.
+    **1,20 m** (rolo de plotter) e cada Test Card em **resolução nativa** na
+    posição real da Composição, sobre papel, com margem de respiro. Sem prancha,
+    sem moldura, sem carimbo, sem "s/ esc." — quem carimba é o Caderno. Arquivo
+    separado por imposição do motor: o pdfmake aceita UM tamanho de página por
+    documento, então folha fora do padrão nunca seria página do caderno.
+    **Nada por cima da arte**: o card já se identifica por dentro, e o que falta
+    (resolução por tela, tamanho em metros, manual de conteúdo) mora na folha de
+    Conteúdo do caderno. A folha carrega só uma linha na margem — projeto,
+    canvas, tamanho impresso e data. Sobrepor rótulo à arte foi tentado e virou
+    poluição (dono, 18/08).
+11. **A FOLHA DE CONTEÚDO (18/08/2026)** — o caderno de **Design** carrega
+    **Conteúdo · Manual de vídeo**, no formato do rider que o pessoal de
+    conteúdo já lê: cada tela em ESCALA COMUM (painel de 16 m sai três vezes o de
+    4,5 m), com a **resolução em cima** e o **tamanho em metros embaixo**, FORA
+    do desenho; a geometria de test card (grade, círculo e diagonais) identifica
+    a peça sem precisar da arte. Fecham a folha duas fichas: **Painel de LED** (o
+    que existe no palco) e **Manual de conteúdo** (o que tem que ser entregue —
+    formato, codec, taxa de quadros, varredura, aspecto de pixel). Campo vazio
+    cai no padrão da casa: folha de conteúdo com lacuna é convite pra chegar
+    arquivo errado.
 
 ## 11 · A gramática (estrutura de toda tela)
 
@@ -393,15 +405,18 @@ termo solto no código.
 
 **O produto impresso**
 - **Caderno Técnico** (o produto; "o Caderno" em texto corrido) — a ABA se
-  chama **Caderno**. "Relatório" é só o de Reembolso. As 8 seções têm par
+  chama **Caderno**. "Relatório" é só o de Reembolso. As 9 seções têm par
   título·tag cravado (Visão Geral · Composição do painel — Vídeo / Resolução ·
-  Sinal e proporção — Test Card · Referência de imagem — Informações Elétricas ·
-  Energia, dimensionamento — Cabeamento de Sinal · Portas de dados — Cabeamento
-  AC · Circuitos de força — Critérios de Cálculo · Normas e referências —
-  Glossário · Termos técnicos).
+  Sinal e proporção — Conteúdo · Manual de vídeo — Test Card · Referência de
+  imagem — Informações Elétricas · Energia, dimensionamento — Cabeamento de
+  Sinal · Portas de dados — Cabeamento AC · Circuitos de força — Critérios de
+  Cálculo · Normas e referências — Glossário · Termos técnicos).
 - **Folha de Test Cards** — a folha sem tamanho padrão (§10.10): proporção do
   canvas de conteúdo, 1,20 m no lado maior, card em resolução nativa. É saída à
   parte, não uma folha do Caderno. Nunca "poster" nem "mapa de test cards".
+- **Manual de conteúdo** — o combinado com quem monta o vídeo (formato, codec,
+  taxa de quadros, varredura, aspecto de pixel). Vive no projeto, sai na folha
+  de Conteúdo (§10.11). Nunca "specs de vídeo" nem "requisitos".
 - **Prancha · carimbo · FOLHA N/M · REV · Nº DOC**. "Gab." só em tabela densa
   (a exceção documentada do §10.1). **Planilha de pagamento** (pra aprovar) ×
   **Recibo de mão de obra** (validado).

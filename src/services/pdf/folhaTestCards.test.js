@@ -1,6 +1,6 @@
 // folhaTestCards.test.js — a folha sem tamanho padrão: geometria, rótulo e guardas.
 import { describe, it, expect } from "vitest";
-import { folhaGeometria, rotuloFs, buildFolhaTestCardsDoc, maxPxDaTela, LADO_MAIOR_MM, TETO_PT, ROTULO_PISO, ROTULO_TETO, CANVAS_TETO_PX } from "./folhaTestCards.js";
+import { folhaGeometria, buildFolhaTestCardsDoc, maxPxDaTela, LADO_MAIOR_MM, TETO_PT, CANVAS_TETO_PX, MARGEM } from "./folhaTestCards.js";
 
 // projeto real do Boticário: Unilumin P2.9 (168 px por gabinete), canvas 12.768 × 1.680
 const gab = { resX: "168", resY: "168", dimW: "500", dimH: "500" };
@@ -16,18 +16,19 @@ const PT_MM = 72 / 25.4;
 describe("folhaGeometria — a folha se molda ao canvas", () => {
   const geo = folhaGeometria(telas, pos);
 
-  it("lado maior vira 1,20 m e o outro segue a proporção do canvas", () => {
+  it("lado maior vira 1,20 m e a ARTE segue a proporção do canvas", () => {
     expect(geo.canvasW).toBe(12768);
     expect(geo.canvasH).toBe(1680);
-    expect(geo.pageW).toBeCloseTo(LADO_MAIOR_MM * PT_MM, 1); // 3.401,6 pt
+    // a arte cabe na folha de 1,20 m descontada a margem de respiro dos dois lados
+    expect(geo.pageW + geo.margem * 2).toBeCloseTo(LADO_MAIOR_MM * PT_MM, 1);
+    expect(geo.margem).toBeCloseTo(LADO_MAIOR_MM * PT_MM * MARGEM, 4);
     expect(geo.pageH).toBeCloseTo(1680 * geo.k, 4);
     expect(geo.pageH / geo.pageW).toBeCloseTo(1680 / 12768, 6); // proporção intacta
-    expect(geo.pageH / PT_MM).toBeCloseTo(158, 0); // 158 mm de altura
   });
 
   it("é o lado MAIOR, não a largura: canvas em pé não vira folha de 4 m", () => {
     const empe = folhaGeometria([tela("a", "Torre", 2, 40)], { a: { x: 0, y: 0 } });
-    expect(empe.pageH).toBeCloseTo(LADO_MAIOR_MM * PT_MM, 1);
+    expect(empe.pageH + empe.margem * 2).toBeCloseTo(LADO_MAIOR_MM * PT_MM, 1);
     expect(empe.pageW).toBeLessThan(empe.pageH);
   });
 
@@ -43,7 +44,7 @@ describe("folhaGeometria — a folha se molda ao canvas", () => {
 
   it("guarda o teto de página do PDF (200 in) quando pedem folha gigante", () => {
     const gigante = folhaGeometria(telas, pos, { ladoMaiorMM: 9000 });
-    expect(Math.max(gigante.pageW, gigante.pageH)).toBeCloseTo(TETO_PT, 1);
+    expect(Math.max(gigante.pageW, gigante.pageH) + gigante.margem * 2).toBeCloseTo(TETO_PT, 1);
     expect(gigante.reduzida).toBe(true);
     expect(folhaGeometria(telas, pos).reduzida).toBe(false);
   });
@@ -51,31 +52,6 @@ describe("folhaGeometria — a folha se molda ao canvas", () => {
   it("projeto sem tela não quebra", () => {
     expect(folhaGeometria([], {}).itens).toEqual([]);
     expect(folhaGeometria(undefined, undefined).pageW).toBe(0);
-  });
-});
-
-describe("rotuloFs — legível sem virar letreiro", () => {
-  const { itens } = folhaGeometria(telas, pos);
-  const de = (id) => rotuloFs(itens.find((i) => i.telaId === id));
-
-  it("painel grande trava no teto (não vira letreiro)", () => {
-    expect(de("central")).toBe(ROTULO_TETO);
-  });
-
-  it("fita fina cai pela ALTURA dela — o rótulo não fica maior que a tela", () => {
-    const tira = itens.find((i) => i.telaId === "tira");
-    expect(de("tira")).toBeCloseTo(tira.h * 0.26, 4); // ~11,6 pt ≈ 4 mm impressos
-    expect(de("tira")).toBeLessThan(tira.h);
-  });
-
-  it("nome comprido encolhe pela largura", () => {
-    const curto = rotuloFs({ nome: "A", w: 100, h: 400 });
-    const longo = rotuloFs({ nome: "Painel Central de Fundo do Palco", w: 100, h: 400 });
-    expect(longo).toBeLessThan(curto);
-  });
-
-  it("tela minúscula na folha ainda ganha o PISO — rótulo ilegível não serve", () => {
-    expect(rotuloFs({ nome: "Mini", w: 6, h: 6 })).toBe(ROTULO_PISO);
   });
 });
 
@@ -95,40 +71,39 @@ describe("maxPxDaTela — guarda do canvas do browser", () => {
 describe("buildFolhaTestCardsDoc", () => {
   const geo = folhaGeometria(telas, pos);
   const cards = telas.map((t) => ({ telaId: t.id, url: `data:image/png;base64,${t.id}` }));
-  const doc = buildFolhaTestCardsDoc({ project: { name: "Boticario" }, geo, cards });
+  const doc = buildFolhaTestCardsDoc({ project: { name: "Boticario" }, geo, cards, gerado: "18/08/2026" });
 
-  it("página do tamanho da folha, sem margem, fundo preto", () => {
-    expect(doc.pageSize).toEqual({ width: geo.pageW, height: geo.pageH });
+  it("página = arte + margem de respiro, sem margem interna de fluxo", () => {
+    expect(doc.pageSize).toEqual({ width: geo.pageW + geo.margem * 2, height: geo.pageH + geo.margem * 2 });
     expect(doc.pageMargins).toEqual([0, 0, 0, 0]);
-    expect(doc.background().canvas[0]).toMatchObject({ w: geo.pageW, h: geo.pageH, color: "#000000" });
   });
 
-  it("imagem por NOME no dicionário, posicionada em absolutePosition (nunca dataURL no nó)", () => {
+  it("imagem por NOME no dicionário, deslocada pela margem (nunca dataURL no nó)", () => {
     expect(Object.keys(doc.images)).toEqual(["tc_central", "tc_topo", "tc_tira"]);
     const arte = doc.content.filter((n) => n.image);
     expect(arte.length).toBe(3);
-    expect(arte[0]).toMatchObject({ image: "tc_central", absolutePosition: { x: 0 } });
+    expect(arte[0]).toMatchObject({ image: "tc_central", absolutePosition: { x: geo.margem } });
     expect(JSON.stringify(doc.content)).not.toContain("data:image/png");
   });
 
-  it("rótulo vem DEPOIS da arte (desenha por cima) e traz nome + região", () => {
+  it("SEM rótulo por cima da arte — era o que poluía a folha", () => {
     const j = JSON.stringify(doc.content);
-    expect(j.indexOf("Painel Central")).toBeGreaterThan(j.indexOf('"image":"tc_tira"'));
-    expect(j).toContain("x 0 · y 168 · 5376×1512"); // região da tela no canvas
+    expect(j).not.toContain("Painel Central"); // o nome está DENTRO do card, desenhado na arte
+    expect(j).not.toContain("Testeira Topo");
+    expect(doc.content.filter((n) => n.canvas)).toEqual([]); // nenhuma plaquinha
   });
 
-  it("tela sem imagem desenhada não vira rótulo órfão", () => {
+  it("uma linha de identificação na margem: projeto, canvas, tamanho e data", () => {
+    const j = JSON.stringify(doc.content);
+    expect(j).toContain("Boticario");
+    expect(j).toContain("canvas 12.768 × 1.680 px");
+    expect(j).toContain("18/08/2026");
+    expect(j).toContain("1,20"); // o tamanho físico da folha, em metros
+  });
+
+  it("tela sem imagem desenhada não entra na folha", () => {
     const parcial = buildFolhaTestCardsDoc({ project: {}, geo, cards: [cards[0]] });
     expect(parcial.content.filter((n) => n.image).length).toBe(1);
-    expect(JSON.stringify(parcial.content)).not.toContain("Testeira Topo");
-  });
-
-  it("rótulo foge da caixa de info da arte: info em cima → rótulo embaixo", () => {
-    const emCima = buildFolhaTestCardsDoc({ project: {}, geo, cards, infoPos: "sup-esq" });
-    const central = geo.itens.find((i) => i.telaId === "central");
-    const placas = (d) => d.content.filter((n) => n.canvas).map((n) => n.absolutePosition.y);
-    expect(placas(doc)).toContain(central.y); // default (info embaixo): rótulo no topo
-    expect(placas(emCima).some((y) => y > central.y)).toBe(true); // info em cima: rótulo desce
   });
 
   it("sem cards, a folha nasce vazia em vez de explodir", () => {

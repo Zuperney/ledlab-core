@@ -15,7 +15,8 @@ import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabl
 import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo } from "../../services/reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo, fichaPainel, fichaConteudo } from "../../services/reportContent.js";
+import { videoSchemaSvg } from "../../services/pdf/pdfCableMap.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
@@ -87,7 +88,7 @@ export default function ProjectRelatorio({ project }) {
     setGerandoFolha(true);
     try {
       const { baixarFolhaTestCardsPdf } = await import("../../services/pdf/pdfEngine.js");
-      const f = await baixarFolhaTestCardsPdf({ project, palette, numbering, style: project.comp?.style });
+      const f = await baixarFolhaTestCardsPdf({ project, palette, numbering, style: project.comp?.style, gerado: today });
       toast(`Folha de Test Cards exportada — ${f.largM.toFixed(2).replace(".", ",")} × ${f.altM.toFixed(2).replace(".", ",")} m · ${f.dpi} dpi`);
     } catch (e) {
       console.error(e);
@@ -171,7 +172,11 @@ export default function ProjectRelatorio({ project }) {
           ]}
           stats={[
             { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` },
-            { label: "Peso", value: fmtPeso(roll.peso_kg) },
+            // capa do DESIGN troca PESO por RESOLUÇÃO: quem recebe esse caderno
+            // monta conteúdo, não rigging — o número que ele procura é o do canvas
+            ...(showCards
+              ? [{ label: "Resolução", value: (() => { const c = canvasResumo(telas, project.comp?.pos); return `${c.w.toLocaleString("pt-BR")} × ${c.h.toLocaleString("pt-BR")} px`; })() }]
+              : [{ label: "Peso", value: fmtPeso(roll.peso_kg) }]),
             ...(showElec ? [
               { label: "Pico", value: `${Math.round(parseFloat(agg.kVA))} kVA` },
               { label: "Gerador", value: `~${Math.round(parseFloat(agg.gerador))} kVA` },
@@ -246,6 +251,29 @@ export default function ProjectRelatorio({ project }) {
             ) : null; })()}
           </section>
         )}
+
+        {showCards && (() => { const esquema = videoSchemaSvg(telas, { maxWidth: 1040, maxHeight: 340, fs: 9 }); return (
+          <section style={{ marginBottom: 22 }}>
+            <SectionHead n={sec()} title="Conteúdo" tag="Manual de vídeo" color={DISC.video} Icon={Monitor} />
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>O painel como o conteúdo vai encontrar: cada tela em escala comum, com a resolução em cima e o tamanho em metros embaixo. As fichas fecham o combinado — o que existe no palco e o que precisa ser entregue.</p>
+            {/* o MESMO desenho do PDF nativo (services/pdf/pdfCableMap.js) — nome de
+                tela já sai escapado de lá; duplicar em JSX era o caminho pra divergir */}
+            {esquema && <div style={{ margin: "8px 0 14px" }} dangerouslySetInnerHTML={{ __html: esquema.svg }} />}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
+              {[["Painel de LED", fichaPainel(project)], ["Manual de conteúdo", fichaConteudo(project)]].map(([titulo, linhas]) => (
+                <div key={titulo} style={{ border: `1px solid ${PRINT.line}`, borderRadius: 8, padding: "10px 13px", breakInside: "avoid" }}>
+                  <div style={{ ...th, borderBottom: "none", padding: "0 0 6px" }}>{titulo}</div>
+                  {linhas.map(([r, v]) => (
+                    <div key={r} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "3px 0" }}>
+                      <span style={{ flex: "0 0 120px", fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.04em", color: PRINT.dim }}>{r}</span>
+                      <span style={{ flex: 1, fontFamily: "ui-monospace, monospace", fontSize: 12, color: PRINT.ink }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </section>
+        ); })()}
 
         {showCards && (
           <section style={{ marginBottom: 22 }}>

@@ -403,8 +403,8 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     // demais usam o orçamento inteiro (408)
     expect(j).toContain('"fit":[566,340]');
     expect(j).toContain('"fit":[566,408]');
-    expect(j).toContain('"03.1"'); // cada card abre em bloco numerado próprio
-    expect(j).toContain('"03.2"');
+    expect(j).toContain('"04.1"'); // cada card abre em bloco numerado próprio
+    expect(j).toContain('"04.2"'); // (03 é a folha de Conteúdo, que vem antes)
     // quebra CONDICIONAL, e o 1º card não marca — senão sobra folha só com título
     expect(j).not.toContain('"pageBreak":"before"');
     expect(j).not.toContain('"unbreakable"');
@@ -418,6 +418,31 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).not.toContain('"fit":[566,340]'); // não sobrou coluna pra ficha do lado
     expect(j).toContain("Testeira Topo");
     expect(j).toContain("12.768 × 168 px");
+  });
+
+  it("Design ganha a folha de Conteúdo: esquema dos painéis + as duas fichas", () => {
+    const j = JSON.stringify(buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null }).content);
+    expect(j).toContain("MANUAL DE VÍDEO");
+    expect(j).toContain("PAINEL DE LED");
+    expect(j).toContain("MANUAL DE CONTEÚDO");
+    expect(j).toContain("6,00 × 3,60 m  +  2,40 × 3,60 m"); // tamanho tela a tela, como no rider
+    expect(j).toContain("1040 × 624 px  +  416 × 624 px");
+    expect(j).toContain("DXV3 Normal Quality"); // padrão da casa quando o projeto não define
+    expect(j).toContain("<svg"); // o esquema dos painéis
+    // e não polui os outros cadernos
+    expect(JSON.stringify(buildRelatorioDoc({ project, tipo: "Completo", cfg, logo: null }).content)).not.toContain("MANUAL DE VÍDEO");
+  });
+
+  it("capa do Design troca PESO por RESOLUÇÃO (quem lê monta conteúdo, não rigging)", () => {
+    // rótulo da CAPA é mono (a coluna PESO da tabela de Visão Geral não é, e fica)
+    const naCapa = (rot) => `"text":"${rot}","font":"PlexMono"`;
+    const design = JSON.stringify(buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null }).content);
+    expect(design).toContain(naCapa("RESOLUÇÃO"));
+    expect(design).toContain('"text":"1.456 × 624 px"');
+    expect(design).not.toContain(naCapa("PESO"));
+    const completo = JSON.stringify(buildRelatorioDoc({ project, tipo: "Completo", cfg, logo: null }).content);
+    expect(completo).toContain(naCapa("PESO")); // rigging continua vendo peso
+    expect(completo).not.toContain(naCapa("RESOLUÇÃO"));
   });
 
   it("Design troca as distâncias de visão pelo tamanho do canvas", () => {

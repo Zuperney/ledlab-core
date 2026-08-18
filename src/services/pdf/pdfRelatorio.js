@@ -14,10 +14,10 @@ import { aggregateElectrical, projectRollup, screenRollup } from "../projectCalc
 import { cableMeta, cablePorts, bboxArea, portOffset } from "../cabling.js";
 import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../screenCabling.js";
 import { pixelMapPorts } from "../pixelMap.js";
-import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
+import { screenMapSvg, telaMapSvg, telasLayoutSvg, videoSchemaSvg } from "./pdfCableMap.js";
 import { tint } from "../cableScene.js";
 import { formatRange } from "../dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, FICHA_ABAIXO, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo } from "../reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, FICHA_ABAIXO, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo, fichaPainel, fichaConteudo } from "../reportContent.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
@@ -297,9 +297,14 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     ["Status", STATUS_LABEL[project.status] || project.status],
     ["Data de realização", dataEvento],
   ];
+  // capa do DESIGN troca PESO por RESOLUÇÃO: quem recebe esse caderno monta
+  // conteúdo, não rigging — o número que ele procura é o do canvas.
+  const capaCanvas = canvasResumo(telas, project.comp?.pos);
   const stats = [
     ["Área", `${roll.area_m2.toFixed(1)} m²`],
-    ["Peso", fmtPeso(roll.peso_kg)],
+    ...(tipo === "Design"
+      ? [["Resolução", `${ptBR(capaCanvas.w)} × ${ptBR(capaCanvas.h)} px`]]
+      : [["Peso", fmtPeso(roll.peso_kg)]]),
     ...(showElec ? [
       ["Pico", `${Math.round(parseFloat(agg.kVA))} kVA`],
       ["Gerador", `~${Math.round(parseFloat(agg.gerador))} kVA`],
@@ -463,6 +468,39 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       ] : [];
     })()),
   ];
+
+  // ── CONTEÚDO · MANUAL DE VÍDEO — só no Design ──
+  // A folha que vai pro pessoal que MONTA o vídeo: o esquema dos painéis em
+  // escala comum (resolução em cima, tamanho embaixo) e as duas fichas — o que
+  // existe no palco e o que tem que ser entregue. Modelo de rider, de propósito:
+  // é o formato que designer de conteúdo já sabe ler.
+  const fichaBox = (titulo, linhas) => ({
+    width: "*",
+    stack: [
+      { text: titulo.toUpperCase(), bold: true, fontSize: 8, color: PRINT.ink, characterSpacing: 0.8, margin: [0, 0, 0, 5] },
+      ...linhas.map(([r, v]) => ({
+        columns: [
+          { width: 96, text: r, fontSize: 7.5, color: PRINT.dim, characterSpacing: 0.4, margin: [0, 1.5, 0, 0] },
+          { width: "*", text: v, font: "PlexMono", fontSize: 8.5, color: PRINT.ink },
+        ],
+        margin: [0, 2.5, 0, 2.5],
+      })),
+    ],
+    margin: [10, 8, 10, 8],
+  });
+  const conteudoSecao = !showCanvas ? [] : (() => {
+    const sn = sec();
+    const esquema = videoSchemaSvg(telas, { maxWidth: 748, maxHeight: 260 });
+    return [
+      sectionHead(sn, "Conteúdo", "Manual de vídeo", DISC.video),
+      { text: "O painel como o conteúdo vai encontrar: cada tela em escala comum, com a resolução em cima e o tamanho em metros embaixo. As fichas fecham o combinado — o que existe no palco e o que precisa ser entregue.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 10] },
+      ...(esquema ? [{ svg: esquema.svg, width: esquema.width, margin: [0, 0, 0, 12] }] : []),
+      {
+        columns: [fichaBox("Painel de LED", fichaPainel(project)), fichaBox("Manual de conteúdo", fichaConteudo(project))],
+        columnGap: 16,
+      },
+    ];
+  })();
 
   // ── TEST CARD (referência de imagem) — só no Design ──
   // UM BLOCO POR CARD, cada um abrindo em página própria: numa lista, o card
@@ -1210,7 +1248,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // rodapé em TODA página (menos a capa): o CARIMBO da prancha
     footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
-      const secoes = [visaoGeral, video, cardsSecao, eletrica, sinal, ac, cabos, criterios, gloss].filter((s) => s.length);
+      const secoes = [visaoGeral, video, conteudoSecao, cardsSecao, eletrica, sinal, ac, cabos, criterios, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
       // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
       // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead

@@ -5,6 +5,7 @@
 
 import { viewingOf } from "./viewing.js";
 import { compLayout } from "./layout.js";
+import { videoSpecs, VIDEO_CAMPOS } from "./videoSpecs.js";
 
 // disciplinas do caderno técnico: cor de índice por seção (produção / vídeo /
 // elétrica)
@@ -101,6 +102,36 @@ export function canvasResumo(telas, compPos) {
     largM: pitch > 0 ? (w * pitch) / 1000 : 0,
     altM: pitch > 0 ? (h * pitch) / 1000 : 0,
   };
+}
+
+// ── FOLHA DE CONTEÚDO (caderno de Design) ──
+// As duas fichas que o pessoal de vídeo lê: o PAINEL (o que existe no palco) e o
+// MANUAL DE CONTEÚDO (o que ele tem que entregar). Fonte única DOM+PDF.
+// O painel descreve tela a tela, somando com "+", que é como o rider escreve —
+// o conteúdo é montado por região, não por média.
+export function fichaPainel(project) {
+  const telas = project?.telas || [];
+  const modelos = [...new Set(telas.map((t) => t.gabinete?.nome).filter(Boolean))];
+  const tam = telas.map((t) => {
+    const g = t.gabinete || {};
+    const w = ((parseFloat(g.dimW) || 0) * (t.cols || 0)) / 1000, h = ((parseFloat(g.dimH) || 0) * (t.rows || 0)) / 1000;
+    return `${w.toFixed(2).replace(".", ",")} × ${h.toFixed(2).replace(".", ",")} m`;
+  });
+  const res = telas.map((t) => { const v = videoOf(t); return `${v.pxW} × ${v.pxH} px`; });
+  const cv = canvasResumo(telas, project?.comp?.pos);
+  return [
+    ["Modelo", modelos.join(" · ") || "—"],
+    ["Tamanho", tam.join("  +  ") || "—"],
+    ["Resolução", res.join("  +  ") || "—"],
+    ["Canvas de conteúdo", cv.w ? `${cv.w.toLocaleString("pt-BR")} × ${cv.h.toLocaleString("pt-BR")} px  ·  ${cv.ar}` : "—"],
+  ];
+}
+
+// o manual de conteúdo do projeto (services/videoSpecs.js), já com o padrão da
+// casa por baixo, na ordem em que sai no papel
+export function fichaConteudo(project) {
+  const v = videoSpecs(project);
+  return VIDEO_CAMPOS.map(([k, rot]) => [rot, v[k]]);
 }
 
 // Tamanho do NOME do projeto na capa, em cqi (1cqi = 1% da largura da capa).

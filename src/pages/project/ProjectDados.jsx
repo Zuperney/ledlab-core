@@ -13,6 +13,7 @@ import { useConfirm, useToast } from "../../store/UIContext.jsx";
 import { DateField } from "../../components/PickerField.jsx";
 import Select from "../../components/Select.jsx";
 import NumField from "../../components/NumField.jsx";
+import { VIDEO_CAMPOS, VIDEO_PADRAO } from "../../services/videoSpecs.js";
 import { reorder } from "../../services/layout.js";
 import { dropTela } from "../../services/screens.js";
 
@@ -223,6 +224,22 @@ export default function ProjectDados({ project, patch, patchTela }) {
           <NumField lbl="Revisão do Caderno" value={Math.max(0, Math.trunc(parseFloat(project.rev)) || 0)} onChange={(n) => patch({ rev: Math.max(0, Math.trunc(n) || 0) })} />
           <div style={{ color: T.dim, fontSize: 12, paddingBottom: 10 }}>Sai como REV no carimbo e na capa. Começa em 0; suba quando reemitir um caderno que já circulou com mudanças.</div>
         </div>
+        {/* MANUAL DE CONTEÚDO: o combinado com quem monta o vídeo. Sai na folha
+            de Vídeo do caderno de Design; campo vazio cai no padrão da casa
+            (services/videoSpecs.js), porque folha de conteúdo com lacuna é
+            convite pra chegar arquivo errado. */}
+        <label style={{ ...label, marginTop: 4 }}>Manual de conteúdo</label>
+        <div style={{ color: T.dim, fontSize: 12, margin: "-4px 0 8px" }}>O que o pessoal de vídeo precisa pra entregar arquivo que roda. Em branco = padrão da casa.</div>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+          {VIDEO_CAMPOS.map(([k, rot, ex]) => (
+            <Field key={k} lbl={rot} placeholder={ex} value={project.video?.[k] ?? ""}
+              onChange={(v) => patch({ video: { ...(project.video || {}), [k]: v } })} />
+          ))}
+        </div>
+        <div style={{ color: T.dim, fontSize: 11.5, marginBottom: 12 }}>
+          Padrão: {VIDEO_CAMPOS.map(([k]) => VIDEO_PADRAO[k]).join(" · ")}
+        </div>
+
         <label style={label}>Observações</label>
         <textarea value={project.obs} onChange={(e) => patch({ obs: e.target.value })} placeholder="Notas técnicas, demandas, contatos…" rows={4} style={input({ resize: "vertical" })} />
 
@@ -251,13 +268,13 @@ export default function ProjectDados({ project, patch, patchTela }) {
   );
 }
 
-function Field({ lbl, value, onChange, type = "text", req }) {
+function Field({ lbl, value, onChange, type = "text", req, placeholder }) {
   return (
     <div style={{ marginBottom: 12, minWidth: 0 }}>
       <label style={label}>{lbl}{req ? <span style={{ color: T.red }}> obrigatório</span> : ""}</label>
       {type === "date"
         ? <DateField value={value} onChange={onChange} />
-        : <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={input()} />}
+        : <input type={type} value={value ?? ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={input()} />}
     </div>
   );
 }

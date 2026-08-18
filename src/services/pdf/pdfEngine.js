@@ -82,7 +82,7 @@ export async function relatorioPdfUrl({ project, tipo, cfg, gerado, numbering, p
 // Uma tela por vez de propósito: o canvas de cada card é liberado antes do
 // próximo, e nunca se cria um canvas da composição inteira (o `exportPng` da aba
 // Composição cria, e num canvas de 21 MP o Safari do iPad desiste).
-export async function baixarFolhaTestCardsPdf({ project, palette, numbering, style }) {
+export async function baixarFolhaTestCardsPdf({ project, palette, numbering, style, gerado }) {
   const telas = project?.telas || [];
   const layout = compLayout(telas, project?.comp?.pos);
   const geo = folhaGeometria(telas, project?.comp?.pos);
@@ -94,7 +94,7 @@ export async function baixarFolhaTestCardsPdf({ project, palette, numbering, sty
     const img = testCardImage(project, t, { style, palette, numbering, maxPx: maxPxDaTela(d.w, d.h) });
     if (img) cards.push({ telaId: t.id, url: img.url });
   }
-  const doc = buildFolhaTestCardsDoc({ project, geo, cards, infoPos: style?.infoPos });
+  const doc = buildFolhaTestCardsDoc({ project, geo, cards, gerado });
   await pdfMake.createPdf(doc).download(fileName([project?.name, "folha-test-cards"], "pdf"));
   const metros = (pt) => pt / (72 / 25.4) / 1000;
   const largMM = geo.pageW / (72 / 25.4);

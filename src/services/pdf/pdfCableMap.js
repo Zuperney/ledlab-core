@@ -17,6 +17,9 @@ const BG = "#0d0d1a"; // fundo do ESQUEMA DE TELAS (seção Vídeo — identidad
 const CELL = 40; // tamanho da célula no modo legado (como o CableMap do DOM)
 
 const r2 = (n) => Math.round(n * 100) / 100;
+const PRINT_ACC = "#4d5500"; // oliva do papel (manual §2.4) — a geometria do card
+const ptBRn = (n) => (n || 0).toLocaleString("pt-BR");
+const vg = (n) => (n || 0).toFixed(2).replace(".", ",");
 // nome de tela é texto LIVRE — escapa o que quebraria o XML do SVG
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const cx = (c) => c.x + c.w / 2;
@@ -163,4 +166,93 @@ export function telaMapSvg(tela, mode, numbering, offset, colorOf, cr, opts) {
       cells.push({ k: key(c, rr), x: c * CELL, y: rr * CELL, w: CELL, h: CELL, port: portOf[key(c, rr)] ?? null });
   const drawPorts = ports.map((port) => port.map((cell) => ({ k: key(cell.c, cell.r), x: cell.c * CELL, y: cell.r * CELL, w: CELL, h: CELL })));
   return wrapSvg(cells, drawPorts, (pi) => colorOf(offset + pi), cr, { ...opts, portOffset: offset });
+}
+
+// ── ESQUEMA DE VÍDEO (folha de Conteúdo do caderno de Design) ────────────────
+// Cada tela vira um retângulo com a geometria de test card (grade de gabinete +
+// círculo e diagonais), em ESCALA COMUM: o painel de 16 m sai três vezes o de
+// 4,5 m, como no rider que o pessoal de conteúdo já conhece. A resolução vai EM
+// CIMA e o tamanho físico EMBAIXO, FORA do desenho — rótulo dentro do painel foi
+// o que poluiu a primeira versão da folha.
+//
+// Escala comum tem um preço: um projeto com uma fita de 12.768 px e um painel de
+// 5.376 px espreme o menor. Por isso as telas QUEBRAM EM LINHAS (a mais larga
+// define a escala e ocupa a linha dela), e a escala cai junto se o conjunto não
+// couber na altura disponível.
+export function videoSchemaSvg(telas, { maxWidth = 748, maxHeight = 300, fs = 7 } = {}) {
+  const itens = (telas || []).map((t) => {
+    const g = t.gabinete || {};
+    const resX = parseFloat(g.resX) || 0, resY = parseFloat(g.resY) || 0;
+    const cols = t.cols || 0, rows = t.rows || 0;
+    return {
+      nome: String(t.nome || "Tela"), cols, rows, resX, resY,
+      pxW: cols * resX, pxH: rows * resY,
+      mW: (cols * (parseFloat(g.dimW) || 0)) / 1000, mH: (rows * (parseFloat(g.dimH) || 0)) / 1000,
+    };
+  }).filter((i) => i.pxW > 0 && i.pxH > 0);
+  if (!itens.length) return null;
+
+  const LBL = fs * 1.6, GAPX = 16, GAPY = fs * 1.4;
+  const larguraMax = Math.max(...itens.map((i) => i.pxW));
+  const alturaMax = Math.max(...itens.map((i) => i.pxH));
+  // escala: a tela mais larga ocupa a linha inteira, e nenhuma passa de 120 pt
+  // de altura (senão um canvas quadrado come a folha)
+  let k = Math.min(maxWidth / larguraMax, 120 / alturaMax);
+
+  const quebrar = (kk) => {
+    const linhas = [[]];
+    let larg = 0;
+    for (const it of itens) {
+      const w = it.pxW * kk;
+      const atual = linhas[linhas.length - 1];
+      if (atual.length && larg + GAPX + w > maxWidth) { linhas.push([it]); larg = w; }
+      else { atual.push(it); larg += (atual.length > 1 ? GAPX : 0) + w; }
+    }
+    const alturas = linhas.map((l) => Math.max(...l.map((i) => i.pxH * kk)) + LBL * 2);
+    return { linhas, alturas, total: alturas.reduce((a, b) => a + b, 0) + GAPY * (linhas.length - 1) };
+  };
+
+  let plano = quebrar(k);
+  // não coube na altura: encolhe na proporção que falta e refaz a quebra (duas
+  // passadas resolvem — a segunda só ajusta o arredondamento da primeira)
+  for (let i = 0; i < 2 && plano.total > maxHeight; i++) {
+    k *= maxHeight / plano.total;
+    plano = quebrar(k);
+  }
+
+  const out = [];
+  let y = 0;
+  for (let li = 0; li < plano.linhas.length; li++) {
+    const linha = plano.linhas[li];
+    const larguraLinha = linha.reduce((a, i) => a + i.pxW * k, 0) + GAPX * (linha.length - 1);
+    let x = (maxWidth - larguraLinha) / 2; // linha centrada, como no rider
+    const alturaLinha = plano.alturas[li] - LBL * 2;
+    for (const it of linha) {
+      const w = it.pxW * k, h = it.pxH * k;
+      const py = y + LBL + (alturaLinha - h) / 2; // telas da linha alinhadas pelo centro
+      out.push(`<rect x="${r2(x)}" y="${r2(py)}" width="${r2(w)}" height="${r2(h)}" fill="#f8fafc" stroke="${FRAME}" stroke-width="0.8"/>`);
+      // grade de gabinete: só quando a célula ainda se distingue no papel
+      const cw = w / it.cols, ch = h / it.rows;
+      if (cw >= 2.5) for (let c = 1; c < it.cols; c++) out.push(`<line x1="${r2(x + c * cw)}" y1="${r2(py)}" x2="${r2(x + c * cw)}" y2="${r2(py + h)}" stroke="#e2e8f0" stroke-width="0.4"/>`);
+      if (ch >= 2.5) for (let rr = 1; rr < it.rows; rr++) out.push(`<line x1="${r2(x)}" y1="${r2(py + rr * ch)}" x2="${r2(x + w)}" y2="${r2(py + rr * ch)}" stroke="#e2e8f0" stroke-width="0.4"/>`);
+      // geometria de test card: círculo inscrito + diagonais (é o que identifica
+      // a peça como card de alinhamento, mesmo em esquema)
+      out.push(`<line x1="${r2(x)}" y1="${r2(py)}" x2="${r2(x + w)}" y2="${r2(py + h)}" stroke="${PRINT_ACC}" stroke-width="0.5"/>`);
+      out.push(`<line x1="${r2(x)}" y1="${r2(py + h)}" x2="${r2(x + w)}" y2="${r2(py)}" stroke="${PRINT_ACC}" stroke-width="0.5"/>`);
+      // CÍRCULO, não elipse: o círculo de alinhamento é redondo no painel real —
+      // esticado na largura ele viraria uma lente e deixaria de significar o que
+      // significa. Some na fita fina, onde viraria um borrão de tinta.
+      const raio = Math.min(w, h) * 0.46;
+      if (raio > 3) out.push(`<circle cx="${r2(x + w / 2)}" cy="${r2(py + h / 2)}" r="${r2(raio)}" fill="none" stroke="${PRINT_ACC}" stroke-width="0.6"/>`);
+      // rótulos FORA do desenho: resolução em cima, tamanho físico embaixo
+      const fsw = Math.max(4.5, Math.min(fs, w / (String(it.pxW).length + String(it.pxH).length + 5) / 0.6));
+      out.push(`<text x="${r2(x + w / 2)}" y="${r2(py - fs * 0.45)}" font-family="PlexMono" font-size="${r2(fsw)}" text-anchor="middle" fill="#334155">${ptBRn(it.pxW)} × ${ptBRn(it.pxH)} px</text>`);
+      if (it.mW > 0) out.push(`<text x="${r2(x + w / 2)}" y="${r2(py + h + fs * 1.15)}" font-family="PlexMono" font-size="${r2(fsw)}" text-anchor="middle" fill="#334155">${vg(it.mW)} × ${vg(it.mH)} m</text>`);
+      x += w + GAPX;
+    }
+    y += plano.alturas[li] + GAPY;
+  }
+  const H = Math.max(0, y - GAPY);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${r2(maxWidth)}" height="${r2(H)}" viewBox="0 0 ${r2(maxWidth)} ${r2(H)}">${out.join("")}</svg>`;
+  return { svg, width: r2(maxWidth), height: r2(H), escala: k };
 }
