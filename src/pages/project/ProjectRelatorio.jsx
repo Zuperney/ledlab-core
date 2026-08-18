@@ -111,7 +111,10 @@ export default function ProjectRelatorio({ project }) {
     const scr = screensById[s.id];
     const g = (scr?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)[0]?.gabinete;
     const resX = parseFloat(g?.resX) || 128, resY = parseFloat(g?.resY) || 128;
-    return { resX, resY, hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true };
+    return { resX, resY, hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true,
+      // régua de área com porta atravessando vão: a escolha muda o número, então
+      // vira premissa declarada no papel (mesma lei do overclock)
+      vao: (scr?.sinal?.rule === "px" ? false : s.ports.some((p) => p.cruzaVao)) && (scr?.sinal?.vaoConta === true ? "conta" : "não conta") };
   };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
@@ -261,7 +264,8 @@ export default function ProjectRelatorio({ project }) {
                   <span>Gabinetes <b style={{ color: PRINT.ink }}>{s.grid.gabs}</b></span>
                   {s.grid.exato && <span>Grade da Screen <b style={{ color: PRINT.ink }}>{s.grid.cols} × {s.grid.rows}</b></span>}
                   <span>Total de portas <b style={{ color: PRINT.ink }}>{s.ports.length}</b></span>
-                  {/* premissa declarada: documento datado registra que passar do nominal foi escolha */}
+                  {/* premissas declaradas: documento datado registra o que foi escolha */}
+                  {sp.vao && <span>Vão no retângulo <b style={{ color: PRINT.ink }}>{sp.vao}</b> na cota da porta</span>}
                   {sp.overclock && <span>Overclock <b style={{ color: PRINT.amb }}>ligado — porta pode passar da capacidade nominal</b></span>}
                 </div>
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}

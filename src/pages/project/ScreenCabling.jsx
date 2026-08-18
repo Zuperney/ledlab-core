@@ -371,6 +371,15 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                   titulo="Overclock" desc="Arredonda gabinetes/porta pra cima — a porta pode passar da capacidade nominal" />
               </span>
             )}
+            {/* régua de ÁREA: o vão entre painéis separados entra ou não na cota da
+                porta. Padrão NÃO (região por painel — Unico, SmartLCT, Complex Screen);
+                quem monta retângulo simples na controladora liga e paga o vazio. */}
+            {!isAc && rule === "area" && (
+              <span style={{ gridColumn: "1 / -1" }} title="Ligado, a porta reserva um retângulo só, do primeiro ao último gabinete — o vão entre painéis vai junto. Desligado, cada painel encostado é um retângulo, e o vão fica de fora.">
+                <PrefToggle on={cfg.vaoConta === true} onClick={() => setCfg({ vaoConta: !cfg.vaoConta })}
+                  titulo="Vão conta no retângulo" desc="Desligado: um retângulo por painel encostado (região por painel). Ligado: retângulo único — o vão gasta cota da porta" />
+              </span>
+            )}
           </div>
           <div style={{ color: T.dim, fontSize: 11, marginTop: 12, lineHeight: 1.5 }}>{isAc ? "Circuito segue o físico; a régua de porta (Free Topology) é coisa de sinal." : "Régua e Free Topology explicados na Base de Conhecimento › Sinal."}</div>
         </LightModal>

@@ -12,7 +12,7 @@
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
 import { cableMeta, cablePorts, balancedChunks, buildAuto, portOffset, ampCabTipico } from "./cabling.js";
 import { acTone } from "./electricalCalc.js";
-import { canvasCells, snakeCellsPorTela, clusterTelas, portBboxPx, modelKey, orderCanvasPorts } from "./canvasCabling.js";
+import { canvasCells, snakeCellsPorTela, clusterTelas, portAreaPx, telaRects, panelIds, modelKey, orderCanvasPorts } from "./canvasCabling.js";
 import { screenTelas, screenOfTela, unassignedTelas, screenSize } from "./screens.js";
 
 const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
@@ -116,6 +116,10 @@ export function screenPortSummary(screen, telas, kind = "sinal", numbering = "ro
   const ports = screenPorts(screen, telas, kind, numbering);
   const membros = screenTelas(screen, telas);
   const nomeDe = (id) => membros.find((t) => t.id === id)?.nome;
+  // PAINÉIS da Screen (telas encostadas, direta ou indiretamente). Sai das telas
+  // TODAS, não das que a porta pegou: um cabo que liga só as pontas de um painel
+  // contínuo tem BURACO no meio (a régua do retângulo cobra), não vão.
+  const panels = panelIds(telaRects(screenCells(screen, telas)));
   return ports.map((port, pi) => {
     const telaDo = membros.find((t) => t.id === port[0]?.telaId);
     const m = metaOf(telaDo, cfg, kind);
@@ -133,13 +137,18 @@ export function screenPortSummary(screen, telas, kind = "sinal", numbering = "ro
       // regra dos 80% (carga contínua): warn = passou da margem, over = estourou o conector
       return { ...base, load, loadTip, pct, over: m.connRating ? load > m.connRating + 0.001 : false, warn: acTone(pct) === "warn" };
     }
-    const usoPx = m.sinalRule === "px" ? port.length * m.pxPerCab : portBboxPx(port);
+    // régua de ÁREA: o vão entre painéis separados só entra na cota se a Screen
+    // declarar (cfg.vaoConta) — ver portAreaPx. `cruzaVao` marca a porta em que a
+    // escolha muda o número: é ela que faz o Caderno declarar a premissa.
+    const contaVao = cfg.vaoConta === true;
+    const cruzaVao = m.sinalRule !== "px" && new Set(port.map((c) => panels.get(c.telaId))).size > 1;
+    const usoPx = m.sinalRule === "px" ? port.length * m.pxPerCab : portAreaPx(port, contaVao, panels);
     const over = m.pxPort ? usoPx > m.pxPort + 1 : false;
     // OVERCLOCK ligado: o excedente ESPERADO do ceil (porta dentro do orçamento
     // overclocado) sai como `oc` (laranja, escolha do técnico) — `over` (vermelho)
     // fica reservado pro que passa ALÉM disso (ex.: cabo desenhado no livre).
     const oc = m.overclock && over && port.length <= m.sinalBudget;
-    return { ...base, pct: m.pxPort ? Math.round((usoPx / m.pxPort) * 100) : 0, over: over && !oc, oc };
+    return { ...base, pct: m.pxPort ? Math.round((usoPx / m.pxPort) * 100) : 0, over: over && !oc, oc, cruzaVao };
   });
 }
 

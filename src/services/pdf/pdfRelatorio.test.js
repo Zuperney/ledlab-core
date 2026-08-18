@@ -359,6 +359,29 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(encostadas).toContain('"text":"8 × 3"');
   });
 
+  it("porta atravessando VÃO: o caderno declara se o vazio entrou na cota", () => {
+    // duas telas 128×256 (1×3) afastadas, um cabo desenhado cobrindo as duas
+    const gab128 = { ...gab, resX: 128, resY: 256 };
+    const telas = [{ id: "a", nome: "Tira A", cols: 1, rows: 3, gabinete: gab128 }, { id: "b", nome: "Tira B", cols: 1, rows: 3, gabinete: gab128 }];
+    const cabo = [...[0, 1, 2].map((r) => ({ telaId: "a", c: 0, r })), ...[0, 1, 2].map((r) => ({ telaId: "b", c: 0, r }))];
+    const scr = (vaoConta) => ({ id: "s1", nome: "Palco", telaIds: ["a", "b"], pos: { a: { x: 0, y: 0 }, b: { x: 1152, y: 0 } },
+      sinal: { rule: "area", strategy: "livre", vaoConta, cables: [cabo] } });
+    const doc = (vaoConta) => JSON.stringify(buildRelatorioDoc({ project: { ...project, telas, screens: [scr(vaoConta)] }, tipo: "Mapa de cabos", cfg, logo: null }).content);
+
+    const padrao = doc(undefined);
+    expect(padrao).toContain('"VÃO NO RETÂNGULO"');
+    expect(padrao).toContain('"text":"não conta"');
+    expect(doc(true)).toContain('"text":"conta"');
+  });
+
+  it("sem porta cruzando vão, a premissa não polui o specBox", () => {
+    const j = JSON.stringify(buildRelatorioDoc({
+      project: { ...project, screens: [{ id: "s1", nome: "Screen 1", telaIds: ["t1"], pos: { t1: { x: 0, y: 0 } }, sinal: { rule: "area", strategy: "area" } }] },
+      tipo: "Mapa de cabos", cfg, logo: null,
+    }).content);
+    expect(j).not.toContain('"VÃO NO RETÂNGULO"');
+  });
+
   it("Design com Test Cards: folha de referência de imagem, com as imagens no dicionário", () => {
     // as imagens vêm DESENHADAS de fora (canvas é do browser; o builder é puro) —
     // e entram por NOME no dicionário `images`, nunca dataURL inline no nó

@@ -92,6 +92,37 @@ export function snakeCellsPorTela(cells, routing = "updown", corner = "bl") {
   return groups.flatMap((group) => snakeCells(group, routing, corner));
 }
 
+// caixa de cada tela a partir das cells — telaId → {x1,y1,x2,y2}. Com o conjunto
+// COMPLETO da Screen, é a caixa real da tela; com as cells de uma porta, só o
+// pedaço que ela pegou (por isso quem mede vão passa o conjunto completo).
+export function telaRects(cells) {
+  const m = new Map();
+  for (const c of cells || []) {
+    const b = m.get(c.telaId);
+    if (!b) m.set(c.telaId, { x1: c.x, y1: c.y, x2: c.x + c.w, y2: c.y + c.h });
+    else { b.x1 = Math.min(b.x1, c.x); b.y1 = Math.min(b.y1, c.y); b.x2 = Math.max(b.x2, c.x + c.w); b.y2 = Math.max(b.y2, c.y + c.h); }
+  }
+  return m;
+}
+
+// telas ENCOSTADAS (direta ou indiretamente) da Screen → telaId → id do PAINEL.
+// Painel é o objeto físico montado inteiro: A—B—C encostadas são um painel só,
+// mesmo que A e C não se toquem. É o que separa BURACO (dentro do painel, e a
+// régua do retângulo cobra) de VÃO (entre painéis, o vazio do palco).
+export function panelIds(rects) {
+  const ids = [...(rects?.keys?.() || [])];
+  const pai = new Map(ids.map((id) => [id, id]));
+  const raiz = (i) => {
+    while (pai.get(i) !== i) { pai.set(i, pai.get(pai.get(i))); i = pai.get(i); }
+    return i;
+  };
+  const toca = (a, b) => a.x1 <= b.x2 + 1 && b.x1 <= a.x2 + 1 && a.y1 <= b.y2 + 1 && b.y1 <= a.y2 + 1;
+  for (let i = 0; i < ids.length; i++)
+    for (let j = i + 1; j < ids.length; j++)
+      if (toca(rects.get(ids[i]), rects.get(ids[j]))) pai.set(raiz(ids[i]), raiz(ids[j]));
+  return new Map(ids.map((id) => [id, raiz(id)]));
+}
+
 // Aglomerados de telas ENCOSTADAS: telas cujas caixas se tocam (vão zero) formam
 // um painel contínuo e podem dividir os mesmos blocos; VÃO entre caixas separa
 // aglomerados — um bloco retangular que atravessasse o vão cobraria o vão na
@@ -136,6 +167,29 @@ export function portBboxPx(port) {
     maxX = Math.max(maxX, cell.x + cell.w); maxY = Math.max(maxY, cell.y + cell.h);
   }
   return (maxX - minX) * (maxY - minY);
+}
+
+// O que a porta GASTA na régua de área. O retângulo é o que a controladora
+// básica reserva — mas quando a porta atravessa o VÃO entre painéis separados,
+// o retângulo único cobra o vazio do palco, e aí o vão come cota de uma porta
+// que não manda pixel nenhum pra lá. Padrão: um retângulo por AGLOMERADO de
+// telas encostadas, somados — é assim que o painel é mapeado em região no Unico,
+// no SmartLCT e na Complex Screen do NovaLCT.
+// `contaVao` volta ao retângulo ÚNICO: quem monta a Screen como um retângulo
+// simples (sem separar regiões na controladora) paga o vão mesmo, e essa escolha
+// fica declarada no Caderno. Buraco DENTRO do painel contínuo continua pago nos
+// dois modos — isso é a regra do retângulo, não vão.
+export function portAreaPx(port, contaVao = false, panels = null) {
+  if (!port?.length) return 0;
+  if (contaVao) return portBboxPx(port);
+  const porPainel = new Map();
+  for (const c of port) {
+    // sem o mapa de painéis (chamada solta), cada tela responde por si
+    const k = panels?.get(c.telaId) ?? c.telaId;
+    if (!porPainel.has(k)) porPainel.set(k, []);
+    porPainel.get(k).push(c);
+  }
+  return [...porPainel.values()].reduce((px, grupo) => px + portBboxPx(grupo), 0);
 }
 
 // ordem de numeração das portas no canvas — mesmo esquema do orderPorts() por tela

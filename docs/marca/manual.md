@@ -286,6 +286,13 @@ Botão-ícone 36-40px com borda. FAB só em lista de criação.
    slot da folha (JPEG borra a junção e suja a cor). Imagem no PDF entra pelo
    dicionário `images` por NOME; dataURL inline no nó multiplica o embed e
    inflou um caderno real de 236 KB pra 1,4 MB.
+9. **PREMISSA DECLARADA** — número que depende de uma ESCOLHA do técnico sai
+   nomeado na folha da Screen, ao lado da resolução e das portas: hoje
+   **Overclock** (arredondar a capacidade pra cima) e **Vão no retângulo**
+   (o vazio entre painéis ocupando ou não cota de porta). A premissa só aparece
+   quando muda algum número do caderno — declaração que não altera nada é
+   ruído. Caderno é documento datado: quem lê seis meses depois precisa saber
+   sob qual regra a conta foi feita.
 
 ## 11 · A gramática (estrutura de toda tela)
 
@@ -331,6 +338,9 @@ termo solto no código.
   Screen tem um vão PADRÃO: arrastar encaixa nele, o auto-arrumar separa por
   ele e a tela nova entra respeitando-o; a cota do canvas mede a folga real até
   o vizinho que a tela encara. Nunca "gap" nem "espaço"; "folga" só como glosa.
+  **Vão não ocupa cota de porta** (§10.9): na régua de Área cada painel
+  encostado é uma região própria; o vazio do palco só entra se a Screen
+  declarar. Buraco DENTRO do painel não é vão — esse a regra do retângulo cobra.
 - **Canvas de conteúdo** — a caixa envolvente da Composição (par fixo:
   "Canvas de conteúdo (caixa envolvente)").
 

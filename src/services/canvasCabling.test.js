@@ -1,6 +1,6 @@
 // canvasCabling.test.js — a corrente atravessando telas no canvas do processador.
 import { describe, it, expect } from "vitest";
-import { canvasCells, snakeCells, snakeCellsPorTela, clusterTelas, canvasPorts, portBboxPx, orderCanvasPorts } from "./canvasCabling.js";
+import { canvasCells, snakeCells, snakeCellsPorTela, clusterTelas, canvasPorts, portBboxPx, portAreaPx, telaRects, panelIds, orderCanvasPorts } from "./canvasCabling.js";
 import { packByModel } from "./layout.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -205,5 +205,70 @@ describe("portBboxPx — a régua de área medida no canvas", () => {
     const bbox = portBboxPx([...t4, ...central.slice(-3)]); // t4 + última coluna da Central
     expect(bbox).toBe(1792 * 768); // engoliu tudo entre elas
     expect(bbox).toBeGreaterThan(6 * 128 * 256); // muito acima dos 6 gabinetes reais
+  });
+});
+
+describe("panelIds — o painel físico (encostadas, direta ou indiretamente)", () => {
+  const box = (x, w) => ({ x1: x, y1: 0, x2: x + w, y2: 768 });
+
+  it("A—B—C encostadas são UM painel, mesmo A e C não se tocando", () => {
+    const p = panelIds(new Map([["a", box(0, 128)], ["b", box(128, 1024)], ["c", box(1152, 128)]]));
+    expect(p.get("a")).toBe(p.get("c"));
+    expect(p.get("a")).toBe(p.get("b"));
+  });
+
+  it("vão no meio parte em dois painéis", () => {
+    const p = panelIds(new Map([["a", box(0, 128)], ["b", box(1152, 128)]]));
+    expect(p.get("a")).not.toBe(p.get("b"));
+  });
+
+  it("mapa vazio não quebra", () => {
+    expect(panelIds(new Map()).size).toBe(0);
+    expect(panelIds(null).size).toBe(0);
+  });
+});
+
+describe("portAreaPx — o VÃO só entra na cota se a Screen declarar", () => {
+  // duas telas 128×256 (1×3) afastadas 1.024 px: painéis separados, não um painel
+  const gab = { resX: "128", resY: "256" };
+  const tiraA = { id: "a", cols: 1, rows: 3, gabinete: gab };
+  const tiraB = { id: "b", cols: 1, rows: 3, gabinete: gab };
+  const comVao = canvasCells([tiraA, tiraB], { a: { x: 0, y: 0 }, b: { x: 1152, y: 0 } });
+  const reais = 6 * 128 * 256;
+
+  it("padrão: um retângulo por painel encostado — o vazio do palco não paga", () => {
+    expect(portAreaPx(comVao)).toBe(reais); // 2 tiras sólidas, nada além delas
+    expect(portBboxPx(comVao)).toBe(1280 * 768); // o retângulo único cobraria o vão
+    expect(portAreaPx(comVao)).toBeLessThan(portBboxPx(comVao));
+  });
+
+  it("declarado (retângulo único da controladora): o vão volta pra cota", () => {
+    expect(portAreaPx(comVao, true)).toBe(portBboxPx(comVao));
+  });
+
+  it("painel contínuo não muda: buraco dentro do retângulo continua pago nos dois modos", () => {
+    // com as caixas REAIS da Screen (é o que screenPortSummary passa): t4 e Central
+    // se encostam, então é UM painel — o miolo que o cabo pulou é buraco, não vão
+    const cells = canvasCells(colacao, posColacao);
+    const paineis = panelIds(telaRects(cells));
+    const t4 = cells.filter((c) => c.telaId === "t4");
+    const central = cells.filter((c) => c.telaId === "central"); // encostada na t4
+    const porta = [...t4, ...central.slice(-3)];
+    expect(portAreaPx(porta, false, paineis)).toBe(portBboxPx(porta)); // regra do retângulo, não vão
+    expect(portAreaPx(porta, true, paineis)).toBe(portBboxPx(porta));
+  });
+
+  it("sem o mapa de painéis, cada tela responde por si (o fallback)", () => {
+    const cells = canvasCells(colacao, posColacao);
+    const t4 = cells.filter((c) => c.telaId === "t4");
+    const central = cells.filter((c) => c.telaId === "central");
+    const porta = [...t4, ...central.slice(-3)];
+    // cada tela vira seu próprio retângulo — por isso quem mede vão passa os painéis
+    expect(portAreaPx(porta)).toBeLessThan(portBboxPx(porta));
+  });
+
+  it("porta vazia = 0 nos dois modos", () => {
+    expect(portAreaPx([])).toBe(0);
+    expect(portAreaPx(undefined, true)).toBe(0);
   });
 });

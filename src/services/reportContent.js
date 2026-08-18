@@ -106,6 +106,8 @@ export const CRITERIOS = [
   ] },
   { h: "Sinal", itens: [
     "Porta Gigabit: 655.360 px a 8-bit/60 Hz — a capacidade escala com a profundidade de cor (10-bit = metade) e com o refresh (× 60 ÷ Hz). Porta acima do teto só por OVERCLOCK declarado.",
+    "Régua de Pixels (Free Topology): a porta gasta os pixels dos gabinetes reais. Régua de Área: gasta o retângulo que cobre a cadeia — buraco dentro do painel é reservado junto (é o que a controladora básica manda).",
+    "O VÃO entre painéis separados não ocupa cota de porta: cada painel encostado é uma região própria (Unico, SmartLCT, Complex Screen do NovaLCT). Screen que declara “vão conta no retângulo” volta ao retângulo único, e aí o vazio do palco ocupa cota — a escolha sai registrada na folha da Screen.",
   ] },
   { h: "Vídeo e distância de visão", itens: [
     "Quatro distâncias a partir do pitch (mm): MÍNIMA = pitch em metros (fusão de cores, regra 1×) · ÓTIMA = pitch × 10 pés (≈ × 3,05 m) · RETINA = pitch × 3,438 (1 minuto de arco, visão 20/20 — o pixel some) · MÁXIMA = altura da tela × 30.",

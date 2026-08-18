@@ -278,7 +278,10 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     const scr = screensById[s.id];
     const g = (scr?.telaIds || []).map((id) => telas.find((t) => t.id === id)).filter(Boolean)[0]?.gabinete;
     const resX = parseFloat(g?.resX) || 128, resY = parseFloat(g?.resY) || 128;
-    return { resX, resY, hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true };
+    return { resX, resY, hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true,
+      // régua de área com porta atravessando vão: a escolha muda o número, então
+      // vira premissa declarada no papel (mesma lei do overclock)
+      vao: (scr?.sinal?.rule === "px" ? false : s.ports.some((p) => p.cruzaVao)) && (scr?.sinal?.vaoConta === true ? "conta" : "não conta") };
   };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
 
@@ -636,7 +639,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               ["Gabinetes", String(s.grid.gabs)],
               ...(s.grid.exato ? [["Grade da Screen", `${s.grid.cols} × ${s.grid.rows}`]] : []),
               ["Total de portas", String(s.ports.length)],
-              // premissa declarada: passar do nominal foi ESCOLHA (documento datado)
+              // premissas declaradas: o que foi ESCOLHA sai no documento datado
+              ...(sp.vao ? [["Vão no retângulo", sp.vao]] : []),
               ...(sp.overclock ? [["Overclock", "ligado"]] : []),
             ]),
             ...mapNode(mapa),

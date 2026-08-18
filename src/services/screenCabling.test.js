@@ -204,6 +204,48 @@ describe("telaPortSlices — número real por Screen, com fallback legado", () =
   });
 });
 
+describe("cota da porta na régua de ÁREA — o vão fora, salvo declarado", () => {
+  // Screen de área com as 2 tiras afastadas 1.024 px e UM cabo desenhado cobrindo
+  // as duas: é o caso do palco com painéis separados no mesmo sistema.
+  const cabo = [
+    ...Array.from({ length: 3 }, (_, r) => ({ telaId: "t1", c: 0, r })),
+    ...Array.from({ length: 3 }, (_, r) => ({ telaId: "t2", c: 0, r })),
+  ];
+  const base = { id: "s9", nome: "Palco", telaIds: ["t1", "t2"], pos: { t1: { x: 0, y: 0 }, t2: { x: 1152, y: 0 } } };
+  const semDeclarar = { ...base, sinal: { rule: "area", strategy: "livre", cables: [cabo] } };
+  const declarado = { ...base, sinal: { rule: "area", strategy: "livre", vaoConta: true, cables: [cabo] } };
+
+  it("padrão: a % é a dos painéis reais — o vão não come cota", () => {
+    const [p] = screenPortSummary(semDeclarar, telas);
+    expect(p.count).toBe(6);
+    // 6 gab × 32.768 px = 196.608 de 655.360 → 30%
+    expect(p.pct).toBe(30);
+    expect(p.over).toBe(false);
+  });
+
+  it("declarado: o retângulo único cobra o vão e a porta estoura", () => {
+    const [p] = screenPortSummary(declarado, telas);
+    expect(p.count).toBe(6); // os mesmos 6 gabinetes
+    expect(p.pct).toBe(150); // 1.280 × 768 = 983.040 px de retângulo
+    expect(p.over).toBe(true);
+  });
+
+  it("cruzaVao marca só a porta em que a escolha muda o número", () => {
+    expect(screenPortSummary(semDeclarar, telas)[0].cruzaVao).toBe(true);
+    // porta dentro de UM painel: a escolha não muda nada
+    const soT1 = { ...base, sinal: { rule: "area", strategy: "livre", cables: [cabo.slice(0, 3)] } };
+    expect(screenPortSummary(soT1, telas)[0].cruzaVao).toBe(false);
+  });
+
+  it("régua de PIXELS ignora a discussão: gabinete real é gabinete real", () => {
+    const px = { ...base, sinal: { rule: "px", strategy: "livre", cables: [cabo] } };
+    const pxDecl = { ...base, sinal: { rule: "px", strategy: "livre", vaoConta: true, cables: [cabo] } };
+    expect(screenPortSummary(px, telas)[0].pct).toBe(30);
+    expect(screenPortSummary(pxDecl, telas)[0].pct).toBe(30);
+    expect(screenPortSummary(px, telas)[0].cruzaVao).toBe(false);
+  });
+});
+
 describe("screenGrid — contagem real de gabinetes (o vão não conta)", () => {
   it("Screen encostada de um modelo: grade exata, gabs = soma das telas", () => {
     // 12 col × 3 lin de 128×256 = 36 gabinetes, retângulo cheio
