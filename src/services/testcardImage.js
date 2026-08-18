@@ -7,18 +7,19 @@
 //
 // É o MESMO desenho da aba Test Card / Composição (services/testcardDraw.js), só
 // reduzido: o card em resolução real (ex.: 2.560 × 1.440) embutido no PDF pesaria
-// megabytes por tela. `maxPx` é o lado maior da imagem gerada — 1.000 px dá ~200
-// dpi no slot de 128 mm da folha (duas por linha), que é referência de imagem com
-// sobra. PNG de propósito: JPEG borraria a junção e sujaria a cor de um card de
-// calibração. O arquivo pra controladora continua saindo na aba Test Card, em
-// resolução real; aqui é referência visual.
+// megabytes por tela. `maxPx` é o lado maior da imagem gerada — 1.500 px dá ~145
+// dpi no slot de 264 mm da folha do Caderno (uma tela por página desde 18/08), que
+// é referência de imagem com sobra. PNG de propósito: JPEG borraria a junção e
+// sujaria a cor de um card de calibração. `maxPx: Infinity` devolve a resolução
+// NATIVA — é o que a Folha de Test Cards usa. O arquivo pra controladora continua
+// saindo na aba Test Card, em resolução real; aqui é referência visual.
 //
 // Precisa de canvas (browser). Sem `document` — motor de PDF rodando em teste
 // (node) — devolve lista vazia e o caderno simplesmente não ganha a folha.
 import { draw, DEFAULTS } from "./testcardDraw.js";
 import { telaPortSlices } from "./screenCabling.js";
 
-export const TESTCARD_MAX_PX = 1000;
+export const TESTCARD_MAX_PX = 1500;
 
 
 // dataURL de UMA tela (PNG). Devolve null se não houver canvas.

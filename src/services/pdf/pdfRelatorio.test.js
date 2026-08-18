@@ -398,17 +398,24 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).not.toContain("data:image/png;base64,AAA"); // nada de dataURL no nó
     expect(doc.images.tc_t1).toBe("data:image/png;base64,AAA");
     expect(doc.images.tc_t2).toBe("data:image/png;base64,BBB");
-    // um card por linha: o largo (10×6 gab = 1.040 × 624, proporção 1,7) fica com
-    // a ficha ao LADO; a fita (76×1) tomaria a folha inteira com a ficha embaixo
-    expect(j).toContain('"fit":[566,190]');
+    // um card por PÁGINA: o largo (10×6 gab = 1.040 × 624, proporção 1,7) fica com
+    // a ficha ao LADO. O 1º divide a folha com o cabeçalho da seção (340), os
+    // demais usam o orçamento inteiro (408)
+    expect(j).toContain('"fit":[566,340]');
+    expect(j).toContain('"fit":[566,408]');
+    expect(j).toContain('"03.1"'); // cada card abre em bloco numerado próprio
+    expect(j).toContain('"03.2"');
+    // quebra CONDICIONAL, e o 1º card não marca — senão sobra folha só com título
+    expect(j).not.toContain('"pageBreak":"before"');
+    expect(j).not.toContain('"unbreakable"');
   });
 
   it("card FITA toma a folha inteira e a ficha desce pra baixo dele", () => {
     // testeira real do Boticário: 76 × 1 gabinetes de 168 px = 12.768 × 168 (76:1)
     const fita = [{ telaId: "t3", nome: "Testeira Topo", cols: 76, rows: 1, gabinete: "Unilumin P2.9 Venti", url: "data:image/png;base64,CCC", pxW: 12768, pxH: 168 }];
     const j = JSON.stringify(buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null, testCards: fita }).content);
-    expect(j).toContain('"fit":[748,190]'); // largura útil inteira da prancha
-    expect(j).not.toContain('"fit":[566,190]'); // não sobrou coluna pra ficha do lado
+    expect(j).toContain('"fit":[748,320]'); // largura inteira; card único = 1º bloco (340 − 20 da ficha)
+    expect(j).not.toContain('"fit":[566,340]'); // não sobrou coluna pra ficha do lado
     expect(j).toContain("Testeira Topo");
     expect(j).toContain("12.768 × 168 px");
   });

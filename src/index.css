@@ -78,6 +78,15 @@ body {
   .report-doc section { break-before: page; page-break-before: always; padding-top: 10mm; }
   /* respiro no topo de cada subseção por Screen (04.1, 04.2…) quando cai no topo de uma página */
   .report-doc .rp-block { padding-top: 7mm; }
+  /* Test Card: um card por FOLHA (espelho do bloco do PDF nativo). O 1º divide a
+     página com o cabeçalho da seção — daí o :first-of-type sem quebra, mesma
+     lógica de section:first-of-type acima. */
+  .report-doc .rp-card { break-before: page; page-break-before: always; }
+  .report-doc .rp-card:first-of-type { break-before: auto; page-break-before: auto; }
+  /* teto em MILÍMETROS: no papel o px do preview não é referência. A4 paisagem com
+     12 mm de margem = 186 mm de altura; menos respiro, subtítulo e ficha, sobram
+     ~150 pra imagem. */
+  .report-doc .rp-card img { max-height: 150mm; }
   /* a 1ª seção não força quebra própria: a capa já tem break-after (evita página em branco) */
   .report-doc section:first-of-type { break-before: auto; page-break-before: auto; }
   .report-doc thead { display: table-header-group; }

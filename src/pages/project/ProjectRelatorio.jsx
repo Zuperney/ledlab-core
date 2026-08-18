@@ -79,6 +79,22 @@ export default function ProjectRelatorio({ project }) {
     }
     setGerandoPdf(false);
   };
+  // FOLHA DE TEST CARDS: export à parte (folha sem tamanho padrão, ver
+  // services/pdf/folhaTestCards.js). Vive no Design, ao lado do "Baixar PDF" —
+  // que segue sendo a única primária da aba (R1).
+  const [gerandoFolha, setGerandoFolha] = useState(false);
+  const baixarFolha = async () => {
+    setGerandoFolha(true);
+    try {
+      const { baixarFolhaTestCardsPdf } = await import("../../services/pdf/pdfEngine.js");
+      const f = await baixarFolhaTestCardsPdf({ project, palette, numbering, style: project.comp?.style });
+      toast(`Folha de Test Cards exportada — ${f.largM.toFixed(2).replace(".", ",")} × ${f.altM.toFixed(2).replace(".", ",")} m · ${f.dpi} dpi`);
+    } catch (e) {
+      console.error(e);
+      toast("Não deu pra gerar a Folha de Test Cards — tenta de novo", "info");
+    }
+    setGerandoFolha(false);
+  };
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
   const showPhys = ["Completo", "Resumido", "Gabinetes", "Design"].includes(type);
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
@@ -127,6 +143,13 @@ export default function ProjectRelatorio({ project }) {
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
           {/* MOTOR NATIVO (F1): gera o PDF no app — funciona no celular, com nome
               certo e sem "gráficos de segundo plano". Imprimir fica de fallback. */}
+          {/* a folha 1:1 é entrega do Design: ghost, sem disputar a primária */}
+          {showCards && telas.length > 0 && (
+            <button style={btn("ghost", gerandoFolha ? { opacity: 0.6, cursor: "wait" } : {})} disabled={gerandoFolha} onClick={baixarFolha}
+              title="Folha de Test Cards — PDF de uma folha só, do tamanho do canvas (1,20 m no lado maior), com cada card em resolução nativa">
+              <Download size={15} /> {gerandoFolha ? "Gerando…" : "Folha 1:1"}
+            </button>
+          )}
           <button style={btn("primary", gerandoPdf ? { opacity: 0.6, cursor: "wait" } : {})} disabled={gerandoPdf} onClick={baixarPdf}>
             <Download size={15} /> {gerandoPdf ? "Gerando…" : "Baixar PDF"}
           </button>

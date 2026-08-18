@@ -3,11 +3,12 @@
 // com a ficha técnica ao lado. Mesma arte e mesma fonte de dados do PDF nativo —
 // se divergir, o bug é no serviço, não em dois lugares.
 //
-// Um card por LINHA, empilhados: painel de LED é quase sempre mais largo que alto,
-// e duas colunas espremiam cada card em meia folha à toa. A ficha fica à DIREITA,
-// onde sobra espaço; card muito largo (fita de 76×1, 12.768 × 168 px do Boticário)
-// toma a linha inteira e a ficha desce pra baixo dele — ao lado, ela deixaria a
-// fita com espessura de fio de cabelo.
+// Um card por FOLHA: na tela eles ficam empilhados, e na impressão cada um abre a
+// própria página (o PDF nativo faz o mesmo com `bloco()`). Numa lista o card ficava
+// com 190 pt e o painel grande virava selo. A ficha fica à DIREITA, onde sobra
+// espaço; card muito largo (fita de 76×1, 12.768 × 168 px do Boticário) toma a
+// largura inteira e a ficha desce — ao lado, ela deixaria a fita com espessura de
+// fio de cabelo.
 //
 // O estilo vem do que o projeto já escolheu na Composição (project.comp.style):
 // a folha mostra o card que o técnico vai gerar, não um card genérico.
@@ -46,11 +47,14 @@ export default function ReportTestCards({ project }) {
           ["Gabinete", c.gabinete || "—"],
         ];
         return (
-          <figure key={c.telaId} style={{ margin: 0, breakInside: "avoid", display: "flex", gap: 12,
+          // um card por FOLHA na impressão (espelho do bloco do PDF nativo): quem
+          // quebra a página é o `.rp-card` no @media print — inclusive a exceção do
+          // primeiro, que divide a folha com o cabeçalho da seção
+          <figure key={c.telaId} className="rp-block rp-card" style={{ margin: 0, breakInside: "avoid", display: "flex", gap: 12,
             flexDirection: abaixo ? "column" : "row", alignItems: abaixo ? "stretch" : "flex-start" }}>
             <div style={{ flex: "1 1 auto", minWidth: 0 }}>
               <img src={c.url} alt={`Test Card ${c.nome}`}
-                style={{ display: "block", maxWidth: "100%", maxHeight: abaixo ? 190 : 230, border: `1px solid ${PRINT.line}`, borderRadius: 4, background: "#000" }} />
+                style={{ display: "block", maxWidth: "100%", maxHeight: abaixo ? 380 : 420, border: `1px solid ${PRINT.line}`, borderRadius: 4, background: "#000" }} />
             </div>
             {/* a ficha ENCOLHE se a folha estreitar (preview mobile): fixa em 190
                 ela comia metade da linha e sobrava um selo de imagem */}
@@ -58,7 +62,7 @@ export default function ReportTestCards({ project }) {
               <div style={{ color: PRINT.ink, fontWeight: 700, fontSize: 13, marginBottom: abaixo ? 0 : 4 }}>{c.nome}</div>
               {abaixo ? (
                 // linha corrida: embaixo de uma fita larga, coluna de rótulos vira escada
-                <span>{ficha.map(([, v], i) => <span key={i} style={mono}>{i ? " · " : ""}{v}</span>)}</span>
+                <span>{ficha.map(([, v], k) => <span key={k} style={mono}>{k ? " · " : ""}{v}</span>)}</span>
               ) : (
                 ficha.map(([r, v]) => (
                   <div key={r} style={{ display: "flex", gap: 6, justifyContent: "space-between", borderTop: `1px solid ${PRINT.line}`, padding: "3px 0" }}>

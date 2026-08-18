@@ -280,12 +280,15 @@ Botão-ícone 36-40px com borda. FAB só em lista de criação.
 8. **REFERÊNCIA DE IMAGEM (18/08/2026)** — o caderno de **Design** carrega a
    folha **Test Card · Referência de imagem**: o card de cada tela desenhado de
    verdade (o estilo que o projeto escolheu na Composição, com o número REAL da
-   porta), duas por linha, legenda nome · resolução · grade. É REFERÊNCIA — o
-   arquivo pra controladora sai na aba Test Card, em resolução real. Card de
-   calibração **nunca vai em formato com perda**: PNG reduzido pra ~200 dpi no
-   slot da folha (JPEG borra a junção e suja a cor). Imagem no PDF entra pelo
-   dicionário `images` por NOME; dataURL inline no nó multiplica o embed e
-   inflou um caderno real de 236 KB pra 1,4 MB.
+   porta), **uma tela por folha**, com a ficha técnica ao lado — ou embaixo,
+   quando o card é fita. É REFERÊNCIA — o arquivo pra controladora sai na aba
+   Test Card, em resolução real. Card de calibração **nunca vai em formato com
+   perda**: PNG a ~145 dpi na folha cheia (JPEG borra a junção e suja a cor).
+   Imagem no PDF entra pelo dicionário `images` por NOME; dataURL inline no nó
+   multiplica o embed e inflou um caderno real de 236 KB pra 1,4 MB.
+   **O primeiro card não quebra página** — ele divide a folha com o cabeçalho da
+   seção; sem isso sobra uma folha só com título (o mesmo motivo da exceção
+   `section:first-of-type` na impressão do DOM).
 9. **PREMISSA DECLARADA** — número que depende de uma ESCOLHA do técnico sai
    nomeado na folha da Screen, ao lado da resolução e das portas: hoje
    **Overclock** (arredondar a capacidade pra cima) e **Vão no retângulo**
@@ -293,6 +296,17 @@ Botão-ícone 36-40px com borda. FAB só em lista de criação.
    quando muda algum número do caderno — declaração que não altera nada é
    ruído. Caderno é documento datado: quem lê seis meses depois precisa saber
    sob qual regra a conta foi feita.
+10. **A FOLHA DE TEST CARDS não é caderno (18/08/2026)** — é a exceção
+    documentada a estas leis, e a única saída do app com **tamanho de folha fora
+    do padrão**: a folha tem a PROPORÇÃO do canvas de conteúdo, lado maior de
+    **1,20 m** (rolo de plotter), cada Test Card em **resolução nativa** na
+    posição real da Composição, fundo preto e um rótulo vetorial por tela (nome ·
+    x · y · resolução). Sem prancha, sem moldura, sem carimbo, sem "s/ esc." —
+    quem carimba é o Caderno. Arquivo separado por imposição do motor: o pdfmake
+    aceita UM tamanho de página por documento, então folha fora do padrão nunca
+    seria página do caderno. O rótulo é limitado pela altura do bloco que ele
+    nomeia (nunca maior que a tela) e tem piso de legibilidade — numa folha de
+    1,20 m, tipo pequeno demais é o mesmo que tipo nenhum.
 
 ## 11 · A gramática (estrutura de toda tela)
 
@@ -385,6 +399,9 @@ termo solto no código.
   Energia, dimensionamento — Cabeamento de Sinal · Portas de dados — Cabeamento
   AC · Circuitos de força — Critérios de Cálculo · Normas e referências —
   Glossário · Termos técnicos).
+- **Folha de Test Cards** — a folha sem tamanho padrão (§10.10): proporção do
+  canvas de conteúdo, 1,20 m no lado maior, card em resolução nativa. É saída à
+  parte, não uma folha do Caderno. Nunca "poster" nem "mapa de test cards".
 - **Prancha · carimbo · FOLHA N/M · REV · Nº DOC**. "Gab." só em tabela densa
   (a exceção documentada do §10.1). **Planilha de pagamento** (pra aprovar) ×
   **Recibo de mão de obra** (validado).

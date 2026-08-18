@@ -465,57 +465,69 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   ];
 
   // ── TEST CARD (referência de imagem) — só no Design ──
-  // UM card por linha, empilhados: painel de LED é quase sempre mais largo que
-  // alto, e duas colunas espremiam cada card em meia folha à toa. A ficha técnica
-  // fica à DIREITA, onde sobra espaço. Card muito largo (fita de 76 × 1 gabinetes
-  // = 12.768 × 168 px) toma a linha inteira e a ficha desce — ao lado, ela
-  // deixaria a fita com espessura de fio (limiar: services/testcardImage.js).
+  // UM BLOCO POR CARD, cada um abrindo em página própria: numa lista, o card
+  // ficava com 190 pt de altura e o painel grande virava selo. Sozinho na folha
+  // ele usa o orçamento inteiro da prancha — a mesma conta do MAPA_CHEIO:
+  // 595,3 − 36 (topo) − 94 (carimbo) = 465 úteis, menos o subHead (~24) = 441;
+  // 360 de teto mantém a folga conservadora que impede o bloco de vazar.
+  //
+  // A ficha técnica fica à DIREITA, onde sobra espaço. Card fita (12.768 × 168 px
+  // da testeira) toma a largura inteira e a ficha desce — ao lado, ela deixaria a
+  // fita com espessura de fio (limiar FICHA_ABAIXO, em services/reportContent.js).
   //
   // Sempre `fit`, nunca `width` cru: card mais alto que largo estouraria a folha.
-  // Tabela sem borda com dontBreakRows pra imagem e ficha nunca se separarem —
-  // e não `unbreakable`, que DESCARTA o conteúdo quando não cabe. As imagens
+  // `bloco()` (stack + headlineLevel) dá a quebra CONDICIONAL do docDefinition —
+  // nada de `unbreakable`, que DESCARTA o conteúdo quando não cabe. As imagens
   // entram pelo dicionário `images` por NOME (ver o comentário do dicionário).
-  const cardNodes = !cards.length ? [] : (() => {
+  const cardBlocos = (S) => {
     const FICHA = 168, GAP = 14; // largura da coluna da ficha e o respiro
-    const LARG = 748, ALT = 190; // largura útil da prancha e o teto de altura do card
+    const LARG = 748;            // largura útil da prancha (mesma sarjeta do mapa cheio)
+    // Teto de altura do card, em duas medidas. Folha inteira: 465,3 úteis − 24 do
+    // subHead − 4 da margem do bloco = 437; 408 deixa 29 de folga (13 quando a
+    // ficha vai embaixo). O PRIMEIRO card divide a folha com o cabeçalho da seção
+    // (~40) e o parágrafo de abertura (~29), então cabe menos: 340.
+    const ALT = 408, ALT_P1 = 340;
     const linhaFicha = (rot, val) => ({
       columns: [
-        { width: "*", text: rot.toUpperCase(), fontSize: 6.5, color: PRINT.dim, characterSpacing: 0.6, margin: [0, 1.5, 0, 0] },
-        { width: "auto", text: val, font: "PlexMono", fontSize: 8, color: PRINT.ink, alignment: "right" },
+        { width: "*", text: rot.toUpperCase(), fontSize: 7, color: PRINT.dim, characterSpacing: 0.6, margin: [0, 2, 0, 0] },
+        { width: "auto", text: val, font: "PlexMono", fontSize: 9, color: PRINT.ink, alignment: "right" },
       ],
-      margin: [0, 2.5, 0, 2.5],
+      margin: [0, 3.5, 0, 3.5],
     });
     const dados = (c) => [["Resolução", `${ptBR(c.pxW)} × ${ptBR(c.pxH)} px`], ["Grade", `${c.cols} × ${c.rows} gab.`], ["Gabinete", c.gabinete || "—"]];
-    const cartao = (c) => {
+    return cards.map((c, i) => {
       const abaixo = c.pxW / c.pxH > FICHA_ABAIXO;
-      if (abaixo) {
-        return { stack: [
-          { image: `tc_${c.telaId}`, fit: [LARG, ALT] },
-          { text: [
-            { text: c.nome, bold: true, fontSize: 9.5, color: PRINT.ink },
-            ...dados(c).flatMap(([, v], k) => [{ text: k ? "  ·  " : "   ", fontSize: 7.5, color: PRINT.line }, { text: v, font: "PlexMono", fontSize: 7.5, color: PRINT.mut }]),
-          ], margin: [0, 4, 0, 0] },
-        ] };
-      }
-      return { columns: [
-        { width: "auto", image: `tc_${c.telaId}`, fit: [LARG - FICHA - GAP, ALT] },
-        { width: FICHA, margin: [GAP, 2, 0, 0], stack: [
-          { text: c.nome, bold: true, fontSize: 10.5, color: PRINT.ink, margin: [0, 0, 0, 3] },
-          ...dados(c).map(([r, v]) => linhaFicha(r, v)),
-        ] },
-      ] };
-    };
-    return [{
-      table: { widths: ["*"], body: cards.map((c) => [cartao(c)]), dontBreakRows: true },
-      layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 12 },
-    }];
-  })();
+      const alt = i === 0 ? ALT_P1 : ALT;
+      const corpo = abaixo
+        ? { stack: [
+            { image: `tc_${c.telaId}`, fit: [LARG, alt - 20] }, // 20 pt reservados pra ficha embaixo
+            { text: dados(c).flatMap(([r, v], k) => [
+              { text: k ? "  ·  " : "", fontSize: 8, color: PRINT.line },
+              { text: `${r} `, fontSize: 7, color: PRINT.dim, characterSpacing: 0.6 },
+              { text: v, font: "PlexMono", fontSize: 8.5, color: PRINT.ink },
+            ]), margin: [0, 6, 0, 0] },
+          ] }
+        : { columns: [
+            { width: "auto", image: `tc_${c.telaId}`, fit: [LARG - FICHA - GAP, alt] },
+            { width: FICHA, margin: [GAP, 2, 0, 0], stack: dados(c).map(([r, v]) => linhaFicha(r, v)) },
+          ] };
+      // nome longo em 2 linhas comeria a folga do bloco — o subHead não quebra
+      const cabeca = subHead(`${S}.${i + 1}`, c.nome, `${ptBR(c.pxW)} × ${ptBR(c.pxH)} px`);
+      // o PRIMEIRO card NÃO marca headlineLevel: com ele, o pageBreakBefore
+      // dispararia logo depois do cabeçalho da seção e sobraria uma folha só com
+      // título e parágrafo. Os demais abrem em página própria.
+      return i === 0 ? { stack: [cabeca, corpo], margin: [0, 0, 0, 4] } : bloco([cabeca, corpo]);
+    });
+  };
 
-  const cardsSecao = !cards.length ? [] : [
-    sectionHead(sec(), "Test Card", "Referência de imagem", DISC.video),
-    { text: "O Test Card de cada tela como ele vai aparecer no painel — referência de imagem pra conferir grade, numeração de gabinete e cor antes da montagem. O arquivo em resolução real sai na aba Test Card.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 8] },
-    ...cardNodes,
-  ];
+  const cardsSecao = !cards.length ? [] : (() => {
+    const sn = sec(); const S = String(sn).padStart(2, "0");
+    return [
+      sectionHead(sn, "Test Card", "Referência de imagem", DISC.video),
+      { text: "O Test Card de cada tela como ele vai aparecer no painel — referência de imagem pra conferir grade, numeração de gabinete e cor antes da montagem. Uma tela por folha; o arquivo em resolução real sai na aba Test Card.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 8] },
+      ...cardBlocos(S),
+    ];
+  })();
 
   // ── INFORMAÇÕES ELÉTRICAS ──
   // balanço por fase do projeto inteiro: pico e típico (rodízio por Screen)

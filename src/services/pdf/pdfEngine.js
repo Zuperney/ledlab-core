@@ -14,8 +14,11 @@ import pdfMake from "pdfmake/build/pdfmake.min.js";
 import Helvetica from "pdfmake/build/standard-fonts/Helvetica.js";
 import Courier from "pdfmake/build/standard-fonts/Courier.js";
 import { buildRelatorioDoc } from "./pdfRelatorio.js";
+import { folhaGeometria, buildFolhaTestCardsDoc, maxPxDaTela } from "./folhaTestCards.js";
+import { testCardImage, testCardImages } from "../testcardImage.js";
+import { compLayout } from "../layout.js";
 import { fileName } from "../filenames.js";
-import { testCardImages } from "../testcardImage.js";
+
 import ledlabSquare from "../../assets/ledlab-square.png";
 import plexSans from "../../assets/fonts/IBMPlexSans-Regular.ttf";
 import plexSansBold from "../../assets/fonts/IBMPlexSans-Bold.ttf";
@@ -69,4 +72,32 @@ export async function relatorioPdfUrl({ project, tipo, cfg, gerado, numbering, p
   const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render });
   const blob = await pdfMake.createPdf(doc).getBlob();
   return URL.createObjectURL(blob);
+}
+
+// A FOLHA DE TEST CARDS: um PDF só, sem tamanho padrão, com a proporção do canvas
+// da Composição e cada card em resolução NATIVA na posição real. Aqui mora a
+// parte impura (canvas do browser); a geometria e a docDefinition são puras, em
+// ./folhaTestCards.js.
+//
+// Uma tela por vez de propósito: o canvas de cada card é liberado antes do
+// próximo, e nunca se cria um canvas da composição inteira (o `exportPng` da aba
+// Composição cria, e num canvas de 21 MP o Safari do iPad desiste).
+export async function baixarFolhaTestCardsPdf({ project, palette, numbering, style }) {
+  const telas = project?.telas || [];
+  const layout = compLayout(telas, project?.comp?.pos);
+  const geo = folhaGeometria(telas, project?.comp?.pos);
+  if (!geo.itens.length) throw new Error("Projeto sem telas — a folha precisa de pelo menos uma.");
+
+  const cards = [];
+  for (const t of telas) {
+    const d = layout.dims[t.id];
+    const img = testCardImage(project, t, { style, palette, numbering, maxPx: maxPxDaTela(d.w, d.h) });
+    if (img) cards.push({ telaId: t.id, url: img.url });
+  }
+  const doc = buildFolhaTestCardsDoc({ project, geo, cards, infoPos: style?.infoPos });
+  await pdfMake.createPdf(doc).download(fileName([project?.name, "folha-test-cards"], "pdf"));
+  const metros = (pt) => pt / (72 / 25.4) / 1000;
+  const largMM = geo.pageW / (72 / 25.4);
+  // dpi é uniforme na folha (k é um só): pixel do canvas por polegada de papel
+  return { largM: metros(geo.pageW), altM: metros(geo.pageH), dpi: Math.round((geo.canvasW * 25.4) / largMM) };
 }
