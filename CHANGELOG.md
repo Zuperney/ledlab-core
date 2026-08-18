@@ -2,6 +2,36 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.22.0] — 2026-08-18
+
+**O vão vira medida, o campo vira calculadora e o Caderno de Design vira briefing de conteúdo.**
+
+Saída de um caderno real na mão do dono — o Boticário, oito telas e um canvas de 12.768 × 1.680 px.
+
+**Screens**
+
+- **Vão padrão**: defina em pixels a folga entre telas e ela passa a valer em três lugares — arrastar **encaixa** nela (além de encostado e alinhado), o **auto-arrumar** separa telas e faixas por ela, e tela nova entra respeitando-a. A **cota** aparece no canvas na tela selecionada, medindo em px a folga até os vizinhos que ela encara; vizinho na diagonal não tem folga medível e não vira cota.
+- **Correção — contagem de gabinetes**: a "Grade da Screen" do Caderno saía da caixa envolvente dividida pela resolução do gabinete, e o vão entrava na conta: duas telas 4×3 com 512 px de folga apareciam como 36 gabinetes numa Screen que tem 24. Agora o caderno informa a **contagem real** e só imprime a grade quando a Screen é um retângulo cheio de um modelo só.
+- **Correção — cota da porta**: na régua de Área, porta que atravessava o vão pagava o vazio do palco (seis gabinetes reais apareciam em 150% e "estourada"). A cota passou a ser **um retângulo por painel encostado**, somados — como o painel é mapeado em região no Unico, no SmartLCT e na Complex Screen do NovaLCT. Quem monta Screen retângular simples liga **"Vão conta no retângulo"** no Avançado da Screen, e a escolha sai declarada na folha do Caderno.
+
+**Campos numéricos**
+
+- **Conta dentro do campo**: `1920/2`, `192*3`, `(1920-64)/2`. Vale em todo campo de número do app — Composição, Screens, Dados, Aspect Ratio, Test Cards — e o resultado aparece num balão antes de você sair do campo. Entende milhar em pt-BR (`1.920/2` = 960), aceita `×`, `x` e `÷`, e conta pela metade não commita nada. No celular o teclado numérico não traz os operadores — na prática a conta é de teclado físico.
+
+**Caderno de Design**
+
+- **Uma tela por folha** na seção Test Card, com a imagem usando o orçamento inteiro da página e a ficha técnica ao lado (ou embaixo, quando o card é fita). A imagem subiu de 1.000 pra 1.500 px — de 96 pra 144 dpi na folha cheia.
+- **Folha de Conteúdo** (seção nova, "Conteúdo · Manual de vídeo"), no formato do rider: cada tela em **escala comum**, com a **resolução em cima** e o **tamanho em metros embaixo**, fora do desenho. Duas fichas fecham a folha — **Painel de LED** (modelo, tamanho e resolução tela a tela) e **Manual de conteúdo** (imagens, software, arquivo, codec, taxa de quadros, varredura, aspecto de pixel).
+- **Manual de conteúdo editável**: sete campos novos em Dados, nascidos com o padrão da casa (PNG · Resolume Arena · .MOV · DXV3 Normal Quality · 30/60 fps · Progressiva · Square Pixel). Campo apagado volta pro padrão: folha de conteúdo com lacuna é convite pra chegar arquivo errado.
+- **Capa**: no Design, **RESOLUÇÃO** do canvas no lugar do PESO — quem recebe esse caderno monta conteúdo, não rigging. Os outros tipos seguem com o peso.
+- **Distâncias de visão** saíram do Design e deram lugar ao **tamanho do canvas** (resolução, proporção, megapixels, metros e área de LED). Completo e Resumido seguem com as quatro distâncias.
+
+**Folha de Test Cards** (export novo, botão "Folha 1:1" no Caderno de Design)
+
+- Um PDF de **uma folha só, sem tamanho padrão**: proporção do canvas de conteúdo, **1,20 m no lado maior** (rolo de plotter), cada Test Card em **resolução nativa** na posição real da Composição. Arquivo separado por imposição do motor — um PDF aceita um tamanho de página só, então folha fora do padrão nunca seria página do caderno. Boticário: 1.200 × 183 mm, 0,64 MB.
+
+**Por baixo**: `services/expr.js` (a conta, sem `eval`), `services/pdf/folhaTestCards.js` e `services/videoSpecs.js` nascem testados; `snapAxis`/`gapsAround`/`panelIds` levam a geometria do vão pro `layout.js` e pro `canvasCabling.js`. Manual de marca ganhou o termo **Vão** (§12.1), a lei da **premissa declarada** (§10.9), a **Folha de Test Cards** (§10.10) e a **folha de Conteúdo** (§10.11).
+
 ## [1.21.0] — 2026-08-13
 
 **Quem faz o quê — e o Caderno com o mapa do tamanho da folha.**
