@@ -48,11 +48,17 @@ export function screenSize(screen, telas) {
   return { w, h };
 }
 
-// arranjo automático dos membros: agrupa por modelo, empilha faixas. É SUGESTÃO —
-// o técnico arrasta pra ajustar depois (metade dos eventos muda na montagem).
+// vão padrão da Screen (px): a folga que o técnico deixa entre telas. 0 = encostadas.
+// Vive na Screen (cada Screen é um sistema, com a montagem dela) e só existe quando
+// alguém definiu — Screen antiga sem o campo continua encostando, como sempre.
+export const vaoOf = (screen) => Math.max(0, Math.round(parseFloat(screen?.vao) || 0));
+
+// arranjo automático dos membros: agrupa por modelo, empilha faixas, separando tudo
+// pelo vão padrão da Screen. É SUGESTÃO — o técnico arrasta pra ajustar depois
+// (metade dos eventos muda na montagem).
 export function arrangeScreen(screen, telas) {
   const items = screenTelas(screen, telas).map((t) => ({ id: t.id, ...dimOf(t), model: modelKey(t) }));
-  return packByModel(items).pos;
+  return packByModel(items, Infinity, vaoOf(screen)).pos;
 }
 
 // adiciona uma tela à Screen `screenId`, tirando de qualquer outra (tela ∈ ≤1 Screen).
@@ -62,7 +68,8 @@ export function addTela(screens, screenId, telaId, telas) {
     if (s.id === screenId) {
       if ((s.telaIds || []).includes(telaId)) return s;
       const size = screenSize(s, telas);
-      return { ...s, telaIds: [...(s.telaIds || []), telaId], pos: { ...s.pos, [telaId]: { x: size.w, y: 0 } } };
+      const x = size.w ? size.w + vaoOf(s) : 0; // à direita do que já existe, respeitando o vão
+      return { ...s, telaIds: [...(s.telaIds || []), telaId], pos: { ...s.pos, [telaId]: { x, y: 0 } } };
     }
     if ((s.telaIds || []).includes(telaId)) return stripTela(s, telaId); // sai da anterior
     return s;

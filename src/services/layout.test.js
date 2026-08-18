@@ -1,7 +1,7 @@
 // layout.test.js — detecção de sobreposição da Composição (segurança de campo)
 // e o layout puro da Composição (fonte única da aba, do Caderno e do PDF).
 import { describe, it, expect } from "vitest";
-import { overlappingIds, reorder, packByModel, compLayout, regionEdges } from "./layout.js";
+import { overlappingIds, reorder, packByModel, compLayout, regionEdges, snapAxis, gapsAround } from "./layout.js";
 
 const r = (id, x, y, w, h) => ({ id, x, y, w, h });
 
@@ -173,5 +173,74 @@ describe("packByModel — canvas do processador", () => {
   it("lista vazia não quebra", () => {
     expect(packByModel([])).toEqual({ pos: {}, w: 0, h: 0 });
     expect(packByModel(undefined)).toEqual({ pos: {}, w: 0, h: 0 });
+  });
+
+  it("vão padrão separa telas e faixas — e não sobra folga pendurada no fim", () => {
+    const { pos, w, h } = packByModel(colacao, Infinity, 64);
+    expect(pos.imagD).toEqual({ x: 0, y: 0 });
+    expect(pos.imagE).toEqual({ x: 1216, y: 0 }); // 1152 + 64
+    expect(pos.t4).toEqual({ x: 0, y: 640 }); // faixa nova: 576 + 64
+    expect(pos.t3.x).toBe(192); // 128 + 64
+    expect(w).toBe(2368); // 1216 + 1152 — a borda direita real, sem vão sobrando
+    expect(h).toBe(1408); // 640 + 768
+  });
+});
+
+describe("snapAxis — encaixe com vão padrão (todo vão do mesmo tamanho)", () => {
+  // um vizinho ocupando 0..512 no eixo; a tela que se arrasta tem 256 de lado
+  const spans = [[0, 512]];
+
+  it("encosta no vizinho e alinha as bordas (comportamento de sempre)", () => {
+    expect(snapAxis(517, 256, spans, 0)).toBe(512); // encostou à direita
+    expect(snapAxis(-250, 256, spans, 0)).toBe(-256); // encostou à esquerda
+    expect(snapAxis(4, 256, spans, 0)).toBe(0); // alinhou o início
+    expect(snapAxis(253, 256, spans, 0)).toBe(256); // alinhou o fim (512 - 256)
+  });
+
+  it("com vão de 128, a folga cai EXATA nos dois lados", () => {
+    expect(snapAxis(634, 256, spans, 128)).toBe(640); // 512 + 128
+    expect(snapAxis(-380, 256, spans, 128)).toBe(-384); // 0 - 256 - 128
+  });
+
+  it("longe de qualquer candidata, o valor cru passa (arraste livre)", () => {
+    expect(snapAxis(900, 256, spans, 128)).toBe(900);
+  });
+
+  it("empate de proximidade vence a mais perto, não a primeira da lista", () => {
+    // 0 (origem) e 512 (borda) disputam: 500 está a 12 de 512 e a 500 de 0
+    expect(snapAxis(500, 256, spans, 0, 20)).toBe(512);
+  });
+});
+
+describe("gapsAround — a cota de px do vão no canvas", () => {
+  const alvo = { x: 1024, y: 0, w: 512, h: 384 };
+
+  it("mede o vão do vizinho que a tela ENCARA, com a cota no meio da sobreposição", () => {
+    const [g] = gapsAround(alvo, [{ x: 0, y: 0, w: 512, h: 384 }]);
+    expect(g).toEqual({ dir: "left", axis: "x", gap: 512, x: 512, y: 192, len: 512 });
+  });
+
+  it("vizinho na diagonal não tem vão medível (não há folga entre painéis ali)", () => {
+    expect(gapsAround(alvo, [{ x: 0, y: 500, w: 512, h: 384 }])).toEqual([]);
+  });
+
+  it("encostado ou sobreposto não vira cota (0 é o visual; sobreposição já é o alerta vermelho)", () => {
+    expect(gapsAround(alvo, [{ x: 512, y: 0, w: 512, h: 384 }])).toEqual([]);
+    expect(gapsAround(alvo, [{ x: 1000, y: 0, w: 512, h: 384 }])).toEqual([]);
+  });
+
+  it("um vão por lado — o vizinho MAIS PRÓXIMO de cada lado", () => {
+    const gs = gapsAround(alvo, [
+      { x: 0, y: 0, w: 512, h: 384 }, // esquerda, vão 512
+      { x: 768, y: 0, w: 128, h: 384 }, // esquerda, vão 128 (mais perto — este vence)
+      { x: 1600, y: 0, w: 256, h: 384 }, // direita, vão 64
+      { x: 1024, y: 500, w: 512, h: 100 }, // embaixo, vão 116
+    ]);
+    expect(gs.map((g) => [g.dir, g.gap])).toEqual([["left", 128], ["right", 64], ["bottom", 116]]);
+  });
+
+  it("sem alvo ou sem vizinhos → nada a cotar", () => {
+    expect(gapsAround(null, [])).toEqual([]);
+    expect(gapsAround(alvo, [])).toEqual([]);
   });
 });

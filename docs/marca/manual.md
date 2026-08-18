@@ -314,7 +314,14 @@ termo solto no código.
 - **Controladora** — a caixa NovaStar/Colorlight (sempre no feminino). Nunca
   "processador", "controlador", "dispositivo". **Media server** é OUTRO
   equipamento (máquina de conteúdo) e só aparece quando é dele que se fala.
-- **Grade** — a matriz colunas × linhas de gabinetes.
+- **Grade** — a matriz colunas × linhas de gabinetes. Só descreve a Screen
+  quando ela é um retângulo cheio de um modelo só; com vão no meio, o caderno
+  informa a CONTAGEM de gabinetes e cala a grade (a caixa envolvente não é
+  grade — dividi-la pela resolução conta gabinete que não existe).
+- **Vão** — a folga em px entre telas dentro da Screen (0 = encostadas). A
+  Screen tem um vão PADRÃO: arrastar encaixa nele, o auto-arrumar separa por
+  ele e a tela nova entra respeitando-o; a cota do canvas mede a folga real até
+  o vizinho que a tela encara. Nunca "gap" nem "espaço"; "folga" só como glosa.
 - **Canvas de conteúdo** — a caixa envolvente da Composição (par fixo:
   "Canvas de conteúdo (caixa envolvente)").
 

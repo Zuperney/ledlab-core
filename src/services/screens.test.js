@@ -1,6 +1,6 @@
 ﻿// screens.test.js — Screens que o técnico monta à mão (agrupamento manual).
 import { describe, it, expect } from "vitest";
-import { makeScreen, unassignedTelas, screenOfTela, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela, dropTela } from "./screens.js";
+import { makeScreen, unassignedTelas, screenOfTela, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela, dropTela, vaoOf } from "./screens.js";
 
 const gabTira = { resX: "128", resY: "256" };
 const gabImag = { resX: "192", resY: "192" };
@@ -82,6 +82,30 @@ describe("screenSize / screenTelas", () => {
   it("screenTelas resolve na ordem de telaIds", () => {
     const s = { telaIds: ["central", "t1"], pos: {} };
     expect(screenTelas(s, telas).map((t) => t.id)).toEqual(["central", "t1"]);
+  });
+});
+
+describe("vão padrão da Screen", () => {
+  it("Screen sem o campo = encostadas (nada muda pro projeto antigo)", () => {
+    expect(vaoOf(undefined)).toBe(0);
+    expect(vaoOf({})).toBe(0);
+    expect(vaoOf({ vao: -50 })).toBe(0); // negativo não é vão
+    expect(vaoOf({ vao: "128" })).toBe(128); // vindo de campo de texto
+  });
+
+  it("auto-arrumar respeita o vão: toda folga sai do mesmo tamanho", () => {
+    const s = { telaIds: ["t1", "central"], pos: {}, vao: 64 };
+    const pos = arrangeScreen(s, telas);
+    expect(pos.t1).toEqual({ x: 0, y: 0 });
+    expect(pos.central).toEqual({ x: 192, y: 0 }); // 128 (tira) + 64 de vão
+  });
+
+  it("tela nova entra depois do vão, não colada", () => {
+    let scr = [{ ...makeScreen("s1", "A"), vao: 100 }];
+    scr = addTela(scr, "s1", "t1", telas); // 1ª vai na origem
+    expect(scr[0].pos.t1).toEqual({ x: 0, y: 0 });
+    scr = addTela(scr, "s1", "central", telas);
+    expect(scr[0].pos.central).toEqual({ x: 228, y: 0 }); // 128 + 100
   });
 });
 

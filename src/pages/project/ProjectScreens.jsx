@@ -12,27 +12,19 @@ import { Layers, Plus, Wand2, Trash2, X, AlertTriangle } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { T } from "../../ui/tokens.js";
-import { card, btn, label as lbl } from "../../ui/styles.js";
+import { card, btn, input, label as lbl } from "../../ui/styles.js";
 import Placeholder from "../../components/Placeholder.jsx";
 import NumField from "../../components/NumField.jsx";
 import HelpTip from "../../components/HelpTip.jsx";
 import { genId } from "../../services/ids.js";
-import { overlappingIds } from "../../services/layout.js";
+import { overlappingIds, snapAxis, gapsAround } from "../../services/layout.js";
 import { dimOf, modelKey } from "../../services/canvasCabling.js";
-import { makeScreen, unassignedTelas, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela } from "../../services/screens.js";
+import { makeScreen, unassignedTelas, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela, vaoOf } from "../../services/screens.js";
 
 // cor por modelo de gabinete (estável no projeto): mesma cor = a cadeia pode
 // encadear entre as telas. Numa Screen que mistura modelos, isso mostra o que junta.
 const MODEL_COLORS = [T.acM, T.grn, T.amb, "#60a5fa", "#f472b6", "#2dd4bf"];
 const iconBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, background: "transparent", border: `1px solid ${T.bd}`, color: T.mut, cursor: "pointer", padding: 0, flexShrink: 0 };
-
-const snap = (v, size, targets, thr) => {
-  for (const tgt of targets) {
-    if (Math.abs(v - tgt) <= thr) return tgt;
-    if (Math.abs(v + size - tgt) <= thr) return tgt - size;
-  }
-  return v;
-};
 
 export default function ProjectScreens({ project, patch }) {
   const telas = useMemo(() => project.telas || [], [project.telas]);
@@ -104,6 +96,16 @@ export default function ProjectScreens({ project, patch }) {
   const maxH = isMobile ? 260 : 380;
   const scale = size.w && size.h ? Math.min(wrapW / size.w, maxH / size.h, 1) : 1;
 
+  // VÃO: a folga padrão da Screen. Entra no encaixe do arraste (toda folga sai do
+  // mesmo tamanho), no auto-arrumar e na entrada de tela nova.
+  const vao = vaoOf(active);
+  // cotas de px do vão: da tela em arraste (ou da selecionada) pros vizinhos que
+  // ela encara — é o que responde "quanto de folga tem aqui" sem contar gabinete.
+  const rectOf = (t) => { const p = posOf(t), d = dimOf(t); return { x: p.x, y: p.y, w: d.w, h: d.h }; };
+  const cotaId = drag?.id || sel;
+  const cotaAlvo = cotaId ? membros.find((t) => t.id === cotaId) : null;
+  const cotas = cotaAlvo ? gapsAround(rectOf(cotaAlvo), membros.filter((t) => t.id !== cotaId).map(rectOf)) : [];
+
   const deleteScreen = async (id) => {
     if (!(await confirm({ title: "Excluir Screen?", message: "As telas voltam pra lista de disponíveis — não são apagadas." }))) return;
     const next = screens.filter((s) => s.id !== id);
@@ -117,8 +119,8 @@ export default function ProjectScreens({ project, patch }) {
   const setPos = (telaId, x, y) => patchScreen(active.id, { pos: { ...active.pos, [telaId]: { x: Math.round(x), y: Math.round(y) } } });
 
   const dragAt = (c, ev) => ({
-    x: Math.max(0, snap(c.ox + (ev.clientX - c.startX) / scale, c.d.w, c.xs, c.thr)),
-    y: Math.max(0, snap(c.oy + (ev.clientY - c.startY) / scale, c.d.h, c.ys, c.thr)),
+    x: Math.max(0, snapAxis(c.ox + (ev.clientX - c.startX) / scale, c.d.w, c.xs, c.vao, c.thr)),
+    y: Math.max(0, snapAxis(c.oy + (ev.clientY - c.startY) / scale, c.d.h, c.ys, c.vao, c.thr)),
   });
   const onDown = (e, t) => {
     e.preventDefault();
@@ -127,9 +129,9 @@ export default function ProjectScreens({ project, patch }) {
     const p = posOf(t), d = dimOf(t);
     const others = membros.filter((x) => x.id !== t.id).map((x) => ({ p: posOf(x), d: dimOf(x) }));
     dragRef.current = {
-      id: t.id, startX: e.clientX, startY: e.clientY, ox: p.x, oy: p.y, d,
-      xs: [0, ...others.flatMap((o) => [o.p.x, o.p.x + o.d.w])],
-      ys: [0, ...others.flatMap((o) => [o.p.y, o.p.y + o.d.h])],
+      id: t.id, startX: e.clientX, startY: e.clientY, ox: p.x, oy: p.y, d, vao,
+      xs: others.map((o) => [o.p.x, o.p.x + o.d.w]),
+      ys: others.map((o) => [o.p.y, o.p.y + o.d.h]),
       thr: 9 / scale,
     };
   };
@@ -167,10 +169,19 @@ export default function ProjectScreens({ project, patch }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <input value={active.nome} onChange={(e) => patchScreen(active.id, { nome: e.target.value })}
             style={{ flex: 1, minWidth: 0, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, color: T.txt, fontWeight: 600, fontSize: 15, padding: "7px 10px" }} />
-          <button style={iconBtn} onClick={arrangeActive} disabled={!membros.length} title="Auto-arrumar: agrupa por modelo e empilha as faixas — você ajusta arrastando" aria-label="Auto-arrumar"><Wand2 size={15} /></button>
+          <button style={iconBtn} onClick={arrangeActive} disabled={!membros.length} title="Auto-arrumar: agrupa por modelo, empilha as faixas e aplica o vão — você ajusta arrastando" aria-label="Auto-arrumar"><Wand2 size={15} /></button>
           <button style={{ ...iconBtn, color: T.red }} onClick={() => deleteScreen(active.id)} title="Excluir esta Screen" aria-label="Excluir Screen"><Trash2 size={15} /></button>
         </div>
-        <div style={{ color: T.dim, fontSize: 11.5, marginBottom: 10 }}>{size.w.toLocaleString("pt-BR")} × {size.h.toLocaleString("pt-BR")} px</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <span style={{ color: T.dim, fontSize: 11.5, fontFamily: "ui-monospace, monospace" }}>{size.w.toLocaleString("pt-BR")} × {size.h.toLocaleString("pt-BR")} px</span>
+          {/* o vão muda O QUE A SCREEN É (a montagem), então mora aqui no conteúdo —
+              não em ajustes de exibição. Arrastar encaixa nele; o auto-arrumar aplica. */}
+          <label style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, color: T.mut, fontSize: 12, whiteSpace: "nowrap" }}>
+            Vão (px)
+            <NumField value={vao} onChange={(v) => patchScreen(active.id, { vao: Math.max(0, v) })}
+              style={input({ width: 86, fontFamily: "ui-monospace, monospace", textAlign: "right" })} />
+          </label>
+        </div>
 
         {/* telas disponíveis ACIMA do canvas — embaixo elas somem quando entra tela grande */}
         {disponiveis.length > 0 && (
@@ -209,6 +220,20 @@ export default function ProjectScreens({ project, patch }) {
                   </div>
                 );
               })}
+              {/* cota do vão: linha tracejada + o número em px, no meio da folga */}
+              {cotas.map((g) => (
+                <div key={g.dir} style={{ position: "absolute", pointerEvents: "none", zIndex: 3,
+                  left: g.x * scale, top: g.y * scale,
+                  width: g.axis === "x" ? g.len * scale : 0, height: g.axis === "y" ? g.len * scale : 0,
+                  borderTop: g.axis === "x" ? `1px dashed ${T.mut}` : undefined,
+                  borderLeft: g.axis === "y" ? `1px dashed ${T.mut}` : undefined }}>
+                  <span style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
+                    background: T.card, border: `1px solid ${T.bd}`, borderRadius: 999, padding: "1px 6px",
+                    color: T.txt, fontSize: 10, fontFamily: "ui-monospace, monospace", whiteSpace: "nowrap" }}>
+                    {Math.round(g.gap).toLocaleString("pt-BR")} px
+                  </span>
+                </div>
+              ))}
             </div>
           ) : (
             <div style={{ color: T.dim, fontSize: 13, textAlign: "center", padding: "28px 12px" }}>Screen vazia — adicione telas acima.</div>
@@ -246,6 +271,8 @@ export default function ProjectScreens({ project, patch }) {
         Screens do jeito da controladora
         <HelpTip title="Como montar as Screens" align="left">
           Você monta as Screens do jeito que configuraria na controladora — junte só o que vai no <b style={{ color: T.txt }}>mesmo sistema</b>. O cabeamento de cada Screen fica na aba Cabeamento. A montagem física fica no galpão; o canvas de conteúdo, na aba Composição.
+          <br /><br />
+          <b style={{ color: T.txt }}>Vão (px)</b> é a folga padrão entre telas: com ele definido, arrastar encaixa exatamente nessa distância (ou em encostado), o auto-arrumar separa tudo por ela e a tela nova entra respeitando-a — é o que evita três vãos parecidos e nenhum igual. A cota em px aparece no canvas na tela selecionada, medindo a folga até os vizinhos que ela encara. Os campos numéricos aceitam conta: <b style={{ color: T.txt }}>1920/2</b>, <b style={{ color: T.txt }}>192*3</b>.
         </HelpTip>
       </div>
     </div>

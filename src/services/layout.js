@@ -24,28 +24,82 @@ export function reorder(list, from, insertion) {
 //
 // items: [{ id, w, h, model }], na ordem das telas → { pos: {id:{x,y}}, w, h }.
 // maxWidth quebra a faixa (o canvas não pode passar da resolução do sinal); sem
-// ele, cada modelo vira uma faixa só.
-export function packByModel(items, maxWidth = Infinity) {
+// ele, cada modelo vira uma faixa só. `vao` (px) separa telas e faixas — é o vão
+// padrão da Screen, pra todas as folgas saírem do mesmo tamanho.
+export function packByModel(items, maxWidth = Infinity, vao = 0) {
   const groups = new Map();
   for (const it of items || []) {
     const k = String(it.model ?? "");
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(it);
   }
+  const g = Math.max(0, vao) || 0;
   const pos = {};
   let y = 0, W = 0;
   for (const group of groups.values()) {
     let x = 0, rowH = 0;
     for (const it of group) {
-      if (x > 0 && x + it.w > maxWidth) { y += rowH; x = 0; rowH = 0; } // não cabe: quebra a faixa
+      if (x > 0 && x + it.w > maxWidth) { y += rowH + g; x = 0; rowH = 0; } // não cabe: quebra a faixa
       pos[it.id] = { x, y };
-      x += it.w;
+      W = Math.max(W, x + it.w);
+      x += it.w + g;
       rowH = Math.max(rowH, it.h);
-      W = Math.max(W, x);
     }
-    y += rowH; // próxima faixa começa embaixo da mais alta desta
+    y += rowH + g; // próxima faixa começa embaixo da mais alta desta
   }
-  return { pos, w: W, h: y };
+  return { pos, w: W, h: Math.max(0, y - g) }; // sem o vão pendurado no fim
+}
+
+// ── encaixe (snap) e a régua do VÃO ──────────────────────────────────────────
+// Encaixe num eixo, em px de canvas: as posições candidatas de uma tela de
+// tamanho `size` diante dos vizinhos `spans` ([[inicio, fim], …] no MESMO eixo).
+// Cada vizinho oferece encostar (dos dois lados), alinhar (início/fim) e — quando
+// a Screen tem vão padrão — a folga EXATA de cada lado; o 0 é a origem da Screen.
+// Vence a candidata mais próxima dentro de `thr`; nenhuma perto → o valor cru.
+// É isso que faz todo vão sair do mesmo tamanho, em vez de "quase igual" no olho.
+export function snapAxis(v, size, spans, vao = 0, thr = 9) {
+  const cands = [0];
+  for (const [a, b] of spans || []) {
+    cands.push(a, b, a - size, b - size); // alinhar início/fim + encostar dos dois lados
+    if (vao > 0) cands.push(b + vao, a - size - vao); // o vão padrão, depois e antes
+  }
+  let best = v, dist = thr;
+  for (const c of cands) {
+    const d = Math.abs(v - c);
+    if (d <= thr && d < dist) { dist = d; best = c; }
+  }
+  return best;
+}
+
+// Vãos entre `alvo` e os vizinhos que ele ENCARA (projeção sobreposta no outro
+// eixo) — um por lado, o mais próximo, e só quando existe folga de verdade (> 0).
+// Tela na diagonal não tem vão medível: a distância ali não é folga entre painéis.
+// Devolve a régua pronta pro canvas: { dir, axis, gap, x, y, len } em px de
+// canvas — (x,y) é onde a cota começa, `len` o comprimento no eixo `axis`.
+export function gapsAround(alvo, outros) {
+  if (!alvo) return [];
+  const a = alvo;
+  const melhor = { left: null, right: null, top: null, bottom: null };
+  const guarda = (lado, cota) => { if (!melhor[lado] || cota.gap < melhor[lado].gap) melhor[lado] = cota; };
+  for (const b of outros || []) {
+    const y0 = Math.max(a.y, b.y), y1 = Math.min(a.y + a.h, b.y + b.h);
+    if (y1 > y0) {
+      const y = (y0 + y1) / 2;
+      const esq = a.x - (b.x + b.w);
+      if (esq > 0) guarda("left", { dir: "left", axis: "x", gap: esq, x: b.x + b.w, y, len: esq });
+      const dir = b.x - (a.x + a.w);
+      if (dir > 0) guarda("right", { dir: "right", axis: "x", gap: dir, x: a.x + a.w, y, len: dir });
+    }
+    const x0 = Math.max(a.x, b.x), x1 = Math.min(a.x + a.w, b.x + b.w);
+    if (x1 > x0) {
+      const x = (x0 + x1) / 2;
+      const cima = a.y - (b.y + b.h);
+      if (cima > 0) guarda("top", { dir: "top", axis: "y", gap: cima, x, y: b.y + b.h, len: cima });
+      const baixo = b.y - (a.y + a.h);
+      if (baixo > 0) guarda("bottom", { dir: "bottom", axis: "y", gap: baixo, x, y: a.y + a.h, len: baixo });
+    }
+  }
+  return [melhor.left, melhor.right, melhor.top, melhor.bottom].filter(Boolean);
 }
 
 // resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
