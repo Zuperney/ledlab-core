@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DISC, capaNomeCqi, videoOf, distVisaoGroups, GLOSSARIO } from "./reportContent.js";
+import { DISC, capaNomeCqi, videoOf, distVisaoGroups, GLOSSARIO, canvasResumo } from "./reportContent.js";
 
 // (a suíte de rigging saiu junto com o motor — decisão do dono, 02/08/2026;
 // reservado pro futuro 3D. Ver docs/rigging-*.md.)
@@ -88,5 +88,42 @@ describe("capa e disciplinas", () => {
   it("cores de disciplina são únicas (e estrutura saiu junto com o rigging)", () => {
     expect(DISC.estr).toBeUndefined();
     expect(new Set(Object.values(DISC)).size).toBe(Object.keys(DISC).length);
+  });
+});
+
+describe("canvasResumo — o quadro do caderno de Design", () => {
+  const gab = { resX: "168", resY: "168", dimW: "500", dimH: "500" }; // Unilumin P2.9 (2,98 mm)
+  const tela = (id, cols, rows) => ({ id, cols, rows, gabinete: gab });
+
+  it("caixa envolvente da Composição, com proporção, megapixels e área de LED", () => {
+    // testeira 76×1 em (0,0) + painel 32×9 em (0, 168): canvas 12.768 × 1.680
+    const telas = [tela("topo", 76, 1), tela("central", 32, 9)];
+    const cv = canvasResumo(telas, { topo: { x: 0, y: 0 }, central: { x: 0, y: 168 } });
+    expect([cv.w, cv.h]).toEqual([12768, 1680]);
+    expect(cv.mp).toBeCloseTo(21.45, 2);
+    expect(cv.areaM2).toBeCloseTo(19 + 72, 2); // 76×0,25 + 288×0,25 m²
+  });
+
+  it("metros só quando TODAS as telas têm o MESMO pitch", () => {
+    const uma = canvasResumo([tela("a", 10, 2)], { a: { x: 0, y: 0 } });
+    expect(uma.largM).toBeCloseTo(5, 2); // 1.680 px × 2,976 mm = 5 m
+    expect(uma.altM).toBeCloseTo(1, 2);
+
+    const outroPitch = { ...gab, dimW: "600", dimH: "600" };
+    const misto = canvasResumo(
+      [tela("a", 10, 2), { id: "b", cols: 4, rows: 2, gabinete: outroPitch }],
+      { a: { x: 0, y: 0 }, b: { x: 1680, y: 0 } },
+    );
+    expect(misto.largM).toBe(0); // canvas sem escala física única não inventa metro
+  });
+
+  it("tela sem pitch cadastrado também tira os metros de cena", () => {
+    const semDim = canvasResumo([{ id: "x", cols: 4, rows: 2, gabinete: { resX: "128", resY: "128" } }], { x: { x: 0, y: 0 } });
+    expect(semDim.largM).toBe(0);
+    expect(semDim.w).toBe(512);
+  });
+
+  it("projeto vazio não quebra", () => {
+    expect(canvasResumo([], {})).toMatchObject({ w: 0, h: 0, mp: 0, areaM2: 0, ar: "—" });
   });
 });

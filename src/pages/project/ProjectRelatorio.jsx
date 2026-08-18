@@ -15,7 +15,7 @@ import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabl
 import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups } from "../../services/reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo } from "../../services/reportContent.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
@@ -191,7 +191,24 @@ export default function ProjectRelatorio({ project }) {
                 ); })}
               </tbody>
             </table>
-            {(() => { const grupos = distVisaoGroups(telas); return grupos.length ? (
+            {/* Design troca as distâncias de visão pelo TAMANHO DO CANVAS: quem
+                recebe essa folha monta o conteúdo, não dimensiona a plateia */}
+            {showCards ? (() => { const cv = canvasResumo(telas, project.comp?.pos); return (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 28px", marginTop: 12, padding: "10px 14px", background: PRINT.head, borderRadius: 8, border: `1px solid ${PRINT.line}` }}>
+                {[
+                  ["Canvas de conteúdo", `${cv.w.toLocaleString("pt-BR")} × ${cv.h.toLocaleString("pt-BR")} px`],
+                  ["Proporção", cv.ar],
+                  ["Total", `${cv.mp.toFixed(1).replace(".", ",")} MP`],
+                  ...(cv.largM ? [["Tamanho", `${cv.largM.toFixed(2).replace(".", ",")} × ${cv.altM.toFixed(2).replace(".", ",")} m`]] : []),
+                  ["Área de LED", `${cv.areaM2.toFixed(1).replace(".", ",")} m²`],
+                ].map(([r, v]) => (
+                  <span key={r} style={{ display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.07em", color: PRINT.dim }}>{r}</span>
+                    <b style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, color: PRINT.ink }}>{v}</b>
+                  </span>
+                ))}
+              </div>
+            ); })() : (() => { const grupos = distVisaoGroups(telas); return grupos.length ? (
               <div style={{ marginTop: 10 }}>
                 <div style={{ ...th, borderBottom: "none", padding: "0 0 4px" }}>Distância de visão</div>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>

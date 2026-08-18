@@ -413,6 +413,19 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).toContain("12.768 × 168 px");
   });
 
+  it("Design troca as distâncias de visão pelo tamanho do canvas", () => {
+    const design = JSON.stringify(buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null }).content);
+    expect(design).not.toContain("DISTÂNCIA DE VISÃO");
+    expect(design).toContain("CANVAS DE CONTEÚDO");
+    expect(design).toContain("1.456 × 624 px"); // as 2 telas lado a lado
+    expect(design).toContain("ÁREA DE LED");
+
+    // os outros cadernos seguem com as distâncias e sem o quadro
+    const completo = JSON.stringify(buildRelatorioDoc({ project, tipo: "Completo", cfg, logo: null }).content);
+    expect(completo).toContain("DISTÂNCIA DE VISÃO");
+    expect(completo).not.toContain("CANVAS DE CONTEÚDO");
+  });
+
   it("sem cards desenhados — ou fora do Design — não nasce folha de Test Card", () => {
     const semCards = JSON.stringify(buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null }).content);
     expect(semCards).not.toContain("REFERÊNCIA DE IMAGEM");

@@ -4,6 +4,7 @@
 // meses, o bug é aqui, não em dois lugares.
 
 import { viewingOf } from "./viewing.js";
+import { compLayout } from "./layout.js";
 
 // disciplinas do caderno técnico: cor de índice por seção (produção / vídeo /
 // elétrica)
@@ -67,6 +68,40 @@ export const distVisaoGroups = (telas) => {
     max: g.d.maxM ? fmtDistM(g.d.maxM) : "—",
   }));
 };
+
+// ── CANVAS DE CONTEÚDO (caderno de Design) ──
+// O quadro em que a arte é entregue: a caixa envolvente da Composição. No caderno
+// de Design ele ocupa o lugar das distâncias de visão — quem recebe essa folha é
+// quem MONTA O CONTEÚDO, e o que essa pessoa precisa é o tamanho do quadro, não a
+// que distância a plateia enxerga o pixel (isso é critério de engenharia e segue
+// nos cadernos Completo e Resumido).
+//
+// px é a verdade. Metros só saem quando TODAS as telas têm o MESMO pitch: canvas
+// de pitch misto não tem escala física única, e um número em metros ali seria
+// chute. Área em m² é a soma das telas (o vão entre painéis não é LED).
+export function canvasResumo(telas, compPos) {
+  const lista = telas || [];
+  const { bbox } = compLayout(lista, compPos);
+  const w = Math.round(bbox.w), h = Math.round(bbox.h);
+  // todas as telas com pitch, e um só valor entre elas (comparado arredondado —
+  // dimW/resX é float): fora disso, o canvas não tem escala física única
+  const comPitch = lista.map((t) => videoOf(t).pitch).filter((p) => p > 0);
+  const iguais = new Set(comPitch.map((p) => p.toFixed(4)));
+  const pitch = comPitch.length === lista.length && iguais.size === 1 ? comPitch[0] : 0;
+  const d = gcd(w, h) || 1;
+  const ar = w && h
+    ? (w / d <= 100 && h / d <= 100 ? `${w / d}:${h / d}` : `${(w / h).toFixed(2).replace(".", ",")}:1`)
+    : "—";
+  const areaM2 = lista.reduce((s, t) => {
+    const g = t.gabinete || {};
+    return s + ((parseFloat(g.dimW) || 0) * (t.cols || 0) * (parseFloat(g.dimH) || 0) * (t.rows || 0)) / 1e6;
+  }, 0);
+  return {
+    w, h, ar, mp: (w * h) / 1e6, areaM2,
+    largM: pitch > 0 ? (w * pitch) / 1000 : 0,
+    altM: pitch > 0 ? (h * pitch) / 1000 : 0,
+  };
+}
 
 // Tamanho do NOME do projeto na capa, em cqi (1cqi = 1% da largura da capa).
 // A capa impressa tem 186 mm úteis de altura (A4 paisagem, margem 12 mm) e o

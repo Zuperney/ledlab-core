@@ -17,7 +17,7 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
 import { tint } from "../cableScene.js";
 import { formatRange } from "../dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, FICHA_ABAIXO, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups } from "../reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, FICHA_ABAIXO, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo } from "../reportContent.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
@@ -113,15 +113,18 @@ function specBox(pairs) {
 // terceiro item opcional = cor do VALOR: só pra número que carrega veredito
 // (carga apertada em laranja, estouro em vermelho). Sem ele, tinta normal —
 // a régua da casa é colorir quando há o que avisar, não o tempo todo.
-const statRow = (items) => ({
+// `fs` menor pra faixa com muitos números longos (o canvas do Design tem 5): em
+// 19 pt, cinco valores de duas dezenas de caracteres passam dos 762 pt úteis e a
+// última coluna cai fora da folha
+const statRow = (items, fs = 19) => ({
   columns: items.map(([l, v, cor]) => ({
     width: "auto",
     stack: [
       { text: String(l).toUpperCase(), fontSize: 7.5, color: PRINT.dim, characterSpacing: 0.8 },
-      { text: String(v), bold: true, fontSize: 19, color: cor || PRINT.ink, margin: [0, 2, 0, 0] },
+      { text: String(v), bold: true, fontSize: fs, color: cor || PRINT.ink, margin: [0, 2, 0, 0] },
     ],
   })),
-  columnGap: 34,
+  columnGap: fs > 16 ? 34 : 26,
   margin: [0, 4, 0, 14],
 });
 
@@ -262,6 +265,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // folha de referência de imagem: só no Design, e só se o chamador desenhou os
   // cards (o builder é puro — quem tem canvas é o pdfEngine, no browser)
   const cards = tipo === "Design" ? testCards || [] : [];
+  // o caderno de Design troca as distâncias de visão pelo tamanho do canvas
+  const showCanvas = showVideo && tipo === "Design";
   const showSignal = ["Completo", "Mapa de cabos"].includes(tipo);
   const showAC = ["Completo", "Mapa de cabos"].includes(tipo);
   const showGloss = tipo === "Completo";
@@ -419,9 +424,21 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       },
       layout: zebraLayout(),
     },
+    // Design troca as distâncias de visão pelo TAMANHO DO CANVAS: quem recebe
+    // essa folha monta o conteúdo, não dimensiona a plateia
+    ...(!showCanvas ? [] : (() => {
+      const cv = canvasResumo(telas, project.comp?.pos);
+      return [statRow([
+        ["Canvas de conteúdo", `${ptBR(cv.w)} × ${ptBR(cv.h)} px`],
+        ["Proporção", cv.ar],
+        ["Total", `${cv.mp.toFixed(1).replace(".", ",")} MP`],
+        ...(cv.largM ? [["Tamanho", `${cv.largM.toFixed(2).replace(".", ",")} × ${cv.altM.toFixed(2).replace(".", ",")} m`]] : []),
+        ["Área de LED", `${cv.areaM2.toFixed(1).replace(".", ",")} m²`],
+      ], 15)];
+    })()),
     // as quatro réguas de distância (regras na folha de Critérios), AGRUPADAS
     // por pitch × altura — listar por tela repetia os mesmos números N vezes
-    ...(() => {
+    ...(showCanvas ? [] : (() => {
       const grupos = distVisaoGroups(telas);
       return grupos.length ? [
         { text: "DISTÂNCIA DE VISÃO", fontSize: 8, bold: true, color: PRINT.mut, margin: [0, 8, 0, 2] },
@@ -444,7 +461,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           layout: zebraLayout(),
         },
       ] : [];
-    })(),
+    })()),
   ];
 
   // ── TEST CARD (referência de imagem) — só no Design ──
