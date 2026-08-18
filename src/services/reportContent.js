@@ -13,6 +13,14 @@ export const DISC = { prod: "#475569", video: "#1d4ed8", elec: "#c2410c" };
 // carrega ícones/tema e não entra no chunk puro do PDF). Novo status? Muda lá E cá.
 export const STATUS_LABEL = { active: "Em andamento", planned: "Planejamento", done: "Concluído", cancelled: "Cancelado" };
 
+// Proporção a partir da qual a ficha técnica do card sai de LADO e vai pra BAIXO
+// dele (largura/altura). Acima disso o card é fita — a testeira do Boticário tem
+// 76 × 1 gabinetes, 12.768 × 168 px — e a coluna de ficha ao lado espremeria a
+// imagem até virar fio. Abaixo, o card é "quadrado o bastante" pra dividir a
+// linha com a ficha. 5 é onde a fita começa: a 5:1, o card ainda nasce com ~1/3
+// da altura útil da folha com a ficha do lado.
+export const FICHA_ABAIXO = 5;
+
 // peso legível: ≥ 1 tonelada vira "t"
 export const fmtPeso = (kg) => (kg >= 1000 ? `${(kg / 1000).toFixed(1)} t` : `${Math.round(kg)} kg`);
 

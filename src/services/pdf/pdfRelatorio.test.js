@@ -398,7 +398,19 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).not.toContain("data:image/png;base64,AAA"); // nada de dataURL no nó
     expect(doc.images.tc_t1).toBe("data:image/png;base64,AAA");
     expect(doc.images.tc_t2).toBe("data:image/png;base64,BBB");
-    expect(j).toContain('"fit":[364,190]'); // duas por linha, em fit (nunca width cru)
+    // um card por linha: o largo (10×6 gab = 1.040 × 624, proporção 1,7) fica com
+    // a ficha ao LADO; a fita (76×1) tomaria a folha inteira com a ficha embaixo
+    expect(j).toContain('"fit":[566,190]');
+  });
+
+  it("card FITA toma a folha inteira e a ficha desce pra baixo dele", () => {
+    // testeira real do Boticário: 76 × 1 gabinetes de 168 px = 12.768 × 168 (76:1)
+    const fita = [{ telaId: "t3", nome: "Testeira Topo", cols: 76, rows: 1, gabinete: "Unilumin P2.9 Venti", url: "data:image/png;base64,CCC", pxW: 12768, pxH: 168 }];
+    const j = JSON.stringify(buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null, testCards: fita }).content);
+    expect(j).toContain('"fit":[748,190]'); // largura útil inteira da prancha
+    expect(j).not.toContain('"fit":[566,190]'); // não sobrou coluna pra ficha do lado
+    expect(j).toContain("Testeira Topo");
+    expect(j).toContain("12.768 × 168 px");
   });
 
   it("sem cards desenhados — ou fora do Design — não nasce folha de Test Card", () => {

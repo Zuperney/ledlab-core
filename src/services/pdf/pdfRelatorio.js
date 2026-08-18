@@ -17,7 +17,7 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasLayoutSvg } from "./pdfCableMap.js";
 import { tint } from "../cableScene.js";
 import { formatRange } from "../dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups } from "../reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, FICHA_ABAIXO, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups } from "../reportContent.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
@@ -448,36 +448,52 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   ];
 
   // ── TEST CARD (referência de imagem) — só no Design ──
-  // Duas por linha em `fit` (nunca `width` cru: card mais alto que largo estouraria
-  // a folha), tabela sem borda com dontBreakRows pra imagem e legenda nunca se
-  // separarem. As imagens entram pelo dicionário `images` por NOME — dataURL
-  // inline no nó era o que inflava o PDF (comentário do dicionário lá embaixo).
+  // UM card por linha, empilhados: painel de LED é quase sempre mais largo que
+  // alto, e duas colunas espremiam cada card em meia folha à toa. A ficha técnica
+  // fica à DIREITA, onde sobra espaço. Card muito largo (fita de 76 × 1 gabinetes
+  // = 12.768 × 168 px) toma a linha inteira e a ficha desce — ao lado, ela
+  // deixaria a fita com espessura de fio (limiar: services/testcardImage.js).
+  //
+  // Sempre `fit`, nunca `width` cru: card mais alto que largo estouraria a folha.
+  // Tabela sem borda com dontBreakRows pra imagem e ficha nunca se separarem —
+  // e não `unbreakable`, que DESCARTA o conteúdo quando não cabe. As imagens
+  // entram pelo dicionário `images` por NOME (ver o comentário do dicionário).
   const cardNodes = !cards.length ? [] : (() => {
-    const porLinha = cards.length === 1 ? 1 : 2;
-    const larg = porLinha === 1 ? 520 : 364; // 748 úteis - 20 de gap, dividido
-    const alt = porLinha === 1 ? 300 : 190;
-    const celula = (c) => ({
-      stack: [
-        { image: `tc_${c.telaId}`, fit: [larg, alt], margin: [0, 0, 0, 3] },
-        { text: [
-          { text: c.nome, bold: true, fontSize: 9, color: PRINT.ink },
-          { text: `  ${ptBR(c.pxW)} × ${ptBR(c.pxH)} px`, font: "PlexMono", fontSize: 7.5, color: PRINT.mut },
-          { text: `  ·  grade ${c.cols}×${c.rows}`, font: "PlexMono", fontSize: 7.5, color: PRINT.dim },
-        ] },
+    const FICHA = 168, GAP = 14; // largura da coluna da ficha e o respiro
+    const LARG = 748, ALT = 190; // largura útil da prancha e o teto de altura do card
+    const linhaFicha = (rot, val) => ({
+      columns: [
+        { width: "*", text: rot.toUpperCase(), fontSize: 6.5, color: PRINT.dim, characterSpacing: 0.6, margin: [0, 1.5, 0, 0] },
+        { width: "auto", text: val, font: "PlexMono", fontSize: 8, color: PRINT.ink, alignment: "right" },
       ],
-      margin: [0, 0, 0, 8],
+      margin: [0, 2.5, 0, 2.5],
     });
-    const linhas = [];
-    for (let i = 0; i < cards.length; i += porLinha) {
-      const fatia = cards.slice(i, i + porLinha).map(celula);
-      while (fatia.length < porLinha) fatia.push({ text: "" }); // linha ímpar: célula vazia
-      linhas.push(fatia);
-    }
+    const dados = (c) => [["Resolução", `${ptBR(c.pxW)} × ${ptBR(c.pxH)} px`], ["Grade", `${c.cols} × ${c.rows} gab.`], ["Gabinete", c.gabinete || "—"]];
+    const cartao = (c) => {
+      const abaixo = c.pxW / c.pxH > FICHA_ABAIXO;
+      if (abaixo) {
+        return { stack: [
+          { image: `tc_${c.telaId}`, fit: [LARG, ALT] },
+          { text: [
+            { text: c.nome, bold: true, fontSize: 9.5, color: PRINT.ink },
+            ...dados(c).flatMap(([, v], k) => [{ text: k ? "  ·  " : "   ", fontSize: 7.5, color: PRINT.line }, { text: v, font: "PlexMono", fontSize: 7.5, color: PRINT.mut }]),
+          ], margin: [0, 4, 0, 0] },
+        ] };
+      }
+      return { columns: [
+        { width: "auto", image: `tc_${c.telaId}`, fit: [LARG - FICHA - GAP, ALT] },
+        { width: FICHA, margin: [GAP, 2, 0, 0], stack: [
+          { text: c.nome, bold: true, fontSize: 10.5, color: PRINT.ink, margin: [0, 0, 0, 3] },
+          ...dados(c).map(([r, v]) => linhaFicha(r, v)),
+        ] },
+      ] };
+    };
     return [{
-      table: { widths: Array.from({ length: porLinha }, () => "*"), body: linhas, dontBreakRows: true },
-      layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: (i) => (i ? 10 : 0), paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+      table: { widths: ["*"], body: cards.map((c) => [cartao(c)]), dontBreakRows: true },
+      layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 12 },
     }];
   })();
+
   const cardsSecao = !cards.length ? [] : [
     sectionHead(sec(), "Test Card", "Referência de imagem", DISC.video),
     { text: "O Test Card de cada tela como ele vai aparecer no painel — referência de imagem pra conferir grade, numeração de gabinete e cor antes da montagem. O arquivo em resolução real sai na aba Test Card.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 8] },

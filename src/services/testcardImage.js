@@ -20,6 +20,7 @@ import { telaPortSlices } from "./screenCabling.js";
 
 export const TESTCARD_MAX_PX = 1000;
 
+
 // dataURL de UMA tela (PNG). Devolve null se não houver canvas.
 export function testCardImage(project, tela, { style, palette, numbering = "row-tb-lr", maxPx = TESTCARD_MAX_PX } = {}) {
   if (typeof document === "undefined") return null;
@@ -51,7 +52,7 @@ export function testCardImages(project, opts = {}) {
   const out = [];
   for (const tela of project?.telas || []) {
     const img = testCardImage(project, tela, opts);
-    if (img) out.push({ telaId: tela.id, nome: tela.nome || "Tela", cols: tela.cols || 1, rows: tela.rows || 1, ...img });
+    if (img) out.push({ telaId: tela.id, nome: tela.nome || "Tela", cols: tela.cols || 1, rows: tela.rows || 1, gabinete: tela.gabinete?.nome || "", ...img });
   }
   return out;
 }
