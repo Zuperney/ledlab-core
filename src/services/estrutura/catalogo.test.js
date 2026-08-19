@@ -163,22 +163,26 @@ describe("a escada — duas faces de 500, defasadas de 250", () => {
   });
 });
 
-describe("a emenda plated (bolt plate)", () => {
-  it("a chapa é mais larga que o banzo — é o que faz a junta aparecer", () => {
+describe("a chapa de topo", () => {
+  // ela existe pra dizer UMA coisa: a peça acaba aqui. Duas encostadas = junta.
+  it("tem espessura suficiente pra ler, e fina o bastante pra não virar bloco", () => {
     const s = SISTEMAS[300];
-    expect(s.placaLarguraMm).toBeGreaterThan(s.banzoMm);
-    expect(s.placaEspessuraMm).toBeGreaterThan(0);
+    expect(s.placaEspessuraMm).toBeGreaterThanOrEqual(8);
+    expect(s.placaEspessuraMm).toBeLessThanOrEqual(25);
   });
 
-  // 2 chapas por ponta × 2 furos = os 4 parafusos que o relatório conta
-  it("os furos batem com a parafusaria da junta", () => {
+  // duas chapas encostadas não podem esconder a menor barra do catálogo
+  it("duas chapas cabem folgadas na barra mais curta", () => {
     const s = SISTEMAS[300];
-    const chapasPorPonta = 2;
-    const furosPorChapa = 2;
-    expect(chapasPorPonta * furosPorChapa).toBe(PARAFUSARIA_POR_JUNTA.parafuso.qtd);
-    // o furo cai entre o eixo e o banzo, nunca fora da seção
-    expect(s.placaFuroMm).toBeLessThan(s.entreEixosMm / 2 + s.banzoMm / 2);
-    expect(s.placaFuroMm).toBeGreaterThan(0);
+    const menor = Math.min(
+      ...CATALOGO.filter((p) => p.tipo === "barra").map((p) => p.comprimentoMm),
+    );
+    expect(2 * s.placaEspessuraMm).toBeLessThan(menor / 2);
+  });
+
+  // a ferragem não some: ela vive na lista de material, que é onde importa
+  it("a parafusaria segue contando 4 por junta, mesmo sem furo desenhado", () => {
+    expect(PARAFUSARIA_POR_JUNTA.parafuso.qtd).toBe(4);
   });
 });
 

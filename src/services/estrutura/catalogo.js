@@ -36,17 +36,14 @@ export const SISTEMAS = {
     // Sem esse passo separado a diagonal sairia a 45° e a barra ficaria "quase".
     passoDiagonalMm: 200,
     cabeceiraMm: 25,
-    // A EMENDA é do tipo PLATED (bolt plate): duas CHAPAS chatas perpendiculares
-    // ao eixo, uma em cada face lateral, cada uma ligando os dois banzos daquele
-    // lado e levando 2 furos. Duas chapas × 2 furos = os 4 parafusos por junta.
-    // Referência: XSF 12"×12" Plated Utility Truss (12" externo, banzos a 10",
-    // tubo 2"×1/8", parafuso 5/8" — praticamente a geometria do P30).
-    // Não é enfeite: sem a chapa, duas barras encaixadas viram uma linha
-    // contínua e quem olha não enxerga que ali há uma JUNTA.
-    placaLarguraMm: 70, // quanto a chapa avança na face
-    placaEspessuraMm: 12,
-    placaFuroMm: 90, // distância do furo ao eixo da barra
-    parafusoCabecaMm: 26,
+    // A EMENDA é uma CHAPA DE TOPO FECHADA — a seção inteira tapada, sem furo,
+    // sem parafuso desenhado. Decisão do dono (19/08), e ele tem razão: o que
+    // precisa ser comunicado não é a ferragem, é que **a peça ACABA ali**.
+    // Duas chapas encostadas = uma junta, e isso se lê de longe. Detalhe de
+    // furação seria produto, e produto não é o que o desenho está entregando.
+    // (A peça real é *plated* / bolt plate, com 4 parafusos de 5/8" por junta —
+    // eles estão na LISTA DE MATERIAL, que é onde importam.)
+    placaEspessuraMm: 14,
     banzos: 4,
   },
 };
