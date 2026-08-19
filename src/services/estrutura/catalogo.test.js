@@ -163,11 +163,22 @@ describe("a escada — duas faces de 500, defasadas de 250", () => {
   });
 });
 
-describe("o flange da emenda", () => {
-  it("o disco é maior que o banzo — é o que faz a junta aparecer", () => {
+describe("a emenda plated (bolt plate)", () => {
+  it("a chapa é mais larga que o banzo — é o que faz a junta aparecer", () => {
     const s = SISTEMAS[300];
-    expect(s.flangeMm).toBeGreaterThan(s.banzoMm);
-    expect(s.flangeEspessuraMm).toBeGreaterThan(0);
+    expect(s.placaLarguraMm).toBeGreaterThan(s.banzoMm);
+    expect(s.placaEspessuraMm).toBeGreaterThan(0);
+  });
+
+  // 2 chapas por ponta × 2 furos = os 4 parafusos que o relatório conta
+  it("os furos batem com a parafusaria da junta", () => {
+    const s = SISTEMAS[300];
+    const chapasPorPonta = 2;
+    const furosPorChapa = 2;
+    expect(chapasPorPonta * furosPorChapa).toBe(PARAFUSARIA_POR_JUNTA.parafuso.qtd);
+    // o furo cai entre o eixo e o banzo, nunca fora da seção
+    expect(s.placaFuroMm).toBeLessThan(s.entreEixosMm / 2 + s.banzoMm / 2);
+    expect(s.placaFuroMm).toBeGreaterThan(0);
   });
 });
 
