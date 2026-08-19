@@ -1,9 +1,10 @@
 # Estrutura 3D — espeque da fase
 
-> **Status: E0 e E1 ENTREGUES (2026-08-19), na branch `feat/estrutura-3d`.**
-> Motor puro em `src/services/estrutura/` e a **cena no ar** em `src/vista3d/`,
-> com a aba Estrutura montando um pórtico de exemplo. 593 testes no app.
-> As fases E2+ seguem no papel.
+> **Status: E0, E1 e E2 ENTREGUES (2026-08-19), na branch `feat/estrutura-3d`.**
+> Motor puro em `src/services/estrutura/`, cena em `src/vista3d/` e a aba
+> Estrutura **montando de verdade** — conector clicável, prévia fantasma, giro de
+> 90°, desfazer/refazer e a montagem gravada no projeto. 605 testes no app.
+> A próxima é a **E3** (o relatório no Caderno).
 >
 > 📚 **Base de pesquisa:** [`estrutura3d-pesquisa.md`](./estrutura3d-pesquisa.md) —
 > dissecação do TrussTool, mercado, stack medida e os dados reais do truss
@@ -436,6 +437,17 @@ raramente passa de 200.
 
 ---
 
+### 7.5 O clique tem tolerância — medido, não achado
+
+Treliça é quase toda **ar**. Medido nesta cena, um raio matematicamente fino
+acerta alguma peça em apenas **2,2% dos pixels**: clicar numa diagonal seria
+loteria. Quando o tiro direto erra, o `pecaEm` tenta **dois anéis** ao redor do
+ponteiro (17 raios no total, irrelevante na frequência de um clique) — e a taxa
+sobe pra **7,2%**. O mesmo vale pros marcadores de conector, com tolerância maior.
+
+No modo Montar o **conector tem prioridade sobre a peça**: o alvo do clique é
+onde a peça vai entrar, não a peça que está atrás do marcador.
+
 ## 8 · A aba, nas 5 faixas
 
 Aba **Estrutura** dentro do projeto — junto de Composição, Screens e Cabeamento.
@@ -443,13 +455,33 @@ Não é ferramenta solta: os painéis vêm depois, e eles já moram no projeto.
 
 | Faixa | Conteúdo |
 | --- | --- |
-| **F1 · MODO** | `Segmented`: **Montar** · **Ver** *(no celular, só Ver)* |
-| **F2 · FERRAMENTAS** | `Select` de sistema (300/500) · toggles-ícone de exibição (grade, cotas, conectores, eixos) · 🎛 ajustes · exportar ··· **primária roxa: "Adicionar peça"** |
+| **F1 · MODO** | `Segmented`: **Montar** · **Ver** *(no celular, nenhum: a aba é consulta)* |
+| **F2 · FERRAMENTAS** | `Select` da **peça** · giro da peça nova (0/90/180/270°) · grade · desfazer · refazer · girar/excluir a selecionada ··· **primária: "Adicionar peça"** |
 | **F3 · CONTEXTO** | chips passivos: nº de peças · nº de juntas · **peso total** · **L×A×P** · `StatusPill` de sistema misturado · `HelpTip` |
 | **F4 · CONTEÚDO** | o `<canvas>`, ocupando o resto da tela. Vazio = `Placeholder`. Zoom = `ZoomTrio` |
 | **F5 · AJUSTES** | `Drawer` (desktop): unidade, cor do tema da cena, densidade da grade, qualidade |
 
-**R1 — uma primária roxa por aba:** "Adicionar peça" é a razão de existir da aba.
+**R1 — uma primária por aba:** "Adicionar peça" é a razão de existir da aba.
+
+### 8.1 O fluxo de montagem, em três gestos
+
+1. **escolhe a peça** no seletor da F2;
+2. **passa o ponteiro num conector livre** — ele acende e a peça aparece em
+   **fantasma**, exatamente onde vai ficar; o botão de graus gira de 90 em 90
+   antes de comitar;
+3. **clica** → a peça entra.
+
+A primária **"Adicionar peça"** põe uma peça **solta na origem** — é assim que se
+começa a segunda torre sem estar preso à primeira. Clicar numa peça montada
+seleciona; daí dá pra **girar** (leva junto o que estiver preso nela) ou
+**excluir** (o que estava preso vira peça solta, no lugar onde estava).
+
+### 8.2 A gravação
+
+A montagem vive em **`project.estrutura`**, no formato do §5.5, e vai pro
+IndexedDB e pro sync com o resto do projeto. A aba só grava quando o **JSON muda
+de verdade** — sem essa comparação, todo render marcaria o projeto como alterado
+e o sync acordaria à toa.
 
 ---
 
@@ -459,7 +491,7 @@ Não é ferramenta solta: os painéis vêm depois, e eles já moram no projeto.
 | --- | --- | --- |
 | **E0 · Catálogo e motor** ✅ | `services/estrutura/` inteiro — catálogo com procedência, encaixe, snap, montagem, histórico, serialização, métricas. **129 testes em vitest, sem uma linha de 3D.** Nada visível no app | — |
 | **E1 · A cena** ✅ | chunk lazy com three.js (**148 KB gzip, fora do precache**), geometria procedural, InstancedMesh + LOD, órbita, grade, seleção por instância. Aba Estrutura com pórtico de exemplo. **Ainda não edita** | E0 |
-| **E2 · Montar** | conectores visíveis, prévia fantasma, encaixe, giro de 90°, apagar, desfazer/refazer, e a montagem salva no projeto (IndexedDB + sync) | E1 |
+| **E2 · Montar** ✅ | conectores clicáveis, prévia fantasma, encaixe, giro de 90° (na peça nova e na já montada), apagar, desfazer/refazer, e a montagem gravada em `project.estrutura` (IndexedDB + sync) | E1 |
 | **E3 · O relatório** | **a entrega que o dono pediu**: lista de peças por linha e comprimento, **peso total**, **medidas reais**, contagem de juntas → **parafusaria**, captura da cena. Folha **Estrutura** no Caderno + PDF. Visível também no celular | E2 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
