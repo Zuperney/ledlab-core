@@ -145,3 +145,59 @@ describe("desfazer um GIRO", () => {
     expect(paraJSON(desfazerUm(girado).montagem)).toEqual(antes);
   });
 });
+
+describe("o lote — várias ações que valem como uma", () => {
+  // apagar 5 peças de uma vez e ter que apertar Ctrl+Z cinco vezes pra voltar
+  // é o app cobrando pelo gesto que ele mesmo ofereceu (§8.6, C2)
+  const tresPecas = () => {
+    let h = criarHistorico();
+    for (const id of ["a", "b", "c"]) {
+      h = executar(h, { tipo: ACOES.ADICIONAR_LIVRE, id, catalogoId: "p30-b2000" });
+    }
+    return h;
+  };
+
+  it("apaga três peças e desfaz com UM passo só", () => {
+    const h = executar(tresPecas(), {
+      tipo: ACOES.LOTE,
+      acoes: ["a", "b", "c"].map((id) => ({ tipo: ACOES.REMOVER, id })),
+    });
+    expect(h.montagem.pecas).toHaveLength(0);
+    expect(h.desfazer).toHaveLength(4); // os 3 adicionares + O LOTE, não 3 + 3
+
+    const voltou = desfazerUm(h);
+    expect(voltou.montagem.pecas.map((p) => p.id)).toEqual(["a", "b", "c"]);
+    expect(voltou.desfazer).toHaveLength(3); // um Ctrl+Z devolveu as três
+  });
+
+  it("e refaz também num passo", () => {
+    const h = executar(tresPecas(), {
+      tipo: ACOES.LOTE,
+      acoes: ["a", "c"].map((id) => ({ tipo: ACOES.REMOVER, id })),
+    });
+    expect(refazerUm(desfazerUm(h)).montagem.pecas.map((p) => p.id)).toEqual(["b"]);
+  });
+
+  // o inverso da segunda ação depende de a primeira já ter acontecido
+  it("o inverso é calculado encadeando o estado, não sobre o estado inicial", () => {
+    let h = criarHistorico();
+    h = executar(h, { tipo: ACOES.ADICIONAR_LIVRE, id: "base", catalogoId: "p30-b2000" });
+    h = executar(h, {
+      tipo: ACOES.LOTE,
+      acoes: [
+        { tipo: ACOES.ADICIONAR_ENCAIXADA, id: "topo", catalogoId: "p30-b2000", de: "base", conAlvo: "b", conNovo: "a" },
+        { tipo: ACOES.REMOVER, id: "base" },
+      ],
+    });
+    expect(h.montagem.pecas.map((p) => p.id)).toEqual(["topo"]);
+
+    const voltou = desfazerUm(h);
+    expect(voltou.montagem.pecas.map((p) => p.id)).toEqual(["base"]);
+  });
+
+  it("lote vazio não empilha passo nenhum", () => {
+    const h = executar(tresPecas(), { tipo: ACOES.LOTE, acoes: [] });
+    expect(h.montagem.pecas).toHaveLength(3);
+    expect(h.desfazer).toHaveLength(3); // só os três adicionares
+  });
+});

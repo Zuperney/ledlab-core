@@ -49,6 +49,10 @@ export const DEFAULT_PREFS = {
   assinatura: "",
   // pagadores (tomadores) lembrados por nome de cliente: { [cliente]: { nome, doc } }
   pagadores: {},
+  // cor por peça de ESTRUTURA (box truss): { [catalogoId]: "#hex" }. Global de
+  // propósito — o catálogo é o galpão, e a barra de 2 m tem que ser da mesma cor
+  // em todo projeto (ver services/estrutura/cores.js). Vazio = paleta padrão.
+  estruturaCores: undefined,
 };
 
 // Config de cabeamento padrão de uma tela nova.

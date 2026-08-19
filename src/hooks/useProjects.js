@@ -1,5 +1,7 @@
 // hooks/useProjects.js — hook de domínio p/ projetos (reduz lógica nas páginas).
 import { useLedLabContext, newProject } from "../store/AppContext.jsx";
+import { apagarImagem } from "../services/estrutura/imagem.js";
+import { esquecerHistorico } from "../services/estrutura/sessao.js";
 
 export function useProjects() {
   const { projects, setProjects, prefs } = useLedLabContext();
@@ -11,7 +13,15 @@ export function useProjects() {
     setProjects([...projects, p]);
     return p;
   };
-  const removeProject = (id) => setProjects(projects.filter((p) => p.id !== id));
+  const removeProject = (id) => {
+    // A vista 3D do projeto mora no IndexedDB, fora do projeto (ver
+    // estrutura/imagem.js) — sumir com o projeto e deixar o PNG lá enche o
+    // aparelho de imagem de projeto que não existe mais. Mesma faxina que o
+    // Reembolso faz com `delFoto`.
+    apagarImagem(id);
+    esquecerHistorico(id);
+    setProjects(projects.filter((p) => p.id !== id));
+  };
   const patchProject = (id, partial) =>
     setProjects(projects.map((p) => (p.id === id ? { ...p, ...partial, updatedAt: Date.now() } : p)));
   const getProject = (id) => projects.find((p) => p.id === id);

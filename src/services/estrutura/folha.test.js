@@ -128,3 +128,43 @@ describe("plural", () => {
     expect(plural(0, "peça")).toBe("0 peças");
   });
 });
+
+describe("a peça que o catálogo não conhece", () => {
+  // Imprimir a lista MENOS a peça desconhecida é o pior desfecho: o galpão
+  // carrega o caminhão com uma peça a menos e ninguém sabe por quê.
+  it("some com a folha inteira em vez de imprimir uma lista curta", () => {
+    const p = projeto();
+    p.estrutura.pecas.push({ id: "x", catalogoId: "p50-b2000", matriz: null });
+    expect(dadosDaFolha(p)).toBeNull();
+  });
+});
+
+describe("a legenda do desenho", () => {
+  it("traz cor, nome e quantidade das peças que estão montadas", () => {
+    const leg = dadosDaFolha(projeto()).legenda;
+    expect(leg.map((l) => l.catalogoId)).toEqual(["p30-b2000", "p30-b4000", "p30-cubo5", "p30-sapata-baixa"]);
+    expect(leg.every((l) => /^#[0-9a-f]{6}$/.test(l.cor))).toBe(true);
+  });
+
+  it("respeita a cor que o usuário configurou nas preferências", () => {
+    const leg = dadosDaFolha(projeto(), null, { cores: { "p30-cubo5": "#010203" } }).legenda;
+    expect(leg.find((l) => l.catalogoId === "p30-cubo5").cor).toBe("#010203");
+  });
+});
+
+describe("peça dentro de peça vai impresso", () => {
+  it("montagem certa não acusa nada", () => {
+    expect(dadosDaFolha(projeto()).conflitos).toEqual([]);
+  });
+
+  it("duas peças no mesmo lugar saem nomeadas na folha", () => {
+    const p = projeto();
+    const clone = { ...p.estrutura.pecas[1], id: "clone" };
+    delete clone.encaixe;
+    p.estrutura.pecas.push(clone);
+    const c = dadosDaFolha(p).conflitos;
+    expect(c.length).toBeGreaterThan(0);
+    expect(c[0].nomeA).toMatch(/^Barra P30/);
+    expect(c[0].mm).toBeGreaterThan(0);
+  });
+});

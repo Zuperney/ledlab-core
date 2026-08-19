@@ -606,14 +606,26 @@ Antes dos painéis (E4), fechar o que a auditoria abriu. Em ordem de dependênci
 | --- | --- | --- |
 | **C1** | **face de entrada** — o conserto do cubo | um controle na F2 ao lado do seletor de peça, com o **fantasma atualizando ao vivo**. Padrão inteligente: escolher automaticamente a entrada que **deixa face livre pra cima** quando o alvo aponta pra cima; o técnico alterna se quiser. Sem isso, cubo no topo de torre é beco sem saída |
 | **C2** | **seleção múltipla** | `Shift + clique` acumula; `Esc` limpa. O estado vira lista, não índice — mexe na aba e no `selecionar()` da cena (que hoje já pinta **por instância**, então aceitar várias é barato) |
-| **C3** | **atalhos** | `Delete`/`Backspace` apaga a seleção · `Ctrl + clique` **duplica** a peça · `Ctrl+Z` desfaz · `Ctrl+Shift+Z` refaz · `R` gira · `Esc` limpa seleção |
+| **C3** | **atalhos** | `Delete`/`Backspace` apaga a seleção · **`Ctrl` segurado = conta-gotas** (o ponteiro muda e a peça clicada vira a peça de inserção) · `Ctrl+Z` desfaz · `Ctrl+Shift+Z` refaz · `R` gira · `Esc` limpa seleção |
 
-> ❓ **Uma leitura a confirmar no C3.** "Ctrl + clique copia a peça" tem dois
-> sentidos: **duplicar** (nasce uma cópia, que eu deslocaria uma seção pra não
-> nascer sobreposta) ou **conta-gotas** (o tipo da peça clicada vira o tipo
-> selecionado no seletor, pra continuar montando igual). O conta-gotas é o que
-> mais economiza clique numa torre repetitiva. Vou de **duplicar**, que é a
-> leitura literal — me corrige se for a outra.
+> ✅ **Decidido pelo dono (19/08): é CONTA-GOTAS, não duplicar.** Nas palavras
+> dele: *"quando o Ctrl estiver segurado muda o ícone do rato pra outra coisa, e
+> aí muda a peça de inserção — a peça que eu clicar vira a peça que vai ser
+> inserida na próxima junção."*
+>
+> O que justifica: a peça escolhida **sobrevive como última escolhida**, então o
+> gesto de montar já é *clicar e colar, clicar e colar*. O conta-gotas é o jeito
+> de **trocar de peça sem tirar o olho da cena** — sem subir até o seletor da F2,
+> achar o nome na lista e voltar. Numa torre repetitiva é o que mais economiza
+> clique, e é exatamente o que o dono descreveu.
+>
+> **O ponteiro tem que mudar enquanto o `Ctrl` estiver segurado** (`cursor:
+> copy`) — sem esse aviso visual o modo é invisível, e modo invisível é modo que
+> pega o técnico de surpresa. Muda no `keydown` e volta no `keyup`; sai da tela
+> (`blur`) também volta, senão o ponteiro fica preso no modo.
+>
+> **Duplicar fica de fora**: a cópia nasceria em cima da original — justo o que o
+> B1 passa a acusar como sobreposição.
 
 ### D · Cor e legenda
 
@@ -645,7 +657,7 @@ gravados em projeto e pede migração, então não entra no meio da consolidaç�
 | **E1 · A cena** ✅ | chunk lazy com three.js (**148 KB gzip, fora do precache**), geometria procedural, InstancedMesh + LOD, órbita, grade, seleção por instância. Aba Estrutura com pórtico de exemplo. **Ainda não edita** | E0 |
 | **E2 · Montar** ✅ | conectores clicáveis, prévia fantasma, encaixe, giro de 90° (na peça nova e na já montada), apagar, desfazer/refazer, e a montagem gravada em `project.estrutura` (IndexedDB + sync) | E1 |
 | **E3 · O relatório** ✅ | **a entrega que o dono pediu**: lista de peças com linha e peso, **peso total**, **medidas reais**, juntas → **parafusaria**, procedência do peso, aviso de responsabilidade e a **vista 3D capturada**. Folha ESTRUTURA no Caderno **e** no PDF, e ela abre no celular | E2 |
-| **E3.5 · Consolidação** | fecha a auditoria do §8.5: caderno próprio de Estrutura, detecção de sobreposição, **face de entrada** (o conserto do cubo), seleção múltipla e atalhos, cor por peça com legenda | E3 |
+| **E3.5 · Consolidação** ✅ | fecha a auditoria do §8.5: **caderno próprio de Estrutura** (e a folha sai do Resumido/Gabinetes), **detecção de sobreposição** por SAT que avisa sem bloquear, **face de entrada** (o conserto do cubo), histórico que atravessa a aba, peça desconhecida que falha alto, imagem que não vira órfã, **seleção múltipla + atalhos + conta-gotas**, e **cor por peça com legenda** na cena e no Caderno | E3 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

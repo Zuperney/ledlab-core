@@ -36,6 +36,19 @@ import { fileName, printAs } from "../../services/filenames.js";
 const TYPES = ["Completo", "Resumido", "Elétrico", "Mapa de cabos", "Design", "Gabinetes"];
 // no CELULAR só o essencial de consulta (pedido do usuário): imprimir/tipos finos é fluxo de PC
 const TYPES_MOBILE = ["Completo", "Resumido", "Mapa de cabos"];
+// O caderno ESTRUTURA (decisão do dono, 19/08) é o que vai pra EQUIPE DE
+// MONTAGEM: capa e a folha de estrutura, e nada mais — sem elétrica, sem vídeo,
+// sem mapa de cabos. Quem sobe truss no galpão não precisa carregar 30 páginas
+// de projeto de LED pra conferir a lista de peças.
+//
+// Só aparece quando HÁ estrutura montada: oferecer um tipo de caderno que sairia
+// só com capa e uma folha vazia é oferecer papel em branco. Vale no celular
+// também — a folha é leve, offline, e quem monta está com o telefone na mão.
+const temEstrutura = (project) => (project?.estrutura?.pecas?.length ?? 0) > 0;
+const tiposDe = (project, isMobile) => [
+  ...(isMobile ? TYPES_MOBILE : TYPES),
+  ...(temEstrutura(project) ? ["Estrutura"] : []),
+];
 // largura fixa "de impressão": no mobile o relatório é montado nela e escalado (zoom) p/ caber
 const DOC_W = 800;
 
@@ -74,7 +87,7 @@ export default function ProjectRelatorio({ project }) {
     setGerandoPdf(true);
     try {
       const { baixarRelatorioPdf } = await import("../../services/pdf/pdfEngine.js");
-      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette, render: prefs.cablingRender, assinatura: prefs.assinatura || "" });
+      await baixarRelatorioPdf({ project, tipo: type, cfg, gerado: today, numbering, palette, render: prefs.cablingRender, assinatura: prefs.assinatura || "", coresEstrutura: prefs.estruturaCores });
       toast("PDF gerado");
     } catch (e) {
       console.error(e);
@@ -108,8 +121,11 @@ export default function ProjectRelatorio({ project }) {
     lerImagem(project?.id).then((v) => { if (vivo) setEstruturaImg(v); });
     return () => { vivo = false; };
   }, [project?.id, project?.estruturaImg?.em]);
-  const estrutura = ["Completo", "Resumido", "Gabinetes"].includes(type)
-    ? dadosDaFolha(project, estruturaImg)
+  // A folha SAIU do Resumido e do Gabinetes (decisão do dono, 19/08): o Resumido
+  // é a fotografia do projeto de LED, e o Gabinetes é do painel. Estrutura mora
+  // no Completo e no caderno próprio dela.
+  const estrutura = ["Completo", "Estrutura"].includes(type)
+    ? dadosDaFolha(project, estruturaImg, { cores: prefs.estruturaCores })
     : null;
   const showPhys = ["Completo", "Resumido", "Gabinetes", "Design"].includes(type);
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
@@ -154,7 +170,7 @@ export default function ProjectRelatorio({ project }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         {/* F1: tipo do relatório = Segmented (rolável); mobile mostra só os 3 de consulta */}
         <Segmented value={type} onChange={setType} size="sm"
-          options={(isMobile ? TYPES_MOBILE : TYPES).map((t) => ({ value: t, label: t }))} />
+          options={tiposDe(project, isMobile).map((t) => ({ value: t, label: t }))} />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
           {/* MOTOR NATIVO (F1): gera o PDF no app — funciona no celular, com nome
               certo e sem "gráficos de segundo plano". Imprimir fica de fallback. */}
@@ -184,7 +200,14 @@ export default function ProjectRelatorio({ project }) {
             { label: "Status", value: STATUS[project.status]?.l },
             { label: "Data de realização", value: formatRange(project.dataInicio, project.dataFim) },
           ]}
-          stats={[
+          stats={type === "Estrutura" ? [
+            // A capa do caderno de ESTRUTURA fala de estrutura. Área e peso de
+            // painel são o projeto de LED — quem recebe este caderno vai montar
+            // truss, e os números que ele procura são estes.
+            { label: "Peças", value: String(estrutura?.resumo.pecas ?? 0) },
+            { label: "Peso", value: estrutura?.pesoTexto ?? "—" },
+            ...(estrutura?.medidas ? [{ label: "Medida", value: estrutura.medidas.texto }] : []),
+          ] : [
             { label: "Área", value: `${roll.area_m2.toFixed(1)} m²` },
             // capa do DESIGN troca PESO por RESOLUÇÃO: quem recebe esse caderno
             // monta conteúdo, não rigging — o número que ele procura é o do canvas
@@ -463,11 +486,23 @@ export default function ProjectRelatorio({ project }) {
 
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
               {estrutura.imagem && (
-                <img
-                  src={estrutura.imagem}
-                  alt="Vista 3D da estrutura montada"
-                  style={{ flex: "1 1 420px", maxWidth: 620, border: `1px solid ${PRINT.line}`, borderRadius: 10 }}
-                />
+                <div style={{ flex: "1 1 420px", maxWidth: 620 }}>
+                  <img
+                    src={estrutura.imagem}
+                    alt="Vista 3D da estrutura montada"
+                    style={{ width: "100%", border: `1px solid ${PRINT.line}`, borderRadius: 10, display: "block" }}
+                  />
+                  {/* A LEGENDA do desenho. É a mesma paleta da cena: quem monta
+                      identifica a peça pela cor antes de ler o nome. */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                    {estrutura.legenda.map((l) => (
+                      <span key={l.catalogoId} style={{ ...chip, gap: 5, padding: "2px 7px", fontSize: 10.5 }}>
+                        <span style={{ width: 9, height: 9, borderRadius: 2, background: l.cor, border: `1px solid ${PRINT.line}`, flexShrink: 0 }} />
+                        <b>{l.qtd}×</b> {l.nome}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
               <div style={{ flex: "1 1 240px", minWidth: 220 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -533,6 +568,17 @@ export default function ProjectRelatorio({ project }) {
                   ))}
                 </ul>
               </>
+            )}
+
+            {estrutura.conflitos.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <WarnBox title="Peças sobrepostas no modelo" tone="amber">
+                  {plural(estrutura.conflitos.length, "par")} de peças ocupa o mesmo espaço no modelo 3D:{" "}
+                  {estrutura.conflitos.slice(0, 4).map((c) => `${c.nomeA} × ${c.nomeB}`).join(" · ")}
+                  {estrutura.conflitos.length > 4 ? ` · e mais ${estrutura.conflitos.length - 4}` : ""}.
+                  {" "}No truss montado elas não entrariam — confira o desenho antes de separar o material.
+                </WarnBox>
+              </div>
             )}
 
             <div style={{ marginTop: 14 }}>

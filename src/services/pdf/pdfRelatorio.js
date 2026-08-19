@@ -180,7 +180,7 @@ const coverRow = (label, value, { bold = false, first = false } = {}) => ({
 // cadastrado em Dados (bloco de marca do carimbo) · `assinatura` = "Projetou"
 // do carimbo (Configurações › Conta — global de propósito: o nome não pode
 // mudar de impressão pra impressão).
-export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render, testCards = [], estruturaImg = null }) {
+export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render, testCards = [], estruturaImg = null, coresEstrutura = null }) {
   const pal = Array.isArray(palette) && palette.length ? palette : PALETTE;
   const colorOf = (i) => pal[(((i | 0) % pal.length) + pal.length) % pal.length];
   // render do mapa (setas/números/tamanho/canto) — mesmas prefs do DOM
@@ -301,7 +301,20 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // capa do DESIGN troca PESO por RESOLUÇÃO: quem recebe esse caderno monta
   // conteúdo, não rigging — o número que ele procura é o do canvas.
   const capaCanvas = canvasResumo(telas, project.comp?.pos);
-  const stats = [
+  // Saiu do Resumido e do Gabinetes (decisão do dono, 19/08) e ganhou caderno
+  // próprio: o "Estrutura" é capa + esta folha, e é o que vai pra equipe de
+  // montagem — sem elétrica, sem vídeo, sem mapa de cabos. Fica calculado AQUI,
+  // antes da capa, porque a capa desse caderno mostra os números dele.
+  const estruturaDados = ["Completo", "Estrutura"].includes(tipo)
+    ? dadosDaFolha(project, estruturaImg, { cores: coresEstrutura })
+    : null;
+  const stats = tipo === "Estrutura" ? [
+    // capa de estrutura fala de estrutura: área e peso de painel são o projeto
+    // de LED, e quem recebe este caderno vai montar truss
+    ["Peças", String(estruturaDados?.resumo.pecas ?? 0)],
+    ["Peso", estruturaDados?.pesoTexto ?? "—"],
+    ...(estruturaDados?.medidas ? [["Medida", estruturaDados.medidas.texto]] : []),
+  ] : [
     ["Área", `${roll.area_m2.toFixed(1)} m²`],
     ...(tipo === "Design"
       ? [["Resolução", `${ptBR(capaCanvas.w)} × ${ptBR(capaCanvas.h)} px`]]
@@ -940,17 +953,40 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
   // A folha que o dono pediu no primeiro dia: lista de peças, peso e medidas
   // reais. A IMAGEM não é gerada aqui — o PDF roda no celular e offline, e o
   // chunk 3D não está lá; ela vem capturada da aba e guardada no projeto (§7.2).
-  const estruturaDados = ["Completo", "Resumido", "Gabinetes"].includes(tipo)
-    ? dadosDaFolha(project, estruturaImg)
-    : null;
   const estrutura = !estruturaDados ? [] : (() => {
     const d = estruturaDados;
     const proc = procedenciaDoPeso(d);
+
+    // A LEGENDA do desenho, na mesma paleta da cena — quem monta identifica a
+    // peça pela cor antes de ler o nome. Em tabela de 3 colunas porque `columns`
+    // do pdfmake não quebra linha, e dez peças numa linha só estourariam a
+    // largura da imagem.
+    const legendaCel = (l) => ({
+      columns: [
+        { width: 9, canvas: [{ type: "rect", x: 0, y: 1.5, w: 7, h: 7, color: l.cor, lineColor: PRINT.line, lineWidth: 0.4 }] },
+        { width: "auto", text: [{ text: `${l.qtd}× `, bold: true }, { text: l.nome }], fontSize: 7.5, color: PRINT.ink },
+      ],
+      columnGap: 3,
+    });
+    const legendaTabela = !d.imagem || !d.legenda.length ? [] : (() => {
+      const linhas = [];
+      for (let i = 0; i < d.legenda.length; i += 3) {
+        const linha = d.legenda.slice(i, i + 3).map(legendaCel);
+        while (linha.length < 3) linha.push({ text: "" });
+        linhas.push(linha);
+      }
+      return [{
+        table: { widths: ["*", "*", "*"], body: linhas },
+        layout: "noBorders",
+        margin: [0, 6, 0, 0],
+      }];
+    })();
+
     return [
       sectionHead(sec(), "Estrutura", "Box truss · montagem", DISC.prod),
       {
         columns: [
-          ...(d.imagem ? [{ width: "*", image: d.imagem, fit: [430, 268] }] : []),
+          ...(d.imagem ? [{ width: "*", stack: [{ image: d.imagem, fit: [430, 268] }, ...legendaTabela] }] : []),
           {
             width: d.imagem ? 250 : "*",
             stack: [
@@ -1014,6 +1050,20 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           margin: [0, 0, 0, 2],
         })),
       ] : []),
+      // PEÇA DENTRO DE PEÇA vai IMPRESSO: quem separa material segue o papel, e
+      // uma montagem que não fecha no 3D também não fecha no truss.
+      ...(d.conflitos.length ? [{
+        ...warnBox({
+          titulo: "Peças sobrepostas no modelo",
+          partes: [
+            { t: `${plural(d.conflitos.length, "par")} de peças ocupa o mesmo espaço no modelo 3D: ` },
+            { t: d.conflitos.slice(0, 4).map((c) => `${c.nomeA} × ${c.nomeB}`).join(" · "), b: true },
+            { t: d.conflitos.length > 4 ? ` · e mais ${d.conflitos.length - 4}` : "" },
+            { t: ". No truss montado elas não entrariam — confira o desenho antes de separar o material." },
+          ],
+        }),
+        margin: [0, 10, 0, 0],
+      }] : []),
       { ...warnBox(avisoEstruturaPdf()), margin: [0, 10, 0, 0] },
     ];
   })();

@@ -30,6 +30,10 @@ export const ACOES = Object.freeze({
   REMOVER: "remover",
   GIRAR: "girar",
   RESTAURAR: "restaurar",
+  // várias ações que valem como UMA no desfazer. Nasceu da seleção múltipla
+  // (§8.6, C2): apagar 5 peças de uma vez e ter que apertar Ctrl+Z cinco vezes
+  // pra voltar é o app cobrando pelo gesto que ele mesmo ofereceu.
+  LOTE: "lote",
 });
 
 /** aplica uma ação numa montagem (pura) */
@@ -46,6 +50,8 @@ export function aplicar(montagem, acao) {
       return removerPeca(montagem, acao.id);
     case ACOES.GIRAR:
       return girarPeca(montagem, acao.id, acao.giro);
+    case ACOES.LOTE:
+      return (acao.acoes ?? []).reduce(aplicar, montagem);
     case ACOES.RESTAURAR:
       // devolve a peça na posição original da lista e reata os órfãos
       return {
@@ -88,6 +94,19 @@ function inversoDe(montagem, acao) {
           .filter((p) => p.encaixe?.de === acao.id)
           .map((p) => ({ id: p.id, encaixe: p.encaixe })),
       };
+    }
+    case ACOES.LOTE: {
+      // Os inversos são calculados ENCADEANDO o estado: o inverso da segunda
+      // ação depende de a primeira já ter acontecido. E voltam em ordem
+      // REVERSA — desfazer é desandar, não repetir de trás pra frente.
+      let m = montagem;
+      const inversos = [];
+      for (const a of acao.acoes ?? []) {
+        const i = inversoDe(m, a);
+        if (i) inversos.unshift(i);
+        m = aplicar(m, a);
+      }
+      return inversos.length ? { tipo: ACOES.LOTE, acoes: inversos } : null;
     }
     default:
       return null;

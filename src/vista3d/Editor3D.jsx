@@ -11,39 +11,49 @@ import { useEffect, useImperativeHandle, useRef } from "react";
 import { T } from "../ui/tokens.js";
 import { criarCena } from "./cena.js";
 
-const coresDoTema = () => ({
+const coresDoTema = (porPeca = null) => ({
   fundo: T.bg,
   grade: T.bd,
   gradeEixo: T.bdA,
   peca: T.mut,
   selecao: T.acc,
+  conflito: T.red,
+  porPeca,
 });
 
 export default function Editor3D({
   montagem,
-  selecionada,
-  onSelecionar,
+  selecao = null, // índices das peças selecionadas (§8.6, C2)
+  onSelecionar, // (indice|null, { shift }) — shift acumula
+  conflitos = null, // índices das peças montadas uma dentro da outra
+  cores = null, // `catalogoId → hex`; null = tudo na cor do tema
   mostrarGrade = true,
   // ── modo Montar ──
   conectores = null, // conectores livres, no mundo (null/[] = não mostrar)
   onApontarConector, // (indice|null) — o pai devolve a matriz da prévia
   onEncaixar, // (indice) — comita a peça
   fantasma = null, // { catalogoId, matriz } da prévia
+  // ── conta-gotas (Ctrl segurado) ──
+  contaGotas = false, // o Ctrl está segurado AGORA?
+  onContaGotas, // (indice) — a peça clicada vira a peça de inserção
   api,
 }) {
   const canvasRef = useRef(null);
   const cenaRef = useRef(null);
+  // as cores no MOMENTO da criação da cena; depois disso quem manda é o efeito
+  const coresRef = useRef(cores);
+  useEffect(() => { coresRef.current = cores; });
   // Callbacks por REF: a cena é montada uma vez só, e o pai re-renderiza a cada
   // peça adicionada. Sem isto, remontaríamos a cena inteira a cada clique.
   const cb = useRef({});
   useEffect(() => {
-    cb.current = { onSelecionar, onApontarConector, onEncaixar };
+    cb.current = { onSelecionar, onApontarConector, onEncaixar, onContaGotas };
   });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
-    const cena = criarCena(canvas, coresDoTema());
+    const cena = criarCena(canvas, coresDoTema(coresRef.current));
     cenaRef.current = cena;
 
     const ro = new ResizeObserver(() => cena.redimensionar());
@@ -60,6 +70,9 @@ export default function Editor3D({
 
     const onMove = (e) => {
       if (Math.abs(e.clientX - x0) > 5 || Math.abs(e.clientY - y0) > 5) arrastou = true;
+      // com o Ctrl segurado o clique é conta-gotas, não encaixe: realçar
+      // conector e desenhar fantasma ali seria prometer uma peça que não vem
+      if (e.ctrlKey || e.metaKey) { onSai(); return; }
       if (!cb.current.onApontarConector) return;
       const idx = cena.conectorEm(e);
       if (idx === ultimoConector) return; // só avisa o React quando MUDA
@@ -70,14 +83,21 @@ export default function Editor3D({
 
     const onUp = (e) => {
       if (arrastou) return;
-      // o conector tem PRIORIDADE sobre a peça: em modo montar, o alvo do clique
-      // é onde a peça vai entrar, não a peça que está atrás dele
+      // CONTA-GOTAS (§8.6, C3): com o Ctrl segurado, a peça clicada vira a peça
+      // de inserção. Vem ANTES do conector de propósito — segurando Ctrl o
+      // técnico está escolhendo peça, não montando.
+      if (e.ctrlKey || e.metaKey) {
+        cb.current.onContaGotas?.(cena.pecaEm(e));
+        return;
+      }
+      // fora disso o conector tem PRIORIDADE sobre a peça: em modo montar, o
+      // alvo do clique é onde a peça vai entrar, não a peça atrás dele
       const conector = cb.current.onEncaixar ? cena.conectorEm(e) : null;
       if (conector != null) {
         cb.current.onEncaixar(conector);
         return;
       }
-      cb.current.onSelecionar?.(cena.pecaEm(e));
+      cb.current.onSelecionar?.(cena.pecaEm(e), { shift: e.shiftKey });
     };
 
     const onSai = () => {
@@ -110,7 +130,9 @@ export default function Editor3D({
   }, []);
 
   useEffect(() => { cenaRef.current?.sincronizar(montagem); }, [montagem]);
-  useEffect(() => { cenaRef.current?.selecionar(selecionada ?? null); }, [selecionada]);
+  useEffect(() => { cenaRef.current?.selecionar(selecao ?? null); }, [selecao]);
+  useEffect(() => { cenaRef.current?.marcarConflitos(conflitos ?? []); }, [conflitos]);
+  useEffect(() => { cenaRef.current?.definirCores(cores ?? null); }, [cores]);
   useEffect(() => { cenaRef.current?.mostrarGrade(mostrarGrade); }, [mostrarGrade]);
   useEffect(() => { cenaRef.current?.mostrarConectores(conectores ?? []); }, [conectores]);
   useEffect(() => {
@@ -127,8 +149,13 @@ export default function Editor3D({
   return (
     <canvas
       ref={canvasRef}
-      // sem isto o navegador rouba o gesto pra rolar a página
-      style={{ width: "100%", height: "100%", display: "block", touchAction: "none", borderRadius: 12 }}
+      // O ponteiro AVISA que o modo mudou: sem isso o conta-gotas é invisível, e
+      // modo invisível é modo que pega o técnico de surpresa.
+      // sem `touchAction: none` o navegador rouba o gesto pra rolar a página
+      style={{
+        width: "100%", height: "100%", display: "block", touchAction: "none", borderRadius: 12,
+        cursor: contaGotas ? "copy" : "default",
+      }}
     />
   );
 }

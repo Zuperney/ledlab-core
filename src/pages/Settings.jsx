@@ -2,7 +2,7 @@
 // cabeamento, cachês, test card, dados/backup e manutenção. Centraliza export/import
 // (backup, projetos e gabinetes) que antes ficavam espalhados nas abas.
 import { useRef, useState, useEffect } from "react";
-import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard, Cable, EyeOff, Users } from "lucide-react";
+import { Download, Upload, Eraser, RotateCcw, Trash2, ChevronDown, ChevronUp, Zap, Receipt, Monitor, Database, TriangleAlert, Palette, ShieldCheck, ShieldAlert, Cloud, LayoutDashboard, Cable, EyeOff, Users, Frame } from "lucide-react";
 import { useLedLabContext, KEYS, DEFAULT_PREFS, newProject } from "../store/AppContext.jsx";
 import { VERSION } from "../nav.js";
 import { useAuth } from "../store/AuthContext.jsx";
@@ -16,6 +16,7 @@ import { useConfirm, useToast } from "../store/UIContext.jsx";
 import { SEED_CABINETS } from "../data/mockCabinets.js";
 import Select from "../components/Select.jsx";
 import { NumeracaoPrefs, MapaCabosPrefs, CoresPrefs, PrefToggle } from "../components/CablingPrefs.jsx";
+import { CoresEstruturaPrefs } from "../components/EstruturaPrefs.jsx";
 import { SEED_PROJECTS } from "../data/mockProjects.js";
 import { SEED_ACTIVITY_TYPES } from "../data/seedActivityTypes.js";
 import { SEED_EQUIPS } from "../data/seedEquips.js";
@@ -212,6 +213,10 @@ export default function Settings({ embedded = false }) {
       <Section icon={Cable} title="Mapa de cabos" subtitle="Setas, numeração e posição do número no gabinete" defaultOpen={open}>
         <div style={subDesc}>Como o cabeamento aparece no Cabeamento, na Diagramação e no Relatório. <b>Atalho:</b> os mesmos ajustes ficam no ícone de ajustes da aba Cabeamento.</div>
         <MapaCabosPrefs />
+      </Section>
+
+      <Section icon={Frame} title="Cores da estrutura" subtitle="Uma cor por peça de box truss, na cena e na legenda do Caderno" defaultOpen={open}>
+        <CoresEstruturaPrefs />
       </Section>
 
       <Section icon={Palette} title="Cores dos cabos" subtitle="Paleta dos cabos e portas" defaultOpen={open}>

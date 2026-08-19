@@ -75,6 +75,20 @@ export function criarCena(canvas, cores) {
   const material = new MeshLambertMaterial({ color: 0xffffff });
   const corPeca = new Color(cores.peca);
   const corSel = new Color(cores.selecao);
+  const corConflito = new Color(cores.conflito ?? "#dc2626");
+
+  // COR POR PEÇA DO CATÁLOGO (§8.6, D1). Vem de fora — a cena não sabe o que é
+  // uma barra de 2 m, só recebe `catalogoId → hex`. Sem mapa, tudo na cor do
+  // tema, que é como a cena nasceu.
+  let coresPorPeca = cores.porPeca ?? null;
+  const cacheCor = new Map();
+  function corDoCatalogo(catalogoId) {
+    const hex = coresPorPeca?.[catalogoId];
+    if (!hex) return corPeca;
+    let c = cacheCor.get(hex);
+    if (!c) { c = new Color(hex); cacheCor.set(hex, c); }
+    return c;
+  }
 
   // ── marcadores de conector e prévia fantasma (modo Montar) ─
   // O conector é invisível na peça real; aqui ele vira uma bolinha CLICÁVEL —
@@ -92,7 +106,10 @@ export function criarCena(canvas, cores) {
 
   const grupos = new Map(); // `${catalogoId}#${nivel}` → InstancedMesh
   let pecas = [];
-  let selecionada = null;
+  // SELEÇÃO É CONJUNTO (§8.6, C2): com `Shift + clique` o técnico marca várias,
+  // e apagar cinco peças num gesto só foi o que ele pediu.
+  let selecao = new Set();
+  let conflitos = new Set();
   let pendente = 0;
   let vivo = true;
   const raycaster = new Raycaster();
@@ -175,11 +192,17 @@ export function criarCena(canvas, cores) {
     aplicarSelecao();
   }
 
+  // A PRIORIDADE DAS CORES, e ela tem razão de campo:
+  // selecionada > em conflito > cor do catálogo. A seleção ganha do vermelho
+  // porque é ela que guia a próxima ação — quem clicou numa peça sobreposta
+  // clicou justamente pra apagá-la, e precisa ver qual pegou.
   function aplicarSelecao() {
-    for (const malha of grupos.values()) {
+    for (const [chave, malha] of grupos) {
+      const base = corDoCatalogo(chave.slice(0, chave.lastIndexOf("#")));
       const ids = malha.userData.indices ?? [];
       for (let i = 0; i < malha.count; i++) {
-        malha.setColorAt(i, ids[i] === selecionada ? corSel : corPeca);
+        const idx = ids[i];
+        malha.setColorAt(i, selecao.has(idx) ? corSel : conflitos.has(idx) ? corConflito : base);
       }
       if (malha.instanceColor) malha.instanceColor.needsUpdate = true;
     }
@@ -267,7 +290,9 @@ export function criarCena(canvas, cores) {
   // ── API ────────────────────────────────────────────────────
   function sincronizar(montagem) {
     pecas = montagem?.pecas ?? [];
-    if (selecionada != null && selecionada >= pecas.length) selecionada = null;
+    // peça apagada encurta a lista: índice que não existe mais sai da seleção,
+    // senão o destaque salta pra peça errada na renderização seguinte
+    for (const i of [...selecao]) if (i >= pecas.length) selecao.delete(i);
     montarGrupos();
     solicitar();
   }
@@ -356,8 +381,27 @@ export function criarCena(canvas, cores) {
     return null;
   }
 
-  function selecionar(indice) {
-    selecionada = indice;
+  /** aceita um índice, uma lista deles, ou null pra limpar */
+  function selecionar(indices) {
+    selecao = new Set(
+      indices == null
+        ? []
+        : (Array.isArray(indices) ? indices : [indices]).filter((i) => i != null),
+    );
+    aplicarSelecao();
+    solicitar();
+  }
+
+  /** as peças montadas uma dentro da outra — saem em vermelho */
+  function marcarConflitos(indices) {
+    conflitos = new Set(indices ?? []);
+    aplicarSelecao();
+    solicitar();
+  }
+
+  /** troca o mapa `catalogoId → hex`; `null` devolve tudo à cor do tema */
+  function definirCores(mapa) {
+    coresPorPeca = mapa ?? null;
     aplicarSelecao();
     solicitar();
   }
@@ -366,6 +410,7 @@ export function criarCena(canvas, cores) {
     scene.background = new Color(novas.fundo);
     corPeca.set(novas.peca);
     corSel.set(novas.selecao);
+    if (novas.conflito) corConflito.set(novas.conflito);
     aplicarSelecao();
     grade.material.color = new Color(novas.grade);
     solicitar();
@@ -431,6 +476,7 @@ export function criarCena(canvas, cores) {
 
   return {
     sincronizar, redimensionar, enquadrar, aproximar, pecaEm, selecionar,
+    marcarConflitos, definirCores,
     trocarTema, capturar, destruir, solicitar,
     mostrarConectores, conectorEm, realcarConector, mostrarFantasma, limparFantasma,
     mostrarGrade: (v) => { grade.visible = v; solicitar(); },

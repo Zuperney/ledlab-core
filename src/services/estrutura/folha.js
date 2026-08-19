@@ -10,6 +10,8 @@
 // (pdfRelatorio), que é o padrão que o `cableScene.js` já estabeleceu na casa.
 
 import { pecaPorId } from "./catalogo.js";
+import { colisoes } from "./colisao.js";
+import { legendaDaEstrutura } from "./cores.js";
 import { juntas } from "./montagem.js";
 import { resumo } from "./metricas.js";
 import { deJSON } from "./serializar.js";
@@ -42,6 +44,9 @@ export const avisoEstruturaPdf = () => ({
 const metroBR = (mm) =>
   mm == null ? "—" : `${(mm / 1000).toFixed(2).replace(".", ",")} m`;
 
+const nomeDaPeca = (montagem, id) =>
+  pecaPorId(montagem.pecas.find((p) => p.id === id)?.catalogoId)?.nome ?? "peça";
+
 /**
  * Os dados da folha, a partir do projeto.
  *
@@ -50,13 +55,18 @@ const metroBR = (mm) =>
  *
  * @param {object} project
  * @param {string|null} imagem data URL da vista capturada, se houver
+ * @param {{cores?:object}} opcoes `cores` = personalização de cor por peça (prefs globais)
  * @returns {null | object} `null` quando não há estrutura — e aí a seção some do
  *   Caderno, em vez de imprimir uma folha dizendo "0 peças".
  */
-export function dadosDaFolha(project, imagem = null) {
+export function dadosDaFolha(project, imagem = null, opcoes = {}) {
   let montagem;
   try {
-    montagem = deJSON(project?.estrutura ?? null, { descartarDesconhecidas: true });
+    // SEM `descartarDesconhecidas`: se o arquivo tem uma peça que este catálogo
+    // não conhece, a folha inteira sai de cena. Imprimir a lista MENOS aquela
+    // peça é o pior desfecho possível — o galpão carregaria o caminhão com uma
+    // peça a menos e ninguém saberia por quê. Sem folha, o técnico pergunta.
+    montagem = deJSON(project?.estrutura ?? null);
   } catch {
     return null; // montagem corrompida não derruba o Caderno inteiro
   }
@@ -99,6 +109,15 @@ export function dadosDaFolha(project, imagem = null) {
       : "Peso estimado — valores de catálogo, ainda não conferidos na balança.",
     imagem: imagem ?? null,
     imagemEm: project?.estruturaImg?.em ?? null,
+    // a legenda do desenho: cor, nome e quantidade, só das peças que estão lá
+    legenda: legendaDaEstrutura(montagem, opcoes.cores ?? null),
+    // PEÇA DENTRO DE PEÇA vai IMPRESSO. Quem monta no galpão segue o papel, e
+    // uma montagem que não fecha no 3D também não fecha no truss.
+    conflitos: colisoes(montagem).map((c) => ({
+      ...c,
+      nomeA: nomeDaPeca(montagem, c.a),
+      nomeB: nomeDaPeca(montagem, c.b),
+    })),
   };
 }
 

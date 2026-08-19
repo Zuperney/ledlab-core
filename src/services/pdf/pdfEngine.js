@@ -58,7 +58,7 @@ async function logoDataUrl() {
 // baixa o Caderno em PDF (nome de arquivo no padrão do app).
 // Logos (decisão do dono, 30/07): a MARCA LedLab fica na capa; o logo DO
 // PROJETO (project.logo, cadastrado em Dados) sai no carimbo das pranchas.
-export async function baixarRelatorioPdf({ project, tipo, cfg, gerado, numbering, palette, render, assinatura }) {
+export async function baixarRelatorioPdf({ project, tipo, cfg, gerado, numbering, palette, render, assinatura, coresEstrutura = null }) {
   const logo = await logoDataUrl();
   // os Test Cards são desenhados AQUI (canvas é do browser; o builder é puro) e
   // entram como imagens da folha de referência — só o caderno de Design tem essa folha
@@ -66,15 +66,15 @@ export async function baixarRelatorioPdf({ project, tipo, cfg, gerado, numbering
   // a vista 3D vem do IndexedDB (é derivada e não sobe pro sync — ver
   // services/estrutura/imagem.js); o builder é puro e recebe o data URL pronto
   const estruturaImg = await lerImagem(project.id);
-  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render, testCards, estruturaImg });
+  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render, testCards, estruturaImg, coresEstrutura });
   await pdfMake.createPdf(doc).download(fileName([project.name, "caderno", tipo], "pdf"));
 }
 
 // gera um blob-URL (pra pré-visualizar/verificar sem baixar)
-export async function relatorioPdfUrl({ project, tipo, cfg, gerado, numbering, palette, render, assinatura }) {
+export async function relatorioPdfUrl({ project, tipo, cfg, gerado, numbering, palette, render, assinatura, coresEstrutura = null }) {
   const logo = await logoDataUrl();
   const estruturaImg = await lerImagem(project.id);
-  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render, estruturaImg });
+  const doc = buildRelatorioDoc({ project, tipo, cfg, logo, logoProjeto: project.logo || null, assinatura, gerado, numbering, palette, render, estruturaImg, coresEstrutura });
   const blob = await pdfMake.createPdf(doc).getBlob();
   return URL.createObjectURL(blob);
 }
