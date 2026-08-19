@@ -37,6 +37,7 @@ export default function Editor3D({
   // ── conta-gotas (Ctrl segurado) ──
   contaGotas = false, // o Ctrl está segurado AGORA?
   onContaGotas, // (indice) — a peça clicada vira a peça de inserção
+  onChao, // ([x,y,z]) — clique no piso vazio: é ali que a peça nova nasce
   api,
 }) {
   const canvasRef = useRef(null);
@@ -48,7 +49,7 @@ export default function Editor3D({
   // peça adicionada. Sem isto, remontaríamos a cena inteira a cada clique.
   const cb = useRef({});
   useEffect(() => {
-    cb.current = { onSelecionar, onApontarConector, onEncaixar, onContaGotas };
+    cb.current = { onSelecionar, onApontarConector, onEncaixar, onContaGotas, onChao };
   });
 
   useEffect(() => {
@@ -98,7 +99,15 @@ export default function Editor3D({
         cb.current.onEncaixar(conector);
         return;
       }
-      cb.current.onSelecionar?.(cena.pecaEm(e), { shift: e.shiftKey });
+      const peca = cena.pecaEm(e);
+      // CLIQUE NO PISO VAZIO = PEÇA NOVA ALI (§8.7). Sem isto, toda peça solta
+      // nascia na origem, uma em cima da outra — e o aviso de sobreposição
+      // acusava um problema que o próprio app tinha criado.
+      if (peca == null && cb.current.onChao) {
+        const ponto = cena.pontoNoChao(e);
+        if (ponto) { cb.current.onChao(ponto); return; }
+      }
+      cb.current.onSelecionar?.(peca, { shift: e.shiftKey });
     };
 
     const onSai = () => {

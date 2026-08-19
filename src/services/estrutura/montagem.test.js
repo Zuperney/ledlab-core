@@ -197,25 +197,37 @@ describe("girar", () => {
     );
   });
 
-  // é o `recalcular` que faz isso de graça, porque a verdade é o encaixe
-  // simbólico e não a matriz — girar a base tem que levar a torre junto
-  it("quem está encaixado ACOMPANHA o giro", () => {
+  // SÓ A PEÇA SELECIONADA SE MEXE (decisão do dono, 19/08). Antes, girar uma
+  // barra no meio da torre arrastava tudo que estava acima — e a peça escolhida,
+  // que gira em torno do próprio eixo, parecia travada.
+  it("girar uma barra da torre NÃO mexe no que está encaixado nela", () => {
     let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
     m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
     m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b3", catalogoId: "p30-b0500", de: "b2", conAlvo: "b", conNovo: "a" });
+
     const girada = girarPeca(m, "b1", 1);
-    // a ORIENTAÇÃO da filha muda junto...
-    expect(pecaDaMontagem(girada, "b2").matriz).not.toEqual(pecaDaMontagem(m, "b2").matriz);
-    // ...mas a POSIÇÃO dela não: girar uma barra em torno do próprio eixo não
-    // move a ponta dela, que está EM CIMA do eixo. É física, não bug.
-    expect(pecaDaMontagem(girada, "b2").matriz.slice(12, 15))
-      .toEqual(pecaDaMontagem(m, "b2").matriz.slice(12, 15));
-    // e continua encaixada
-    expect(juntas(girada)).toHaveLength(2);
+    expect(pecaDaMontagem(girada, "b1").encaixe.giro).toBe(1);
+    // filha e NETA exatamente onde estavam — compensar a filha basta, porque a
+    // neta não chega a saber que houve giro
+    expect(pecaDaMontagem(girada, "b2").matriz).toEqual(pecaDaMontagem(m, "b2").matriz);
+    expect(pecaDaMontagem(girada, "b3").matriz).toEqual(pecaDaMontagem(m, "b3").matriz);
+    expect(juntas(girada)).toHaveLength(3); // e ninguém se soltou
   });
 
-  // aqui a filha sai do eixo de propósito: o cubo pendura a barra pra fora
-  it("filha FORA do eixo se move quando a mãe gira", () => {
+  it("a compensação sobrevive a desfazer: girar e voltar devolve tudo", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
+    m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a" });
+    const volta = girarPeca(girarPeca(m, "b1", 1), "b1", 0);
+    expect(pecaDaMontagem(volta, "b2").encaixe.giro).toBe(pecaDaMontagem(m, "b2").encaixe.giro);
+    expect(pecaDaMontagem(volta, "b2").matriz).toEqual(pecaDaMontagem(m, "b2").matriz);
+  });
+
+  // O LIMITE, e ele é físico: a face lateral do cubo fica FORA do eixo do giro.
+  // Girar o cubo muda o lugar dessa face, e o que está aparafusado nela viaja
+  // junto — no truss de verdade também viaja.
+  it("no cubo, o que está na face lateral acompanha — não há compensação que segure", () => {
     let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
     m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "topo" });
     m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
@@ -223,6 +235,14 @@ describe("girar", () => {
     const girada = girarPeca(m, "cubo", 1);
     expect(pecaDaMontagem(girada, "braco").matriz.slice(12, 15)).not.toEqual(antes);
     expect(juntas(girada)).toHaveLength(2);
+  });
+
+  it("dá pra pedir o comportamento antigo — arrastar os filhos junto", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
+    m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a" });
+    const arrastando = girarPeca(m, "b1", 1, { compensarFilhos: false });
+    expect(pecaDaMontagem(arrastando, "b2").matriz).not.toEqual(pecaDaMontagem(m, "b2").matriz);
   });
 
   it("peça LIVRE não gira (não tem eixo de encaixe)", () => {

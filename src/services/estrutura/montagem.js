@@ -115,9 +115,9 @@ export const MOTIVOS = Object.freeze({
  * A regra é a do galpão: peça solta se APOIA. Quem quiser pendurar peça no ar
  * ainda pode passar a matriz que quiser.
  */
-export function matrizApoiada(catalogoId, { x = 0, z = 0 } = {}) {
+export function matrizApoiada(catalogoId, { x = 0, z = 0, chaoMm = 0 } = {}) {
   const caixa = caixaLocal(pecaPorId(catalogoId));
-  return arredMatriz(matriz(IDENTIDADE, [x, caixa ? -caixa.min[1] : 0, z]));
+  return arredMatriz(matriz(IDENTIDADE, [x, chaoMm - (caixa ? caixa.min[1] : 0), z]));
 }
 
 /** primeira peça (ou peça solta): entra com a matriz que vier, ou na origem */
@@ -196,16 +196,37 @@ export function removerPeca(montagem, id) {
 /**
  * Gira uma peça JÁ montada, em passos de 90°, em torno do eixo do encaixe.
  *
- * Quem está encaixado NELA acompanha — é o `recalcular` que faz isso de graça,
- * porque a fonte da verdade é o encaixe simbólico e não a matriz. Girar a base
- * de uma torre gira a torre inteira, que é o que o técnico espera.
+ * ⚠️ SÓ A PEÇA SELECIONADA SE MEXE (decisão do dono, 19/08). A versão anterior
+ * arrastava tudo que estivesse encaixado nela: selecionar uma barra no meio da
+ * torre e apertar `R` girava metade da estrutura, e a peça escolhida — que gira
+ * em torno do PRÓPRIO eixo — parecia travada. Era o `recalcular` fazendo o certo
+ * pelo modelo e o errado pra quem monta.
+ *
+ * COMO SEGURAR OS FILHOS NO LUGAR: o filho é posicionado pelo `rolo` do conector
+ * do pai mais o `giro` dele. Girar o pai em +k gira esse `rolo` em +k·90°; dar
+ * −k no giro do filho cancela exatamente. Quando o conector do pai está NO EIXO
+ * do giro — o caso de toda barra, que se encaixa pelas pontas — a posição do
+ * filho nem chega a mudar, e a compensação devolve a orientação. Resultado: só a
+ * peça girada muda.
+ *
+ * O LIMITE, e ele é físico: no cubo as faces laterais ficam FORA do eixo. Girar
+ * um cubo muda o lugar dessas faces, e o que estiver aparafusado nelas viaja
+ * junto — não há compensação que segure, e no truss de verdade também não há.
+ *
+ * Basta compensar os filhos DIRETOS: com eles parados, os netos nem sabem que
+ * houve giro.
  */
-export function girarPeca(montagem, id, giro) {
+export function girarPeca(montagem, id, giro, { compensarFilhos = true } = {}) {
   const peca = pecaDaMontagem(montagem, id);
   if (!peca?.encaixe) return montagem; // peça livre não tem eixo pra girar
-  const pecas = montagem.pecas.map((p) =>
-    p.id === id ? { ...p, encaixe: { ...p.encaixe, giro: normalizarGiro(giro) } } : p,
-  );
+  const alvo = normalizarGiro(giro);
+  const delta = alvo - normalizarGiro(peca.encaixe.giro ?? 0);
+
+  const pecas = montagem.pecas.map((p) => {
+    if (p.id === id) return { ...p, encaixe: { ...p.encaixe, giro: alvo } };
+    if (!compensarFilhos || p.encaixe?.de !== id) return p;
+    return { ...p, encaixe: { ...p.encaixe, giro: normalizarGiro((p.encaixe.giro ?? 0) - delta) } };
+  });
   return recalcular({ ...montagem, pecas });
 }
 

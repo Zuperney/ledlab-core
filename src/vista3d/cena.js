@@ -14,7 +14,7 @@
 
 import {
   AmbientLight, Color, ConeGeometry, DirectionalLight, DynamicDrawUsage, GridHelper, InstancedMesh,
-  Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Raycaster,
+  Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Plane, Raycaster,
   Scene, SphereGeometry, Vector2, Vector3,
   WebGLRenderer,
 } from "three";
@@ -127,6 +127,9 @@ export function criarCena(canvas, cores) {
   const raycaster = new Raycaster();
   const ponteiro = new Vector2();
   const mat4 = new Matrix4();
+  // o piso como plano matemático, pra saber onde o clique encosta nele
+  const planoDoChao = new Plane(new Vector3(0, 1, 0), 0);
+  const alvoDoChao = new Vector3();
 
   // ── render sob demanda ─────────────────────────────────────
   function desenhar() {
@@ -418,6 +421,24 @@ export function criarCena(canvas, cores) {
   }
 
   /** aceita um índice, uma lista deles, ou null pra limpar */
+  /**
+   * Onde o ponteiro encosta NO PISO, em mm de mundo — ou `null` se ele estiver
+   * apontando pro céu.
+   *
+   * É o que permite a peça nova nascer onde o técnico clica, em vez de sempre na
+   * origem (§8.7). O plano é o do piso DESENHADO, não o zero absoluto: quando a
+   * grade desce por causa de uma peça pendurada, clicar nela nasce peça lá.
+   */
+  function pontoNoChao(evento) {
+    const r = canvas.getBoundingClientRect();
+    ponteiro.x = ((evento.clientX - r.left) / r.width) * 2 - 1;
+    ponteiro.y = -((evento.clientY - r.top) / r.height) * 2 + 1;
+    raycaster.setFromCamera(ponteiro, camera);
+    planoDoChao.constant = -grade.position.y;
+    const p = raycaster.ray.intersectPlane(planoDoChao, alvoDoChao);
+    return p ? [p.x, p.y, p.z] : null;
+  }
+
   function selecionar(indices) {
     selecao = new Set(
       indices == null
@@ -517,7 +538,7 @@ export function criarCena(canvas, cores) {
   redimensionar();
 
   return {
-    sincronizar, redimensionar, enquadrar, aproximar, pecaEm, selecionar,
+    sincronizar, redimensionar, enquadrar, aproximar, pecaEm, pontoNoChao, selecionar,
     marcarConflitos, definirCores,
     trocarTema, capturar, destruir, solicitar,
     mostrarConectores, conectorEm, realcarConector, mostrarFantasma, limparFantasma, mostrarSetas,

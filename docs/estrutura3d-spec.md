@@ -764,6 +764,73 @@ canvas saiu — ela dizia o mesmo, duas vezes.
 
 ---
 
+## 8.8 O gesto de montar (E3.7) — segunda rodada do dono, 19/08
+
+### A peça nasce no piso, e o botão sai
+
+> *"a peça deve nascer uma única vez, ache que ao ser clicado na lista de peça
+> ela vem pra memória de seleção, e aí ao ser clicado ela nasce no piso, acho que
+> o botão de adicionar peça não se faz necessário"*
+
+Ele está certo, e o sintoma denunciava: com "Adicionar peça" toda peça solta
+nascia **na origem**, uma em cima da outra — e o aviso de sobreposição do §8.6-B1
+acusava um problema que o próprio app criava.
+
+Agora o fluxo é o que ele descreveu: a peça clicada no **catálogo** entra na
+memória de seleção (já era assim, e é o que o conta-gotas explora), e **clicar no
+piso** a faz nascer ali, apoiada. A primária da F2 passa a ser **Imagem do
+Caderno** — com a montagem virando gesto, o que sobra de razão de existir na aba
+é ENTREGAR a estrutura pro Caderno.
+
+Duas notas de implementação:
+- o plano de clique é o **piso desenhado**, não o zero absoluto. Quando a grade
+  desce por causa de peça pendurada (§8.7), clicar nela nasce peça lá;
+- o ponto é arredondado em **10 cm**. No campo se mede em centímetro inteiro, e
+  ponto solto na terceira casa deixaria a medida do Caderno com um resto que
+  ninguém pediu.
+
+### `Shift+R` no lugar de `Ctrl+R`
+
+> *"o control + r ainda recarrega o navegador, podemos mudar pra outro atalho,
+> talvez shift + r"*
+
+O `preventDefault` no `Ctrl+R` **não segura em todo lugar** — e recarregar no meio
+de uma montagem leva o histórico de desfazer junto, que é memória de sessão
+(§8.6-B3). Atalho que às vezes apaga trabalho não é atalho, é armadilha.
+`Shift+R` está livre: `Shift + clique` é seleção múltipla, mas a tecla sozinha
+não disputa com nada.
+
+### Girar mexe SÓ na peça selecionada
+
+> *"ao rotacionar as peças ficam travadas e rotacionam em conjunto, somente as
+> peças selecionadas podem rotacionar"*
+
+O diagnóstico dele descreve exatamente o sintoma: selecionar uma barra no meio da
+torre e apertar `R` girava **tudo que estava acima** — e a peça escolhida, que
+gira em torno do PRÓPRIO eixo, parecia travada. Era o `recalcular` fazendo o
+certo pelo modelo (a verdade é o encaixe simbólico) e o errado pra quem monta.
+
+**Como os filhos ficam parados sem quebrar junta.** O filho é posicionado pelo
+`rolo` do conector do pai mais o `giro` dele. Girar o pai em +k gira esse `rolo`
+em +k·90°; dar **−k no giro do filho** cancela exatamente. E quando o conector do
+pai está **no eixo do giro** — o caso de toda barra, que se encaixa pelas pontas —
+a posição do filho nem chega a mudar. Resultado: só a peça girada se mexe, a
+junta continua inteira, e o desfazer devolve tudo.
+
+Basta compensar os filhos **diretos**: com eles parados, os netos nem sabem que
+houve giro.
+
+> ⚠️ **O limite, e ele é físico.** No cubo as faces laterais ficam FORA do eixo
+> do giro. Girar um cubo muda o lugar dessas faces, e o que estiver aparafusado
+> nelas viaja junto — não há compensação que segure, e no truss de verdade
+> também não há. A ajuda da aba diz isso com todas as letras.
+
+O comportamento antigo continua disponível no motor
+(`girarPeca(m, id, giro, { compensarFilhos: false })`), porque girar a torre
+inteira a partir da base ainda é uma operação legítima — só não é o `R`.
+
+---
+
 ## 9 · As fases
 
 | Fase | Entrega | Trava |
@@ -774,6 +841,7 @@ canvas saiu — ela dizia o mesmo, duas vezes.
 | **E3 · O relatório** ✅ | **a entrega que o dono pediu**: lista de peças com linha e peso, **peso total**, **medidas reais**, juntas → **parafusaria**, procedência do peso, aviso de responsabilidade e a **vista 3D capturada**. Folha ESTRUTURA no Caderno **e** no PDF, e ela abre no celular | E2 |
 | **E3.5 · Consolidação** ✅ | fecha a auditoria do §8.5: **caderno próprio de Estrutura** (e a folha sai do Resumido/Gabinetes), **detecção de sobreposição** por SAT que avisa sem bloquear, **face de entrada** (o conserto do cubo), histórico que atravessa a aba, peça desconhecida que falha alto, imagem que não vira órfã, **seleção múltipla + atalhos + conta-gotas**, e **cor por peça com legenda** na cena e no Caderno | E3 |
 | **E3.6 · O ajuste fino** ✅ | §8.7: `V` segurado = modo Ver · **as duas rotações** (`R` gira, `Ctrl+R` troca a face de entrada) e o seletor de face fora da tela · **seta na face cega** do cubo · **paleta do catálogo** por categoria, que também é a legenda · **o piso nunca corta a peça** (nasce apoiada, e a grade desce se algo passar dela) | E3.5 |
+| **E3.7 · O gesto de montar** ✅ | §8.8: a peça **nasce ao clicar no piso** e o botão "Adicionar peça" sai (a primária vira a imagem do Caderno) · `Shift+R` no lugar do `Ctrl+R`, que recarregava o navegador · **girar mexe só na peça selecionada**, com os filhos compensados | E3.6 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

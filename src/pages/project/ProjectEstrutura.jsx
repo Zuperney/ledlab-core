@@ -50,7 +50,7 @@ import {
 } from "../../services/estrutura/historico.js";
 import { guardarHistorico, retomarHistorico } from "../../services/estrutura/sessao.js";
 import { deJSON, paraJSON } from "../../services/estrutura/serializar.js";
-import { resumo } from "../../services/estrutura/metricas.js";
+import { nivelDoChao, resumo } from "../../services/estrutura/metricas.js";
 import { plural } from "../../services/estrutura/folha.js";
 import { matriz, qEntreVetores } from "../../services/estrutura/vetor.js";
 import { porticoDeExemplo } from "../../services/estrutura/exemplos.js";
@@ -289,6 +289,27 @@ export default function ProjectEstrutura({ project, patch }) {
     toast(`Peça de inserção: ${pecaPorId(p.catalogoId)?.nome ?? p.catalogoId}`);
   }, [montagem, toast, escolherPeca]);
 
+  // A PEÇA NASCE ONDE SE CLICA (§8.7). Antes havia um botão "Adicionar peça" e
+  // toda peça solta nascia na origem, uma em cima da outra — o aviso de
+  // sobreposição acusava um problema que o próprio app tinha criado.
+  //
+  // Arredondado em 10 cm: no campo se mede em centímetro inteiro, e ponto solto
+  // na terceira casa deixaria a medida do Caderno com um resto que ninguém pediu.
+  const nascerNoChao = useCallback((ponto) => {
+    if (!cat) return;
+    const passo = 100;
+    rodar({
+      tipo: ACOES.ADICIONAR_LIVRE,
+      id: genId("pc"),
+      catalogoId,
+      matriz: matrizApoiada(catalogoId, {
+        x: Math.round(ponto[0] / passo) * passo,
+        z: Math.round(ponto[2] / passo) * passo,
+        chaoMm: nivelDoChao(montagem),
+      }),
+    });
+  }, [cat, catalogoId, montagem, rodar]);
+
   const encaixar = useCallback((indice) => {
     const con = livres[indice];
     if (!con || !cat || !entradaEfetiva) return;
@@ -359,20 +380,21 @@ export default function ProjectEstrutura({ project, patch }) {
       if (e.key === "Control" || e.key === "Meta") { setCtrl(true); return; }
       if (editando(e.target)) return;
       const cmd = e.ctrlKey || e.metaKey;
-      if (cmd && e.key.toLowerCase() === "r") {
-        // o navegador usa Ctrl+R pra recarregar — aqui ele é o tilt, e recarregar
-        // no meio de uma montagem levaria o desfazer junto
-        e.preventDefault();
-        if (selecionadas.length) tiltarSelecionadas();
-        else setTilt((t) => t + 1);
-        return;
-      }
       if (cmd && e.key.toLowerCase() === "z") {
         e.preventDefault(); // senão o navegador tenta desfazer no lugar do app
         (e.shiftKey ? refazer : desfazer)();
         return;
       }
       if (cmd) return; // o resto dos atalhos é sem modificador
+      // SHIFT+R, e não Ctrl+R: o Ctrl+R do navegador recarrega a página e o
+      // `preventDefault` não segura em todo lugar. Recarregar no meio de uma
+      // montagem leva o desfazer junto — atalho que às vezes apaga trabalho não
+      // é atalho, é armadilha.
+      if (e.shiftKey && e.key.toLowerCase() === "r") {
+        if (selecionadas.length) tiltarSelecionadas();
+        else setTilt((t) => t + 1);
+        return;
+      }
       if (e.key.toLowerCase() === "v") { setVerMomentaneo(true); return; }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault(); // Backspace solto ainda navega pra trás em alguns navegadores
@@ -532,17 +554,6 @@ export default function ProjectEstrutura({ project, patch }) {
           </>
         )}
 
-        {!vazia && (
-          <button
-            style={btn("ghost", capturando ? { opacity: 0.6, cursor: "wait" } : {})}
-            disabled={capturando || !Editor}
-            title="Guardar esta vista da estrutura para sair no Caderno Técnico"
-            onClick={capturarParaCaderno}
-          >
-            <FileText size={15} /> {project?.estruturaImg ? "Atualizar imagem" : "Imagem do Caderno"}
-          </button>
-        )}
-
         {vazia && (
           <button
             style={btn("ghost")}
@@ -554,19 +565,19 @@ export default function ProjectEstrutura({ project, patch }) {
         )}
 
         <div style={{ flex: 1 }} />
-        <button
-          style={btn("primary")}
-          // apoiada no chão, não centrada na origem: barra e cubo têm origem no
-          // CENTRO, e nascer na origem era nascer com metade da peça enterrada
-          onClick={() => rodar({
-            tipo: ACOES.ADICIONAR_LIVRE,
-            id: genId("pc"),
-            catalogoId,
-            matriz: matrizApoiada(catalogoId),
-          })}
-        >
-          <Plus size={15} /> Adicionar peça
-        </button>
+        {/* A PRIMÁRIA da aba passou a ser a imagem (§8.7). "Adicionar peça" saiu:
+            peça nova nasce de clicar no piso, que é gesto, não botão. O que
+            sobra de razão de existir aqui é ENTREGAR a estrutura pro Caderno. */}
+        {!vazia && (
+          <button
+            style={btn("primary", capturando ? { opacity: 0.6, cursor: "wait" } : {})}
+            disabled={capturando || !Editor}
+            title="Guardar esta vista da estrutura para sair no Caderno Técnico"
+            onClick={capturarParaCaderno}
+          >
+            <FileText size={15} /> {project?.estruturaImg ? "Atualizar imagem" : "Imagem do Caderno"}
+          </button>
+        )}
       </div>
 
       {/* F3 · CONTEXTO */}
@@ -589,11 +600,11 @@ export default function ProjectEstrutura({ project, patch }) {
         {verMomentaneo && <StatusPill color={T.acM} label="Ver — solte o V para montar" />}
         {ctrl && !verMomentaneo && <StatusPill color={T.acM} label="Conta-gotas — clique numa peça" />}
         <HelpTip title="Estrutura">
-          <p><b>Para montar:</b> escolha a peça na paleta ao lado do desenho, passe o ponteiro num <b>ponto claro</b> da estrutura — ele mostra a peça em fantasma, onde ela vai ficar — e clique.</p>
-          <p><b>As duas rotações:</b> <b>R</b> gira a peça em torno da junta; <b>Ctrl+R</b> troca a <b>face por onde ela entra</b>. São coisas diferentes: no cubo, só o Ctrl+R tira a face cega de onde ela está — girar não tira, porque ela fica bem em cima do eixo do giro.</p>
+          <p><b>Para montar:</b> escolha a peça no catálogo ao lado do desenho e <b>clique no piso</b> — ela nasce ali, apoiada. Para emendar, passe o ponteiro num <b>ponto claro</b> da estrutura (ele mostra a peça em fantasma, onde ela vai ficar) e clique.</p>
+          <p><b>As duas rotações:</b> <b>R</b> gira a peça em torno da junta; <b>Shift+R</b> troca a <b>face por onde ela entra</b>. São coisas diferentes: no cubo, só o Shift+R tira a face cega de onde ela está — girar não tira, porque ela fica bem em cima do eixo do giro.</p>
+          <p><b>Girar mexe só na peça selecionada</b> — o que está encaixado nela fica onde estava. A exceção é física: girando um <b>cubo</b>, o que está aparafusado nas faces laterais viaja junto, e no truss de verdade também viaja.</p>
           <p><b>A seta</b> marca a face cega do cubo, aquela que veio tapada de fábrica e não aceita peça. Selecione o cubo para vê-la.</p>
           <p><b>Atalhos:</b> <b>V</b> segurado vira modo Ver — dá pra clicar nas peças sem encaixar nada · <b>Ctrl</b> segurado vira conta-gotas (a peça clicada passa a ser a de inserção) · <b>Shift + clique</b> seleciona várias · <b>Delete</b> apaga · <b>Ctrl+Z</b> desfaz · <b>Esc</b> limpa.</p>
-          <p><b>Adicionar peça</b> põe uma peça solta na origem: é assim que se começa a segunda torre.</p>
           <p>Excluir <b>não</b> apaga o que estava preso na peça — aquilo vira peça solta, no lugar onde estava.</p>
           <p><b>Peça em vermelho está sobreposta</b> a outra: duas ocupando o mesmo espaço. O app avisa e deixa seguir — no truss de verdade elas não entrariam.</p>
           <p>O peso vem do catálogo e ainda <b>não foi conferido na balança</b> — trate como ordem de grandeza. A procedência sai no Caderno.</p>
@@ -662,13 +673,14 @@ export default function ProjectEstrutura({ project, patch }) {
                 conectores={montando && !ctrl ? livres : null}
                 onApontarConector={montando ? setAlvo : undefined}
                 onEncaixar={montando ? encaixar : undefined}
+                onChao={montando && !ctrl ? nascerNoChao : undefined}
                 fantasma={fantasma}
               />
             )}
             {vazia && Editor && !erroCarga && (
               <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
                 <span style={{ ...chip, background: T.card, padding: "8px 16px" }}>
-                  Comece com <b style={{ color: T.acM }}>Adicionar peça</b> — depois clique nos pontos claros para emendar
+                  Escolha a peça no <b style={{ color: T.acM }}>catálogo</b> e clique no <b style={{ color: T.acM }}>piso</b> — depois clique nos pontos claros para emendar
                 </span>
               </div>
             )}
