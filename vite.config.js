@@ -25,6 +25,12 @@ function stampServiceWorker() {
           // precache, o offline perderia fonte, logo e o preview com imagem
           assets = readdirSync(resolve(process.cwd(), 'dist/assets'))
             .filter((f) => /\.(js|css|ttf|png|jpe?g)$/.test(f))
+            // o chunk do editor 3D (three.js) fica FORA do precache: são ~187 KB
+            // gzip que TODO usuário baixaria a cada deploy, mesmo sem nunca abrir
+            // a aba Estrutura. Decisão do dono — docs/estrutura3d-spec.md §7.2.
+            // Ele entra no cache RUNTIME na primeira vez que a aba abre, e a aba
+            // avisa quando ainda não desceu e não há rede.
+            .filter((f) => !/^vista3d-/.test(f))
             .map((f) => `./assets/${f}`)
         } catch { /* sem pasta assets — ignora */ }
         const sw = readFileSync(swPath, 'utf-8')
@@ -47,6 +53,18 @@ export default defineConfig({
   // atualização): release = bump só no package.json. Vale no vite E no vitest.
   define: { __APP_VERSION__: JSON.stringify(`v${pkg.version}`) },
   plugins: [react(), stampServiceWorker()],
+  build: {
+    rollupOptions: {
+      output: {
+        // nome ESTÁVEL pro chunk 3D — é o que permite filtrá-lo no precache
+        // acima. Sem prefixo fixo, o hash muda a cada build e não há o que casar.
+        manualChunks: (id) =>
+          id.includes('node_modules/three') || id.includes('/src/vista3d/')
+            ? 'vista3d'
+            : undefined,
+      },
+    },
+  },
   // Honra a env PORT (usada pelo preview tool p/ alocar porta dinâmica).
   server: process.env.PORT ? { port: Number(process.env.PORT), strictPort: true } : undefined,
 })

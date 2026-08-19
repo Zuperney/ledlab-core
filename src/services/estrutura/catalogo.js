@@ -25,8 +25,11 @@ export const SISTEMAS = {
     banzoMm: 50, // desenho. O tubo REAL é 2" = 50,8 (espeque §5.2.1)
     banzoRealPol: 2,
     diagonalMm: 40,
-    passoNoMm: 250, // espaçamento dos nós ao longo da barra
-    anguloDiagonalGraus: 51,
+    passoNoMm: 250, // espaçamento dos nós ao longo da barra (travessas)
+    // O ziguezague das diagonais tem passo PRÓPRIO, menor que o das travessas —
+    // e é ele que explica os 51° medidos na malha: atan(250 / 200) = 51,3°.
+    // Sem esse passo separado a diagonal sairia a 45° e a barra ficaria "quase".
+    passoDiagonalMm: 200,
     cabeceiraMm: 25,
     banzos: 4,
   },
@@ -154,6 +157,27 @@ export const conectorPorId = (peca, id) =>
   peca?.conectores?.find((c) => c.id === id) ?? null;
 export const pecasDoSistema = (sistema) =>
   CATALOGO.filter((p) => p.sistema === sistema);
+
+// ── o ziguezague das diagonais ───────────────────────────────
+// Divide o comprimento num número INTEIRO de segmentos de ~`passoDiagonalMm`,
+// pra que o ziguezague comece e termine exatamente nas pontas — diagonal
+// sobrando na ponta é o erro que denuncia desenho de quem não é do ramo.
+// Devolve as posições ao longo do comprimento, de 0 a `comprimentoMm`.
+export function passosDaDiagonal(comprimentoMm, alvoMm = SISTEMAS[300].passoDiagonalMm) {
+  const L = Number(comprimentoMm) || 0;
+  if (L <= 0 || !(alvoMm > 0)) return [];
+  const n = Math.max(1, Math.round(L / alvoMm));
+  return Array.from({ length: n + 1 }, (_, i) => (L * i) / n);
+}
+
+// o ângulo que a diagonal faz com o EIXO da barra, em graus — consequência do
+// passo e do entre-eixos, nunca um número solto
+export function anguloDiagonalGraus(comprimentoMm, sistema = 300) {
+  const s = SISTEMAS[sistema];
+  const passos = passosDaDiagonal(comprimentoMm, s.passoDiagonalMm);
+  if (passos.length < 2) return 0;
+  return (Math.atan2(s.entreEixosMm, passos[1] - passos[0]) * 180) / Math.PI;
+}
 
 // ── caixa envolvente local de uma peça ───────────────────────
 // Barra e cubo são centrados na origem; a sapata tem origem no CHÃO. Quem calcula

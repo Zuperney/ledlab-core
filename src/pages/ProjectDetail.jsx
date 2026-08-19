@@ -1,6 +1,6 @@
 // pages/ProjectDetail.jsx — detalhe do projeto com abas.
 import { useState } from "react";
-import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText, Layers, Users } from "lucide-react";
+import { ArrowLeft, Check, Folder, Zap, GitBranch, Monitor, LayoutGrid, FileText, Layers, Users, Frame } from "lucide-react";
 import { useLedLabContext } from "../store/AppContext.jsx";
 import { useEquipe } from "../store/EquipeContext.jsx";
 import { projectRollup } from "../services/projectCalc.js";
@@ -17,6 +17,7 @@ import ProjectTestCard from "./project/ProjectTestCard.jsx";
 import ProjectComposicao from "./project/ProjectComposicao.jsx";
 import ProjectRelatorio from "./project/ProjectRelatorio.jsx";
 import ProjectEquipe from "./project/ProjectEquipe.jsx";
+import ProjectEstrutura from "./project/ProjectEstrutura.jsx";
 
 // aba Equipe só existe pra quem GERENCIA uma equipe (útil e invisível pro resto)
 const EQUIPE_TAB = { id: "equipe", label: "Equipe", Icon: Users, Comp: ProjectEquipe };
@@ -30,6 +31,8 @@ const TABS = [
   { id: "relatorio", label: "Caderno", Icon: FileText, Comp: ProjectRelatorio },
   { id: "testcard", label: "Test Card", Icon: Monitor, Comp: ProjectTestCard },
   { id: "composicao", label: "Composição", Icon: LayoutGrid, Comp: ProjectComposicao },
+  // desktop-only por dentro: no celular a aba mostra a consulta, não o editor
+  { id: "estrutura", label: "Estrutura", Icon: Frame, Comp: ProjectEstrutura },
 ];
 
 export default function ProjectDetail({ project, onBack }) {

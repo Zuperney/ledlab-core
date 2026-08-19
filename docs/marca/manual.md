@@ -167,7 +167,14 @@ Aspect Ratio · `BookOpen` Conhecimento · `Home` Início · `Boxes` Gestão ·
 
 **Abas do projeto:** `Folder` Dados · `Zap` Energia/AC (elétrica em geral) ·
 `Layers` Screens · `GitBranch` Cabeamento · `FileText` Relatório · `Monitor`
-Test Card · `LayoutGrid` Composição.
+Test Card · `LayoutGrid` Composição · `Frame` **Estrutura** (box truss).
+
+> ⏳ **`Frame` = Estrutura — PROPOSTA, aguardando o dono** (19/08/2026). O
+> catálogo não cobria estrutura de truss e a REGRA ZERO manda o manual absorver o
+> caso em vez de abrir exceção no código. `Frame` é um quadro fechado: lê como
+> pórtico, não colide com `LayoutGrid` (Composição) nem com `Layers` (Screens).
+> Alternativas descartadas: `Construction` (lê como obra civil, não palco) e
+> `Grid3x3` (já é vocabulário de grade/canvas no app).
 
 **Ações:** `Plus` criar · `Trash2` excluir · `Pencil` editar · `Copy` copiar ·
 `Download` exportar/baixar · `Upload` importar · `Save` salvar predefinição ·

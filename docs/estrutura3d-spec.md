@@ -1,8 +1,9 @@
 # Estrutura 3D — espeque da fase
 
-> **Status: E0 ENTREGUE (2026-08-19), na branch `feat/estrutura-3d`.** Escopo
-> cravado com o dono e o **motor puro no ar** — `src/services/estrutura/`, 129
-> testes em vitest, zero linha de 3D. As fases E1+ seguem no papel.
+> **Status: E0 e E1 ENTREGUES (2026-08-19), na branch `feat/estrutura-3d`.**
+> Motor puro em `src/services/estrutura/` e a **cena no ar** em `src/vista3d/`,
+> com a aba Estrutura montando um pórtico de exemplo. 593 testes no app.
+> As fases E2+ seguem no papel.
 >
 > 📚 **Base de pesquisa:** [`estrutura3d-pesquisa.md`](./estrutura3d-pesquisa.md) —
 > dissecação do TrussTool, mercado, stack medida e os dados reais do truss
@@ -430,7 +431,7 @@ Não é ferramenta solta: os painéis vêm depois, e eles já moram no projeto.
 | Fase | Entrega | Trava |
 | --- | --- | --- |
 | **E0 · Catálogo e motor** ✅ | `services/estrutura/` inteiro — catálogo com procedência, encaixe, snap, montagem, histórico, serialização, métricas. **129 testes em vitest, sem uma linha de 3D.** Nada visível no app | — |
-| **E1 · A cena** | chunk lazy com three.js, geometria procedural, InstancedMesh + LOD, órbita, grade, eixos, seleção. Aba Estrutura aparece (`desktopOnly`), carregando uma montagem de exemplo. **Ainda não edita** | E0 |
+| **E1 · A cena** ✅ | chunk lazy com three.js (**148 KB gzip, fora do precache**), geometria procedural, InstancedMesh + LOD, órbita, grade, seleção por instância. Aba Estrutura com pórtico de exemplo. **Ainda não edita** | E0 |
 | **E2 · Montar** | conectores visíveis, prévia fantasma, encaixe, giro de 90°, apagar, desfazer/refazer, e a montagem salva no projeto (IndexedDB + sync) | E1 |
 | **E3 · O relatório** | **a entrega que o dono pediu**: lista de peças por linha e comprimento, **peso total**, **medidas reais**, contagem de juntas → **parafusaria**, captura da cena. Folha **Estrutura** no Caderno + PDF. Visível também no celular | E2 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
