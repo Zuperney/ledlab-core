@@ -3,7 +3,7 @@
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
 import { useState, useRef, useEffect } from "react";
-import { Printer, Download, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen } from "lucide-react";
+import { Printer, Download, LayoutGrid, Monitor, Zap, Network, Plug, BookOpen, Frame } from "lucide-react";
 import { useToast } from "../../store/UIContext.jsx";
 import HelpTip from "../../components/HelpTip.jsx";
 import Segmented from "../../components/Segmented.jsx";
@@ -17,6 +17,8 @@ import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
 import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo, fichaPainel, fichaConteudo } from "../../services/reportContent.js";
 import { videoSchemaSvg } from "../../services/pdf/pdfCableMap.js";
+import { AVISO_ESTRUTURA, dadosDaFolha, plural, procedenciaDoPeso } from "../../services/estrutura/folha.js";
+import { lerImagem } from "../../services/estrutura/imagem.js";
 import { STATUS } from "../../components/StatusBadge.jsx";
 import CableMap from "../../components/CableMap.jsx";
 import ScreenCableMap from "../../components/ScreenCableMap.jsx";
@@ -97,6 +99,18 @@ export default function ProjectRelatorio({ project }) {
     setGerandoFolha(false);
   };
   const showElec = ["Completo", "Resumido", "Elétrico"].includes(type);
+  // A folha de Estrutura só existe se houver estrutura montada — imprimir
+  // "0 peças" ocuparia folha sem informar nada (ver services/estrutura/folha.js).
+  // A imagem vem do IndexedDB, não do projeto: ela é derivada e não sobe pro sync.
+  const [estruturaImg, setEstruturaImg] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    lerImagem(project?.id).then((v) => { if (vivo) setEstruturaImg(v); });
+    return () => { vivo = false; };
+  }, [project?.id, project?.estruturaImg?.em]);
+  const estrutura = ["Completo", "Resumido", "Gabinetes"].includes(type)
+    ? dadosDaFolha(project, estruturaImg)
+    : null;
   const showPhys = ["Completo", "Resumido", "Gabinetes", "Design"].includes(type);
   const showVideo = ["Completo", "Resumido", "Design"].includes(type);
   // folha de referência de imagem: só no Design (o caderno que vai pra produção
@@ -442,6 +456,92 @@ export default function ProjectRelatorio({ project }) {
             })}
           </section>
         ); })()}
+
+        {estrutura && (
+          <section style={{ marginBottom: 22 }}>
+            <SectionHead n={sec()} title="Estrutura" tag="Box truss · montagem" color={DISC.prod} Icon={Frame} />
+
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
+              {estrutura.imagem && (
+                <img
+                  src={estrutura.imagem}
+                  alt="Vista 3D da estrutura montada"
+                  style={{ flex: "1 1 420px", maxWidth: 620, border: `1px solid ${PRINT.line}`, borderRadius: 10 }}
+                />
+              )}
+              <div style={{ flex: "1 1 240px", minWidth: 220 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <tbody>
+                    <tr><td style={td}>Peças</td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.resumo.pecas}</td></tr>
+                    <tr><td style={td}>Juntas</td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.juntas}</td></tr>
+                    <tr><td style={td}>Peso</td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.pesoTexto}</td></tr>
+                    {estrutura.medidas && (
+                      <>
+                        <tr><td style={td}>Largura</td><td style={{ ...td, textAlign: "right" }}>{estrutura.medidas.largura}</td></tr>
+                        <tr><td style={td}>Altura</td><td style={{ ...td, textAlign: "right" }}>{estrutura.medidas.altura}</td></tr>
+                        <tr><td style={td}>Profundidade</td><td style={{ ...td, textAlign: "right" }}>{estrutura.medidas.profundidade}</td></tr>
+                      </>
+                    )}
+                  </tbody>
+                </table>
+                {estrutura.pesoNota && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: PRINT.amb, fontWeight: 600 }}>{estrutura.pesoNota}</div>
+                )}
+              </div>
+            </div>
+
+            <SubHead title="Lista de peças" right={plural(estrutura.resumo.pecas, "peça")} />
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={th}>Peça</th><th style={th}>Linha</th><th style={th}>Qtd.</th><th style={th}>Peso unit.</th><th style={th}>Peso total</th></tr></thead>
+              <tbody>
+                {estrutura.lista.map((l) => (
+                  <tr key={l.catalogoId}>
+                    <td style={td}>{l.nome}</td>
+                    <td style={td}>{l.linha ?? "—"}</td>
+                    <td style={{ ...td, textAlign: "right" }}>{l.qtd}</td>
+                    <td style={{ ...td, textAlign: "right" }}>{l.pesoUnitarioKg == null ? "—" : `${l.pesoUnitarioKg} kg`}</td>
+                    <td style={{ ...td, textAlign: "right" }}>{l.pesoTotalKg == null ? "—" : `${l.pesoTotalKg} kg`}</td>
+                  </tr>
+                ))}
+                <tr style={{ fontWeight: 700 }}>
+                  <td style={td}>Total</td><td style={td}></td>
+                  <td style={{ ...td, textAlign: "right" }}>{estrutura.resumo.pecas}</td>
+                  <td style={td}></td>
+                  <td style={{ ...td, textAlign: "right" }}>{estrutura.pesoTexto}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <SubHead title="Ferragem" right={plural(estrutura.juntas, "junta")} />
+            <p style={{ color: PRINT.mut, fontSize: 11.5, margin: "0 0 6px" }}>
+              Uma junta consome um jogo completo. A massa da ferragem {estrutura.parafusaria.massaInclusaNoPeso ? "já está inclusa no peso das peças" : "não está somada ao peso acima"} — esta lista é <b>contagem</b>, para conferir a caixa.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {estrutura.parafusaria.itens.map((i) => (
+                <Chip key={i.id} title={`${i.qtd}×`} sub={i.spec} />
+              ))}
+            </div>
+
+            {procedenciaDoPeso(estrutura).length > 0 && (
+              <>
+                <div style={{ fontSize: 9.5, letterSpacing: "0.1em", color: PRINT.dim, textTransform: "uppercase", margin: "14px 0 6px" }}>Procedência do peso</div>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  {procedenciaDoPeso(estrutura).map((p) => (
+                    <li key={p.fonte} style={{ color: PRINT.mut, fontSize: 11.5, lineHeight: 1.45 }}>
+                      <b style={{ color: PRINT.ink }}>{p.fonte}</b> — {p.pecas.join(" · ")}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            <div style={{ marginTop: 14 }}>
+              <WarnBox title={AVISO_ESTRUTURA.titulo} tone="amber">
+                {AVISO_ESTRUTURA.partes.map((p, i) => (typeof p === "string" ? p : <b key={i}>{p.texto}</b>))}
+              </WarnBox>
+            </div>
+          </section>
+        )}
 
         {showGloss && (
           <section style={{ marginBottom: 22 }}>

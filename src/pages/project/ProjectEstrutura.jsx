@@ -14,8 +14,8 @@
 // ferramentas da categoria são desktop. O celular fica com a CONSULTA.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Frame, Grid3x3, Hand, Plus, Redo2, RotateCw, Trash2, Undo2 } from "lucide-react";
-import { T } from "../../ui/tokens.js";
+import { Box, FileText, Frame, Grid3x3, Hand, Plus, Redo2, RotateCw, Trash2, Undo2 } from "lucide-react";
+import { PRINT, T } from "../../ui/tokens.js";
 import { btn, card } from "../../ui/styles.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import Placeholder from "../../components/Placeholder.jsx";
@@ -33,6 +33,7 @@ import {
 import { deJSON, paraJSON } from "../../services/estrutura/serializar.js";
 import { resumo } from "../../services/estrutura/metricas.js";
 import { porticoDeExemplo } from "../../services/estrutura/exemplos.js";
+import { lerImagem, salvarImagem } from "../../services/estrutura/imagem.js";
 import { genId } from "../../services/ids.js";
 
 const chip = {
@@ -62,6 +63,15 @@ export default function ProjectEstrutura({ project, patch }) {
   const [erroCarga, setErroCarga] = useState(false);
   const apiRef = useRef(null);
   const salvoRef = useRef(null);
+  const [capturando, setCapturando] = useState(false);
+  const [miniatura, setMiniatura] = useState(null);
+
+  // a vista guardada mora no IndexedDB, não no projeto (ver estrutura/imagem.js)
+  useEffect(() => {
+    let vivo = true;
+    lerImagem(project?.id).then((v) => { if (vivo) setMiniatura(v); });
+    return () => { vivo = false; };
+  }, [project?.id, project?.estruturaImg?.em]);
 
   const { montagem } = hist;
 
@@ -136,6 +146,25 @@ export default function ProjectEstrutura({ project, patch }) {
       id: pecaSelecionada.id,
       giro: (pecaSelecionada.encaixe.giro ?? 0) + 1,
     });
+  };
+
+  // A imagem que vai pro Caderno é capturada AQUI e guardada no projeto. Não dá
+  // pra gerar na hora do relatório: o Caderno abre no celular e offline, e o
+  // chunk 3D não está lá (§7.2). Então quem tem a cena montada é quem tira a
+  // foto — e ela viaja com o projeto, como qualquer outro dado.
+  const capturarParaCaderno = async () => {
+    if (!apiRef.current || vazia) return;
+    setCapturando(true);
+    try {
+      // fundo do PAPEL, não o fundo escuro do app: a folha é clara
+      const dataUrl = apiRef.current.capturar({ largura: 1800, altura: 1150, fundo: "#ffffff" });
+      if (!dataUrl) return;
+      const ref = await salvarImagem(project?.id, dataUrl, { largura: 1800, altura: 1150 });
+      setMiniatura(dataUrl);
+      if (ref) patch?.({ estruturaImg: ref });
+    } finally {
+      setCapturando(false);
+    }
   };
 
   const apagarSelecionada = () => {
@@ -226,6 +255,17 @@ export default function ProjectEstrutura({ project, patch }) {
           </>
         )}
 
+        {!vazia && (
+          <button
+            style={btn("ghost", capturando ? { opacity: 0.6, cursor: "wait" } : {})}
+            disabled={capturando || !Editor}
+            title="Guardar esta vista da estrutura para sair no Caderno Técnico"
+            onClick={capturarParaCaderno}
+          >
+            <FileText size={15} /> {project?.estruturaImg ? "Atualizar imagem" : "Imagem do Caderno"}
+          </button>
+        )}
+
         {vazia && (
           <button style={btn("ghost")} title="Montar um pórtico de exemplo" onClick={() => { setHist(criarHistorico(porticoDeExemplo())); setSelecionada(null); }}>
             <Box size={15} /> Exemplo
@@ -260,6 +300,7 @@ export default function ProjectEstrutura({ project, patch }) {
           <p><b>Adicionar peça</b> põe uma peça solta na origem: é assim que se começa a segunda torre.</p>
           <p>Clique numa peça montada para selecioná-la; daí dá pra girar ou excluir. Excluir <b>não</b> apaga o que estava preso nela — aquilo vira peça solta, no lugar onde estava.</p>
           <p>O peso vem do catálogo e ainda <b>não foi conferido na balança</b> — trate como ordem de grandeza. A procedência sai no Caderno.</p>
+          <p><b>Imagem do Caderno:</b> guarda a vista atual da cena para sair na folha Estrutura do Caderno Técnico. Enquadre como quiser e clique — dá pra atualizar quantas vezes precisar.</p>
           <p><b>O app não diz se a estrutura aguenta.</b> Vão, carga e ponto de içamento são do rigger habilitado e do engenheiro com ART. Aqui é registro do que foi montado.</p>
         </HelpTip>
       </div>
@@ -314,6 +355,20 @@ export default function ProjectEstrutura({ project, patch }) {
             </div>
           )}
         </div>
+
+        {miniatura && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: T.dim }}>
+            <img
+              src={miniatura}
+              alt="Vista guardada para o Caderno"
+              style={{ height: 46, borderRadius: 6, border: `1px solid ${T.bd}`, background: PRINT.head }}
+            />
+            <span>
+              Esta vista sai no Caderno{project?.estruturaImg?.kb ? ` (${project.estruturaImg.kb} KB, guardados no aparelho)` : ""}.
+              Reenquadre e clique em <b style={{ color: T.mut }}>Atualizar imagem</b> para trocar.
+            </span>
+          </div>
+        )}
 
         {!vazia && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 12, color: T.mut }}>

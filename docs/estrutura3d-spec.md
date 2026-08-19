@@ -1,10 +1,10 @@
 # Estrutura 3D — espeque da fase
 
-> **Status: E0, E1 e E2 ENTREGUES (2026-08-19), na branch `feat/estrutura-3d`.**
-> Motor puro em `src/services/estrutura/`, cena em `src/vista3d/` e a aba
-> Estrutura **montando de verdade** — conector clicável, prévia fantasma, giro de
-> 90°, desfazer/refazer e a montagem gravada no projeto. 605 testes no app.
-> A próxima é a **E3** (o relatório no Caderno).
+> **Status: E0 a E3 ENTREGUES (2026-08-19), na branch `feat/estrutura-3d`.**
+> Motor puro em `src/services/estrutura/`, cena em `src/vista3d/`, a aba
+> Estrutura montando de verdade e a **folha ESTRUTURA no Caderno e no PDF** —
+> lista de peças, peso, medidas, ferragem e a vista 3D capturada. 626 testes.
+> A próxima é a **E4** (os painéis pendurados na estrutura).
 >
 > 📚 **Base de pesquisa:** [`estrutura3d-pesquisa.md`](./estrutura3d-pesquisa.md) —
 > dissecação do TrussTool, mercado, stack medida e os dados reais do truss
@@ -476,6 +476,25 @@ começa a segunda torre sem estar preso à primeira. Clicar numa peça montada
 seleciona; daí dá pra **girar** (leva junto o que estiver preso nela) ou
 **excluir** (o que estava preso vira peça solta, no lugar onde estava).
 
+### 8.3 A imagem que vai pro Caderno
+
+O Caderno abre **no celular e offline**, e o chunk 3D não está lá (§7.2) — então
+a vista não pode ser gerada na hora do relatório. Quem tem a cena montada é quem
+tira a foto: um botão na F2 captura a vista atual e ela viaja com o projeto.
+
+Na captura, os **andaimes da tela somem**: grade, marcadores de conector e prévia
+fantasma existem pra ajudar a montar; no papel viram ruído — e o fantasma chega a
+**mentir**, desenhando uma peça que ainda não foi colocada.
+
+⚠️ **A imagem NÃO mora dentro do projeto.** São ~300 KB, e a fatia `projects` do
+sync sobe inteira pro Supabase a cada mudança: guardar o PNG ali mandaria 300 KB
+pra nuvem em todo sync, de todo projeto, pra sempre. Ela vive no **IndexedDB**
+(`services/estrutura/imagem.js`) e o projeto guarda só a referência
+(`estruturaImg: { em, largura, altura, kb }`). É a mesma régua que o `fotos.js`
+já aplicou nas fotos de comprovante — com um argumento a mais: esta imagem é
+**derivada**, dá pra refazer a qualquer momento clicando de novo. Dado derivado
+não ocupa nuvem.
+
 ### 8.2 A gravação
 
 A montagem vive em **`project.estrutura`**, no formato do §5.5, e vai pro
@@ -485,6 +504,23 @@ e o sync acordaria à toa.
 
 ---
 
+### 8.4 A folha ESTRUTURA
+
+Uma fonte só (`services/estrutura/folha.js`) alimenta o DOM e o PDF — o padrão
+que o `cableScene.js` já estabeleceu na casa. A folha traz:
+
+1. a **vista 3D** capturada, ao lado do quadro de **peças · juntas · peso** e das
+   **medidas** (largura × altura × profundidade);
+2. a **lista de peças** com a **linha** do fabricante, peso unitário e total;
+3. a **ferragem** — contagem por junta, com a nota de que é contagem e não massa;
+4. a **procedência do peso**, item a item;
+5. o **aviso de responsabilidade técnica**, sempre.
+
+Duas regras duras: a folha **some** quando não há estrutura (imprimir "0 peças"
+ocuparia papel sem informar), e o peso **nunca sai como número seco** enquanto
+não for conferido na balança — quem lê o papel não tem como saber que é proxy de
+catálogo.
+
 ## 9 · As fases
 
 | Fase | Entrega | Trava |
@@ -492,7 +528,7 @@ e o sync acordaria à toa.
 | **E0 · Catálogo e motor** ✅ | `services/estrutura/` inteiro — catálogo com procedência, encaixe, snap, montagem, histórico, serialização, métricas. **129 testes em vitest, sem uma linha de 3D.** Nada visível no app | — |
 | **E1 · A cena** ✅ | chunk lazy com three.js (**148 KB gzip, fora do precache**), geometria procedural, InstancedMesh + LOD, órbita, grade, seleção por instância. Aba Estrutura com pórtico de exemplo. **Ainda não edita** | E0 |
 | **E2 · Montar** ✅ | conectores clicáveis, prévia fantasma, encaixe, giro de 90° (na peça nova e na já montada), apagar, desfazer/refazer, e a montagem gravada em `project.estrutura` (IndexedDB + sync) | E1 |
-| **E3 · O relatório** | **a entrega que o dono pediu**: lista de peças por linha e comprimento, **peso total**, **medidas reais**, contagem de juntas → **parafusaria**, captura da cena. Folha **Estrutura** no Caderno + PDF. Visível também no celular | E2 |
+| **E3 · O relatório** ✅ | **a entrega que o dono pediu**: lista de peças com linha e peso, **peso total**, **medidas reais**, juntas → **parafusaria**, procedência do peso, aviso de responsabilidade e a **vista 3D capturada**. Folha ESTRUTURA no Caderno **e** no PDF, e ela abre no celular | E2 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

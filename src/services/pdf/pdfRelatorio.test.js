@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { buildRelatorioDoc } from "./pdfRelatorio.js";
 import { CRITERIOS, REFERENCIAS } from "../reportContent.js";
+import { paraJSON } from "../estrutura/serializar.js";
+import { porticoDeExemplo } from "../estrutura/exemplos.js";
 
 // projeto mínimo com 2 telas reais (gabinete com specs) — o suficiente pro
 // builder montar todas as seções sem NaN
@@ -551,5 +553,49 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     // VG, vídeo, elétrica, sinal, AC, capacidade, critérios, glossário = 8
     expect(j).toContain('"08"');
     expect(j).not.toContain('"09"');
+  });
+});
+
+describe("folha ESTRUTURA (box truss)", () => {
+  const comEstrutura = { ...project, estrutura: paraJSON(porticoDeExemplo()) };
+  const doc = buildRelatorioDoc({ project: comEstrutura, tipo: "Completo", cfg, logo: null, gerado: "19/08/2026" });
+  const json = JSON.stringify(doc.content);
+
+  it("imprime as três respostas: peças, peso e medida", () => {
+    expect(json).toContain("ESTRUTURA");
+    expect(json).toContain("BOX TRUSS · MONTAGEM");
+    expect(json).toContain("166 kg");
+    expect(json).toContain("4,36 m");
+    expect(json).toContain("Barra P30 2 m");
+  });
+
+  it("conta a parafusaria da caixa", () => {
+    expect(json).toContain("28× ");
+    expect(json).toMatch(/A325/);
+  });
+
+  // a fronteira do produto vai IMPRESSA, não é rodapé jurídico
+  it("carrega o aviso de responsabilidade técnica", () => {
+    expect(json).toMatch(/não dimensiona a estrutura/);
+    expect(json).toMatch(/rigger habilitado/);
+    expect(json).toMatch(/ART no CREA/);
+  });
+
+  it("declara que o peso ainda não foi conferido", () => {
+    expect(json).toMatch(/Peso estimado/);
+    expect(json).toMatch(/Auratec/);
+  });
+
+  // projeto sem estrutura não pode ganhar uma folha dizendo "0 peças"
+  it("some do caderno quando não há estrutura", () => {
+    const semEstrutura = JSON.stringify(buildRelatorioDoc({ project, tipo: "Completo", cfg, logo: null, gerado: "19/08/2026" }).content);
+    expect(semEstrutura).not.toContain("BOX TRUSS");
+  });
+
+  it("a imagem entra quando é passada, e a folha vive sem ela", () => {
+    const semImg = JSON.stringify(buildRelatorioDoc({ project: comEstrutura, tipo: "Completo", cfg, logo: null, gerado: "19/08/2026" }).content);
+    expect(semImg).not.toContain("data:image/png");
+    const comImg = JSON.stringify(buildRelatorioDoc({ project: comEstrutura, tipo: "Completo", cfg, logo: null, gerado: "19/08/2026", estruturaImg: "data:image/png;base64,AAA" }).content);
+    expect(comImg).toContain("data:image/png;base64,AAA");
   });
 });

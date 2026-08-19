@@ -377,14 +377,30 @@ export function criarCena(canvas, cores) {
    * drawing buffer depois do swap e um `toDataURL` atrasado devolveria PRETO.
    */
   function capturar({ largura = 2000, altura = 1400, fundo } = {}) {
-    const antes = { l: canvas.clientWidth, a: canvas.clientHeight, bg: scene.background };
+    const antes = {
+      l: canvas.clientWidth, a: canvas.clientHeight, bg: scene.background,
+      grade: grade.visible,
+      conectores: malhaConectores?.visible ?? false,
+      fantasma: fantasma?.visible ?? false,
+    };
+    // Some com os ANDAIMES DA TELA. Grade, marcadores de conector e prévia
+    // fantasma existem pra ajudar a montar; no papel viram ruído — e o fantasma
+    // chega a mentir, desenhando uma peça que ainda não foi colocada.
+    grade.visible = false;
+    if (malhaConectores) malhaConectores.visible = false;
+    if (fantasma) fantasma.visible = false;
+
     if (fundo) scene.background = new Color(fundo);
     renderer.setSize(largura, altura, false);
     camera.aspect = largura / altura;
     camera.updateProjectionMatrix();
     renderer.render(scene, camera);
     const png = canvas.toDataURL("image/png");
+
     scene.background = antes.bg;
+    grade.visible = antes.grade;
+    if (malhaConectores) malhaConectores.visible = antes.conectores;
+    if (fantasma) fantasma.visible = antes.fantasma;
     renderer.setSize(antes.l, antes.a, false);
     camera.aspect = antes.l / antes.a;
     camera.updateProjectionMatrix();

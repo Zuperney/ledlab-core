@@ -19,6 +19,7 @@ import { tint } from "../cableScene.js";
 import { formatRange } from "../dates.js";
 import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, FICHA_ABAIXO, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo, fichaPainel, fichaConteudo } from "../reportContent.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
+import { avisoEstruturaPdf, dadosDaFolha, plural, procedenciaDoPeso } from "../estrutura/folha.js";
 
 // cores da CAPA (Folha Técnica — a única área lime do papel; manual §2.4)
 const LIME = "#ebf51e";
@@ -179,7 +180,7 @@ const coverRow = (label, value, { bold = false, first = false } = {}) => ({
 // cadastrado em Dados (bloco de marca do carimbo) · `assinatura` = "Projetou"
 // do carimbo (Configurações › Conta — global de propósito: o nome não pode
 // mudar de impressão pra impressão).
-export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render, testCards = [] }) {
+export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoProjeto = null, assinatura = "", gerado, numbering = "row-tb-lr", palette, render, testCards = [], estruturaImg = null }) {
   const pal = Array.isArray(palette) && palette.length ? palette : PALETTE;
   const colorOf = (i) => pal[(((i | 0) % pal.length) + pal.length) % pal.length];
   // render do mapa (setas/números/tamanho/canto) — mesmas prefs do DOM
@@ -935,6 +936,88 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     ];
   })();
 
+  // ── ESTRUTURA (box truss) ──
+  // A folha que o dono pediu no primeiro dia: lista de peças, peso e medidas
+  // reais. A IMAGEM não é gerada aqui — o PDF roda no celular e offline, e o
+  // chunk 3D não está lá; ela vem capturada da aba e guardada no projeto (§7.2).
+  const estruturaDados = ["Completo", "Resumido", "Gabinetes"].includes(tipo)
+    ? dadosDaFolha(project, estruturaImg)
+    : null;
+  const estrutura = !estruturaDados ? [] : (() => {
+    const d = estruturaDados;
+    const proc = procedenciaDoPeso(d);
+    return [
+      sectionHead(sec(), "Estrutura", "Box truss · montagem", DISC.prod),
+      {
+        columns: [
+          ...(d.imagem ? [{ width: "*", image: d.imagem, fit: [430, 268] }] : []),
+          {
+            width: d.imagem ? 250 : "*",
+            stack: [
+              specBox([
+                ["Peças", String(d.resumo.pecas)],
+                ["Juntas", String(d.juntas)],
+                ["Peso", d.pesoTexto],
+              ]),
+              ...(d.medidas ? [specBox([
+                ["Largura", d.medidas.largura],
+                ["Altura", d.medidas.altura],
+                ["Profund.", d.medidas.profundidade],
+              ])] : []),
+              ...(d.pesoNota ? [{ text: d.pesoNota, fontSize: 8, bold: true, color: PRINT.amb, margin: [0, 2, 0, 0] }] : []),
+            ],
+          },
+        ],
+        columnGap: 14,
+        margin: [0, 0, 0, 10],
+      },
+      subHead(null, "Lista de peças", plural(d.resumo.pecas, "peça")),
+      {
+        table: {
+          headerRows: 1,
+          widths: ["*", "auto", "auto", "auto", "auto"],
+          body: [
+            [th("Peça"), th("Linha"), th("Qtd.", "right"), th("Peso unit.", "right"), th("Peso total", "right")],
+            ...d.lista.map((l) => [
+              { text: l.nome },
+              { text: l.linha ?? "—" },
+              mono(String(l.qtd), { alignment: "right" }),
+              mono(l.pesoUnitarioKg == null ? "—" : `${l.pesoUnitarioKg} kg`, { alignment: "right" }),
+              mono(l.pesoTotalKg == null ? "—" : `${l.pesoTotalKg} kg`, { alignment: "right" }),
+            ]),
+            [
+              { text: "Total", bold: true }, "",
+              mono(String(d.resumo.pecas), { alignment: "right", bold: true }), "",
+              mono(d.pesoTexto, { alignment: "right", bold: true }),
+            ],
+          ],
+        },
+        layout: zebraLayout(),
+      },
+      subHead(null, "Ferragem", plural(d.juntas, "junta")),
+      {
+        text: `Uma junta consome um jogo completo. A massa da ferragem ${d.parafusaria.massaInclusaNoPeso ? "já está inclusa no peso das peças" : "não está somada ao peso acima"} — esta lista é CONTAGEM, para conferir a caixa.`,
+        fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 5],
+      },
+      {
+        columns: d.parafusaria.itens.map((i) => ({
+          width: "auto",
+          text: [{ text: `${i.qtd}× `, bold: true, fontSize: 9.5 }, { text: i.spec, fontSize: 8, color: PRINT.dim }],
+        })),
+        columnGap: 16,
+        margin: [0, 0, 0, 8],
+      },
+      ...(proc.length ? [
+        { text: "PROCEDÊNCIA DO PESO", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 6, 0, 3] },
+        ...proc.map((p) => ({
+          text: [{ text: p.fonte, bold: true, fontSize: 8.5 }, { text: ` — ${p.pecas.join(" · ")}`, fontSize: 8.5, color: PRINT.mut }],
+          margin: [0, 0, 0, 2],
+        })),
+      ] : []),
+      { ...warnBox(avisoEstruturaPdf()), margin: [0, 10, 0, 0] },
+    ];
+  })();
+
   // ── CRITÉRIOS DE CÁLCULO (normas + referências) — folha antes do Glossário ──
   // Pedido do dono (31/07): o caderno declara COMO os números foram calculados,
   // em que normas se apoia e quais fontes sustentam o motor. Conteúdo em
@@ -1248,7 +1331,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // rodapé em TODA página (menos a capa): o CARIMBO da prancha
     footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
-      const secoes = [visaoGeral, video, conteudoSecao, cardsSecao, eletrica, sinal, ac, cabos, criterios, gloss].filter((s) => s.length);
+      const secoes = [visaoGeral, video, conteudoSecao, cardsSecao, eletrica, sinal, ac, cabos, estrutura, criterios, gloss].filter((s) => s.length);
       // SUMÁRIO (só no Completo): página própria logo após a capa, com número de
       // página por seção (o pdfmake resolve num 2º passe de layout) — as entradas
       // coloridas por disciplina vêm dos marcadores plantados pelo sectionHead
