@@ -521,6 +521,122 @@ ocuparia papel sem informar), e o peso **nunca sai como número seco** enquanto
 não for conferido na balança — quem lê o papel não tem como saber que é proxy de
 catálogo.
 
+## 8.5 Auditoria da montagem (19/08) — o que foi verificado
+
+O dono pediu conferência de consistência antes de seguir. Rodei os casos; segue o
+que é fato, não impressão.
+
+### ✅ Persiste
+
+A montagem grava em `project.estrutura`, vai pro IndexedDB e **sobrevive ao
+reload da página** (verificado no navegador). Trocar de aba e voltar mantém tudo.
+
+### 🔴 Sobreposição NÃO é checada — confirmado
+
+Duas barras de 2 m na **mesma posição** são aceitas sem um pio, e a caixa
+envolvente sai como se fosse uma peça só. Dá pra montar peça dentro de peça.
+
+O app já sabe avisar isso em 2D: o `layout.js` tem `overlappingIds` e a
+Composição alerta quando duas telas se sobrepõem, porque conteúdo escondido é
+erro de campo. Estrutura merece a mesma régua.
+
+### 🔴 O cubo não gira pra liberar face — e o culpado não é o giro
+
+Medido: com o cubo entrando pelo `topo` na ponta de uma barra vertical, **nenhum
+dos 4 giros libera uma face pra cima**. As faces livres só rodam no plano
+horizontal:
+
+| giro | norte | sul | leste | oeste |
+| --- | --- | --- | --- | --- |
+| 0 | −Z | +Z | −X | +X |
+| 1 | −X | +X | +Z | −Z |
+| 2 | +Z | −Z | +X | −X |
+| 3 | +X | −X | −Z | +Z |
+
+**É geometria, não bug.** O giro acontece **em torno do eixo do encaixe** — que
+ali é vertical. A face fechada está *em cima desse eixo*, então ela gira em torno
+de si mesma e nunca sai do topo. Nenhum ajuste no `girarPeca` conserta isso.
+
+O que falta é outra coisa: **escolher por qual face a peça ENTRA na junta**. Hoje
+o `conectorDeEntrada()` crava `"topo"` pro cubo. Medido, entrar por qualquer face
+lateral resolve os quatro casos:
+
+| entra por | sobra face livre pra cima? |
+| --- | --- |
+| topo | **não** |
+| norte · sul · leste · oeste | **sim** |
+
+### ⚠️ Três buracos menores de persistência
+
+1. **Peça fora do catálogo some calada.** A aba carrega com
+   `descartarDesconhecidas: true` — se um dia o catálogo mudar, a peça é
+   descartada sem avisar. Perder peça em silêncio é pior que falhar alto.
+2. **O desfazer morre ao trocar de aba.** A montagem fica gravada, mas o
+   histórico é estado do componente e o componente desmonta.
+3. **Imagem órfã.** Excluir o projeto não apaga o PNG do IndexedDB — e a
+   referência (`estruturaImg`) **sincroniza** enquanto o PNG **não**, então em
+   outro aparelho o Caderno sai sem imagem e a aba diz "guardados no aparelho"
+   sem explicar qual aparelho.
+
+---
+
+## 8.6 O plano da consolidação (fase E3.5)
+
+Antes dos painéis (E4), fechar o que a auditoria abriu. Em ordem de dependência.
+
+### A · O Caderno (decisão do dono, 19/08)
+
+| # | O que |
+| --- | --- |
+| **A1** | a folha Estrutura sai de *Resumido* e *Gabinetes* — fica **só no Completo** |
+| **A2** | novo tipo de caderno **"Estrutura"** no `Segmented` da aba Caderno: capa + a folha, e nada mais. É o caderno que vai pra **equipe de montagem** |
+
+### B · Integridade da montagem
+
+| # | O que | Como |
+| --- | --- | --- |
+| **B1** | **detectar sobreposição** | no motor, `colisoes(montagem)`: cada peça vira um **segmento-eixo com raio**; duas peças conflitam quando os segmentos se aproximam a menos da folga **em pontos INTERIORES de ambas**. O "interior" é o que evita o falso positivo óbvio — duas barras num cubo se encostam **nas pontas**, e isso é montagem correta, não colisão. **Avisa, não bloqueia**: `StatusPill` vermelho na F3, as peças em conflito destacadas na cena, e a folha do Caderno registrando |
+| **B2** | peça desconhecida **falha alto** | tirar o `descartarDesconhecidas` da aba; mostrar quantas peças o arquivo tem que o catálogo não conhece, em vez de sumir com elas |
+| **B3** | histórico sobrevive à aba | subir o `historico` pra um nível que não desmonta (estado no `ProjectDetail`, ou um `useRef` guardado por projeto) |
+| **B4** | imagem não vira órfã | `apagarImagem(projectId)` no excluir do projeto (o `Reembolso.jsx` já faz isso com `delFoto`) · e a aba dizer que a imagem **é deste aparelho**, porque a referência sincroniza e o PNG não |
+
+### C · Manipulação
+
+| # | O que | Detalhe |
+| --- | --- | --- |
+| **C1** | **face de entrada** — o conserto do cubo | um controle na F2 ao lado do seletor de peça, com o **fantasma atualizando ao vivo**. Padrão inteligente: escolher automaticamente a entrada que **deixa face livre pra cima** quando o alvo aponta pra cima; o técnico alterna se quiser. Sem isso, cubo no topo de torre é beco sem saída |
+| **C2** | **seleção múltipla** | `Shift + clique` acumula; `Esc` limpa. O estado vira lista, não índice — mexe na aba e no `selecionar()` da cena (que hoje já pinta **por instância**, então aceitar várias é barato) |
+| **C3** | **atalhos** | `Delete`/`Backspace` apaga a seleção · `Ctrl + clique` **duplica** a peça · `Ctrl+Z` desfaz · `Ctrl+Shift+Z` refaz · `R` gira · `Esc` limpa seleção |
+
+> ❓ **Uma leitura a confirmar no C3.** "Ctrl + clique copia a peça" tem dois
+> sentidos: **duplicar** (nasce uma cópia, que eu deslocaria uma seção pra não
+> nascer sobreposta) ou **conta-gotas** (o tipo da peça clicada vira o tipo
+> selecionado no seletor, pra continuar montando igual). O conta-gotas é o que
+> mais economiza clique numa torre repetitiva. Vou de **duplicar**, que é a
+> leitura literal — me corrige se for a outra.
+
+### D · Cor e legenda
+
+| # | O que | Detalhe |
+| --- | --- | --- |
+| **D1** | **cor por peça do catálogo** | mora nas **prefs globais** (Configurações), não no projeto: o catálogo é o galpão, e a cor da barra de 2 m é a mesma em todo projeto. Precedente na casa: a paleta do mapa de cabos |
+| **D2** | **legenda** | chips de cor + nome, no canto do canvas e na folha do Caderno — a mesma legenda nos dois, como o mapa de cabos já faz |
+
+> 💡 **Isso custa quase nada na cena.** O destaque de seleção já pinta **por
+> instância** (`setColorAt`), justamente pra não acender o grupo inteiro. Cor por
+> peça usa o mesmo caminho: a peça selecionada pega o acento, o resto pega a cor
+> do catálogo.
+
+### E · Backlog (não é desta fase)
+
+**Catálogo por categoria, sem fabricante** — reorganizar as peças em
+**categorias** (barra reta · cubo · base) × **modelos** (a medida), largando o
+prefixo de fabricante nos ids. Fica anotado como card à parte; mexe em ids
+gravados em projeto e pede migração, então não entra no meio da consolidação.
+
+---
+
+
 ## 9 · As fases
 
 | Fase | Entrega | Trava |
@@ -529,6 +645,7 @@ catálogo.
 | **E1 · A cena** ✅ | chunk lazy com three.js (**148 KB gzip, fora do precache**), geometria procedural, InstancedMesh + LOD, órbita, grade, seleção por instância. Aba Estrutura com pórtico de exemplo. **Ainda não edita** | E0 |
 | **E2 · Montar** ✅ | conectores clicáveis, prévia fantasma, encaixe, giro de 90° (na peça nova e na já montada), apagar, desfazer/refazer, e a montagem gravada em `project.estrutura` (IndexedDB + sync) | E1 |
 | **E3 · O relatório** ✅ | **a entrega que o dono pediu**: lista de peças com linha e peso, **peso total**, **medidas reais**, juntas → **parafusaria**, procedência do peso, aviso de responsabilidade e a **vista 3D capturada**. Folha ESTRUTURA no Caderno **e** no PDF, e ela abre no celular | E2 |
+| **E3.5 · Consolidação** | fecha a auditoria do §8.5: caderno próprio de Estrutura, detecção de sobreposição, **face de entrada** (o conserto do cubo), seleção múltipla e atalhos, cor por peça com legenda | E3 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |
