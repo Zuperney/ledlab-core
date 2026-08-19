@@ -193,6 +193,33 @@ export function girarPeca(montagem, id, giro) {
   return recalcular({ ...montagem, pecas });
 }
 
+/**
+ * Troca a FACE por onde a peça entra na junta — o "tilt" do §8.6-C1.
+ *
+ * Girar (`girarPeca`) roda em torno do eixo do encaixe e NÃO consegue tirar a
+ * face cega do cubo do topo: ela mora nesse eixo. Quem move a face cega é isto
+ * aqui — entrar por outra face. São as duas rotações que o cubo precisa, e é
+ * por isso que a aba mapeia `R` pra uma e `Ctrl+R` pra outra.
+ */
+export function mudarEntrada(montagem, id, conNovo) {
+  const peca = pecaDaMontagem(montagem, id);
+  if (!peca?.encaixe) return montagem; // peça livre não entra em junta nenhuma
+  const cat = pecaPorId(peca.catalogoId);
+  if (!conectorPorId(cat, conNovo)) {
+    throw new ErroDeMontagem(MOTIVOS.CONECTOR_INEXISTENTE, { conNovo });
+  }
+  // a face escolhida não pode ser uma que já tem peça pendurada: a junta nova e
+  // a antiga disputariam o mesmo conector, e a montagem passaria a mentir
+  if (conNovo !== peca.encaixe.conNovo
+      && conectoresOcupados(montagem).has(chaveConector(id, conNovo))) {
+    throw new ErroDeMontagem(MOTIVOS.CONECTOR_OCUPADO, { id, conNovo });
+  }
+  const pecas = montagem.pecas.map((p) =>
+    p.id === id ? { ...p, encaixe: { ...p.encaixe, conNovo } } : p,
+  );
+  return recalcular({ ...montagem, pecas });
+}
+
 // ── recalcular ───────────────────────────────────────────────
 
 /**

@@ -201,3 +201,19 @@ describe("o lote — várias ações que valem como uma", () => {
     expect(h.desfazer).toHaveLength(3); // só os três adicionares
   });
 });
+
+describe("desfazer a troca de face de entrada", () => {
+  const comCubo = () => {
+    let h = executar(criarHistorico(), { tipo: ACOES.ADICIONAR_LIVRE, id: "b", catalogoId: "p30-b2000" });
+    return executar(h, {
+      tipo: ACOES.ADICIONAR_ENCAIXADA, id: "c", catalogoId: "p30-cubo5",
+      de: "b", conAlvo: "b", conNovo: "topo",
+    });
+  };
+
+  it("volta a face que estava antes, não uma qualquer", () => {
+    const h = executar(comCubo(), { tipo: ACOES.ENTRADA, id: "c", conNovo: "leste" });
+    expect(h.montagem.pecas[1].encaixe.conNovo).toBe("leste");
+    expect(desfazerUm(h).montagem.pecas[1].encaixe.conNovo).toBe("topo");
+  });
+});

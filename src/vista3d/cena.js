@@ -13,7 +13,7 @@
 //    redesenhar pixels idênticos a 60fps aquece o aparelho até o clock cair.
 
 import {
-  AmbientLight, Color, DirectionalLight, DynamicDrawUsage, GridHelper, InstancedMesh,
+  AmbientLight, Color, ConeGeometry, DirectionalLight, DynamicDrawUsage, GridHelper, InstancedMesh,
   Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Raycaster,
   Scene, SphereGeometry, Vector2, Vector3,
   WebGLRenderer,
@@ -103,6 +103,18 @@ export function criarCena(canvas, cores) {
   let listaConectores = [];
   let conectorAtivo = null;
   let fantasma = null;
+
+  // ── a seta da FACE CEGA ────────────────────────────────────
+  // O cubo tem uma face que veio tapada de fábrica, e ela é INVISÍVEL no
+  // desenho: o técnico só descobre onde ela parou quando tenta encaixar ali e
+  // não consegue. A seta responde isso de olho, na peça selecionada.
+  //
+  // O cone nasce apontando pro +Y do three; quem chama manda a matriz pronta
+  // (calculada com a álgebra do motor), então a cena não precisa saber de
+  // orientação — só desenha.
+  const geoSeta = new ConeGeometry(85, 240, 12);
+  const matSeta = new MeshBasicMaterial({ color: cores.selecao });
+  let malhaSetas = null;
 
   const grupos = new Map(); // `${catalogoId}#${nivel}` → InstancedMesh
   let pecas = [];
@@ -256,6 +268,25 @@ export function criarCena(canvas, cores) {
     if (conectorAtivo === indice) return;
     conectorAtivo = indice;
     if (malhaConectores) malhaConectores.material = indice == null ? matConector : matConectorAtivo;
+    solicitar();
+  }
+
+  /** as setas de face cega, uma matriz de mundo por seta */
+  function mostrarSetas(matrizes) {
+    const lista = matrizes ?? [];
+    if (malhaSetas) {
+      scene.remove(malhaSetas);
+      malhaSetas.dispose();
+      malhaSetas = null;
+    }
+    if (lista.length) {
+      malhaSetas = new InstancedMesh(geoSeta, matSeta, lista.length);
+      malhaSetas.frustumCulled = false;
+      malhaSetas.renderOrder = 3;
+      lista.forEach((m, i) => malhaSetas.setMatrixAt(i, mat4.fromArray(m)));
+      malhaSetas.instanceMatrix.needsUpdate = true;
+      scene.add(malhaSetas);
+    }
     solicitar();
   }
 
@@ -427,6 +458,7 @@ export function criarCena(canvas, cores) {
       grade: grade.visible,
       conectores: malhaConectores?.visible ?? false,
       fantasma: fantasma?.visible ?? false,
+      setas: malhaSetas?.visible ?? false,
     };
     // Some com os ANDAIMES DA TELA. Grade, marcadores de conector e prévia
     // fantasma existem pra ajudar a montar; no papel viram ruído — e o fantasma
@@ -434,6 +466,7 @@ export function criarCena(canvas, cores) {
     grade.visible = false;
     if (malhaConectores) malhaConectores.visible = false;
     if (fantasma) fantasma.visible = false;
+    if (malhaSetas) malhaSetas.visible = false;
 
     if (fundo) scene.background = new Color(fundo);
     renderer.setSize(largura, altura, false);
@@ -446,6 +479,7 @@ export function criarCena(canvas, cores) {
     grade.visible = antes.grade;
     if (malhaConectores) malhaConectores.visible = antes.conectores;
     if (fantasma) fantasma.visible = antes.fantasma;
+    if (malhaSetas) malhaSetas.visible = antes.setas;
     renderer.setSize(antes.l, antes.a, false);
     camera.aspect = antes.l / antes.a;
     camera.updateProjectionMatrix();
@@ -456,7 +490,10 @@ export function criarCena(canvas, cores) {
   function destruir() {
     vivo = false;
     if (malhaConectores) { scene.remove(malhaConectores); malhaConectores.dispose(); }
+    if (malhaSetas) { scene.remove(malhaSetas); malhaSetas.dispose(); }
     if (fantasma) scene.remove(fantasma);
+    geoSeta.dispose();
+    matSeta.dispose();
     geoConector.dispose();
     matConector.dispose();
     matConectorAtivo.dispose();
@@ -478,7 +515,7 @@ export function criarCena(canvas, cores) {
     sincronizar, redimensionar, enquadrar, aproximar, pecaEm, selecionar,
     marcarConflitos, definirCores,
     trocarTema, capturar, destruir, solicitar,
-    mostrarConectores, conectorEm, realcarConector, mostrarFantasma, limparFantasma,
+    mostrarConectores, conectorEm, realcarConector, mostrarFantasma, limparFantasma, mostrarSetas,
     mostrarGrade: (v) => { grade.visible = v; solicitar(); },
   };
 }

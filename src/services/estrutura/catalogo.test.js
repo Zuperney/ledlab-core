@@ -2,7 +2,8 @@
 import { describe, it, expect } from "vitest";
 import {
   ANGULO_DE_GIRO, CATALOGO, PARAFUSARIA_POR_JUNTA, PASSOS_DE_GIRO, SISTEMAS,
-  caixaLocal, conectorPorId, escadaDaBarra, escadasDaBarra, pecaPorId, pecasDoSistema,
+  caixaLocal, catalogoPorCategoria, conectorPorId, escadaDaBarra, escadasDaBarra,
+  pecaPorId, pecasDoSistema,
 } from "./catalogo.js";
 import { escalar, comprimento } from "./vetor.js";
 
@@ -192,5 +193,28 @@ describe("parafusaria", () => {
     expect(PARAFUSARIA_POR_JUNTA.porca.qtd).toBe(4);
     expect(PARAFUSARIA_POR_JUNTA.arruela.qtd).toBe(8);
     expect(PARAFUSARIA_POR_JUNTA.parafuso.spec).toMatch(/A325/);
+  });
+});
+
+describe("o catálogo agrupado por categoria", () => {
+  it("sai na ordem da prateleira: barras, cubos, bases", () => {
+    expect(catalogoPorCategoria().map((c) => c.nome)).toEqual(["Barras", "Cubos", "Bases"]);
+  });
+
+  it("não perde nenhuma peça pelo caminho", () => {
+    const total = catalogoPorCategoria().reduce((n, c) => n + c.pecas.length, 0);
+    expect(total).toBe(CATALOGO.length);
+  });
+
+  it("categoria sem peça não vira grupo vazio na tela", () => {
+    const so = catalogoPorCategoria(CATALOGO.filter((p) => p.tipo === "cubo"));
+    expect(so.map((c) => c.id)).toEqual(["cubo"]);
+  });
+
+  // catálogo que esconde peça manda o caminhão embora sem ela
+  it("peça de tipo desconhecido cai em Outras em vez de sumir", () => {
+    const grupos = catalogoPorCategoria([...CATALOGO, { id: "x", tipo: "escada", nome: "Escada" }]);
+    expect(grupos[grupos.length - 1]).toMatchObject({ id: "outras" });
+    expect(grupos.reduce((n, c) => n + c.pecas.length, 0)).toBe(CATALOGO.length + 1);
   });
 });

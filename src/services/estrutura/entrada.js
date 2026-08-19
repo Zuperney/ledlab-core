@@ -81,3 +81,38 @@ export function rotuloDaEntrada(cat, conectorId) {
   const i = lados.findIndex((c) => c.id === conectorId);
   return i < 0 ? conectorId : `Lado ${i + 1}`;
 }
+
+// ── a face cega ──────────────────────────────────────────────
+// O cubo de 5 faces tem UMA face sem conector — a que veio tapada de fábrica.
+// Ela é o que decide a orientação do cubo, e é invisível no desenho: o técnico
+// só descobre onde ela parou quando tenta encaixar ali e não consegue.
+//
+// Só faz sentido pra peça em forma de caixa. Na barra, os quatro lados não têm
+// conector e ninguém chama isso de "face cega" — são o corpo da peça.
+
+const EIXOS = Object.freeze([
+  [1, 0, 0], [-1, 0, 0],
+  [0, 1, 0], [0, -1, 0],
+  [0, 0, 1], [0, 0, -1],
+]);
+
+const mesmaDirecao = (a, b) => escalar(unitario(a), unitario(b)) > ALINHADA;
+
+/** as direções LOCAIS de face que não têm conector (vazio quando não se aplica) */
+export function facesCegasLocais(cat) {
+  if (cat?.tipo !== "cubo") return [];
+  return EIXOS.filter((e) => !cat.conectores.some((c) => mesmaDirecao(c.dir, e)));
+}
+
+/**
+ * A face cega de uma peça MONTADA, já no mundo: onde ela está e pra onde aponta.
+ * É o que a cena precisa pra plantar a seta.
+ */
+export function facesCegasNoMundo(peca, cat) {
+  const lado = cat?.ladoMm ?? 0;
+  return facesCegasLocais(cat).map((dir) => {
+    const local = { pos: [dir[0] * (lado / 2), dir[1] * (lado / 2), dir[2] * (lado / 2)], dir, rolo: [0, 1, 0] };
+    const mundo = conectorNoMundo(local, peca.matriz);
+    return { pos: mundo.pos, dir: mundo.dir };
+  });
+}

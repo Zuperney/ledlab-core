@@ -11,7 +11,8 @@
 // o motor só recebe o comando pronto.
 
 import {
-  adicionarPecaEncaixada, adicionarPecaLivre, girarPeca, novaMontagem, pecaDaMontagem, removerPeca,
+  adicionarPecaEncaixada, adicionarPecaLivre, girarPeca, mudarEntrada, novaMontagem,
+  pecaDaMontagem, removerPeca,
 } from "./montagem.js";
 
 export const LIMITE_PADRAO = 100;
@@ -29,6 +30,9 @@ export const ACOES = Object.freeze({
   ADICIONAR_ENCAIXADA: "adicionar-encaixada",
   REMOVER: "remover",
   GIRAR: "girar",
+  // a segunda rotação do cubo: trocar a face por onde ele entra na junta. É o
+  // que o giro não faz — a face cega mora no eixo do giro (§8.5).
+  ENTRADA: "entrada",
   RESTAURAR: "restaurar",
   // várias ações que valem como UMA no desfazer. Nasceu da seleção múltipla
   // (§8.6, C2): apagar 5 peças de uma vez e ter que apertar Ctrl+Z cinco vezes
@@ -50,6 +54,8 @@ export function aplicar(montagem, acao) {
       return removerPeca(montagem, acao.id);
     case ACOES.GIRAR:
       return girarPeca(montagem, acao.id, acao.giro);
+    case ACOES.ENTRADA:
+      return mudarEntrada(montagem, acao.id, acao.conNovo);
     case ACOES.LOTE:
       return (acao.acoes ?? []).reduce(aplicar, montagem);
     case ACOES.RESTAURAR:
@@ -80,6 +86,11 @@ function inversoDe(montagem, acao) {
       const atual = pecaDaMontagem(montagem, acao.id);
       if (!atual?.encaixe) return null;
       return { tipo: ACOES.GIRAR, id: acao.id, giro: atual.encaixe.giro ?? 0 };
+    }
+    case ACOES.ENTRADA: {
+      const atual = pecaDaMontagem(montagem, acao.id);
+      if (!atual?.encaixe) return null;
+      return { tipo: ACOES.ENTRADA, id: acao.id, conNovo: atual.encaixe.conNovo };
     }
     case ACOES.REMOVER: {
       const peca = pecaDaMontagem(montagem, acao.id);

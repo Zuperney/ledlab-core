@@ -649,6 +649,94 @@ gravados em projeto e pede migração, então não entra no meio da consolidaç�
 ---
 
 
+## 8.7 O ajuste fino da montagem (E3.6) — pedido do dono, 19/08
+
+Três correções em cima da E3.5, todas nascidas de usar a coisa.
+
+### A tecla `V` — modo Ver enquanto segurada
+
+> *"um atalho pra tecla V, quando ela estiver apertada muda pro modo ver, assim
+> pode clicar nas peças sem adicionar uma nova"*
+
+Em modo Montar o CONECTOR tem prioridade no clique — é o que faz encaixar ser um
+gesto só. O efeito colateral é que **selecionar uma peça vira uma corrida contra
+os conectores**, e o técnico encaixa peça sem querer.
+
+`V` segurado força o modo Ver: conectores somem, fantasma some, clique seleciona.
+Solta, volta a montar. É um modificador momentâneo, igual ao `Ctrl` do
+conta-gotas, e pelo mesmo motivo — o técnico não larga o gesto pra trocar de modo
+no `Segmented`.
+
+O `Segmented` da F1 **acompanha** enquanto a tecla está apertada, e um
+`StatusPill` diz "Ver — solte o V para montar". Modo sem aviso é modo que prende.
+
+### As DUAS rotações: `R` gira, `Ctrl+R` troca a face de entrada
+
+> *"a forma como vc lidou com a rotação do cubo ainda não está legal (…) acho que
+> deve sempre estar no modo automático a entrada do cubo (…) R continua fazendo o
+> pan e control + R faz o tilt, acho que assim fica mais fácil sem ter que lidar
+> com uma interface complexa"*
+
+Ele tem razão, e o diagnóstico dele bate com o do §8.5. São **duas rotações
+independentes**, e a E3.5 tinha exposto a segunda como um `Select` na F2 — um
+controle a mais pra aprender, com nome de face que ninguém quer decorar.
+
+| tecla | o que faz | por que existe |
+| --- | --- | --- |
+| `R` | gira em torno do **eixo do encaixe** | alinha a peça na junta |
+| `Ctrl+R` | troca a **face por onde a peça entra** | é o único jeito de mover a face cega do cubo — ela mora NO eixo do `R` (§8.5) |
+
+O `Select` de face de entrada **saiu da tela**. A entrada é sempre a
+**automática** (a que não fecha o topo da estrutura), e o `Ctrl+R` anda na lista a
+partir dela. Com peça selecionada, as duas teclas mexem no que já está montado —
+`Ctrl+R` vira o comando `ENTRADA` no motor, com desfazer.
+
+O `Ctrl+R` **pede `preventDefault`**: no navegador ele recarrega a página, e
+recarregar no meio de uma montagem leva o desfazer junto.
+
+O ciclo do `Ctrl+R` **pula face ocupada**, e o motor recusa a troca que roubaria
+um conector com peça pendurada — duas juntas disputando o mesmo conector fariam a
+montagem mentir sobre si mesma.
+
+### A seta na face cega
+
+> *"quando ele for clicado deixar uma seta na face aberta do cubo"*
+
+O cubo de 5 faces tem uma face **sem conector**, e ela é invisível no desenho: o
+técnico só descobre onde parou quando tenta encaixar ali e não consegue — que foi
+exatamente o que aconteceu com ele.
+
+Peça selecionada, um **cone no acento** marca essa face e aponta pra fora dela.
+Some na captura do Caderno, junto com grade, conectores e fantasma: é andaime de
+tela, não desenho.
+
+Só vale pra peça em forma de caixa (`tipo: "cubo"`). Na barra, os quatro lados
+também não têm conector e ninguém chama isso de face cega — são o corpo da peça.
+
+### A paleta do catálogo
+
+> *"outra coisa que ainda não entrou foi um card que tenha a lista de todas as
+> peças separadas por categoria"*
+
+Um card **CATÁLOGO** na F4, ao lado do desenho, com as peças agrupadas em
+**Barras · Cubos · Bases** (`catalogoPorCategoria`, no motor — o mesmo lugar que a
+branch do catálogo por categoria vai mexer).
+
+Ele faz **duas coisas com um controle só**:
+1. é o **seletor** da peça de inserção — e por isso o `Select` de peça saiu da F2;
+2. é a **legenda** do desenho: cor de cada peça e **quantas estão montadas**.
+
+Ter as duas separadas obrigava a cruzar "laranja" da legenda com "Barra P30 2 m"
+do seletor. Aqui é a mesma linha. A legenda flutuante que morava no canto do
+canvas saiu — ela dizia o mesmo, duas vezes.
+
+> ⚠️ **Proposta pro manual de marca.** A gramática da casa manda `Select` pra
+> escolha 1-de-N (R2), e a paleta é uma escolha 1-de-N que virou card na F4. Ela
+> se justifica por acumular a legenda, mas é caso novo: entra no manual como
+> **proposta**, junto com o ícone `Frame` da aba, aguardando o dono.
+
+---
+
 ## 9 · As fases
 
 | Fase | Entrega | Trava |
@@ -658,6 +746,7 @@ gravados em projeto e pede migração, então não entra no meio da consolidaç�
 | **E2 · Montar** ✅ | conectores clicáveis, prévia fantasma, encaixe, giro de 90° (na peça nova e na já montada), apagar, desfazer/refazer, e a montagem gravada em `project.estrutura` (IndexedDB + sync) | E1 |
 | **E3 · O relatório** ✅ | **a entrega que o dono pediu**: lista de peças com linha e peso, **peso total**, **medidas reais**, juntas → **parafusaria**, procedência do peso, aviso de responsabilidade e a **vista 3D capturada**. Folha ESTRUTURA no Caderno **e** no PDF, e ela abre no celular | E2 |
 | **E3.5 · Consolidação** ✅ | fecha a auditoria do §8.5: **caderno próprio de Estrutura** (e a folha sai do Resumido/Gabinetes), **detecção de sobreposição** por SAT que avisa sem bloquear, **face de entrada** (o conserto do cubo), histórico que atravessa a aba, peça desconhecida que falha alto, imagem que não vira órfã, **seleção múltipla + atalhos + conta-gotas**, e **cor por peça com legenda** na cena e no Caderno | E3 |
+| **E3.6 · O ajuste fino** ✅ | §8.7: `V` segurado = modo Ver · **as duas rotações** (`R` gira, `Ctrl+R` troca a face de entrada) e o seletor de face fora da tela · **seta na face cega** do cubo · **paleta do catálogo** por categoria, que também é a legenda | E3.5 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

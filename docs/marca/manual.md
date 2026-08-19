@@ -176,6 +176,22 @@ Test Card · `LayoutGrid` Composição · `Frame` **Estrutura** (box truss).
 > Alternativas descartadas: `Construction` (lê como obra civil, não palco) e
 > `Grid3x3` (já é vocabulário de grade/canvas no app).
 
+> ⏳ **PALETA — átomo novo da F4, PROPOSTA, aguardando o dono** (19/08/2026).
+> Pedido dele na aba Estrutura: *"um card que tenha a lista de todas as peças
+> separadas por categoria"*. É uma escolha **1-de-N**, e a R2 manda `Select` pra
+> isso — mas aqui o controle acumula a **legenda do desenho** (cor de cada item e
+> quantos estão em uso), e legenda é conteúdo, não ferramenta. Separar os dois
+> obrigava a cruzar "laranja" da legenda com o nome do item no seletor.
+>
+> **Forma:** card na F4 com rótulo CAPS, itens agrupados por categoria com rótulo
+> menor, cada item = quadradinho de cor + nome + contagem à direita; o escolhido
+> com borda de acento e `aria-pressed`. Quando ela existe, o `Select` do mesmo
+> assunto **sai da F2** — dois controles pra mesma escolha é que seria confuso.
+>
+> **Quando NÃO usar:** lista sem cor e sem contagem (aí é `Select`), ou lista que
+> não cabe ao lado do conteúdo. É átomo de tela larga — as abas 3D são
+> desktop-only, e é de lá que ele nasceu.
+
 **Ações:** `Plus` criar · `Trash2` excluir · `Pencil` editar · `Copy` copiar ·
 `Download` exportar/baixar · `Upload` importar · `Save` salvar predefinição ·
 `Printer` imprimir · `Eraser` limpar tudo · `Undo2` desfazer · `Repeat2`

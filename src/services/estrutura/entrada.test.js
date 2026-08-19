@@ -1,6 +1,9 @@
 // entrada.test.js — o conserto do cubo, provado.
 import { describe, it, expect } from "vitest";
-import { escolhaImporta, entradasDe, facesLivresApos, melhorEntrada, rotuloDaEntrada, sobraFacePara } from "./entrada.js";
+import {
+  escolhaImporta, entradasDe, facesCegasLocais, facesCegasNoMundo, facesLivresApos,
+  melhorEntrada, rotuloDaEntrada, sobraFacePara,
+} from "./entrada.js";
 import { pecaPorId } from "./catalogo.js";
 import { adicionarPecaEncaixada, adicionarPecaLivre, conectoresLivres, novaMontagem } from "./montagem.js";
 
@@ -90,5 +93,33 @@ describe("os rótulos", () => {
     expect(rotuloDaEntrada(cubo, "norte")).toBe("Lado 1");
     expect(rotuloDaEntrada(cubo, "oeste")).toBe("Lado 4");
     expect(rotuloDaEntrada(barra, "a")).toBe("Ponta A");
+  });
+});
+
+describe("a face cega — o que a seta marca", () => {
+  it("o cubo de 5 faces tem exatamente uma", () => {
+    expect(facesCegasLocais(cubo)).toEqual([[0, -1, 0]]);
+  });
+
+  it("barra e sapata não têm face cega: os lados delas são o corpo da peça", () => {
+    expect(facesCegasLocais(barra)).toEqual([]);
+    expect(facesCegasLocais(pecaPorId("p30-sapata-baixa"))).toEqual([]);
+    expect(facesCegasLocais(null)).toEqual([]);
+  });
+
+  it("no mundo, ela sai na superfície do cubo e aponta pra fora", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
+    const [f] = facesCegasNoMundo(m.pecas[0], cubo);
+    expect(f.dir).toEqual([0, -1, 0]);
+    expect(f.pos).toEqual([0, -150, 0]); // metade do lado, pra baixo
+  });
+
+  // é o caso do dono: cubo no topo da torre, entrando pelo topo → face cega
+  // apontando PRA CIMA, e nada mais encaixa ali
+  it("entrando pelo topo de uma barra em pé, a face cega vira pra cima", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "b" });
+    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "p30-cubo5", de: "b", conAlvo: "b", conNovo: "topo" });
+    const [f] = facesCegasNoMundo(m.pecas[1], cubo);
+    expect(f.dir[1]).toBeCloseTo(1, 5);
   });
 });

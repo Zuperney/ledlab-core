@@ -242,3 +242,31 @@ export function escadasDaBarra(comprimentoMm, sistema = 300) {
     escadaDaBarra(comprimentoMm, s.passoEscadaMm, s.defasagemEscadaMm),
   ];
 }
+
+// ── as categorias ────────────────────────────────────────────
+// O galpão é organizado por CATEGORIA, não por ordem de cadastro: barra com
+// barra, cubo com cubo, base com base. É assim que o material é separado na
+// prateleira e no caminhão, então é assim que a paleta mostra.
+export const CATEGORIAS = Object.freeze([
+  { id: "barra", nome: "Barras", plural: "barras" },
+  { id: "cubo", nome: "Cubos", plural: "cubos" },
+  { id: "sapata", nome: "Bases", plural: "bases" },
+]);
+
+/**
+ * O catálogo agrupado, na ordem das categorias.
+ *
+ * Categoria vazia não aparece. E peça de um tipo que ninguém cadastrou aqui cai
+ * num grupo "Outras" em vez de sumir — catálogo que esconde peça manda o
+ * caminhão embora sem ela.
+ */
+export function catalogoPorCategoria(pecas = CATALOGO) {
+  const grupos = CATEGORIAS
+    .map((c) => ({ ...c, pecas: pecas.filter((p) => p.tipo === c.id) }))
+    .filter((c) => c.pecas.length);
+  const conhecidos = new Set(CATEGORIAS.map((c) => c.id));
+  const sobra = pecas.filter((p) => !conhecidos.has(p.tipo));
+  return sobra.length
+    ? [...grupos, { id: "outras", nome: "Outras", plural: "outras", pecas: sobra }]
+    : grupos;
+}

@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ErroDeMontagem, MOTIVOS, adicionarPecaEncaixada, adicionarPecaLivre, chaveConector, girarPeca,
-  conectores, conectoresLivres, conectoresOcupados, juntas, novaMontagem,
+  conectores, conectoresLivres, conectoresOcupados, juntas, mudarEntrada, novaMontagem,
   pecaDaMontagem, recalcular, removerPeca,
 } from "./montagem.js";
 import { matriz, qDoEixo } from "./vetor.js";
@@ -232,5 +232,59 @@ describe("girar", () => {
   it("id inexistente não quebra", () => {
     const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "x" });
     expect(girarPeca(m, "nada", 1)).toBe(m);
+  });
+});
+
+describe("mudarEntrada — a segunda rotação do cubo", () => {
+  // O giro roda em torno do eixo do encaixe, e a face cega do cubo MORA nesse
+  // eixo quando ele entra pelo topo: ela gira em torno de si mesma e nunca sai
+  // de lá (§8.5). Quem tira a face cega do topo é trocar a face de entrada.
+  const torreComCubo = (conNovo = "topo") => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "b" });
+    return adicionarPecaEncaixada(m, { id: "c", catalogoId: "p30-cubo5", de: "b", conAlvo: "b", conNovo });
+  };
+
+  it("trocar a entrada muda a pose da peça", () => {
+    const antes = torreComCubo("topo").pecas[1].matriz;
+    const depois = mudarEntrada(torreComCubo("topo"), "c", "norte").pecas[1].matriz;
+    expect(depois).not.toEqual(antes);
+  });
+
+  it("e é o que libera face pra cima, coisa que nenhum giro faz", () => {
+    const cima = (m) => conectoresLivres(m).some((k) => k.pecaId === "c" && k.dir[1] > 0.9);
+    const pelaFaceDeCima = torreComCubo("topo");
+    expect(cima(pelaFaceDeCima)).toBe(false);
+    for (let g = 0; g < 4; g++) expect(cima(girarPeca(pelaFaceDeCima, "c", g))).toBe(false);
+    expect(cima(mudarEntrada(pelaFaceDeCima, "c", "norte"))).toBe(true);
+  });
+
+  it("o que estava preso no cubo acompanha — a fonte da verdade é o encaixe", () => {
+    let m = torreComCubo("norte");
+    const alvo = conectoresLivres(m).find((k) => k.pecaId === "c" && k.dir[1] > 0.9);
+    m = adicionarPecaEncaixada(m, { id: "topo", catalogoId: "p30-b2000", de: "c", conAlvo: alvo.conectorId, conNovo: "a" });
+    const antes = pecaDaMontagem(m, "topo").matriz;
+    // uma face LIVRE do cubo (a ocupada pelo braço é recusada, e com razão)
+    const livre = conectoresLivres(m).find((k) => k.pecaId === "c").conectorId;
+    const depois = pecaDaMontagem(mudarEntrada(m, "c", livre), "topo").matriz;
+    expect(depois).not.toEqual(antes);
+  });
+
+  it("peça livre não tem junta pra trocar — devolve a montagem intacta", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
+    expect(mudarEntrada(m, "c", "norte")).toBe(m);
+  });
+
+  it("face que não existe na peça é erro, não silêncio", () => {
+    expect(() => mudarEntrada(torreComCubo(), "c", "zenite")).toThrow(ErroDeMontagem);
+  });
+});
+
+describe("a face de entrada não pode roubar conector ocupado", () => {
+  it("face que já tem peça pendurada é recusada", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "b" });
+    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "p30-cubo5", de: "b", conAlvo: "b", conNovo: "topo" });
+    m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "c", conAlvo: "norte", conNovo: "a" });
+    expect(() => mudarEntrada(m, "c", "norte")).toThrow(ErroDeMontagem);
+    expect(mudarEntrada(m, "c", "sul").pecas[1].encaixe.conNovo).toBe("sul");
   });
 });
