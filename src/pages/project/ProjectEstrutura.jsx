@@ -56,6 +56,14 @@ const chip = {
 
 const metro = (mm) => (mm == null ? "—" : `${(mm / 1000).toFixed(2).replace(".", ",")} m`);
 
+// A peça que a aba já vem com ela escolhida: a barra de 2 m, que é a que mais
+// sai do galpão. Achada pelo QUE ELA É, não pelo id — id de catálogo é coisa que
+// se renomeia, e um id morto aqui deixaria a aba abrindo sem peça selecionada.
+const PECA_PADRAO =
+  CATALOGO.find((p) => p.tipo === "barra" && p.comprimentoMm === 2000)?.id
+  ?? CATALOGO[0]?.id
+  ?? "";
+
 const nomeDe = (montagem, id) =>
   pecaPorId(montagem.pecas.find((p) => p.id === id)?.catalogoId)?.nome ?? "peça";
 
@@ -90,7 +98,7 @@ export default function ProjectEstrutura({ project, patch }) {
   const { montagem } = hist;
 
   const [modo, setModo] = useState("montar");
-  const [catalogoId, setCatalogoId] = useState("p30-b2000");
+  const [catalogoId, setCatalogoId] = useState(PECA_PADRAO);
   const [giro, setGiro] = useState(0);
   const [entrada, setEntrada] = useState("auto"); // face por onde a peça entra (§8.6, C1)
   const [selecao, setSelecao] = useState([]); // IDs, não índices: apagar peça mexe nos índices

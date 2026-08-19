@@ -17,25 +17,39 @@
 import { CATALOGO, pecaPorId } from "./catalogo.js";
 import { listaDePecas } from "./metricas.js";
 
-// Tons médios de propósito: precisam ler no FUNDO ESCURO da cena e no BRANCO do
-// papel, porque a imagem capturada vai impressa. Pastel some no papel; neon
-// vibra na tela.
-export const CORES_PADRAO = Object.freeze({
-  "p30-b0200": "#64748b", // 0,2 m
-  "p30-b0300": "#0ea5e9", // 0,3 m
-  "p30-b0500": "#14b8a6", // 0,5 m
-  "p30-b0600": "#22c55e", // 0,6 m
-  "p30-b1000": "#a3a30d", // 1 m
-  "p30-b2000": "#f97316", // 2 m
-  "p30-b3000": "#dc2626", // 3 m
-  "p30-b4000": "#9333ea", // 4 m
-  "p30-cubo5": "#db2777", // o cubo
-  "p30-sapata-baixa": "#78716c", // a sapata
-});
+// A RAMPA das barras, do curto ao longo: frio → quente. Tons médios de
+// propósito — precisam ler no FUNDO ESCURO da cena e no BRANCO do papel, porque
+// a imagem capturada vai impressa. Pastel some no papel; neon vibra na tela.
+const RAMPA_BARRAS = [
+  "#64748b", "#0ea5e9", "#14b8a6", "#22c55e",
+  "#a3a30d", "#f97316", "#dc2626", "#9333ea",
+];
+const POR_TIPO = { cubo: "#db2777", sapata: "#78716c" };
 
 // peça nova no catálogo, sem cor atribuída: melhor um cinza honesto do que uma
 // cor sorteada que colide com a de outra peça
 export const COR_SEM_ATRIBUICAO = "#94a3b8";
+
+// A cor é DERIVADA da peça, não escrita ao lado do id. Duas razões: a regra
+// "curta fria, longa quente" vira código em vez de coincidência de hexadecimais
+// escolhidos à mão, e uma renomeação de id no catálogo leva a cor junto em vez
+// de deixar a paleta inteira cinza.
+const barrasPorComprimento = () =>
+  CATALOGO.filter((p) => p.tipo === "barra")
+    .slice()
+    .sort((a, b) => (a.comprimentoMm ?? 0) - (b.comprimentoMm ?? 0));
+
+function corPadrao(peca) {
+  if (!peca) return COR_SEM_ATRIBUICAO;
+  if (POR_TIPO[peca.tipo]) return POR_TIPO[peca.tipo];
+  if (peca.tipo !== "barra") return COR_SEM_ATRIBUICAO;
+  const i = barrasPorComprimento().findIndex((p) => p.id === peca.id);
+  return i < 0 ? COR_SEM_ATRIBUICAO : RAMPA_BARRAS[i % RAMPA_BARRAS.length];
+}
+
+export const CORES_PADRAO = Object.freeze(
+  Object.fromEntries(CATALOGO.map((p) => [p.id, corPadrao(p)])),
+);
 
 export const corDaPeca = (catalogoId, custom = null) =>
   custom?.[catalogoId] || CORES_PADRAO[catalogoId] || COR_SEM_ATRIBUICAO;
