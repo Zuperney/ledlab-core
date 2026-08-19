@@ -258,16 +258,43 @@ Isso resolve os três desencontros de uma vez:
 lista da Feeling sai de graça — inclusive os que não existem no SketchUp
 (700, 1100, 1200, 1300, 1400, 2400, 3700, 5500 mm).
 
-#### 5.4.1 A regra dos vãos (medida na malha, e é a regra real de fábrica)
+#### 5.3.1 A escada e os "V" (corrigido pelo dono em 19/08)
 
-Os nós ficam a **250 mm contados de cada ponta**, e a sobra fica **no meio**. Numa
-barra de 2000: nós em 250 · 500 · 750 · 1000 · 1250 vindo de baixo, e 1750 · 1500
-vindo de cima — o vão central absorve o resto. Comprimento múltiplo de 250 fecha
-redondo; qualquer outro ganha um vão central menor.
+**Escada** — as travessas horizontais ficam em **duas faces opostas, a cada
+500 mm**, e as duas são **defasadas de 250**: uma começa em 0, a outra em 250.
 
-**É assim que o modelo da casa está desenhado e é assim que truss se fabrica.**
-Sem essa regra, uma barra de 1100 sairia com um vão sobrando na ponta — que é
-justamente o erro que denuncia desenho feito por quem não é do ramo.
+**"V"** — o ziguezague das diagonais fica nas outras duas faces, com passo
+próprio de **200 mm** (é dele que saem os 51° medidos), e **nas mesmas posições
+dos dois lados** — não espelhado.
+
+> ⚠️ **A primeira versão errou, e vale registrar por quê.** Eu li a malha
+> projetando **as duas faces num histograma só**, e duas escadas de 500 defasadas
+> de 250 somam exatamente como **uma** escada de 250. Daí saiu uma "regra da
+> sobra no meio" que nunca existiu — inventada pra explicar um padrão que era
+> artefato da medição. **Projeção que soma faces esconde defasagem.**
+
+#### 5.3.2 A chapa de topo (a emenda)
+
+Cada ponta de peça leva uma **chapa fechada, cobrindo a seção inteira** —
+300 × 300 × **14 mm**, sem furo, sem parafuso desenhado. Vale nas três peças: nas
+duas pontas da barra, em cada face aberta do cubo e no topo da sapata.
+
+**Por que fechada e sem detalhe (decisão do dono, 19/08).** A chapa precisa
+comunicar UMA coisa: **a peça acaba aqui**. Duas chapas encostadas viram uma
+junta que se lê a três metros. Duas tentativas anteriores erraram por excesso —
+um disco por banzo, depois duas chapas laterais com cabeça de parafuso: viraram
+detalhe de produto e, na distância de trabalho, sumiam no contorno da treliça.
+**Menos desenho comunicou mais.**
+
+A peça real é *plated* / bolt plate, com **4 parafusos de 5/8" por junta** — e
+eles continuam contados na **lista de material**, que é onde decidem alguma coisa
+(quantos levar na caixa). Referência de forma: **XSF 12"×12" Plated Utility
+Truss** (12" externo, banzos a 10", tubo 2"×1/8", parafuso 5/8" — praticamente a
+geometria do P30).
+
+⚠️ A chapa é **recuada meia espessura pra dentro** do comprimento nominal. Sem
+isso uma barra de 2 m mediria 2,028 m na cena e a cota do Caderno mentiria.
+
 
 ### 5.4 Conector
 
