@@ -1,7 +1,7 @@
 // montagem.test.js — a árvore de peças: encaixar, remover, reconstruir.
 import { describe, it, expect } from "vitest";
 import {
-  ErroDeMontagem, MOTIVOS, adicionarPecaEncaixada, adicionarPecaLivre, chaveConector,
+  ErroDeMontagem, MOTIVOS, adicionarPecaEncaixada, adicionarPecaLivre, chaveConector, girarPeca,
   conectores, conectoresLivres, conectoresOcupados, juntas, novaMontagem,
   pecaDaMontagem, recalcular, removerPeca,
 } from "./montagem.js";
@@ -173,5 +173,64 @@ describe("uma corrente longa acumula o comprimento certo", () => {
     const topo = conectoresLivres(m).find((c) => c.dir[1] > 0.9);
     // a primeira nasce centrada na origem → base em −500, topo em +9500
     expect(topo.pos[1]).toBeCloseTo(9500, 3);
+  });
+});
+
+describe("girar", () => {
+  it("muda o giro guardado e mexe a peça de lugar", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
+    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
+    const antes = pecaDaMontagem(m, "b").matriz;
+    const girada = girarPeca(m, "b", 1);
+    expect(pecaDaMontagem(girada, "b").encaixe.giro).toBe(1);
+    expect(pecaDaMontagem(girada, "b").matriz).not.toEqual(antes);
+  });
+
+  it("4 passos voltam ao lugar de origem", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
+    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
+    const volta = girarPeca(m, "b", 4);
+    expect(pecaDaMontagem(volta, "b").encaixe.giro).toBe(0);
+    pecaDaMontagem(volta, "b").matriz.forEach((n, i) =>
+      expect(n).toBeCloseTo(pecaDaMontagem(m, "b").matriz[i], 4),
+    );
+  });
+
+  // é o `recalcular` que faz isso de graça, porque a verdade é o encaixe
+  // simbólico e não a matriz — girar a base tem que levar a torre junto
+  it("quem está encaixado ACOMPANHA o giro", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
+    m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a" });
+    const girada = girarPeca(m, "b1", 1);
+    // a ORIENTAÇÃO da filha muda junto...
+    expect(pecaDaMontagem(girada, "b2").matriz).not.toEqual(pecaDaMontagem(m, "b2").matriz);
+    // ...mas a POSIÇÃO dela não: girar uma barra em torno do próprio eixo não
+    // move a ponta dela, que está EM CIMA do eixo. É física, não bug.
+    expect(pecaDaMontagem(girada, "b2").matriz.slice(12, 15))
+      .toEqual(pecaDaMontagem(m, "b2").matriz.slice(12, 15));
+    // e continua encaixada
+    expect(juntas(girada)).toHaveLength(2);
+  });
+
+  // aqui a filha sai do eixo de propósito: o cubo pendura a barra pra fora
+  it("filha FORA do eixo se move quando a mãe gira", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
+    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "topo" });
+    m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
+    const antes = pecaDaMontagem(m, "braco").matriz.slice(12, 15);
+    const girada = girarPeca(m, "cubo", 1);
+    expect(pecaDaMontagem(girada, "braco").matriz.slice(12, 15)).not.toEqual(antes);
+    expect(juntas(girada)).toHaveLength(2);
+  });
+
+  it("peça LIVRE não gira (não tem eixo de encaixe)", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "solta" });
+    expect(girarPeca(m, "solta", 2)).toBe(m);
+  });
+
+  it("id inexistente não quebra", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "x" });
+    expect(girarPeca(m, "nada", 1)).toBe(m);
   });
 });

@@ -19,12 +19,27 @@ const coresDoTema = () => ({
   selecao: T.acc,
 });
 
-export default function Editor3D({ montagem, selecionada, onSelecionar, mostrarGrade = true, api }) {
+export default function Editor3D({
+  montagem,
+  selecionada,
+  onSelecionar,
+  mostrarGrade = true,
+  // ── modo Montar ──
+  conectores = null, // conectores livres, no mundo (null/[] = não mostrar)
+  onApontarConector, // (indice|null) — o pai devolve a matriz da prévia
+  onEncaixar, // (indice) — comita a peça
+  fantasma = null, // { catalogoId, matriz } da prévia
+  api,
+}) {
   const canvasRef = useRef(null);
   const cenaRef = useRef(null);
-  const arrastouRef = useRef(false);
+  // Callbacks por REF: a cena é montada uma vez só, e o pai re-renderiza a cada
+  // peça adicionada. Sem isto, remontaríamos a cena inteira a cada clique.
+  const cb = useRef({});
+  useEffect(() => {
+    cb.current = { onSelecionar, onApontarConector, onEncaixar };
+  });
 
-  // monta a cena UMA vez. Trocar a montagem não remonta nada — só sincroniza.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
@@ -38,17 +53,44 @@ export default function Editor3D({ montagem, selecionada, onSelecionar, mostrarG
     // câmera ele seleciona uma peça sem querer
     let x0 = 0;
     let y0 = 0;
-    const onDown = (e) => { x0 = e.clientX; y0 = e.clientY; arrastouRef.current = false; };
+    let arrastou = false;
+    let ultimoConector = null;
+
+    const onDown = (e) => { x0 = e.clientX; y0 = e.clientY; arrastou = false; };
+
     const onMove = (e) => {
-      if (Math.abs(e.clientX - x0) > 5 || Math.abs(e.clientY - y0) > 5) arrastouRef.current = true;
+      if (Math.abs(e.clientX - x0) > 5 || Math.abs(e.clientY - y0) > 5) arrastou = true;
+      if (!cb.current.onApontarConector) return;
+      const idx = cena.conectorEm(e);
+      if (idx === ultimoConector) return; // só avisa o React quando MUDA
+      ultimoConector = idx;
+      cena.realcarConector(idx);
+      cb.current.onApontarConector(idx);
     };
+
     const onUp = (e) => {
-      if (arrastouRef.current) return;
-      onSelecionar?.(cena.pecaEm(e));
+      if (arrastou) return;
+      // o conector tem PRIORIDADE sobre a peça: em modo montar, o alvo do clique
+      // é onde a peça vai entrar, não a peça que está atrás dele
+      const conector = cb.current.onEncaixar ? cena.conectorEm(e) : null;
+      if (conector != null) {
+        cb.current.onEncaixar(conector);
+        return;
+      }
+      cb.current.onSelecionar?.(cena.pecaEm(e));
     };
+
+    const onSai = () => {
+      if (ultimoConector == null) return;
+      ultimoConector = null;
+      cena.realcarConector(null);
+      cb.current.onApontarConector?.(null);
+    };
+
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointermove", onMove);
     canvas.addEventListener("pointerup", onUp);
+    canvas.addEventListener("pointerleave", onSai);
 
     // o contexto WebGL morre quando o SO precisa de memória. Como a cena é
     // PROCEDURAL, ela se reconstrói inteira do JSON — sem baixar nada.
@@ -60,18 +102,21 @@ export default function Editor3D({ montagem, selecionada, onSelecionar, mostrarG
       canvas.removeEventListener("pointerdown", onDown);
       canvas.removeEventListener("pointermove", onMove);
       canvas.removeEventListener("pointerup", onUp);
+      canvas.removeEventListener("pointerleave", onSai);
       canvas.removeEventListener("webglcontextlost", onPerdeu);
       cena.destruir();
       cenaRef.current = null;
     };
-    // onSelecionar entra por ref via closure estável do pai — remontar a cena a
-    // cada render seria caríssimo
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => { cenaRef.current?.sincronizar(montagem); }, [montagem]);
   useEffect(() => { cenaRef.current?.selecionar(selecionada ?? null); }, [selecionada]);
   useEffect(() => { cenaRef.current?.mostrarGrade(mostrarGrade); }, [mostrarGrade]);
+  useEffect(() => { cenaRef.current?.mostrarConectores(conectores ?? []); }, [conectores]);
+  useEffect(() => {
+    if (fantasma?.matriz) cenaRef.current?.mostrarFantasma(fantasma.catalogoId, fantasma.matriz);
+    else cenaRef.current?.limparFantasma();
+  }, [fantasma]);
 
   useImperativeHandle(api, () => ({
     enquadrar: () => cenaRef.current?.enquadrar(montagem),

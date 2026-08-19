@@ -177,6 +177,22 @@ export function removerPeca(montagem, id) {
   return { ...montagem, pecas };
 }
 
+/**
+ * Gira uma peça JÁ montada, em passos de 90°, em torno do eixo do encaixe.
+ *
+ * Quem está encaixado NELA acompanha — é o `recalcular` que faz isso de graça,
+ * porque a fonte da verdade é o encaixe simbólico e não a matriz. Girar a base
+ * de uma torre gira a torre inteira, que é o que o técnico espera.
+ */
+export function girarPeca(montagem, id, giro) {
+  const peca = pecaDaMontagem(montagem, id);
+  if (!peca?.encaixe) return montagem; // peça livre não tem eixo pra girar
+  const pecas = montagem.pecas.map((p) =>
+    p.id === id ? { ...p, encaixe: { ...p.encaixe, giro: normalizarGiro(giro) } } : p,
+  );
+  return recalcular({ ...montagem, pecas });
+}
+
 // ── recalcular ───────────────────────────────────────────────
 
 /**

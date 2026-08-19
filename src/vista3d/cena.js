@@ -14,7 +14,8 @@
 
 import {
   AmbientLight, Color, DirectionalLight, DynamicDrawUsage, GridHelper, InstancedMesh,
-  Matrix4, MeshLambertMaterial, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3,
+  Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Raycaster,
+  Scene, SphereGeometry, Vector2, Vector3,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -74,6 +75,20 @@ export function criarCena(canvas, cores) {
   const material = new MeshLambertMaterial({ color: 0xffffff });
   const corPeca = new Color(cores.peca);
   const corSel = new Color(cores.selecao);
+
+  // ── marcadores de conector e prévia fantasma (modo Montar) ─
+  // O conector é invisível na peça real; aqui ele vira uma bolinha CLICÁVEL —
+  // é o alvo do encaixe, e ter alvo é o que separa montar de adivinhar.
+  const geoConector = new SphereGeometry(75, 10, 10);
+  const matConector = new MeshBasicMaterial({ color: cores.selecao, transparent: true, opacity: 0.4 });
+  const matConectorAtivo = new MeshBasicMaterial({ color: cores.selecao, transparent: true, opacity: 0.9 });
+  const matFantasma = new MeshLambertMaterial({
+    color: cores.selecao, transparent: true, opacity: 0.45, depthWrite: false,
+  });
+  let malhaConectores = null;
+  let listaConectores = [];
+  let conectorAtivo = null;
+  let fantasma = null;
 
   const grupos = new Map(); // `${catalogoId}#${nivel}` → InstancedMesh
   let pecas = [];
@@ -168,6 +183,85 @@ export function criarCena(canvas, cores) {
       }
       if (malha.instanceColor) malha.instanceColor.needsUpdate = true;
     }
+  }
+
+  // ── conectores clicáveis ───────────────────────────────────
+  function mostrarConectores(lista) {
+    listaConectores = lista ?? [];
+    if (malhaConectores) {
+      scene.remove(malhaConectores);
+      malhaConectores.dispose();
+      malhaConectores = null;
+    }
+    if (listaConectores.length) {
+      malhaConectores = new InstancedMesh(geoConector, matConector, listaConectores.length);
+      malhaConectores.frustumCulled = false;
+      listaConectores.forEach((c, i) =>
+        malhaConectores.setMatrixAt(i, mat4.makeTranslation(c.pos[0], c.pos[1], c.pos[2])),
+      );
+      malhaConectores.instanceMatrix.needsUpdate = true;
+      scene.add(malhaConectores);
+    }
+    conectorAtivo = null;
+    solicitar();
+  }
+
+  /** qual conector está sob o ponteiro (mesma tolerância em anéis do `pecaEm`) */
+  function conectorEm(evento, toleranciaPx = 20) {
+    if (!malhaConectores) return null;
+    const r = canvas.getBoundingClientRect();
+    const tentar = (dx, dy) => {
+      ponteiro.x = ((evento.clientX + dx - r.left) / r.width) * 2 - 1;
+      ponteiro.y = -((evento.clientY + dy - r.top) / r.height) * 2 + 1;
+      raycaster.setFromCamera(ponteiro, camera);
+      const hit = raycaster.intersectObject(malhaConectores, false)[0];
+      return hit ? hit.instanceId : null;
+    };
+    const direto = tentar(0, 0);
+    if (direto != null) return direto;
+    for (const raio of [toleranciaPx / 2, toleranciaPx]) {
+      for (let a = 0; a < 8; a++) {
+        const ang = (a * Math.PI) / 4;
+        const achado = tentar(Math.cos(ang) * raio, Math.sin(ang) * raio);
+        if (achado != null) return achado;
+      }
+    }
+    return null;
+  }
+
+  function realcarConector(indice) {
+    if (conectorAtivo === indice) return;
+    conectorAtivo = indice;
+    if (malhaConectores) malhaConectores.material = indice == null ? matConector : matConectorAtivo;
+    solicitar();
+  }
+
+  function limparFantasma() {
+    if (fantasma?.visible) {
+      fantasma.visible = false;
+      solicitar();
+    }
+  }
+
+  /** a prévia fantasma: a peça ONDE ELA VAI FICAR, antes de comitar */
+  function mostrarFantasma(catalogoId, matriz) {
+    const geo = geometriaDaPeca(catalogoId, 0);
+    if (!geo || !matriz) {
+      limparFantasma();
+      return;
+    }
+    if (!fantasma) {
+      fantasma = new Mesh(geo, matFantasma);
+      fantasma.frustumCulled = false;
+      fantasma.matrixAutoUpdate = false;
+      fantasma.renderOrder = 2;
+      scene.add(fantasma);
+    } else {
+      fantasma.geometry = geo;
+    }
+    fantasma.matrix.fromArray(matriz);
+    fantasma.visible = true;
+    solicitar();
   }
 
   // ── API ────────────────────────────────────────────────────
@@ -300,6 +394,12 @@ export function criarCena(canvas, cores) {
 
   function destruir() {
     vivo = false;
+    if (malhaConectores) { scene.remove(malhaConectores); malhaConectores.dispose(); }
+    if (fantasma) scene.remove(fantasma);
+    geoConector.dispose();
+    matConector.dispose();
+    matConectorAtivo.dispose();
+    matFantasma.dispose();
     if (pendente) cancelAnimationFrame(pendente);
     if (lodTimer) clearTimeout(lodTimer);
     controls.dispose();
@@ -316,6 +416,7 @@ export function criarCena(canvas, cores) {
   return {
     sincronizar, redimensionar, enquadrar, aproximar, pecaEm, selecionar,
     trocarTema, capturar, destruir, solicitar,
+    mostrarConectores, conectorEm, realcarConector, mostrarFantasma, limparFantasma,
     mostrarGrade: (v) => { grade.visible = v; solicitar(); },
   };
 }

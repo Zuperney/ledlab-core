@@ -11,7 +11,7 @@
 // o motor só recebe o comando pronto.
 
 import {
-  adicionarPecaEncaixada, adicionarPecaLivre, novaMontagem, pecaDaMontagem, removerPeca,
+  adicionarPecaEncaixada, adicionarPecaLivre, girarPeca, novaMontagem, pecaDaMontagem, removerPeca,
 } from "./montagem.js";
 
 export const LIMITE_PADRAO = 100;
@@ -28,6 +28,7 @@ export const ACOES = Object.freeze({
   ADICIONAR_LIVRE: "adicionar-livre",
   ADICIONAR_ENCAIXADA: "adicionar-encaixada",
   REMOVER: "remover",
+  GIRAR: "girar",
   RESTAURAR: "restaurar",
 });
 
@@ -43,6 +44,8 @@ export function aplicar(montagem, acao) {
       return adicionarPecaEncaixada(montagem, acao);
     case ACOES.REMOVER:
       return removerPeca(montagem, acao.id);
+    case ACOES.GIRAR:
+      return girarPeca(montagem, acao.id, acao.giro);
     case ACOES.RESTAURAR:
       // devolve a peça na posição original da lista e reata os órfãos
       return {
@@ -67,6 +70,11 @@ function inversoDe(montagem, acao) {
     case ACOES.ADICIONAR_LIVRE:
     case ACOES.ADICIONAR_ENCAIXADA:
       return { tipo: ACOES.REMOVER, id: acao.id };
+    case ACOES.GIRAR: {
+      const atual = pecaDaMontagem(montagem, acao.id);
+      if (!atual?.encaixe) return null;
+      return { tipo: ACOES.GIRAR, id: acao.id, giro: atual.encaixe.giro ?? 0 };
+    }
     case ACOES.REMOVER: {
       const peca = pecaDaMontagem(montagem, acao.id);
       if (!peca) return null;

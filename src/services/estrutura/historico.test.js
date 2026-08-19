@@ -119,3 +119,29 @@ describe("ação desconhecida", () => {
     expect(() => executar(criarHistorico(), { tipo: "voar" })).toThrowError(/ação desconhecida/);
   });
 });
+
+describe("desfazer um GIRO", () => {
+  const comCubo = () => {
+    let h = criarHistorico();
+    h = executar(h, { tipo: ACOES.ADICIONAR_LIVRE, id: "c", catalogoId: "p30-cubo5" });
+    h = executar(h, {
+      tipo: ACOES.ADICIONAR_ENCAIXADA, id: "b", catalogoId: "p30-b2000",
+      de: "c", conAlvo: "leste", conNovo: "a",
+    });
+    return h;
+  };
+
+  it("volta ao giro anterior, não ao zero", () => {
+    let h = comCubo();
+    h = executar(h, { tipo: ACOES.GIRAR, id: "b", giro: 2 });
+    h = executar(h, { tipo: ACOES.GIRAR, id: "b", giro: 3 });
+    expect(pecaDaMontagem(desfazerUm(h).montagem, "b").encaixe.giro).toBe(2);
+  });
+
+  it("girar → desfazer devolve o estado EXATO", () => {
+    const h = comCubo();
+    const antes = paraJSON(h.montagem);
+    const girado = executar(h, { tipo: ACOES.GIRAR, id: "b", giro: 1 });
+    expect(paraJSON(desfazerUm(girado).montagem)).toEqual(antes);
+  });
+});
