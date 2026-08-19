@@ -1,0 +1,512 @@
+# Estrutura 3D — espeque da fase
+
+> **Status: E0 ENTREGUE (2026-08-19), na branch `feat/estrutura-3d`.** Escopo
+> cravado com o dono e o **motor puro no ar** — `src/services/estrutura/`, 129
+> testes em vitest, zero linha de 3D. As fases E1+ seguem no papel.
+>
+> 📚 **Base de pesquisa:** [`estrutura3d-pesquisa.md`](./estrutura3d-pesquisa.md) —
+> dissecação do TrussTool, mercado, stack medida e os dados reais do truss
+> brasileiro. **Leia antes de mexer no motor.**
+>
+> 🧊 **Destrava o rigging.** O [`rigging-spec.md`](./rigging-spec.md) foi reservado
+> em 08/2026 esperando "o 3D entrar". É este documento.
+>
+> ⚠️ **Segurança:** o app **não dimensiona estrutura**. Ele registra o que foi
+> montado, com que peças e quanto pesa. Quem responde por carga é o **rigger
+> habilitado** e o **engenheiro com ART no CREA**. Mesma postura do box de
+> segurança AC do Caderno.
+
+---
+
+## 1 · O que é — e o que não é
+
+**É** um montador de box truss em 3D que produz **três artefatos**: a **lista de
+peças**, o **peso** e as **medidas reais** da estrutura. Depois disso, ele deixa
+**pendurar as telas do projeto** na estrutura montada.
+
+**Não é** calculadora estrutural. Não diz se aguenta, não dimensiona vão, não
+sugere ponto de talha, não emite laudo.
+
+**Por que essa fronteira é a certa:** a referência do dono, o TrussTool, também
+não calcula nada — e é a ferramenta mais usada da categoria. O TAFtool, idem.
+Quem calcula é o Braceworks, a US$ 2.530/ano, e mesmo ele avisa na própria
+landing que **não fornece cálculo certificado**. E no Brasil **nenhum fabricante
+publica tabela de carga digitalizada** — inclusive a Feeling, que publicou em 2002
+e hoje manda consultar o comercial. Inventar número aqui seria o pior tipo de
+mentira: a que parece laudo.
+
+**O verbo do app é "confira", nunca "pode".**
+
+---
+
+## 2 · Vocabulário (entra no §12.1 do manual)
+
+| Termo | O que é |
+| --- | --- |
+| **Estrutura** | a montagem inteira de um projeto (o que o TrussTool chama de *construction*) |
+| **Peça** | uma unidade do catálogo colocada na cena — barra, cubo ou base |
+| **Barra** | o segmento reto de box truss. **Nunca "torre"** — a Feeling chama a barra de "torre", mas no app *torre* é uma montagem vertical, não uma peça |
+| **Cubo** | o bloco de canto. Um cubo de N faces resolve L, T, X e cruz — não existe "canto soldado" no nosso catálogo |
+| **Base** | a chapa/quadro de apoio no chão. **Com sapata** ou **sem sapata** (a Feeling tem as duas) |
+| **Encaixe** | a junção de duas peças. **Uma junta = 4 parafusos**, um por banzo |
+| **Conector** | a face de acoplamento de uma peça — onde ela aceita encaixe. É o que o motor conta |
+| **Banzo** | o tubo principal (2" no P30 e no P50). Quatro por peça |
+| **Linha** | P30 · L30 · R30 · P50 — a família do fabricante. **Não é a medida** |
+| **Sistema** | a seção: **300** (P30/L30/R30) ou **500** (P50). É o que define se encaixa |
+
+⚠️ **A distinção linha × sistema é a regra mais importante do catálogo.** L30, P30
+e R30 são todos 300×300 e **encaixam entre si** (a Feeling vende a mesma base e o
+mesmo sleeve block pras três) — mas a L30 vale **metade da carga** da P30 e a R30
+é treliçada em 3 faces. Um app que só guardasse "300×300" deixaria o técnico
+misturar leve com pesado sem perceber. **O relatório diz a linha de cada barra.**
+
+---
+
+## 3 · O escopo cravado (decisões do dono, 19/08/2026)
+
+| Decisão | O que fica |
+| --- | --- |
+| **Fabricante de referência** | **Feeling** — é com quem ele trabalha e tem estoque |
+| **Sistemas** | **só 300 (P30)** — o dono não tem P50. O campo `sistema` fica no modelo de dados (§3.2.2), o catálogo não |
+| **Peças** | **barra reta · cubo (300³) · sapata em dois modelos (baixa e alta, 750×750)**. Mais **parafusaria** como item de lista |
+| **Medidas** | **nominais e fechadas** — 2 m é 2000 mm. O modelo SketchUp ensina a *forma*, não a *cota* (§5.3) |
+| **Peso** | proxy da Auratec até o dono pesar na balança, **peça por peça, com os parafusos incluídos** |
+| **Sem** | curva, arco, círculo, cumeeira, dobradiça, sleeve block, pau de carga — nada disso na v1 |
+| **Fixação** | **parafuso**, não spigot cônico. Junta = 4× parafuso 5/8" A325 CH27 + 4× porca A194-2H + 8× arruela F-436 |
+| **Entrega essencial** | **lista de peças + peso + medidas reais** |
+| **Depois** | pendurar os painéis de LED |
+| **Plataforma** | **desktop-only.** "É horrível fazer isso no celular, eu já tentei usar o TrussTool no celular e não foi uma boa experiência" |
+| **Carga** | **fora.** Nenhum número de carga sem a revisão atual confirmada pela Feeling |
+
+### 3.1 Por que o cubo mata o catálogo de cantos
+
+O TrussTool tem uma categoria `CORNERS` inteira porque a Global Truss vende canto
+soldado em 7 ângulos. **A Feeling vende cubo** — e um cubo de 5 ou 6 faces
+resolve L, T, X, cruz e virada pra cima com **uma peça só**. Isso não é
+simplificação de preguiça: é como o mercado brasileiro monta.
+
+No motor, o cubo é a peça mais simples que existe: um bloco de 300³ (ou 500³) com
+um conector por face.
+
+### 3.2 O catálogo v1 — o galpão do dono (cravado 19/08)
+
+**Dez itens. É o catálogo inteiro.** Não é o catálogo da Feeling — é o estoque real.
+
+| id | Peça | Medida | Peso semente (kg) | Fonte do peso |
+| --- | --- | --- | --- | --- |
+| `p30-b0200` | Barra P30 0,2 m | 200 mm | 6 | Auratec |
+| `p30-b0300` | Barra P30 0,3 m | 300 mm | 7 | 🔺 interpolado |
+| `p30-b0500` | Barra P30 0,5 m | 500 mm | 10 | Auratec |
+| `p30-b0600` | Barra P30 0,6 m | 600 mm | 11 | 🔺 interpolado |
+| `p30-b1000` | Barra P30 1 m | 1000 mm | 13 | Auratec |
+| `p30-b2000` | Barra P30 2 m | 2000 mm | 22 | Auratec |
+| `p30-b3000` | Barra P30 3 m | 3000 mm | 30 | Auratec |
+| `p30-b4000` | Barra P30 4 m | 4000 mm | 38 | Auratec |
+| `p30-cubo5` | Cubo 5 faces | 300 × 300 × 300 | 12 | Auratec |
+| `p30-sapata-baixa` | Sapata baixa | 750 × 750 × 55 | 8 | 🔺 proxy (base 800×800 Auratec) |
+
+**Nenhum peso é conferido.** Todos nascem `conferido: false` e o Caderno imprime a
+procedência. O dono troca peça por peça na balança, com os parafusos incluídos.
+
+⚠️ **A barra de 0,3 m não é o cubo.** São 300 mm nas duas, e é armadilha fácil:
+a barra tem cabeceira nas duas pontas e conecta em **2 faces**; o cubo conecta em
+**5**. Ids e nomes distintos desde o começo.
+
+#### 3.2.1 O cubo de 5 faces
+
+Cinco conectores, não seis — **a face fechada é orientável**, igual a qualquer
+outra peça: o técnico gira o cubo ao encaixar. Assim o app não precisa cravar
+*qual* face vem tapada de fábrica (no modelo da casa a fechada parece ser a de
+baixo, mas isso é detalhe de desenho, não regra).
+
+#### 3.2.2 O P50 sai da v1
+
+**O dono não tem P50.** O campo `sistema` (300 | 500) **continua no modelo de
+dados** — é uma linha, e sem ela o dia do P50 vira retrabalho no motor e nos
+projetos já salvos. Mas o catálogo v1 não traz nenhum item 500, e a UI não oferece.
+
+### 3.3 O que a v1 deixa de fora — e por quê
+
+- **Curva/arco** — o dono não usa, e o raio nominal não tem convenção publicada
+  (eixo? banzo interno? externo?).
+- **Sleeve block e pau de carga** — são peças de *içamento*, e içamento é o
+  território do rigger. Entram junto com os painéis, se entrarem.
+- **P76 e D25** — fora do estoque dele.
+- **Mistura P30 × P50** — não encaixam direto (precisam de adaptador 500×300).
+  A v1 **avisa e recusa**; o adaptador entra depois.
+
+---
+
+## 4 · Arquitetura — a fronteira que decide tudo
+
+```
+src/pages/project/ProjectEstrutura.jsx     ← a aba (React, as 5 faixas)
+src/services/estrutura/                    ← MOTOR: 100% testável em vitest
+  vetor.js          álgebra própria (sem three — ver §4.0.1)
+  catalogo.js       peças, dimensões, conectores, peso com procedência
+  encaixe.js        resolverEncaixe(conectorA, conectorB, giro) → Matrix4
+  snap.js           grade espacial, busca de candidato, tolerância
+  montagem.js       árvore de peças, validação, colisão, juntas
+  historico.js      comandos inversíveis (desfazer/refazer)
+  serializar.js     ↔ JSON do projeto, versão e migração
+  metricas.js       peso total, caixa envolvente, lista de peças, parafusaria
+src/vista3d/                               ← VISTA: não testada por unidade
+  cena.js           WebGLRenderer, luzes, InstancedMesh, LOD, render sob demanda
+  controles.js      OrbitControls, raycast, seleção
+  captura.js        render → PNG → pdfmake
+```
+
+**A regra de corte: o motor não sabe que existe uma tela.** Nada de `Scene`,
+`Mesh`, `Material`, `camera`, `canvas`, `window`.
+
+#### 4.0.1 O motor não importa `three` — correção de rota (E0, 19/08)
+
+O plano original dizia "use os tipos matemáticos do three, que rodam em Node
+puro". Roda mesmo (pesquisa §3.7) — mas **esbarra numa restrição que o próprio
+espeque criou**: o `metricas.js` alimenta o **relatório**, que abre no **celular**
+e é **offline**, enquanto o chunk 3D fica **fora do precache** (§7.2). Um
+`import { Vector3 } from 'three'` no motor promoveria a biblioteca inteira pro
+chunk principal — engordaria o app pra todo mundo e quebraria as duas coisas
+de uma vez.
+
+São ~10 operações. Elas moram em **`vetor.js`**, sem dependência nenhuma, com as
+matrizes em **coluna-maior idêntica ao `Matrix4.toArray()`** — a vista faz
+`fromArray()` e segue, sem conversão. O `three` fica 100% dentro de `src/vista3d/`,
+com **portão de ESLint** garantindo isso (§7.3).
+
+Isso segue o precedente da casa: `cableScene.js` já é "geometria pura
+compartilhada entre o PDF e o DOM, testável sem pdfmake nem DOM".
+
+### 4.1 A stack
+
+**three.js puro, `WebGLRenderer`. Sem react-three-fiber, sem Babylon.**
+
+187 KB gzip contra 338 do R3F e 541 do Babylon. O R3F custa +151 KB porque faz
+`import * as THREE` internamente, e o `peerDependencies` dele (`react: >=19 <19.3`)
+**prenderia o upgrade do React do app inteiro**. Um editor é imperativo por
+natureza — o modelo declarativo não paga aqui. Detalhes e números na pesquisa §3.
+
+React cuida do **entorno** (as 5 faixas, os controles, os ajustes); o `<canvas>`
+fica num componente com um `useEffect` que monta a cena e um `useRef` pra
+instância do motor. **Uma fronteira só, explícita.**
+
+---
+
+## 5 · O modelo de dados
+
+### 5.1 Peça do catálogo
+
+```js
+{
+  id: "p30-b200",
+  sistema: 300,               // 300 | 500 — é o que define compatibilidade
+  linha: "P30",               // P30 | L30 | R30 | P50
+  tipo: "barra",              // barra | cubo | base
+  nome: "Barra P30 2 m",
+  comprimentoMm: 2000,        // barra
+  ladoMm: 300,                // seção externa — MEDIDO: 299,6
+  entreEixosMm: 250,          // CAMPO PRÓPRIO, nunca derivado (ver §5.2)
+  banzoMm: 50,                // desenho; o tubo real é 2" = 50,8 (ver §5.2.1)
+  diagonalMm: 40,
+  passoNoMm: 250,             // espaçamento das travessas ao longo da barra
+  anguloDiagonalGraus: 51,
+  cabeceiraMm: 25,
+  geometria: { fonte: "modelo SketchUp da casa (linha próxima à Feeling)", medido: true },
+  peso: { kg: 22, fonte: "Auratec AL-P30", conferido: false },
+  conectores: [ /* ver 5.4 */ ],
+}
+```
+
+> **Os números de geometria são medidos, não chutados.** O dono entregou o modelo
+> SketchUp que usa pra projetar; a malha foi analisada e os valores estão na
+> [pesquisa §4.8](./estrutura3d-pesquisa.md). **Geometria e peso têm procedências
+> separadas** — a geometria é medida, o peso ainda é proxy.
+
+### 5.2 Por que `entreEixos` é campo, não conta
+
+A regra é `externo − Ø do banzo`, e o Ø varia por fabricante. E entre os europeus a
+coisa embola: o Prolyte X30V é 290/239 e o H30V é **287**/239 — **mesmo
+entre-eixos, externos diferentes**. Derivar quebra ali. Guardar o número resolve.
+
+#### 5.2.1 O caso do Ø50 × 2"
+
+O modelo da casa desenha o banzo com **50 mm redondos**, o que dá o entre-eixos
+limpo de **250** — e 250 é exatamente o passo dos nós medido na malha. O tubo real
+do mercado brasileiro é **2" = 50,8 mm**, o que daria 249,2.
+
+**Decisão: desenhar com 250 / Ø50.** A diferença de 0,8 mm é invisível em tela e em
+papel, e o número redondo evita erro de acumulação numa torre de 20 barras. O 2"
+fica registrado como a **medida real do tubo**, pra quem for conferir ferragem.
+
+### 5.3 Medida nominal manda — o modelo só ensina a desenhar
+
+**Decisão do dono (19/08): as medidas do catálogo são as da Feeling, fechadas.**
+Barra de 2 m é **2000 mm**, ponto. O modelo SketchUp entra como **fonte da forma**
+(o desenho interno da treliça), nunca como fonte da cota.
+
+Isso resolve os três desencontros de uma vez:
+
+| Grandeza | Malha | **Catálogo (vale este)** |
+| --- | --- | --- |
+| Barra "1,5 m" | 1.420 mm *(peça errada no desenho)* | **1500** |
+| Seção externa | 299,6 | **300** |
+| Cubo | 298,5–300 | **300 × 300 × 300** |
+| Sapata baixa / alta | 740 / 742,5 | **750 × 750** |
+
+**Consequência prática:** o gerador é paramétrico, então qualquer comprimento da
+lista da Feeling sai de graça — inclusive os que não existem no SketchUp
+(700, 1100, 1200, 1300, 1400, 2400, 3700, 5500 mm).
+
+#### 5.4.1 A regra dos vãos (medida na malha, e é a regra real de fábrica)
+
+Os nós ficam a **250 mm contados de cada ponta**, e a sobra fica **no meio**. Numa
+barra de 2000: nós em 250 · 500 · 750 · 1000 · 1250 vindo de baixo, e 1750 · 1500
+vindo de cima — o vão central absorve o resto. Comprimento múltiplo de 250 fecha
+redondo; qualquer outro ganha um vão central menor.
+
+**É assim que o modelo da casa está desenhado e é assim que truss se fabrica.**
+Sem essa regra, uma barra de 1100 sairia com um vão sobrando na ponta — que é
+justamente o erro que denuncia desenho feito por quem não é do ramo.
+
+### 5.4 Conector
+
+```js
+{ id: "A", pos: [0, 0, 0], dir: [0, 0, -1], rolo: [0, 1, 0], sistema: 300 }
+```
+
+- `dir` — a normal que **sai** do encaixe (unitária)
+- `rolo` — a referência de rolagem: qual banzo é "o de cima"
+- **Sem `rolo` a peça encaixa girada 45° e os banzos não alinham.** É o campo que
+  todo mundo esquece.
+- **Gênero não existe aqui.** No spigot cônico há macho e fêmea; no parafuso são
+  **duas faces chatas se encontrando**. A junta brasileira é mais simples de
+  modelar que a europeia.
+- Passo de giro: **90°** (4 banzos). Guardado como **inteiro `k` de 0 a 3**,
+  nunca como float — senão o ângulo deriva depois de 50 giros e o JSON deixa de
+  ser exato.
+
+### 5.5 A montagem, dentro do projeto
+
+```js
+project.estrutura = {
+  versao: 1,
+  pecas: [
+    { id: "e1", catalogoId: "p30-b200", matriz: [/* 16 floats */] },
+    { id: "e2", catalogoId: "p30-cubo5",
+      encaixe: { de: "e1", conA: "B", conB: "sul", k: 0 },
+      matriz: [/* cache */] },
+  ],
+}
+```
+
+**Guardar o encaixe simbólico, não só a matriz.** Se um dia a geometria de uma
+peça for corrigida no catálogo, os projetos antigos **se reconstroem certos**. A
+matriz fica como cache derivado, pra carregar rápido. E `versao` desde o dia 1 —
+isso vai pro IndexedDB e vai precisar migrar.
+
+---
+
+## 6 · O encaixe — a matemática inteira
+
+```js
+// encaixar o conector B da peça nova no conector A da peça existente
+const q = new Quaternion().setFromUnitVectors(dirB.clone().negate(), dirA)
+q.premultiply(new Quaternion().setFromAxisAngle(dirA, k * Math.PI / 2))
+const pos = posA.clone().sub(posB.clone().applyQuaternion(q))
+const m = new Matrix4().compose(pos, q, new Vector3(1, 1, 1))
+```
+
+Três passos: **enfrentar as normais** → **rolar em torno do eixo** → **juntar os
+centros**. É o mesmo desenho do TrussTool, com um terço do código, porque a
+geometria é procedural e os conectores são conhecidos.
+
+⚠️ **Não corte o passo 2.** Quando `dirA` e `dirB` são exatamente opostos, o
+`setFromUnitVectors` cai num caso degenerado (infinitos eixos válidos) e o three
+escolhe um perpendicular **arbitrário** — o rolo resultante fica imprevisível. O
+passo 2 sobrescreve o rolo explicitamente e é o que protege.
+
+### 6.1 O snap
+
+1. pega os conectores **livres** da peça em movimento
+2. procura conectores livres de outras peças dentro de uma **tolerância** —
+   em metros **e em pixels de tela**, usando o maior dos dois (com a câmera longe,
+   tolerância em metros vira impossível de acertar)
+3. filtra por **sistema igual** e por **oposição** (`dirA · dirB < −0,5`)
+4. ordena por distância, pega o melhor, mostra **prévia fantasma**
+5. solta → comita
+
+Busca em **grade espacial** (hash de células de 0,5 m), não O(n²). Com 2.000
+barras são 4.000 conectores; a grade reduz cada consulta a dezenas de comparações.
+~40 linhas, e mora no motor puro.
+
+### 6.2 Desfazer/refazer
+
+**Comandos inversíveis, nunca snapshots** — com 2.000 peças o histórico de
+snapshots estoura a memória. `AdicionarPeca ↔ RemoverPeca`, `MoverPeca(de, para) ↔
+MoverPeca(para, de)`. Duas pilhas; comando novo limpa a de refazer. Um arraste
+inteiro é **um** comando, não 60 por segundo.
+
+100% lógica pura → é o candidato mais óbvio a teste de unidade.
+
+---
+
+## 7 · Decisões de plataforma
+
+### 7.1 Desktop-only
+
+A aba nasce com **`desktopOnly` no `nav.js`**, como as outras features que não
+cabem no dedo. Decisão do dono, e a pesquisa concorda: todas as ferramentas da
+categoria são desktop, e o `TransformControls` do three tem problemas conhecidos
+em touch.
+
+**O celular não fica de fora — ele fica com a consulta:** ver a estrutura já
+montada (câmera orbitando, sem editar) e **o relatório de peças**, que é o que se
+consulta no galpão. Isso é o mais barato de fazer e o mais usado.
+
+### 7.2 O service worker — **decidido: o 3D sai do precache**
+
+O `stampServiceWorker` do `vite.config.js` precacheia **tudo** que está em
+`dist/assets`. Foi de propósito: garante offline total após a 1ª carga. Mas o
+chunk 3D seria lazy pro roteador e **não pra rede** — todo usuário baixaria
+187 KB **a cada deploy**, mesmo sem nunca abrir a aba.
+
+**Decisão do dono (19/08): tirar o chunk 3D do precache.** Abrir o editor **pela
+primeira vez** passa a exigir estar online; depois disso ele fica em cache. O
+**relatório e a consulta seguem 100% offline**, que é o que se usa no galpão.
+
+O que isso exige na implementação:
+
+1. dar **nome estável** ao chunk 3D (`manualChunks` ou `chunkFileNames`), senão o
+   hash muda a cada build e não dá pra filtrar;
+2. **excluir esse padrão** do `BUILD_ASSETS` no `stampServiceWorker` do
+   `vite.config.js`;
+3. conferir que o `RUNTIME` cache do `sw.js` guarda o chunk no primeiro acesso —
+   o *stale-while-revalidate* que já existe pra GET do mesmo domínio deve cobrir;
+4. **testar offline depois do primeiro uso** — é o cenário que importa e é o que
+   quebra silenciosamente.
+
+⚠️ E deixar um aviso honesto na aba: se o chunk ainda não foi baixado e não há
+rede, o editor precisa dizer isso — não pode ficar girando eternamente. Um
+`Placeholder` com o texto certo resolve.
+
+### 7.3 O portão do ESLint
+
+**Nenhum arquivo fora da rota 3D pode importar `three`.** Um `import { Vector3 }`
+num helper compartilhado promove o three inteiro pro chunk principal. Defesa:
+`no-restricted-imports` com `three` e `three/*`, desligado só dentro de
+`src/services/estrutura/**` e `src/vista3d/**`. O CI já é zero-warnings — pega na hora.
+
+### 7.4 Desempenho
+
+`InstancedMesh` por variante de peça · **3 níveis de LOD** (treliça cheia →
+treliça pobre → caixa) com um `InstancedMesh` por nível · `EdgesGeometry` no lugar
+de sombra (lê melhor e é muito mais barato) · **render sob demanda**, não
+`requestAnimationFrame` em loop · `setPixelRatio(min(dpr, 2))`.
+
+Alvo: **500 peças confortável, 2.000 como teto.** Uma estrutura real de show
+raramente passa de 200.
+
+---
+
+## 8 · A aba, nas 5 faixas
+
+Aba **Estrutura** dentro do projeto — junto de Composição, Screens e Cabeamento.
+Não é ferramenta solta: os painéis vêm depois, e eles já moram no projeto.
+
+| Faixa | Conteúdo |
+| --- | --- |
+| **F1 · MODO** | `Segmented`: **Montar** · **Ver** *(no celular, só Ver)* |
+| **F2 · FERRAMENTAS** | `Select` de sistema (300/500) · toggles-ícone de exibição (grade, cotas, conectores, eixos) · 🎛 ajustes · exportar ··· **primária roxa: "Adicionar peça"** |
+| **F3 · CONTEXTO** | chips passivos: nº de peças · nº de juntas · **peso total** · **L×A×P** · `StatusPill` de sistema misturado · `HelpTip` |
+| **F4 · CONTEÚDO** | o `<canvas>`, ocupando o resto da tela. Vazio = `Placeholder`. Zoom = `ZoomTrio` |
+| **F5 · AJUSTES** | `Drawer` (desktop): unidade, cor do tema da cena, densidade da grade, qualidade |
+
+**R1 — uma primária roxa por aba:** "Adicionar peça" é a razão de existir da aba.
+
+---
+
+## 9 · As fases
+
+| Fase | Entrega | Trava |
+| --- | --- | --- |
+| **E0 · Catálogo e motor** ✅ | `services/estrutura/` inteiro — catálogo com procedência, encaixe, snap, montagem, histórico, serialização, métricas. **129 testes em vitest, sem uma linha de 3D.** Nada visível no app | — |
+| **E1 · A cena** | chunk lazy com three.js, geometria procedural, InstancedMesh + LOD, órbita, grade, eixos, seleção. Aba Estrutura aparece (`desktopOnly`), carregando uma montagem de exemplo. **Ainda não edita** | E0 |
+| **E2 · Montar** | conectores visíveis, prévia fantasma, encaixe, giro de 90°, apagar, desfazer/refazer, e a montagem salva no projeto (IndexedDB + sync) | E1 |
+| **E3 · O relatório** | **a entrega que o dono pediu**: lista de peças por linha e comprimento, **peso total**, **medidas reais**, contagem de juntas → **parafusaria**, captura da cena. Folha **Estrutura** no Caderno + PDF. Visível também no celular | E2 |
+| **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
+| **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
+| **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |
+
+### 9.1 A ordem tem uma razão
+
+**E0 antes de tudo, sem tela nenhuma.** Todo o risco do projeto está na matemática
+de encaixe e no modelo de dados — e os dois são testáveis sem WebGL. Fazer a cena
+primeiro é a forma clássica de descobrir tarde que o modelo estava errado.
+
+**E3 é o marco de valor.** Depois dela o módulo já paga o próprio custo mesmo que
+E4 nunca aconteça: lista de peças e peso é o que a produção pede.
+
+---
+
+## 10 · O que o app NUNCA vai fazer
+
+Regra dura, do mesmo naipe do "nunca somar fator em cima do WLL" do
+[`rigging-pesquisa.md`](./rigging-pesquisa.md):
+
+- **dizer se a estrutura aguenta** — nem com semáforo, nem com "provavelmente";
+- **publicar número de carga sem procedência confirmada** — a divergência entre a
+  tabela oficial da Feeling (2002, assinada com CREA) e a republicada por terceiros
+  chega a **2,5×** no vão de 1 m. Arbitrar entre as duas seria inventar;
+- **reaproveitar tabela europeia no P30** — liga diferente (6351-T6 × 6082-T6),
+  parede diferente, junta diferente;
+- **dizer que a montagem está aprovada**, ou que pode ficar sobre pessoas;
+- **substituir o rigger habilitado ou a ART do engenheiro.**
+
+---
+
+## 11 · O que trava, e quem destrava
+
+### ✅ Resolvido em 19/08 — a geometria
+
+O dono entregou o **modelo SketchUp que usa pra projetar**, e a malha foi medida
+([pesquisa §4.8](./estrutura3d-pesquisa.md)). Seção 300 · entre-eixos 250 · banzo
+Ø50 · diagonal Ø40 · nós a cada 250 mm · diagonais a 51° · cabeceira 25 mm.
+**A barra já pode ser gerada em código.** O modelo confirmou também que é Q30
+brasileiro de verdade (300), não um F34 europeu rebatizado (290).
+
+✅ **Cubo e sapatas resolvidos (19/08).** Vieram em pastas próprias:
+`truss-3d/corner` → cubo de **300³** · `truss-3d/sapata` → **dois modelos de base**,
+740×740×55 (baixa) e 742,5×742,5×100 (alta), ambos **750 × 750 nominais**.
+
+✅ **Peso resolvido por ora (19/08).** Fica o proxy da Auratec, marcado como não
+conferido. O dono atualiza **peça por peça, na balança**, quando o material estiver
+em mãos — **e já incluindo o peso dos parafusos**. O campo `peso.fonte` é o que
+carrega essa história.
+
+> ⚠️ **Não contar parafuso duas vezes.** Se o peso da peça já embute a parafusaria,
+> a linha de parafusos do relatório é **contagem, não massa** — ela responde
+> "quantos levar na caixa", e o peso já está no total. O catálogo precisa de um
+> `peso.incluiParafusos: true|false` pra que o motor saiba disso, senão o total
+> infla em silêncio. Mesma família de erro do fator-sobre-fator do WLL.
+
+✅ **Catálogo e service worker resolvidos (19/08).** O estoque virou o catálogo
+de 10 itens do §3.2, sem P50; o chunk 3D sai do precache (§7.2).
+
+### Nada trava a E0
+
+Todas as decisões de escopo estão tomadas. **A implementação pode começar.**
+
+### Ligações pra Feeling *(comercial@feeling.com.br · (12) 3500-0858)*
+
+1. **Peso por barra** de cada comprimento (o site não publica nenhum) — **é o único
+   dado que ainda falta pro relatório**.
+2. **A revisão atual das tabelas de carga P30 e P50** — a que existe arquivada é
+   de maio/2002 e a versão que circula por terceiros diverge dela.
+3. Medidas do **cubo** e da **base** (o site lista as variantes, não as cotas).
+
+### O que dá pra fazer sem esperar
+
+Tudo de E0 a E3. O catálogo nasce com os pesos da Auratec marcados como
+**proxy não conferido**, e o Caderno imprime a procedência. **Uma balança e uma
+tarde no galpão** substituem qualquer telefonema — e aí o número é dele, não da
+internet.

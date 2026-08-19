@@ -1,0 +1,224 @@
+// services/estrutura/montagem.js — a árvore de peças de uma estrutura.
+//
+// Espeque: docs/estrutura3d-spec.md §5.5.
+//
+// A FONTE DA VERDADE É O ENCAIXE SIMBÓLICO, não a matriz. A matriz fica junto
+// como cache (pra carregar rápido e pra desenhar sem recalcular), mas quem manda
+// é o par de conectores. Assim, se um dia a geometria de uma peça for corrigida
+// no catálogo, os projetos antigos se RECONSTROEM certos em vez de ficarem tortos.
+//
+// Todas as funções são PURAS: recebem uma montagem, devolvem outra. Nada é
+// mutado no lugar — é o que torna o histórico de desfazer barato e o teste trivial.
+
+import { genId } from "../ids.js";
+import { conectorPorId, pecaPorId } from "./catalogo.js";
+import { conectorNoMundo, normalizarGiro, resolverEncaixe } from "./encaixe.js";
+import { MATRIZ_IDENTIDADE, arredMatriz } from "./vetor.js";
+
+export const VERSAO_MONTAGEM = 1;
+
+export const novaMontagem = () => ({ versao: VERSAO_MONTAGEM, pecas: [] });
+
+export const pecaDaMontagem = (montagem, id) =>
+  montagem?.pecas?.find((p) => p.id === id) ?? null;
+
+/** chave canônica de um conector dentro da montagem */
+export const chaveConector = (pecaId, conectorId) => `${pecaId}:${conectorId}`;
+
+/**
+ * As juntas da montagem — uma por peça encaixada.
+ * @returns {{a:string,b:string,pecaA:string,conA:string,pecaB:string,conB:string}[]}
+ */
+export function juntas(montagem) {
+  const out = [];
+  for (const p of montagem?.pecas ?? []) {
+    const e = p.encaixe;
+    if (!e?.de) continue;
+    out.push({
+      a: chaveConector(e.de, e.conAlvo),
+      b: chaveConector(p.id, e.conNovo),
+      pecaA: e.de,
+      conA: e.conAlvo,
+      pecaB: p.id,
+      conB: e.conNovo,
+    });
+  }
+  return out;
+}
+
+/** conectores ocupados, como Set de chaves */
+export function conectoresOcupados(montagem) {
+  const s = new Set();
+  for (const j of juntas(montagem)) {
+    s.add(j.a);
+    s.add(j.b);
+  }
+  return s;
+}
+
+/** todos os conectores da montagem, já no MUNDO, com a marca de ocupado */
+export function conectores(montagem) {
+  const ocupados = conectoresOcupados(montagem);
+  const out = [];
+  for (const p of montagem?.pecas ?? []) {
+    const cat = pecaPorId(p.catalogoId);
+    if (!cat) continue;
+    for (const c of cat.conectores) {
+      const chave = chaveConector(p.id, c.id);
+      out.push({
+        ...conectorNoMundo(c, p.matriz),
+        chave,
+        pecaId: p.id,
+        conectorId: c.id,
+        sistema: cat.sistema,
+        ocupado: ocupados.has(chave),
+      });
+    }
+  }
+  return out;
+}
+
+export const conectoresLivres = (montagem) =>
+  conectores(montagem).filter((c) => !c.ocupado);
+
+// ── erros de domínio ─────────────────────────────────────────
+// Erro nomeado em vez de string solta: a UI precisa decidir o texto, e o teste
+// precisa afirmar o motivo sem depender da redação.
+export class ErroDeMontagem extends Error {
+  constructor(motivo, detalhe = {}) {
+    super(motivo);
+    this.name = "ErroDeMontagem";
+    this.motivo = motivo;
+    this.detalhe = detalhe;
+  }
+}
+
+export const MOTIVOS = Object.freeze({
+  PECA_DESCONHECIDA: "peca-desconhecida",
+  ALVO_INEXISTENTE: "alvo-inexistente",
+  CONECTOR_INEXISTENTE: "conector-inexistente",
+  CONECTOR_OCUPADO: "conector-ocupado",
+  SISTEMA_INCOMPATIVEL: "sistema-incompativel",
+  CICLO: "ciclo",
+});
+
+// ── adicionar ────────────────────────────────────────────────
+
+/** primeira peça (ou peça solta): entra com a matriz que vier, ou na origem */
+export function adicionarPecaLivre(montagem, catalogoId, opcoes = {}) {
+  const cat = pecaPorId(catalogoId);
+  if (!cat) throw new ErroDeMontagem(MOTIVOS.PECA_DESCONHECIDA, { catalogoId });
+  const peca = {
+    id: opcoes.id ?? genId("pc"),
+    catalogoId,
+    matriz: arredMatriz(opcoes.matriz ?? [...MATRIZ_IDENTIDADE]),
+    encaixe: null,
+  };
+  return { ...montagem, pecas: [...montagem.pecas, peca] };
+}
+
+/**
+ * Encaixa uma peça nova num conector livre de uma peça já montada.
+ * @param {object} montagem
+ * @param {{catalogoId:string, de:string, conAlvo:string, conNovo:string, giro?:number, id?:string}} pedido
+ */
+export function adicionarPecaEncaixada(montagem, pedido) {
+  const { catalogoId, de, conAlvo, conNovo, giro = 0 } = pedido;
+
+  const cat = pecaPorId(catalogoId);
+  if (!cat) throw new ErroDeMontagem(MOTIVOS.PECA_DESCONHECIDA, { catalogoId });
+
+  const alvoPeca = pecaDaMontagem(montagem, de);
+  if (!alvoPeca) throw new ErroDeMontagem(MOTIVOS.ALVO_INEXISTENTE, { de });
+
+  const alvoCat = pecaPorId(alvoPeca.catalogoId);
+  const alvoConLocal = conectorPorId(alvoCat, conAlvo);
+  const novoConLocal = conectorPorId(cat, conNovo);
+  if (!alvoConLocal || !novoConLocal) {
+    throw new ErroDeMontagem(MOTIVOS.CONECTOR_INEXISTENTE, { conAlvo, conNovo });
+  }
+  if (alvoCat.sistema !== cat.sistema) {
+    throw new ErroDeMontagem(MOTIVOS.SISTEMA_INCOMPATIVEL, {
+      alvo: alvoCat.sistema,
+      novo: cat.sistema,
+    });
+  }
+  const ocupados = conectoresOcupados(montagem);
+  if (ocupados.has(chaveConector(de, conAlvo))) {
+    throw new ErroDeMontagem(MOTIVOS.CONECTOR_OCUPADO, { de, conAlvo });
+  }
+
+  const alvoMundo = conectorNoMundo(alvoConLocal, alvoPeca.matriz);
+  const { matriz } = resolverEncaixe(alvoMundo, novoConLocal, giro);
+
+  const peca = {
+    id: pedido.id ?? genId("pc"),
+    catalogoId,
+    matriz,
+    encaixe: { de, conAlvo, conNovo, giro: normalizarGiro(giro) },
+  };
+  return { ...montagem, pecas: [...montagem.pecas, peca] };
+}
+
+// ── remover ──────────────────────────────────────────────────
+
+/**
+ * Remove uma peça. As peças que estavam encaixadas NELA não somem e não se mexem:
+ * elas viram peças livres, mantendo a matriz de mundo que já tinham.
+ *
+ * É a escolha deliberada. Cascatear a remoção apagaria meia estrutura por um
+ * clique, e é o tipo de estrago que o "desfazer" conserta tarde demais na cabeça
+ * de quem está montando.
+ */
+export function removerPeca(montagem, id) {
+  const pecas = montagem.pecas
+    .filter((p) => p.id !== id)
+    .map((p) => (p.encaixe?.de === id ? { ...p, encaixe: null } : p));
+  return { ...montagem, pecas };
+}
+
+// ── recalcular ───────────────────────────────────────────────
+
+/**
+ * Reconstrói TODAS as matrizes a partir dos encaixes simbólicos.
+ * É o que faz um projeto antigo se endireitar quando o catálogo é corrigido.
+ * Peça livre mantém a matriz que tem (não há de onde derivar).
+ */
+export function recalcular(montagem) {
+  const porId = new Map(montagem.pecas.map((p) => [p.id, p]));
+  const prontas = new Map();
+  const visitando = new Set();
+
+  const resolver = (peca) => {
+    if (prontas.has(peca.id)) return prontas.get(peca.id);
+    if (visitando.has(peca.id)) {
+      throw new ErroDeMontagem(MOTIVOS.CICLO, { id: peca.id });
+    }
+    visitando.add(peca.id);
+
+    let matriz = peca.matriz;
+    const e = peca.encaixe;
+    const alvo = e?.de ? porId.get(e.de) : null;
+    if (alvo) {
+      const alvoMatriz = resolver(alvo);
+      const alvoCat = pecaPorId(alvo.catalogoId);
+      const cat = pecaPorId(peca.catalogoId);
+      const alvoCon = conectorPorId(alvoCat, e.conAlvo);
+      const novoCon = conectorPorId(cat, e.conNovo);
+      if (alvoCon && novoCon) {
+        matriz = resolverEncaixe(
+          conectorNoMundo(alvoCon, alvoMatriz),
+          novoCon,
+          e.giro,
+        ).matriz;
+      }
+    }
+
+    visitando.delete(peca.id);
+    prontas.set(peca.id, matriz);
+    return matriz;
+  };
+
+  const pecas = montagem.pecas.map((p) => ({ ...p, matriz: resolver(p) }));
+  return { ...montagem, pecas };
+}

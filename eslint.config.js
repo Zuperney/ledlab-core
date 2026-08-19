@@ -26,6 +26,30 @@ export default defineConfig([
     files: ['**/*.config.js'],
     languageOptions: { globals: globals.node },
   },
+  // O three.js só pode ser importado DENTRO da vista 3D (src/vista3d/).
+  // Motivo: o chunk 3D é lazy E fica fora do precache do service worker
+  // (docs/estrutura3d-spec.md §7.2). Um único `import { Vector3 } from 'three'`
+  // num helper compartilhado promove a biblioteca inteira pro chunk principal —
+  // engorda o app pra todo mundo e quebra o relatório offline no celular.
+  {
+    files: ['src/**/*.{js,jsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: 'three',
+          message: 'three só em src/vista3d/. O motor (src/services/estrutura/) usa vetor.js.',
+        }],
+        patterns: [{
+          group: ['three/*'],
+          message: 'three só em src/vista3d/. O motor (src/services/estrutura/) usa vetor.js.',
+        }],
+      }],
+    },
+  },
+  {
+    files: ['src/vista3d/**/*.{js,jsx}'],
+    rules: { 'no-restricted-imports': 'off' },
+  },
   // contexts e módulos que exportam hooks/constantes junto do provider/componente —
   // padrão deliberado do app; o fast-refresh cai pra full reload nesses arquivos e ok.
   {

@@ -1,0 +1,123 @@
+// serializar.test.js — o que vai pro IndexedDB e pro sync.
+// O teste de ida-e-volta é o que protege o dado do usuário: priorizado.
+import { describe, it, expect } from "vitest";
+import { deJSON, paraJSON } from "./serializar.js";
+import {
+  adicionarPecaEncaixada, adicionarPecaLivre, juntas, novaMontagem, pecaDaMontagem,
+} from "./montagem.js";
+import { matriz, qDoEixo } from "./vetor.js";
+
+const torre = () => {
+  let m = novaMontagem();
+  m = adicionarPecaLivre(m, "p30-sapata-baixa", { id: "s1" });
+  m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "p30-b2000", de: "s1", conAlvo: "topo", conNovo: "a" });
+  m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a", giro: 2 });
+  return m;
+};
+
+describe("ida e volta", () => {
+  it("JSON → montagem → JSON é IDÊNTICO", () => {
+    const original = paraJSON(torre());
+    expect(paraJSON(deJSON(original))).toEqual(original);
+  });
+
+  it("sobrevive a JSON.stringify/parse (o caminho real do IndexedDB)", () => {
+    const original = paraJSON(torre());
+    const voltou = paraJSON(deJSON(JSON.parse(JSON.stringify(original))));
+    expect(voltou).toEqual(original);
+  });
+
+  it("preserva o giro escolhido pelo técnico", () => {
+    const m = deJSON(paraJSON(torre()));
+    expect(pecaDaMontagem(m, "b2").encaixe.giro).toBe(2);
+  });
+
+  it("a saída é ESTÁVEL: mesma montagem, mesmo JSON (o sync não acorda à toa)", () => {
+    const m = torre();
+    expect(JSON.stringify(paraJSON(m))).toBe(JSON.stringify(paraJSON(m)));
+    expect(JSON.stringify(paraJSON(deJSON(paraJSON(m))))).toBe(JSON.stringify(paraJSON(m)));
+  });
+
+  it("não guarda geometria — só a árvore de montagem", () => {
+    const j = paraJSON(torre());
+    const chaves = new Set(j.pecas.flatMap((p) => Object.keys(p)));
+    expect([...chaves].sort()).toEqual(["catalogoId", "encaixe", "id", "matriz"]);
+  });
+
+  it("peça livre sai SEM a chave `encaixe` (JSON enxuto, diff limpo)", () => {
+    const j = paraJSON(adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "x" }));
+    expect("encaixe" in j.pecas[0]).toBe(false);
+  });
+});
+
+describe("versão", () => {
+  it("carimba a versão atual", () => {
+    expect(paraJSON(torre()).versao).toBe(1);
+  });
+
+  it("recusa arquivo de versão FUTURA em vez de abrir pela metade", () => {
+    expect(() => deJSON({ versao: 99, pecas: [] })).toThrowError(/versao-futura/);
+  });
+
+  it("arquivo sem versão é tratado como 1", () => {
+    expect(deJSON({ pecas: [] }).versao).toBe(1);
+  });
+});
+
+describe("dado torto falha alto", () => {
+  it("null vira montagem vazia", () => {
+    expect(deJSON(null).pecas).toEqual([]);
+  });
+
+  it("objeto sem `pecas` é recusado", () => {
+    expect(() => deJSON({ versao: 1 })).toThrowError(/json-invalido/);
+    expect(() => deJSON("lixo")).toThrowError(/json-invalido/);
+  });
+
+  it("peça sem id ou sem catalogoId é recusada", () => {
+    expect(() => deJSON({ versao: 1, pecas: [{ catalogoId: "p30-b2000" }] })).toThrowError(/peca-invalida/);
+  });
+
+  it("id duplicado é recusado", () => {
+    const p = { id: "a", catalogoId: "p30-b2000" };
+    expect(() => deJSON({ versao: 1, pecas: [p, { ...p }] })).toThrowError(/id-duplicado/);
+  });
+
+  it("peça fora do catálogo: recusa por padrão, descarta se pedirem", () => {
+    const dados = { versao: 1, pecas: [{ id: "a", catalogoId: "p50-b2000" }] };
+    expect(() => deJSON(dados)).toThrowError(/peca-desconhecida/);
+    expect(deJSON(dados, { descartarDesconhecidas: true }).pecas).toHaveLength(0);
+  });
+
+  it("matriz corrompida vira identidade em vez de propagar NaN", () => {
+    const m = deJSON({ versao: 1, pecas: [{ id: "a", catalogoId: "p30-b2000", matriz: [1, 2, "x"] }] });
+    expect(m.pecas[0].matriz).toHaveLength(16);
+    expect(m.pecas[0].matriz.every(Number.isFinite)).toBe(true);
+  });
+
+  it("encaixe apontando pra peça que não existe mais vira peça livre", () => {
+    const m = deJSON({
+      versao: 1,
+      pecas: [{ id: "a", catalogoId: "p30-b2000", encaixe: { de: "fantasma", conAlvo: "b", conNovo: "a", giro: 0 } }],
+    });
+    expect(m.pecas[0].encaixe).toBeNull();
+    expect(juntas(m)).toHaveLength(0);
+  });
+});
+
+describe("recalcular ao carregar", () => {
+  // é isto que endireita projeto antigo quando a geometria do catálogo é corrigida
+  it("conserta matriz salva errada a partir do encaixe simbólico", () => {
+    const j = paraJSON(torre());
+    j.pecas[2].matriz = matriz(qDoEixo([1, 0, 0], 0.7), [999, 999, 999]);
+    const m = deJSON(j);
+    expect(pecaDaMontagem(m, "b2").matriz[13]).toBeCloseTo(2555, 3);
+  });
+
+  it("dá pra desligar o recálculo quando se quer o arquivo como está", () => {
+    const j = paraJSON(torre());
+    j.pecas[2].matriz = matriz(qDoEixo([1, 0, 0], 0.7), [999, 999, 999]);
+    const m = deJSON(j, { recalcularMatrizes: false });
+    expect(pecaDaMontagem(m, "b2").matriz[13]).toBe(999);
+  });
+});
