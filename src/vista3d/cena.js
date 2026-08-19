@@ -20,7 +20,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { NIVEIS, geometriaDaPeca, limparCache } from "./geometria.js";
-import { caixaEnvolvente } from "../services/estrutura/metricas.js";
+import { caixaEnvolvente, nivelDoChao } from "../services/estrutura/metricas.js";
 
 // distância da câmera (mm) a partir da qual a peça cai de nível
 const CORTES_LOD = [6000, 16000, 40000];
@@ -321,6 +321,11 @@ export function criarCena(canvas, cores) {
   // ── API ────────────────────────────────────────────────────
   function sincronizar(montagem) {
     pecas = montagem?.pecas ?? [];
+    // O PISO FICA SEMPRE ABAIXO DA PEÇA MAIS BAIXA (regra do dono, 19/08). Peça
+    // atravessada pelo chão é desenho que mente sobre o que está apoiado e o que
+    // está no ar — e é com esse desenho que se decide içamento. A régua mora no
+    // motor (`nivelDoChao`), porque é regra, não detalhe de renderização.
+    grade.position.y = nivelDoChao(montagem);
     // peça apagada encurta a lista: índice que não existe mais sai da seleção,
     // senão o destaque salta pra peça errada na renderização seguinte
     for (const i of [...selecao]) if (i >= pecas.length) selecao.delete(i);

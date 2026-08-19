@@ -713,6 +713,33 @@ tela, não desenho.
 Só vale pra peça em forma de caixa (`tipo: "cubo"`). Na barra, os quatro lados
 também não têm conector e ninguém chama isso de face cega — são o corpo da peça.
 
+### O piso nunca corta a peça
+
+> *"a primeira peça nasce no centro do piso, passando metade pra baixo e metade
+> pra cima, crie uma regra que o piso sempre seja abaixo da peça mais baixa, ou
+> sobe a estrutura ou abaixa o piso"*
+
+Ele ofereceu as duas saídas, e as duas fazem falta — resolvem coisas diferentes.
+
+**1 · A peça solta nasce APOIADA** (`matrizApoiada`). Barra e cubo têm origem no
+CENTRO, porque é o que deixa a matemática do encaixe simples; o efeito colateral
+é que nascer na origem é nascer com metade da peça enterrada. A sapata nunca
+mostrou o problema porque a origem dela já é o chão — agora as três se comportam
+igual. É a regra do galpão: peça solta se apoia.
+
+**2 · O piso DESCE se algo passar dele** (`nivelDoChao`). Encaixar pra baixo é
+legítimo (uma sapata na ponta de baixo, uma torre que cresce pro fosso), e aí a
+peça atravessaria a grade. Peça cortada pelo piso é desenho que mente sobre o que
+está apoiado e o que está no ar — e é com esse desenho que se decide içamento.
+
+> **O piso só DESCE, nunca sobe.** Estrutura inteira no ar continua com a grade
+> no zero, que é o palco. Se o chão subisse atrás de uma estrutura voada, o
+> desenho perderia justamente a informação de que ela está voada — que é a
+> informação mais cara que ele carrega.
+
+A régua mora no motor (`metricas.nivelDoChao`), não na cena: é regra de projeto,
+não detalhe de renderização, e assim ela é testável sem WebGL.
+
 ### A paleta do catálogo
 
 > *"outra coisa que ainda não entrou foi um card que tenha a lista de todas as
@@ -746,7 +773,7 @@ canvas saiu — ela dizia o mesmo, duas vezes.
 | **E2 · Montar** ✅ | conectores clicáveis, prévia fantasma, encaixe, giro de 90° (na peça nova e na já montada), apagar, desfazer/refazer, e a montagem gravada em `project.estrutura` (IndexedDB + sync) | E1 |
 | **E3 · O relatório** ✅ | **a entrega que o dono pediu**: lista de peças com linha e peso, **peso total**, **medidas reais**, juntas → **parafusaria**, procedência do peso, aviso de responsabilidade e a **vista 3D capturada**. Folha ESTRUTURA no Caderno **e** no PDF, e ela abre no celular | E2 |
 | **E3.5 · Consolidação** ✅ | fecha a auditoria do §8.5: **caderno próprio de Estrutura** (e a folha sai do Resumido/Gabinetes), **detecção de sobreposição** por SAT que avisa sem bloquear, **face de entrada** (o conserto do cubo), histórico que atravessa a aba, peça desconhecida que falha alto, imagem que não vira órfã, **seleção múltipla + atalhos + conta-gotas**, e **cor por peça com legenda** na cena e no Caderno | E3 |
-| **E3.6 · O ajuste fino** ✅ | §8.7: `V` segurado = modo Ver · **as duas rotações** (`R` gira, `Ctrl+R` troca a face de entrada) e o seletor de face fora da tela · **seta na face cega** do cubo · **paleta do catálogo** por categoria, que também é a legenda | E3.5 |
+| **E3.6 · O ajuste fino** ✅ | §8.7: `V` segurado = modo Ver · **as duas rotações** (`R` gira, `Ctrl+R` troca a face de entrada) e o seletor de face fora da tela · **seta na face cega** do cubo · **paleta do catálogo** por categoria, que também é a legenda · **o piso nunca corta a peça** (nasce apoiada, e a grade desce se algo passar dela) | E3.5 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

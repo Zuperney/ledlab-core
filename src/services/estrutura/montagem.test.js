@@ -2,9 +2,10 @@
 import { describe, it, expect } from "vitest";
 import {
   ErroDeMontagem, MOTIVOS, adicionarPecaEncaixada, adicionarPecaLivre, chaveConector, girarPeca,
-  conectores, conectoresLivres, conectoresOcupados, juntas, mudarEntrada, novaMontagem,
-  pecaDaMontagem, recalcular, removerPeca,
+  conectores, conectoresLivres, conectoresOcupados, juntas, matrizApoiada, mudarEntrada,
+  novaMontagem, pecaDaMontagem, recalcular, removerPeca,
 } from "./montagem.js";
+import { caixaEnvolvente } from "./metricas.js";
 import { matriz, qDoEixo } from "./vetor.js";
 
 // torre: sapata + 2 m + 1 m, tudo com id fixo pro teste ser legível
@@ -286,5 +287,37 @@ describe("a face de entrada não pode roubar conector ocupado", () => {
     m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "c", conAlvo: "norte", conNovo: "a" });
     expect(() => mudarEntrada(m, "c", "norte")).toThrow(ErroDeMontagem);
     expect(mudarEntrada(m, "c", "sul").pecas[1].encaixe.conNovo).toBe("sul");
+  });
+});
+
+describe("a peça solta nasce apoiada, não enterrada", () => {
+  // Barra e cubo têm origem no CENTRO — nascer na origem era nascer com metade
+  // da peça abaixo do piso, que foi o que o dono viu.
+  it("a barra de 2 m sobe meio comprimento", () => {
+    expect(matrizApoiada("p30-b2000")[13]).toBe(1000);
+  });
+
+  it("o cubo sobe meio lado", () => {
+    expect(matrizApoiada("p30-cubo5")[13]).toBe(150);
+  });
+
+  it("a sapata não se mexe: a origem dela JÁ é o chão", () => {
+    expect(matrizApoiada("p30-sapata-baixa")[13]).toBe(0);
+  });
+
+  it("x e z passam direto — a altura é a única coisa que a regra decide", () => {
+    const m = matrizApoiada("p30-b2000", { x: 500, z: -300 });
+    expect([m[12], m[13], m[14]]).toEqual([500, 1000, -300]);
+  });
+
+  it("peça fora do catálogo não explode: fica na origem", () => {
+    expect(matrizApoiada("p50-b2000")[13]).toBe(0);
+  });
+
+  it("montada assim, a peça inteira fica em cima do piso", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", {
+      id: "a", matriz: matrizApoiada("p30-b2000"),
+    });
+    expect(caixaEnvolvente(m).min[1]).toBe(0);
   });
 });

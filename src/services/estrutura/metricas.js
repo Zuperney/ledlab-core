@@ -75,6 +75,22 @@ export function caixaEnvolvente(montagem) {
 }
 
 /**
+ * Onde o PISO tem que ser desenhado, em mm.
+ *
+ * Regra do dono (19/08): **o piso fica sempre abaixo da peça mais baixa**. Peça
+ * atravessada pelo chão é desenho que mente sobre o que está no ar e o que está
+ * apoiado — e quem lê o desenho decide içamento com isso.
+ *
+ * Só DESCE, nunca sobe: estrutura toda no ar continua com o chão no zero, que é
+ * o palco. O chão acompanhar uma estrutura voada apagaria justamente a
+ * informação de que ela está voada.
+ */
+export function nivelDoChao(montagem) {
+  const caixa = caixaEnvolvente(montagem);
+  return Math.min(0, caixa?.min[1] ?? 0);
+}
+
+/**
  * A lista de peças — o artefato que vai pro galpão.
  * Ordenada por tipo (barra, cubo, sapata) e, dentro do tipo, pela ordem do
  * catálogo, pra que a folha impressa saia sempre igual.

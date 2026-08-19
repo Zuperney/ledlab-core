@@ -1,10 +1,12 @@
 // metricas.test.js — peso, medidas e a lista que vai pro galpão.
 import { describe, it, expect } from "vitest";
 import {
-  caixaEnvolvente, listaDePecas, parafusaria, pesoTotal, resumo,
+  caixaEnvolvente, listaDePecas, nivelDoChao, parafusaria, pesoTotal, resumo,
 } from "./metricas.js";
 import { adicionarPecaEncaixada, adicionarPecaLivre, novaMontagem } from "./montagem.js";
 import { pecaPorId } from "./catalogo.js";
+import { porticoDeExemplo } from "./exemplos.js";
+import { IDENTIDADE, matriz } from "./vetor.js";
 
 // sapata (8) + 2 m (22) + 1 m (13) = 43 kg, altura 55 + 2000 + 1000 = 3055
 const torre = () => {
@@ -121,5 +123,33 @@ describe("resumo", () => {
     expect(r.pecas).toBe(0);
     expect(r.caixa).toBeNull();
     expect(r.peso.kg).toBe(0);
+  });
+});
+
+describe("onde o piso é desenhado", () => {
+  it("sem estrutura, o piso é o zero do palco", () => {
+    expect(nivelDoChao(novaMontagem())).toBe(0);
+    expect(nivelDoChao(null)).toBe(0);
+  });
+
+  it("estrutura apoiada mantém o piso no zero", () => {
+    expect(nivelDoChao(porticoDeExemplo())).toBe(0);
+  });
+
+  // peça atravessada pelo chão é desenho que mente sobre o que está apoiado
+  it("peça abaixo do zero faz o piso DESCER até ela", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", {
+      id: "a", matriz: matriz(IDENTIDADE, [0, -400, 0]),
+    });
+    expect(nivelDoChao(m)).toBe(-1400); // meio comprimento abaixo do centro
+  });
+
+  // estrutura voada continua com o palco no lugar: o chão acompanhar apagaria a
+  // informação de que ela está no ar
+  it("estrutura toda no ar NÃO levanta o piso", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", {
+      id: "a", matriz: matriz(IDENTIDADE, [0, 8000, 0]),
+    });
+    expect(nivelDoChao(m)).toBe(0);
   });
 });

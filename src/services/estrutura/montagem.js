@@ -11,9 +11,9 @@
 // mutado no lugar — é o que torna o histórico de desfazer barato e o teste trivial.
 
 import { genId } from "../ids.js";
-import { conectorPorId, pecaPorId } from "./catalogo.js";
+import { caixaLocal, conectorPorId, pecaPorId } from "./catalogo.js";
 import { conectorNoMundo, normalizarGiro, resolverEncaixe } from "./encaixe.js";
-import { MATRIZ_IDENTIDADE, arredMatriz } from "./vetor.js";
+import { IDENTIDADE, MATRIZ_IDENTIDADE, arredMatriz, matriz } from "./vetor.js";
 
 export const VERSAO_MONTAGEM = 1;
 
@@ -103,6 +103,22 @@ export const MOTIVOS = Object.freeze({
 });
 
 // ── adicionar ────────────────────────────────────────────────
+
+/**
+ * A matriz de uma peça nova APOIADA NO CHÃO, e não centrada na origem.
+ *
+ * Barra e cubo têm origem no CENTRO (é o que faz a matemática do encaixe ficar
+ * simples), então nascer na origem é nascer com metade da peça enterrada — foi o
+ * que o dono viu. A sapata já tem origem no chão, e por isso ela nunca mostrou o
+ * problema: aqui as três passam a se comportar igual.
+ *
+ * A regra é a do galpão: peça solta se APOIA. Quem quiser pendurar peça no ar
+ * ainda pode passar a matriz que quiser.
+ */
+export function matrizApoiada(catalogoId, { x = 0, z = 0 } = {}) {
+  const caixa = caixaLocal(pecaPorId(catalogoId));
+  return arredMatriz(matriz(IDENTIDADE, [x, caixa ? -caixa.min[1] : 0, z]));
+}
 
 /** primeira peça (ou peça solta): entra com a matriz que vier, ou na origem */
 export function adicionarPecaLivre(montagem, catalogoId, opcoes = {}) {

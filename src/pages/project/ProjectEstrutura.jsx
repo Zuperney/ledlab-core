@@ -42,7 +42,9 @@ import { resolverEncaixe } from "../../services/estrutura/encaixe.js";
 import { entradasDe, facesCegasNoMundo, melhorEntrada } from "../../services/estrutura/entrada.js";
 import { colisoes } from "../../services/estrutura/colisao.js";
 import { paletaDaEstrutura } from "../../services/estrutura/cores.js";
-import { chaveConector, conectoresLivres, conectoresOcupados } from "../../services/estrutura/montagem.js";
+import {
+  chaveConector, conectoresLivres, conectoresOcupados, matrizApoiada,
+} from "../../services/estrutura/montagem.js";
 import {
   ACOES, criarHistorico, desfazerUm, executar, podeDesfazer, podeRefazer, refazerUm,
 } from "../../services/estrutura/historico.js";
@@ -554,7 +556,14 @@ export default function ProjectEstrutura({ project, patch }) {
         <div style={{ flex: 1 }} />
         <button
           style={btn("primary")}
-          onClick={() => rodar({ tipo: ACOES.ADICIONAR_LIVRE, id: genId("pc"), catalogoId })}
+          // apoiada no chão, não centrada na origem: barra e cubo têm origem no
+          // CENTRO, e nascer na origem era nascer com metade da peça enterrada
+          onClick={() => rodar({
+            tipo: ACOES.ADICIONAR_LIVRE,
+            id: genId("pc"),
+            catalogoId,
+            matriz: matrizApoiada(catalogoId),
+          })}
         >
           <Plus size={15} /> Adicionar peça
         </button>
