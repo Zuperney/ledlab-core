@@ -506,9 +506,20 @@ catálogo Feeling. Vale pra desenhar; não vale como especificação do fabrican
 | **Entre-eixos dos banzos** | **250,0 mm** | as travessas medem exatamente 250, e a diagonal do quadrado dá **353,6 = 250 × √2** |
 | **Ø do banzo** | **50 mm** (300 − 250) | o real é 2" = **50,8** — o modelo arredondou (ver nota) |
 | **Ø da diagonal e da travessa** | **40 mm** | 🔺 nenhum fabricante publica esse número |
-| **Passo dos nós** | **250 mm** ao longo do comprimento | picos de densidade em 0 · 250 · 500 · 750 · 1000 · 1250 … e depois **250 a partir da outra ponta** (1475 · 1725 · 1975) |
+| **Escada (travessas)** | **500 mm**, em duas faces opostas, **defasadas de 250** | ⚠️ ver a correção abaixo |
 | **Ângulo das diagonais** | **≈ 51°** em relação ao eixo da barra | detectado pelas normais das faces |
 | **Cabeceira** | ~**25 mm** de espessura em cada ponta | os nós em 25 e em L−25 |
+
+> ⚠️ **CORREÇÃO DO DONO (19/08) — a escada é de 500, não de 250.**
+> A primeira leitura desta malha disse "nós a cada 250 mm, com a sobra no meio".
+> **Estava errada, e o erro foi de método:** o histograma projetou **as duas
+> faces juntas** num eixo só, e duas escadas de 500 defasadas de 250 somam
+> exatamente como uma escada de 250. O dono corrigiu: **a escada é de 500 em
+> 500, uma face começando em 0 e a outra em 250** — e os **"V" ficam nas mesmas
+> posições nos dois lados**, não espelhados.
+>
+> Fica a lição de método: **projeção que soma faces esconde defasagem.** Medir
+> face a face teria mostrado na hora.
 
 > ⚠️ **Nota do Ø50 × 2".** O modelo desenha tubo de **50 mm redondo**, o que dá o
 > entre-eixos limpo de 250. O tubo real brasileiro é **2" = 50,8 mm**, o que daria

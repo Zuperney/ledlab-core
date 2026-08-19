@@ -25,12 +25,22 @@ export const SISTEMAS = {
     banzoMm: 50, // desenho. O tubo REAL é 2" = 50,8 (espeque §5.2.1)
     banzoRealPol: 2,
     diagonalMm: 40,
-    passoNoMm: 250, // espaçamento dos nós ao longo da barra (travessas)
+    // A ESCADA (travessas horizontais) fica em DUAS faces opostas, a cada 500 mm
+    // — e as duas são DEFASADAS de 250: uma começa em 0, a outra em 250.
+    // (Foi isto que enganou a primeira leitura da malha: somando as duas faces
+    // num histograma só, duas escadas de 500 defasadas leem como uma de 250.)
+    passoEscadaMm: 500,
+    defasagemEscadaMm: 250,
     // O ziguezague das diagonais tem passo PRÓPRIO, menor que o das travessas —
     // e é ele que explica os 51° medidos na malha: atan(250 / 200) = 51,3°.
     // Sem esse passo separado a diagonal sairia a 45° e a barra ficaria "quase".
     passoDiagonalMm: 200,
     cabeceiraMm: 25,
+    // o flange da emenda: o disco que aparece na ponta de cada banzo. Não é
+    // enfeite — é o que faz quem olha o desenho enxergar que ali há DUAS peças
+    // parafusadas, e não uma barra contínua.
+    flangeMm: 80, // a cabeceira real é cantoneira L 4" (≈100 mm); 80 lê bem em tela
+    flangeEspessuraMm: 12,
     banzos: 4,
   },
 };
@@ -201,22 +211,31 @@ export function caixaLocal(peca) {
   return null;
 }
 
-// ── geometria gerada: os nós da barra ────────────────────────
-// Os nós ficam a `passoNoMm` CONTADOS DE CADA PONTA, e a sobra fica no MEIO.
-// É assim que o modelo da casa está desenhado e é assim que truss se fabrica —
-// quem não é do ramo deixa a sobra na ponta, e o desenho se entrega.
+// ── geometria gerada: a escada ───────────────────────────────
+// As travessas de UMA face, ao longo do comprimento. A outra face usa o mesmo
+// passo com `inicio = defasagemEscadaMm` — é a defasagem que dá o desenho
+// alternado que se vê na peça real.
 //
-// Devolve as posições ao longo do comprimento, de 0 a `comprimentoMm`, ordenadas.
-export function nosDaBarra(comprimentoMm, passoNoMm = SISTEMAS[300].passoNoMm) {
+// ⚠️ CORREÇÃO 19/08 (dono): a primeira versão punha as travessas a cada 250 mm
+// com a "sobra no meio". Era leitura errada da malha — o histograma somava as
+// duas faces. São duas escadas de 500 defasadas de 250.
+export function escadaDaBarra(
+  comprimentoMm,
+  passoMm = SISTEMAS[300].passoEscadaMm,
+  inicioMm = 0,
+) {
   const L = Number(comprimentoMm) || 0;
-  if (L <= 0) return [];
-  if (!(passoNoMm > 0) || L <= passoNoMm) return [0, L];
-  const nos = new Set([0, L]);
-  const inteiros = Math.floor(L / passoNoMm);
-  // metade dos vãos vem de baixo, metade de cima; o vão central absorve a sobra
-  const debaixo = Math.ceil(inteiros / 2);
-  const decima = inteiros - debaixo;
-  for (let i = 1; i <= debaixo; i++) nos.add(i * passoNoMm);
-  for (let i = 1; i <= decima; i++) nos.add(L - i * passoNoMm);
-  return [...nos].sort((a, b) => a - b);
+  if (L <= 0 || !(passoMm > 0) || inicioMm > L) return [];
+  const out = [];
+  for (let y = inicioMm; y <= L + 1e-6; y += passoMm) out.push(Math.round(y * 1e6) / 1e6);
+  return out;
+}
+
+/** as duas escadas da barra: [face que começa em 0, face defasada] */
+export function escadasDaBarra(comprimentoMm, sistema = 300) {
+  const s = SISTEMAS[sistema];
+  return [
+    escadaDaBarra(comprimentoMm, s.passoEscadaMm, 0),
+    escadaDaBarra(comprimentoMm, s.passoEscadaMm, s.defasagemEscadaMm),
+  ];
 }

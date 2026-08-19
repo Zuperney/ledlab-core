@@ -15,15 +15,15 @@
 import { BoxGeometry, CylinderGeometry, Matrix4, Quaternion, Vector3 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
-  SISTEMAS, nosDaBarra, passosDaDiagonal, pecaPorId,
+  SISTEMAS, escadasDaBarra, passosDaDiagonal, pecaPorId,
 } from "../services/estrutura/catalogo.js";
 
 // Níveis de detalhe. O nº 3 é uma CAIXA: de longe, uma treliça e um bloco são o
 // mesmo punhado de pixels, e a caixa custa 12 triângulos contra 896.
 export const NIVEIS = [
-  { id: 0, radial: 8, diagonais: true, travessas: true },
-  { id: 1, radial: 5, diagonais: true, travessas: true },
-  { id: 2, radial: 3, diagonais: false, travessas: true },
+  { id: 0, radial: 8, diagonais: true, travessas: true, flanges: true },
+  { id: 1, radial: 5, diagonais: true, travessas: true, flanges: true },
+  { id: 2, radial: 3, diagonais: false, travessas: true, flanges: false },
   { id: 3, caixa: true },
 ];
 
@@ -43,7 +43,31 @@ function tubo(a, b, raio, radial) {
 }
 
 /**
- * A barra: 4 banzos + travessas nos nós + ziguezague de diagonais.
+ * O FLANGE da emenda: o disco na ponta do banzo.
+ *
+ * Não é enfeite. Sem ele, duas barras encaixadas viram uma linha contínua no
+ * desenho, e quem olha a estrutura não enxerga que ali existe uma JUNTA — dois
+ * flanges parafusados, e portanto duas peças pra carregar e 4 parafusos pra
+ * levar. É o detalhe que faz o desenho comunicar montagem, não silhueta.
+ */
+function flangesNaPonta(s, y, radial) {
+  const e = s.entreEixosMm / 2;
+  const r = s.flangeMm / 2;
+  const t = s.flangeEspessuraMm;
+  const dentro = y < 0 ? 1 : -1; // o flange cresce pra DENTRO da peça
+  const partes = [];
+  for (const x of [-e, e]) {
+    for (const z of [-e, e]) {
+      partes.push(
+        tubo(new Vector3(x, y, z), new Vector3(x, y + dentro * t, z), r, radial),
+      );
+    }
+  }
+  return partes;
+}
+
+/**
+ * A barra: 4 banzos + a escada + ziguezague de diagonais + flanges nas pontas.
  * Local: eixo ao longo de Y, CENTRADA na origem (igual aos conectores do catálogo).
  */
 function geometriaBarra(peca, nivel) {
@@ -62,36 +86,42 @@ function geometriaBarra(peca, nivel) {
     }
   }
 
-  // travessas: tubos ao longo de X, nas duas faces z = ±e, em cada nó.
-  // É o que a malha da casa mostra — muitos tubos em X, poucos em Z.
+  // A ESCADA: travessas ao longo de X, nas duas faces z = ±e, a cada 500 mm —
+  // e as duas DEFASADAS de 250 (uma começa em 0, a outra em 250). Correção do
+  // dono (19/08): a primeira versão punha tudo a cada 250 nas duas faces.
   if (nivel.travessas) {
-    for (const y of nosDaBarra(L, s.passoNoMm)) {
-      const yy = y - meia;
-      for (const z of [-e, e]) {
-        partes.push(tubo(new Vector3(-e, yy, z), new Vector3(e, yy, z), rDiag, Math.max(3, nivel.radial - 2)));
+    const [escadaA, escadaB] = escadasDaBarra(L, peca.sistema);
+    for (const [escada, z] of [[escadaA, -e], [escadaB, e]]) {
+      for (const y of escada) {
+        partes.push(
+          tubo(new Vector3(-e, y - meia, z), new Vector3(e, y - meia, z), rDiag, Math.max(3, nivel.radial - 2)),
+        );
       }
     }
   }
 
-  // diagonais: ziguezague nas faces x = ±e, com PASSO PRÓPRIO (é ele que dá os
-  // 51° medidos). O sentido alterna entre as duas faces pra não ficarem paralelas.
+  // Os "V": ziguezague nas faces x = ±e, com PASSO PRÓPRIO (é ele que dá os 51°
+  // medidos). Os dois lados ficam nas MESMAS posições — não são espelhados.
   if (nivel.diagonais) {
     const passos = passosDaDiagonal(L, s.passoDiagonalMm);
-    for (const [i, x] of [-e, e].entries()) {
+    for (const x of [-e, e]) {
       for (let k = 0; k < passos.length - 1; k++) {
-        const sobe = (k + i) % 2 === 0;
-        const z0 = sobe ? -e : e;
-        const z1 = sobe ? e : -e;
+        const sobe = k % 2 === 0;
         partes.push(
           tubo(
-            new Vector3(x, passos[k] - meia, z0),
-            new Vector3(x, passos[k + 1] - meia, z1),
+            new Vector3(x, passos[k] - meia, sobe ? -e : e),
+            new Vector3(x, passos[k + 1] - meia, sobe ? e : -e),
             rDiag,
             Math.max(3, nivel.radial - 2),
           ),
         );
       }
     }
+  }
+
+  if (nivel.flanges) {
+    partes.push(...flangesNaPonta(s, -meia, nivel.radial));
+    partes.push(...flangesNaPonta(s, meia, nivel.radial));
   }
 
   return mergeGeometries(partes.filter(Boolean), false);
@@ -121,6 +151,24 @@ function geometriaCubo(peca, nivel) {
       }
     }
   }
+  // flange em toda face ABERTA — é onde vai haver emenda
+  if (nivel.flanges) {
+    const r = s.flangeMm / 2;
+    const t = s.flangeEspessuraMm;
+    const BASES = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    for (const c of peca.conectores) {
+      const n = c.dir;
+      // os dois eixos que sobram quando se tira a normal da face
+      const [u, v] = BASES.filter((a) => Math.abs(a[0] * n[0] + a[1] * n[1] + a[2] * n[2]) < 0.5);
+      for (const du of [-e, e]) {
+        for (const dv of [-e, e]) {
+          const face = [0, 1, 2].map((i) => n[i] * meia + u[i] * du + v[i] * dv);
+          const dentro = [0, 1, 2].map((i) => face[i] - n[i] * t);
+          partes.push(tubo(new Vector3(...face), new Vector3(...dentro), r, nivel.radial));
+        }
+      }
+    }
+  }
   return mergeGeometries(partes.filter(Boolean), false);
 }
 
@@ -131,7 +179,8 @@ function geometriaSapata(peca, nivel) {
   const chapa = new BoxGeometry(peca.larguraMm, peca.alturaMm, peca.larguraMm);
   chapa.translate(0, peca.alturaMm / 2, 0);
   const partes = [chapa];
-  // 4 tocos curtos que dão a "pegada" de 300 onde a barra encaixa
+  // 4 tocos curtos que dão a "pegada" de 300 onde a barra encaixa, com o flange
+  // no topo — é ali que a primeira barra da torre se emenda
   for (const x of [-e, e]) {
     for (const z of [-e, e]) {
       partes.push(
@@ -142,6 +191,16 @@ function geometriaSapata(peca, nivel) {
           nivel.radial ?? 6,
         ),
       );
+      if (nivel.flanges) {
+        partes.push(
+          tubo(
+            new Vector3(x, peca.alturaMm + 40 - s.flangeEspessuraMm, z),
+            new Vector3(x, peca.alturaMm + 40, z),
+            s.flangeMm / 2,
+            nivel.radial ?? 6,
+          ),
+        );
+      }
     }
   }
   return mergeGeometries(partes.filter(Boolean), false);

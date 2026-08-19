@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ANGULO_DE_GIRO, CATALOGO, PARAFUSARIA_POR_JUNTA, PASSOS_DE_GIRO, SISTEMAS,
-  caixaLocal, conectorPorId, nosDaBarra, pecaPorId, pecasDoSistema,
+  caixaLocal, conectorPorId, escadaDaBarra, escadasDaBarra, pecaPorId, pecasDoSistema,
 } from "./catalogo.js";
 import { escalar, comprimento } from "./vetor.js";
 
@@ -53,7 +53,8 @@ describe("a geometria medida (pesquisa §4.8)", () => {
     expect(s.entreEixosMm).toBe(250);
     expect(s.banzoMm).toBe(50);
     expect(s.diagonalMm).toBe(40);
-    expect(s.passoNoMm).toBe(250);
+    expect(s.passoEscadaMm).toBe(500);
+    expect(s.defasagemEscadaMm).toBe(250);
     expect(s.banzos).toBe(4);
   });
 
@@ -127,37 +128,46 @@ describe("caixaLocal", () => {
   });
 });
 
-describe("nosDaBarra — a regra dos vãos", () => {
-  it("comprimento múltiplo do passo fecha redondo", () => {
-    expect(nosDaBarra(2000)).toEqual([0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000]);
+describe("a escada — duas faces de 500, defasadas de 250", () => {
+  it("a face que começa em 0 sobe de 500 em 500", () => {
+    expect(escadaDaBarra(2000, 500, 0)).toEqual([0, 500, 1000, 1500, 2000]);
   });
 
-  // a regra real de fábrica: 250 contados de CADA ponta, a sobra no MEIO.
-  // quem não é do ramo deixa a sobra na ponta — e o desenho se entrega.
-  it("comprimento quebrado deixa a sobra no MEIO, nunca na ponta", () => {
-    const nos = nosDaBarra(1100);
-    expect(nos[0]).toBe(0);
-    expect(nos[nos.length - 1]).toBe(1100);
-    expect(nos[1]).toBe(250); // primeiro vão cheio, saindo de baixo
-    expect(nos[nos.length - 2]).toBe(850); // primeiro vão cheio, vindo de cima
-    // a sobra (1100 − 4×250 = 100) é o vão do MEIO, e é o menor de todos
-    const vaos = nos.slice(1).map((n, i) => n - nos[i]);
-    expect(vaos).toEqual([250, 250, 100, 250, 250]);
-    expect(Math.min(...vaos)).toBe(1100 % 250);
-    expect(vaos.indexOf(Math.min(...vaos))).toBe(Math.floor(vaos.length / 2));
+  it("a outra face começa em 250 e mantém o passo", () => {
+    expect(escadaDaBarra(2000, 500, 250)).toEqual([250, 750, 1250, 1750]);
   });
 
-  it("barra mais curta que o passo não ganha nó no meio", () => {
-    expect(nosDaBarra(200)).toEqual([0, 200]);
+  // é ESTA soma que engana quem mede a malha projetando as duas faces juntas:
+  // duas escadas de 500 defasadas leem como uma escada de 250
+  it("as duas juntas leem como um passo de 250 — a armadilha da medição", () => {
+    const [a, b] = escadasDaBarra(2000);
+    const uniao = [...new Set([...a, ...b])].sort((x, y) => x - y);
+    expect(uniao).toEqual([0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000]);
   });
 
-  it("nunca devolve nó fora do comprimento, em nenhuma peça do catálogo", () => {
+  it("barra curta ganha o que couber, sem travessa fora do comprimento", () => {
+    expect(escadasDaBarra(200)).toEqual([[0], []]);
+    expect(escadasDaBarra(300)).toEqual([[0], [250]]);
+    expect(escadasDaBarra(600)).toEqual([[0, 500], [250]]);
+  });
+
+  it("nenhuma travessa passa do comprimento, em nenhuma peça do catálogo", () => {
     for (const p of CATALOGO.filter((x) => x.tipo === "barra")) {
-      const nos = nosDaBarra(p.comprimentoMm);
-      expect(Math.min(...nos)).toBe(0);
-      expect(Math.max(...nos)).toBe(p.comprimentoMm);
-      expect([...nos].sort((a, b) => a - b)).toEqual(nos);
+      for (const escada of escadasDaBarra(p.comprimentoMm)) {
+        for (const y of escada) {
+          expect(y).toBeGreaterThanOrEqual(0);
+          expect(y).toBeLessThanOrEqual(p.comprimentoMm);
+        }
+      }
     }
+  });
+});
+
+describe("o flange da emenda", () => {
+  it("o disco é maior que o banzo — é o que faz a junta aparecer", () => {
+    const s = SISTEMAS[300];
+    expect(s.flangeMm).toBeGreaterThan(s.banzoMm);
+    expect(s.flangeEspessuraMm).toBeGreaterThan(0);
   });
 });
 
