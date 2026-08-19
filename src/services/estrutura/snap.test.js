@@ -88,8 +88,8 @@ describe("melhorCandidato", () => {
 
 describe("integrado com a montagem", () => {
   it("uma barra solta encontra o topo livre da torre", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-sapata-baixa", { id: "s" });
-    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "p30-b2000", de: "s", conAlvo: "topo", conNovo: "a" });
+    let m = adicionarPecaLivre(novaMontagem(), "base-baixa", { id: "s" });
+    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "barra-2000", de: "s", conAlvo: "topo", conNovo: "a" });
 
     const grade = criarGrade(conectoresLivres(m));
     const topo = conectoresLivres(m)[0];
@@ -102,8 +102,8 @@ describe("integrado com a montagem", () => {
   });
 
   it("não oferece conector já ocupado da estrutura", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-sapata-baixa", { id: "s" });
-    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "p30-b2000", de: "s", conAlvo: "topo", conNovo: "a" });
+    let m = adicionarPecaLivre(novaMontagem(), "base-baixa", { id: "s" });
+    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "barra-2000", de: "s", conAlvo: "topo", conNovo: "a" });
 
     const grade = criarGrade(conectores(m)); // TODOS, inclusive ocupados
     const movel = { pos: [0, 55, 0], dir: [0, -1, 0], rolo: [0, 0, 1], sistema: 300, pecaId: "nova" };

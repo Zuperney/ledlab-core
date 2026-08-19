@@ -27,22 +27,22 @@ export function conectorApontandoPara(montagem, pecaId, direcao) {
     .sort((a, b) => b.d - a.d)[0]?.c ?? null;
 }
 
-/** uma torre: sapata + N barras de 2 m, com o cubo no topo */
+/** uma torre: base + N barras de 2 m, com o cubo no topo */
 function torre(montagem, prefixo, x, andares = 2) {
-  let m = adicionarPecaLivre(montagem, "p30-sapata-baixa", {
-    id: `${prefixo}-sap`,
+  let m = adicionarPecaLivre(montagem, "base-baixa", {
+    id: `${prefixo}-base`,
     matriz: naPosicao(x),
   });
-  let anterior = `${prefixo}-sap`;
+  let anterior = `${prefixo}-base`;
   let conAlvo = "topo";
   for (let i = 0; i < andares; i++) {
     const id = `${prefixo}-b${i}`;
-    m = adicionarPecaEncaixada(m, { id, catalogoId: "p30-b2000", de: anterior, conAlvo, conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id, catalogoId: "barra-2000", de: anterior, conAlvo, conNovo: "a" });
     anterior = id;
     conAlvo = "b";
   }
   m = adicionarPecaEncaixada(m, {
-    id: `${prefixo}-cubo`, catalogoId: "p30-cubo5", de: anterior, conAlvo, conNovo: "topo",
+    id: `${prefixo}-cubo`, catalogoId: "cubo-5f", de: anterior, conAlvo, conNovo: "topo",
   });
   return { montagem: m, cubo: `${prefixo}-cubo` };
 }
@@ -66,7 +66,7 @@ export function porticoDeExemplo(vaoMm = 4000) {
 
   return adicionarPecaEncaixada(dir.montagem, {
     id: "viga",
-    catalogoId: "p30-b4000",
+    catalogoId: "barra-4000",
     de: esq.cubo,
     conAlvo: saida.conectorId,
     conNovo: "a",

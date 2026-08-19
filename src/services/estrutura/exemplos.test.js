@@ -12,23 +12,23 @@ describe("conectorApontandoPara", () => {
   // pelo nome mandou a viga do pórtico pro lado errado — 8,8 m de vão onde
   // deviam ser 5.
   it("o cubo no topo INVERTE: 'leste' aponta pra −X", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "b" });
-    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "p30-cubo5", de: "b", conAlvo: "b", conNovo: "topo" });
+    let m = adicionarPecaLivre(novaMontagem(), "barra-2000", { id: "b" });
+    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "cubo-5f", de: "b", conAlvo: "b", conNovo: "topo" });
     const leste = conectoresLivres(m).find((c) => c.conectorId === "leste");
     expect(Math.round(leste.dir[0])).toBe(-1);
   });
 
   it("acha o conector pela direção do MUNDO, não pelo nome", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "b" });
-    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "p30-cubo5", de: "b", conAlvo: "b", conNovo: "topo" });
+    let m = adicionarPecaLivre(novaMontagem(), "barra-2000", { id: "b" });
+    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "cubo-5f", de: "b", conAlvo: "b", conNovo: "topo" });
     const paraLeste = conectorApontandoPara(m, "c", [1, 0, 0]);
     expect(paraLeste.conectorId).toBe("oeste");
     expect(Math.round(paraLeste.dir[0])).toBe(1);
   });
 
   it("não oferece conector ocupado", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "b" });
-    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "p30-cubo5", de: "b", conAlvo: "b", conNovo: "topo" });
+    let m = adicionarPecaLivre(novaMontagem(), "barra-2000", { id: "b" });
+    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "cubo-5f", de: "b", conAlvo: "b", conNovo: "topo" });
     expect(conectorApontandoPara(m, "c", [0, -1, 0]).conectorId).not.toBe("topo");
   });
 });
@@ -40,7 +40,7 @@ describe("pórtico de exemplo", () => {
     expect(m.pecas).toHaveLength(9);
     expect(juntas(m)).toHaveLength(7);
     expect(listaDePecas(m).map((l) => [l.catalogoId, l.qtd])).toEqual([
-      ["p30-b2000", 4], ["p30-b4000", 1], ["p30-cubo5", 2], ["p30-sapata-baixa", 2],
+      ["barra-2000", 4], ["barra-4000", 1], ["cubo-5f", 2], ["base-baixa", 2],
     ]);
   });
 
@@ -48,13 +48,13 @@ describe("pórtico de exemplo", () => {
   it("a viga fica ENTRE as torres — a estrutura é simétrica", () => {
     const c = caixaEnvolvente(m);
     expect(c.min[0]).toBeCloseTo(-c.max[0], 3);
-    // 4000 de vão + 2×150 de cubo + 2×(750−300)/2 de sobra da sapata = 5050
+    // 4000 de vão + 2×150 de cubo + 2×(750−300)/2 de sobra da base = 5050
     expect(c.larguraMm).toBeCloseTo(5050, 1);
   });
 
   it("as duas torres têm a mesma altura, e a viga passa pelo topo", () => {
     const c = caixaEnvolvente(m);
-    // sapata 55 + 2×2000 + cubo 300 = 4355
+    // base 55 + 2×2000 + cubo 300 = 4355
     expect(c.alturaMm).toBeCloseTo(4355, 1);
     const viga = m.pecas.find((p) => p.id === "viga");
     expect(viga.matriz[12]).toBeCloseTo(0, 3); // centrada no vão
@@ -76,7 +76,7 @@ describe("pórtico de exemplo", () => {
 describe("torre de exemplo", () => {
   it("empilha os andares pedidos e sobra um conector livre no topo", () => {
     const m = torreDeExemplo(3);
-    expect(m.pecas).toHaveLength(5); // sapata + 3 barras + cubo
+    expect(m.pecas).toHaveLength(5); // base + 3 barras + cubo
     const c = caixaEnvolvente(m);
     expect(c.alturaMm).toBeCloseTo(55 + 6000 + 300, 1);
     // o cubo entra invertido, então sobram as 4 faces laterais

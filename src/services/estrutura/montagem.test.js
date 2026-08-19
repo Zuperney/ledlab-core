@@ -7,22 +7,22 @@ import {
 } from "./montagem.js";
 import { matriz, qDoEixo } from "./vetor.js";
 
-// torre: sapata + 2 m + 1 m, tudo com id fixo pro teste ser legível
+// torre: base + 2 m + 1 m, tudo com id fixo pro teste ser legível
 const torre = () => {
   let m = novaMontagem();
-  m = adicionarPecaLivre(m, "p30-sapata-baixa", { id: "s1" });
+  m = adicionarPecaLivre(m, "base-baixa", { id: "s1" });
   m = adicionarPecaEncaixada(m, {
-    id: "b1", catalogoId: "p30-b2000", de: "s1", conAlvo: "topo", conNovo: "a",
+    id: "b1", catalogoId: "barra-2000", de: "s1", conAlvo: "topo", conNovo: "a",
   });
   m = adicionarPecaEncaixada(m, {
-    id: "b2", catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a",
+    id: "b2", catalogoId: "barra-1000", de: "b1", conAlvo: "b", conNovo: "a",
   });
   return m;
 };
 
 describe("adicionar", () => {
   it("a primeira peça entra na origem", () => {
-    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "x" });
+    const m = adicionarPecaLivre(novaMontagem(), "barra-2000", { id: "x" });
     expect(m.pecas).toHaveLength(1);
     expect(m.pecas[0].encaixe).toBeNull();
     expect(m.pecas[0].matriz.slice(12, 15)).toEqual([0, 0, 0]);
@@ -37,7 +37,7 @@ describe("adicionar", () => {
     }
   });
 
-  it("encaixar empilha na altura certa: sapata 55 + 2000 + 1000", () => {
+  it("encaixar empilha na altura certa: base 55 + 2000 + 1000", () => {
     const m = torre();
     expect(m.pecas).toHaveLength(3);
     // a de 2 m fica centrada em 55 + 1000
@@ -50,7 +50,7 @@ describe("adicionar", () => {
     const m = torre();
     expect(() =>
       adicionarPecaEncaixada(m, {
-        catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a",
+        catalogoId: "barra-1000", de: "b1", conAlvo: "b", conNovo: "a",
       }),
     ).toThrowError(/conector-ocupado/);
   });
@@ -58,16 +58,16 @@ describe("adicionar", () => {
   it("recusa alvo inexistente e conector inexistente", () => {
     const m = torre();
     expect(() =>
-      adicionarPecaEncaixada(m, { catalogoId: "p30-b1000", de: "zzz", conAlvo: "b", conNovo: "a" }),
+      adicionarPecaEncaixada(m, { catalogoId: "barra-1000", de: "zzz", conAlvo: "b", conNovo: "a" }),
     ).toThrowError(/alvo-inexistente/);
     expect(() =>
-      adicionarPecaEncaixada(m, { catalogoId: "p30-b1000", de: "b2", conAlvo: "topo", conNovo: "a" }),
+      adicionarPecaEncaixada(m, { catalogoId: "barra-1000", de: "b2", conAlvo: "topo", conNovo: "a" }),
     ).toThrowError(/conector-inexistente/);
   });
 
   it("é PURA: a montagem de entrada não muda", () => {
     const antes = novaMontagem();
-    const depois = adicionarPecaLivre(antes, "p30-b2000");
+    const depois = adicionarPecaLivre(antes, "barra-2000");
     expect(antes.pecas).toHaveLength(0);
     expect(depois.pecas).toHaveLength(1);
   });
@@ -143,7 +143,7 @@ describe("recalcular — a razão de guardar o encaixe simbólico", () => {
   });
 
   it("peça livre mantém a matriz (não há de onde derivar)", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", {
+    let m = adicionarPecaLivre(novaMontagem(), "barra-2000", {
       id: "solta", matriz: matriz(qDoEixo([0, 1, 0], 0.3), [500, 600, 700]),
     });
     m = recalcular(m);
@@ -154,8 +154,8 @@ describe("recalcular — a razão de guardar o encaixe simbólico", () => {
     const m = {
       versao: 1,
       pecas: [
-        { id: "a", catalogoId: "p30-b1000", matriz: null, encaixe: { de: "b", conAlvo: "b", conNovo: "a", giro: 0 } },
-        { id: "b", catalogoId: "p30-b1000", matriz: null, encaixe: { de: "a", conAlvo: "b", conNovo: "a", giro: 0 } },
+        { id: "a", catalogoId: "barra-1000", matriz: null, encaixe: { de: "b", conAlvo: "b", conNovo: "a", giro: 0 } },
+        { id: "b", catalogoId: "barra-1000", matriz: null, encaixe: { de: "a", conAlvo: "b", conNovo: "a", giro: 0 } },
       ],
     };
     expect(() => recalcular(m)).toThrowError(/ciclo/);
@@ -164,10 +164,10 @@ describe("recalcular — a razão de guardar o encaixe simbólico", () => {
 
 describe("uma corrente longa acumula o comprimento certo", () => {
   it("10 barras de 1 m dão 10 m de topo", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-b1000", { id: "p0" });
+    let m = adicionarPecaLivre(novaMontagem(), "barra-1000", { id: "p0" });
     for (let i = 1; i < 10; i++) {
       m = adicionarPecaEncaixada(m, {
-        id: `p${i}`, catalogoId: "p30-b1000", de: `p${i - 1}`, conAlvo: "b", conNovo: "a",
+        id: `p${i}`, catalogoId: "barra-1000", de: `p${i - 1}`, conAlvo: "b", conNovo: "a",
       });
     }
     const topo = conectoresLivres(m).find((c) => c.dir[1] > 0.9);
@@ -178,8 +178,8 @@ describe("uma corrente longa acumula o comprimento certo", () => {
 
 describe("girar", () => {
   it("muda o giro guardado e mexe a peça de lugar", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
-    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
+    let m = adicionarPecaLivre(novaMontagem(), "cubo-5f", { id: "c" });
+    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "barra-2000", de: "c", conAlvo: "leste", conNovo: "a" });
     const antes = pecaDaMontagem(m, "b").matriz;
     const girada = girarPeca(m, "b", 1);
     expect(pecaDaMontagem(girada, "b").encaixe.giro).toBe(1);
@@ -187,8 +187,8 @@ describe("girar", () => {
   });
 
   it("4 passos voltam ao lugar de origem", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
-    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
+    let m = adicionarPecaLivre(novaMontagem(), "cubo-5f", { id: "c" });
+    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "barra-2000", de: "c", conAlvo: "leste", conNovo: "a" });
     const volta = girarPeca(m, "b", 4);
     expect(pecaDaMontagem(volta, "b").encaixe.giro).toBe(0);
     pecaDaMontagem(volta, "b").matriz.forEach((n, i) =>
@@ -199,9 +199,9 @@ describe("girar", () => {
   // é o `recalcular` que faz isso de graça, porque a verdade é o encaixe
   // simbólico e não a matriz — girar a base tem que levar a torre junto
   it("quem está encaixado ACOMPANHA o giro", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "c" });
-    m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "p30-b2000", de: "c", conAlvo: "leste", conNovo: "a" });
-    m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a" });
+    let m = adicionarPecaLivre(novaMontagem(), "cubo-5f", { id: "c" });
+    m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "barra-2000", de: "c", conAlvo: "leste", conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "barra-1000", de: "b1", conAlvo: "b", conNovo: "a" });
     const girada = girarPeca(m, "b1", 1);
     // a ORIENTAÇÃO da filha muda junto...
     expect(pecaDaMontagem(girada, "b2").matriz).not.toEqual(pecaDaMontagem(m, "b2").matriz);
@@ -215,9 +215,9 @@ describe("girar", () => {
 
   // aqui a filha sai do eixo de propósito: o cubo pendura a barra pra fora
   it("filha FORA do eixo se move quando a mãe gira", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
-    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "topo" });
-    m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
+    let m = adicionarPecaLivre(novaMontagem(), "barra-2000", { id: "base" });
+    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "cubo-5f", de: "base", conAlvo: "b", conNovo: "topo" });
+    m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "barra-1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
     const antes = pecaDaMontagem(m, "braco").matriz.slice(12, 15);
     const girada = girarPeca(m, "cubo", 1);
     expect(pecaDaMontagem(girada, "braco").matriz.slice(12, 15)).not.toEqual(antes);
@@ -225,12 +225,12 @@ describe("girar", () => {
   });
 
   it("peça LIVRE não gira (não tem eixo de encaixe)", () => {
-    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "solta" });
+    const m = adicionarPecaLivre(novaMontagem(), "barra-2000", { id: "solta" });
     expect(girarPeca(m, "solta", 2)).toBe(m);
   });
 
   it("id inexistente não quebra", () => {
-    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "x" });
+    const m = adicionarPecaLivre(novaMontagem(), "barra-2000", { id: "x" });
     expect(girarPeca(m, "nada", 1)).toBe(m);
   });
 });

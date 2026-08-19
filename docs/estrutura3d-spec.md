@@ -6,6 +6,10 @@
 > lista de peças, peso, medidas, ferragem e a vista 3D capturada. 626 testes.
 > A próxima é a **E4** (os painéis pendurados na estrutura).
 >
+> 🗂 **19/08 — o catálogo virou CATEGORIA × MODELO** (§3.2.3): sem fabricante no
+> id (`p30-b2000` → `barra-2000`), `VERSAO_MONTAGEM` **1 → 2** e migração dos
+> projetos já salvos. Feito em branch própria, fora da consolidação (§8.6-E).
+>
 > 📚 **Base de pesquisa:** [`estrutura3d-pesquisa.md`](./estrutura3d-pesquisa.md) —
 > dissecação do TrussTool, mercado, stack medida e os dados reais do truss
 > brasileiro. **Leia antes de mexer no motor.**
@@ -55,6 +59,8 @@ mentira: a que parece laudo.
 | **Banzo** | o tubo principal (2" no P30 e no P50). Quatro por peça |
 | **Linha** | P30 · L30 · R30 · P50 — a família do fabricante. **Não é a medida** |
 | **Sistema** | a seção: **300** (P30/L30/R30) ou **500** (P50). É o que define se encaixa |
+| **Categoria** | o que a peça É: barra · cubo · base (e as futuras). É a primeira dimensão do catálogo |
+| **Modelo** | qual peça daquela categoria: a **medida**. `2000` na barra, `5f` no cubo, `baixa` na base |
 
 ⚠️ **A distinção linha × sistema é a regra mais importante do catálogo.** L30, P30
 e R30 são todos 300×300 e **encaixam entre si** (a Feeling vende a mesma base e o
@@ -94,25 +100,29 @@ um conector por face.
 
 **Dez itens. É o catálogo inteiro.** Não é o catálogo da Feeling — é o estoque real.
 
-| id | Peça | Medida | Peso semente (kg) | Fonte do peso |
-| --- | --- | --- | --- | --- |
-| `p30-b0200` | Barra P30 0,2 m | 200 mm | 6 | Auratec |
-| `p30-b0300` | Barra P30 0,3 m | 300 mm | 7 | 🔺 interpolado |
-| `p30-b0500` | Barra P30 0,5 m | 500 mm | 10 | Auratec |
-| `p30-b0600` | Barra P30 0,6 m | 600 mm | 11 | 🔺 interpolado |
-| `p30-b1000` | Barra P30 1 m | 1000 mm | 13 | Auratec |
-| `p30-b2000` | Barra P30 2 m | 2000 mm | 22 | Auratec |
-| `p30-b3000` | Barra P30 3 m | 3000 mm | 30 | Auratec |
-| `p30-b4000` | Barra P30 4 m | 4000 mm | 38 | Auratec |
-| `p30-cubo5` | Cubo 5 faces | 300 × 300 × 300 | 12 | Auratec |
-| `p30-sapata-baixa` | Sapata baixa | 750 × 750 × 55 | 8 | 🔺 proxy (base 800×800 Auratec) |
+| Categoria | Modelo | id | Nome | Medida | Peso semente (kg) | Fonte do peso |
+| --- | --- | --- | --- | --- | --- | --- |
+| Barra | `0200` | `barra-0200` | Barra 0,20 m | 200 mm | 6 | Auratec |
+| Barra | `0300` | `barra-0300` | Barra 0,30 m | 300 mm | 7 | 🔺 interpolado |
+| Barra | `0500` | `barra-0500` | Barra 0,50 m | 500 mm | 10 | Auratec |
+| Barra | `0600` | `barra-0600` | Barra 0,60 m | 600 mm | 11 | 🔺 interpolado |
+| Barra | `1000` | `barra-1000` | Barra 1 m | 1000 mm | 13 | Auratec |
+| Barra | `2000` | `barra-2000` | Barra 2 m | 2000 mm | 22 | Auratec |
+| Barra | `3000` | `barra-3000` | Barra 3 m | 3000 mm | 30 | Auratec |
+| Barra | `4000` | `barra-4000` | Barra 4 m | 4000 mm | 38 | Auratec |
+| Cubo | `5f` | `cubo-5f` | Cubo 5 faces | 300 × 300 × 300 | 12 | Auratec |
+| Base | `baixa` | `base-baixa` | Base baixa | 750 × 750 × 55 | 8 | 🔺 proxy (base 800×800 Auratec) |
+
+**Todas são linha P30, sistema 300** — é o galpão inteiro do dono hoje. A linha
+não aparece no id nem no nome (§3.2.3), mas é campo de toda peça e **coluna da
+folha do Caderno**.
 
 **Nenhum peso é conferido.** Todos nascem `conferido: false` e o Caderno imprime a
 procedência. O dono troca peça por peça na balança, com os parafusos incluídos.
 
 ⚠️ **A barra de 0,3 m não é o cubo.** São 300 mm nas duas, e é armadilha fácil:
 a barra tem cabeceira nas duas pontas e conecta em **2 faces**; o cubo conecta em
-**5**. Ids e nomes distintos desde o começo.
+**5**. Categorias, ids e nomes distintos desde o começo.
 
 #### 3.2.1 O cubo de 5 faces
 
@@ -126,6 +136,55 @@ baixo, mas isso é detalhe de desenho, não regra).
 **O dono não tem P50.** O campo `sistema` (300 | 500) **continua no modelo de
 dados** — é uma linha, e sem ela o dia do P50 vira retrabalho no motor e nos
 projetos já salvos. Mas o catálogo v1 não traz nenhum item 500, e a UI não oferece.
+
+#### 3.2.3 O catálogo é CATEGORIA × MODELO (decisão do dono, 19/08)
+
+> *"Sem fabricante, somente modelos e categorias."*
+
+O catálogo se organiza em duas dimensões e **o id é a colagem delas**:
+`${categoria}-${modelo}`. O prefixo de linha saiu: `p30-b2000` virou
+**`barra-2000`**.
+
+| Categoria | O que é | Modelos hoje |
+| --- | --- | --- |
+| `barra` | o segmento reto | 0200 · 0300 · 0500 · 0600 · 1000 · 2000 · 3000 · 4000 |
+| `cubo` | o bloco de canto | `5f` |
+| `base` | o apoio no chão, com sapata ou sem | `baixa` |
+| `sleeve` ⏳ | o bloco que corre na torre pra içar | — *(içamento é do rigger, §3.3)* |
+| `pau-de-carga` ⏳ | o braço que projeta o ponto de içamento | — *(entra com os painéis, §3.3)* |
+| `adaptador` ⏳ | casa dois sistemas (500 × 300) | — *(sem P50 no galpão, §3.3)* |
+
+As categorias ⏳ **já moram na lista**, marcadas `futura: true` e com o motivo
+escrito. Não é enfeite: a ordem delas é a ordem do seletor e da folha impressa, e
+ordem renegociada depois é ordem que muda debaixo de quem já decorou. O seletor
+só oferece categoria **que tem peça** — categoria vazia é promessa vazia.
+
+**O modelo é A MEDIDA quando a medida distingue** (barra: o comprimento em mm,
+com 4 casas pra ordenar sozinho) e **o nome do modelo quando não distingue**
+(cubo: `5f`, o número de faces abertas — todo cubo do sistema 300 é 300³; base:
+`baixa`, que é como o galpão chama).
+
+⚠️ **Linha e sistema saem do id, nunca do dado.** `linha` (P30 · L30 · R30) é
+dado de **carga**, não de identidade — quem monta procura "barra de 2 m", não
+"P30 b2000". Mas os dois continuam campos de toda peça e o Caderno **imprime a
+linha em coluna própria**, pela mesma razão do §2: as três encaixam entre si e a
+L30 vale metade da carga.
+
+> ❓ **A pendência que isso deixa.** Enquanto o galpão for só P30, `categoria +
+> modelo` identifica a peça sozinho. No dia em que uma **segunda linha entrar no
+> mesmo sistema** — uma barra L30 de 2 m ao lado da P30 de 2 m — o par colide.
+> A saída já está escrita no código: **quem ganha o qualificador é o MODELO**
+> (`barra-2000-leve`), nunca volta prefixo de fabricante. O teste de "o par
+> categoria × modelo não repete" é o guarda que obriga a decisão a ser tomada
+> ali, e não descoberta com dois projetos apontando pra mesma peça.
+
+**Migração.** Os ids antigos estavam gravados em `project.estrutura.pecas[].catalogoId`,
+no IndexedDB e no sync. `VERSAO_MONTAGEM` subiu **1 → 2** e a tabela v1→v2 mora
+em `serializar.js`, literal e estática — ela é a foto do catálogo v1 e não pode
+se mexer quando o catálogo de hoje mudar de novo. Id que a tabela não conhece
+passa intacto (quem decide o que fazer com peça fora do catálogo é o `deJSON`).
+O teste de ida-e-volta usa um **arquivo v1 escrito à mão**: fixture gerada pelo
+código de hoje migraria junto e não provaria nada.
 
 ### 3.3 O que a v1 deixa de fora — e por quê
 
@@ -200,11 +259,13 @@ instância do motor. **Uma fronteira só, explícita.**
 
 ```js
 {
-  id: "p30-b200",
+  id: "barra-2000",           // `${categoria}-${modelo}` — sem fabricante (§3.2.3)
+  categoria: "barra",         // barra | cubo | base (+ as futuras)
+  modelo: "2000",             // a medida: o comprimento em mm, 4 casas
+  modeloNome: "2 m",          // o rótulo do modelo, pro seletor
   sistema: 300,               // 300 | 500 — é o que define compatibilidade
-  linha: "P30",               // P30 | L30 | R30 | P50
-  tipo: "barra",              // barra | cubo | base
-  nome: "Barra P30 2 m",
+  linha: "P30",               // P30 | L30 | R30 | P50 — campo, nunca id
+  nome: "Barra 2 m",          // categoria + modelo, montado a partir dos dois
   comprimentoMm: 2000,        // barra
   ladoMm: 300,                // seção externa — MEDIDO: 299,6
   entreEixosMm: 250,          // CAMPO PRÓPRIO, nunca derivado (ver §5.2)
@@ -253,7 +314,7 @@ Isso resolve os três desencontros de uma vez:
 | Barra "1,5 m" | 1.420 mm *(peça errada no desenho)* | **1500** |
 | Seção externa | 299,6 | **300** |
 | Cubo | 298,5–300 | **300 × 300 × 300** |
-| Sapata baixa / alta | 740 / 742,5 | **750 × 750** |
+| Base baixa / alta *(a sapata)* | 740 / 742,5 | **750 × 750** |
 
 **Consequência prática:** o gerador é paramétrico, então qualquer comprimento da
 lista da Feeling sai de graça — inclusive os que não existem no SketchUp
@@ -318,10 +379,10 @@ isso uma barra de 2 m mediria 2,028 m na cena e a cota do Caderno mentiria.
 
 ```js
 project.estrutura = {
-  versao: 1,
+  versao: 2,
   pecas: [
-    { id: "e1", catalogoId: "p30-b200", matriz: [/* 16 floats */] },
-    { id: "e2", catalogoId: "p30-cubo5",
+    { id: "e1", catalogoId: "barra-2000", matriz: [/* 16 floats */] },
+    { id: "e2", catalogoId: "cubo-5f",
       encaixe: { de: "e1", conA: "B", conB: "sul", k: 0 },
       matriz: [/* cache */] },
   ],
@@ -332,6 +393,11 @@ project.estrutura = {
 peça for corrigida no catálogo, os projetos antigos **se reconstroem certos**. A
 matriz fica como cache derivado, pra carregar rápido. E `versao` desde o dia 1 —
 isso vai pro IndexedDB e vai precisar migrar.
+
+**E precisou.** A `versao` foi a **2** em 19/08, quando os ids largaram o
+fabricante (§3.2.3). Toda subida vem com a migração em `serializar.js` e teste de
+ida-e-volta a partir de um arquivo da versão anterior — a regra vale pro próximo
+renome também.
 
 ---
 
@@ -629,10 +695,10 @@ Antes dos painéis (E4), fechar o que a auditoria abriu. Em ordem de dependênci
 
 ### E · Backlog (não é desta fase)
 
-**Catálogo por categoria, sem fabricante** — reorganizar as peças em
-**categorias** (barra reta · cubo · base) × **modelos** (a medida), largando o
-prefixo de fabricante nos ids. Fica anotado como card à parte; mexe em ids
-gravados em projeto e pede migração, então não entra no meio da consolidação.
+~~**Catálogo por categoria, sem fabricante**~~ — ✅ **feito em 19/08, em branch
+própria**, exatamente pelo motivo que estava escrito aqui: mexe em id gravado em
+projeto e pede migração, então não entrou no meio da consolidação. O desenho e a
+migração v1→v2 estão no **§3.2.3**.
 
 ---
 

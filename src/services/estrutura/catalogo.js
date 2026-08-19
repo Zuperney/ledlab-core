@@ -59,6 +59,82 @@ export const PARAFUSARIA_POR_JUNTA = Object.freeze({
   arruela: { qtd: 8, spec: 'arruela 5/8" lisa ASTM F-436' },
 });
 
+// ── a taxonomia: CATEGORIA × MODELO ──────────────────────────
+// Decisão do dono (19/08/2026): "sem fabricante, somente modelos e categorias".
+// O catálogo se organiza por **categoria** (o que a peça É) × **modelo** (qual
+// medida dela), e o id largou o prefixo de linha: `p30-b2000` virou `barra-2000`.
+//
+// POR QUE LARGAR O PREFIXO. `p30` é a LINHA, e linha é dado de CARGA, não de
+// identidade — quem monta procura "barra de 2 m", não "P30 b2000". Mas `linha` e
+// `sistema` continuam como CAMPOS, e o Caderno imprime a linha: L30, P30 e R30
+// são todos 300×300 e encaixam entre si, só que a L30 vale METADE da carga da
+// P30 (espeque §2). Sai do id; nunca sai do dado.
+//
+// ⚠️ A REGRA DO ID é `${categoria}-${modelo}`, e o `modelo` é A MEDIDA quando a
+// medida distingue (barra: comprimento em mm, com 4 casas pra ordenar sozinho) ou
+// o nome do modelo quando não distingue (cubo: `5f`, o número de faces abertas —
+// todo cubo do sistema 300 é 300³; base: `baixa`, que é como o galpão chama).
+// O dia em que uma segunda LINHA entrar no mesmo sistema — uma barra L30 de 2 m
+// ao lado da P30 de 2 m — quem ganha o qualificador é o MODELO (`2000-leve`),
+// nunca volta prefixo de fabricante. O teste de ids únicos é o guarda disso.
+
+/**
+ * As categorias, na ordem em que aparecem no seletor e na folha do Caderno.
+ * As `futura: true` não têm peça nenhuma ainda — elas moram aqui pra que a ordem
+ * não seja renegociada quando entrarem, e pra que fique escrito POR QUE não
+ * entraram ainda.
+ */
+export const CATEGORIAS = Object.freeze([
+  Object.freeze({
+    id: "barra",
+    // a "barra reta" do galpão — o "reta" é implícito enquanto não houver curva.
+    // **Nunca "torre"**: no app torre é uma montagem vertical, não uma peça (§2).
+    nome: "Barra",
+    plural: "Barras",
+    descricao: "o segmento reto de box truss",
+  }),
+  Object.freeze({
+    id: "cubo",
+    nome: "Cubo",
+    plural: "Cubos",
+    descricao: "o bloco de canto — resolve L, T, X e cruz com uma peça só",
+  }),
+  Object.freeze({
+    id: "base",
+    nome: "Base",
+    plural: "Bases",
+    descricao: "o apoio no chão, com sapata ou sem",
+  }),
+  Object.freeze({
+    id: "sleeve",
+    nome: "Sleeve block",
+    plural: "Sleeve blocks",
+    descricao: "o bloco que corre na torre pra içar",
+    futura: true,
+    porque: "peça de içamento, e içamento é território do rigger (espeque §3.3)",
+  }),
+  Object.freeze({
+    id: "pau-de-carga",
+    nome: "Pau de carga",
+    plural: "Paus de carga",
+    descricao: "o braço que projeta o ponto de içamento pra fora da torre",
+    futura: true,
+    porque: "entra junto com os painéis pendurados, se entrar (espeque §3.3)",
+  }),
+  Object.freeze({
+    id: "adaptador",
+    nome: "Adaptador",
+    plural: "Adaptadores",
+    descricao: "a peça que casa dois sistemas diferentes (500 × 300)",
+    futura: true,
+    porque: "sem P50 no galpão não há o que adaptar; a v1 avisa e recusa a mistura",
+  }),
+]);
+
+const PORCATEGORIA = new Map(CATEGORIAS.map((c) => [c.id, c]));
+
+export const categoriaPorId = (id) => PORCATEGORIA.get(id) ?? null;
+
 const GEO_MODELO = Object.freeze({
   fonte: "modelo SketchUp da casa (linha próxima à Feeling)",
   medido: true,
@@ -77,7 +153,7 @@ const peso = (kg, fonte, incluiParafusos = false) => ({
 // - `rolo` — a referência de rolagem: qual banzo é "o de cima". Sem ele a peça
 //   encaixa girada e os banzos não alinham. É o campo que todo mundo esquece.
 //
-// Origem local: barra e cubo são CENTRADOS na origem; a sapata tem origem no
+// Origem local: barra e cubo são CENTRADOS na origem; a base tem origem no
 // chão (é o que faz sentido pra quem apoia).
 
 const conectoresBarra = (comprimentoMm) => [
@@ -99,14 +175,14 @@ const conectoresCubo = (ladoMm) => {
   ];
 };
 
-const conectoresSapata = (alturaMm) => [
+const conectoresBase = (alturaMm) => [
   { id: "topo", pos: [0, alturaMm, 0], dir: [0, 1, 0], rolo: [0, 0, 1] },
 ];
 
 // ── as peças ─────────────────────────────────────────────────
 // Os comprimentos são os do ESTOQUE do dono (espeque §3.2), e as medidas são
 // NOMINAIS e fechadas: 2 m é 2000 mm. O modelo SketchUp ensina a forma, não a cota.
-const BARRAS = [
+const MODELOS_DE_BARRA = [
   { mm: 200, kg: 6, fonte: "Auratec AL-P30" },
   { mm: 300, kg: 7, fonte: "interpolado entre 0,2 e 0,5 m (Auratec)" },
   { mm: 500, kg: 10, fonte: "Auratec AL-P30" },
@@ -120,46 +196,61 @@ const BARRAS = [
 const rotuloComprimento = (mm) =>
   mm % 1000 === 0 ? `${mm / 1000} m` : `${(mm / 1000).toFixed(2).replace(".", ",")} m`;
 
+/** o slug de modelo de uma barra: o comprimento em mm, 4 casas, pra ordenar só */
+export const modeloDaBarra = (mm) => String(mm).padStart(4, "0");
+
+/**
+ * Monta uma peça a partir da taxonomia. `id` e `nome` NASCEM daqui — não são
+ * digitados peça a peça — pra que categoria, modelo, id e nome nunca divirjam.
+ *
+ * `sistema` e `linha` entram fixos porque o galpão inteiro do dono é 300/P30
+ * hoje. Ficam explícitos no dado (e não como padrão implícito) pra que o dia da
+ * L30 seja um item novo na lista, não uma refatoração.
+ */
+const pecaDoCatalogo = ({ categoria, modelo, modeloNome, ...resto }) =>
+  Object.freeze({
+    id: `${categoria}-${modelo}`,
+    categoria,
+    modelo,
+    modeloNome,
+    nome: `${categoriaPorId(categoria).nome} ${modeloNome}`,
+    sistema: 300,
+    linha: "P30",
+    geometria: GEO_MODELO,
+    ...resto,
+  });
+
 export const CATALOGO = Object.freeze([
-  ...BARRAS.map((b) =>
-    Object.freeze({
-      id: `p30-b${String(b.mm).padStart(4, "0")}`,
-      sistema: 300,
-      linha: "P30",
-      tipo: "barra",
-      // ⚠️ a barra de 0,3 m e o cubo têm os dois 300 mm. Nome e id distintos
-      // desde o começo: a barra conecta em 2 faces, o cubo em 5. Confundir as
-      // duas manda a peça errada pro caminhão.
-      nome: `Barra P30 ${rotuloComprimento(b.mm)}`,
+  ...MODELOS_DE_BARRA.map((b) =>
+    pecaDoCatalogo({
+      categoria: "barra",
+      modelo: modeloDaBarra(b.mm),
+      // ⚠️ a barra de 0,3 m e o cubo têm os dois 300 mm. Categoria, id e nome
+      // distintos desde o começo: a barra conecta em 2 faces, o cubo em 5.
+      // Confundir as duas manda a peça errada pro caminhão.
+      modeloNome: rotuloComprimento(b.mm),
       comprimentoMm: b.mm,
-      geometria: GEO_MODELO,
       peso: peso(b.kg, b.fonte),
       conectores: Object.freeze(conectoresBarra(b.mm)),
     }),
   ),
-  Object.freeze({
-    id: "p30-cubo5",
-    sistema: 300,
-    linha: "P30",
-    tipo: "cubo",
-    nome: "Cubo P30 5 faces",
+  pecaDoCatalogo({
+    categoria: "cubo",
+    modelo: "5f",
+    modeloNome: "5 faces",
     ladoMm: 300,
     facesAbertas: 5,
-    geometria: GEO_MODELO,
     peso: peso(12, "Auratec AL-P30 cubo 5 faces"),
     conectores: Object.freeze(conectoresCubo(300)),
   }),
-  Object.freeze({
-    id: "p30-sapata-baixa",
-    sistema: 300,
-    linha: "P30",
-    tipo: "sapata",
-    nome: "Sapata baixa P30",
+  pecaDoCatalogo({
+    categoria: "base",
+    modelo: "baixa",
+    modeloNome: "baixa",
     larguraMm: 750, // nominal Feeling; medido 740 no modelo
     alturaMm: 55,
-    geometria: GEO_MODELO,
     peso: peso(8, "proxy: base 800×800 Auratec"),
-    conectores: Object.freeze(conectoresSapata(55)),
+    conectores: Object.freeze(conectoresBase(55)),
   }),
 ]);
 
@@ -170,6 +261,17 @@ export const conectorPorId = (peca, id) =>
   peca?.conectores?.find((c) => c.id === id) ?? null;
 export const pecasDoSistema = (sistema) =>
   CATALOGO.filter((p) => p.sistema === sistema);
+
+/** os modelos de uma categoria, na ordem do catálogo */
+export const pecasDaCategoria = (categoria) =>
+  CATALOGO.filter((p) => p.categoria === categoria);
+
+/**
+ * As categorias que TÊM peça hoje — é isto que o seletor oferece.
+ * Categoria futura no seletor seria promessa vazia: o técnico abre e não acha nada.
+ */
+export const categoriasComPecas = () =>
+  CATEGORIAS.filter((c) => pecasDaCategoria(c.id).length > 0);
 
 // ── o ziguezague das diagonais ───────────────────────────────
 // Divide o comprimento num número INTEIRO de segmentos de ~`passoDiagonalMm`,
@@ -193,21 +295,21 @@ export function anguloDiagonalGraus(comprimentoMm, sistema = 300) {
 }
 
 // ── caixa envolvente local de uma peça ───────────────────────
-// Barra e cubo são centrados na origem; a sapata tem origem no CHÃO. Quem calcula
+// Barra e cubo são centrados na origem; a base tem origem no CHÃO. Quem calcula
 // as medidas gerais da estrutura precisa saber disso, e é aqui que mora.
 export function caixaLocal(peca) {
   if (!peca) return null;
   const lado = SISTEMAS[peca.sistema]?.ladoMm ?? 0;
-  if (peca.tipo === "barra") {
+  if (peca.categoria === "barra") {
     const h = peca.comprimentoMm / 2;
     const m = lado / 2;
     return { min: [-m, -h, -m], max: [m, h, m] };
   }
-  if (peca.tipo === "cubo") {
+  if (peca.categoria === "cubo") {
     const m = peca.ladoMm / 2;
     return { min: [-m, -m, -m], max: [m, m, m] };
   }
-  if (peca.tipo === "sapata") {
+  if (peca.categoria === "base") {
     const m = peca.larguraMm / 2;
     return { min: [-m, 0, -m], max: [m, peca.alturaMm, m] };
   }

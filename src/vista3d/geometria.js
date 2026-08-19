@@ -158,8 +158,8 @@ function geometriaCubo(peca, nivel) {
   return mergeGeometries(partes.filter(Boolean), false);
 }
 
-/** A sapata: chapa quadrada com origem no CHÃO + o tarugo que recebe a barra. */
-function geometriaSapata(peca, nivel) {
+/** A base: chapa quadrada com origem no CHÃO + o tarugo que recebe a barra. */
+function geometriaBase(peca, nivel) {
   const s = SISTEMAS[peca.sistema];
   const e = s.entreEixosMm / 2;
   const chapa = new BoxGeometry(peca.larguraMm, peca.alturaMm, peca.larguraMm);
@@ -189,8 +189,8 @@ function geometriaSapata(peca, nivel) {
 /** caixa simples — o nível mais pobre, e o que salva a cena grande */
 function geometriaCaixa(peca) {
   const s = SISTEMAS[peca.sistema];
-  if (peca.tipo === "barra") return new BoxGeometry(s.ladoMm, peca.comprimentoMm, s.ladoMm);
-  if (peca.tipo === "cubo") return new BoxGeometry(peca.ladoMm, peca.ladoMm, peca.ladoMm);
+  if (peca.categoria === "barra") return new BoxGeometry(s.ladoMm, peca.comprimentoMm, s.ladoMm);
+  if (peca.categoria === "cubo") return new BoxGeometry(peca.ladoMm, peca.ladoMm, peca.ladoMm);
   const g = new BoxGeometry(peca.larguraMm, peca.alturaMm, peca.larguraMm);
   g.translate(0, peca.alturaMm / 2, 0);
   return g;
@@ -211,9 +211,9 @@ export function geometriaDaPeca(catalogoId, nivelId = 0) {
 
   let g;
   if (nivel.caixa) g = geometriaCaixa(peca);
-  else if (peca.tipo === "barra") g = geometriaBarra(peca, nivel);
-  else if (peca.tipo === "cubo") g = geometriaCubo(peca, nivel);
-  else g = geometriaSapata(peca, nivel);
+  else if (peca.categoria === "barra") g = geometriaBarra(peca, nivel);
+  else if (peca.categoria === "cubo") g = geometriaCubo(peca, nivel);
+  else g = geometriaBase(peca, nivel);
 
   g.computeBoundingSphere();
   cache.set(chave, g);

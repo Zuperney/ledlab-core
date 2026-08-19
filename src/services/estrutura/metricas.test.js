@@ -6,12 +6,12 @@ import {
 import { adicionarPecaEncaixada, adicionarPecaLivre, novaMontagem } from "./montagem.js";
 import { pecaPorId } from "./catalogo.js";
 
-// sapata (8) + 2 m (22) + 1 m (13) = 43 kg, altura 55 + 2000 + 1000 = 3055
+// base (8) + 2 m (22) + 1 m (13) = 43 kg, altura 55 + 2000 + 1000 = 3055
 const torre = () => {
   let m = novaMontagem();
-  m = adicionarPecaLivre(m, "p30-sapata-baixa", { id: "s1" });
-  m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "p30-b2000", de: "s1", conAlvo: "topo", conNovo: "a" });
-  m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "p30-b1000", de: "b1", conAlvo: "b", conNovo: "a" });
+  m = adicionarPecaLivre(m, "base-baixa", { id: "s1" });
+  m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "barra-2000", de: "s1", conAlvo: "topo", conNovo: "a" });
+  m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "barra-1000", de: "b1", conAlvo: "b", conNovo: "a" });
   return m;
 };
 
@@ -40,13 +40,13 @@ describe("caixaEnvolvente", () => {
   it("mede a torre inteira, do chão ao topo", () => {
     const c = caixaEnvolvente(torre());
     expect(c.alturaMm).toBeCloseTo(3055, 1);
-    expect(c.larguraMm).toBeCloseTo(750, 1); // a sapata é mais larga que a barra
+    expect(c.larguraMm).toBeCloseTo(750, 1); // a base é mais larga que a barra
     expect(c.min[1]).toBeCloseTo(0, 1);
     expect(c.max[1]).toBeCloseTo(3055, 1);
   });
 
   it("uma barra sozinha: seção × comprimento", () => {
-    const c = caixaEnvolvente(adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "x" }));
+    const c = caixaEnvolvente(adicionarPecaLivre(novaMontagem(), "barra-2000", { id: "x" }));
     expect(c.larguraMm).toBe(300);
     expect(c.alturaMm).toBe(2000);
     expect(c.profundidadeMm).toBe(300);
@@ -60,16 +60,16 @@ describe("caixaEnvolvente", () => {
 describe("listaDePecas — o artefato do galpão", () => {
   it("agrupa por peça e soma o peso", () => {
     let m = torre();
-    m = adicionarPecaEncaixada(m, { id: "b3", catalogoId: "p30-b1000", de: "b2", conAlvo: "b", conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b3", catalogoId: "barra-1000", de: "b2", conAlvo: "b", conNovo: "a" });
     const lista = listaDePecas(m);
-    const umMetro = lista.find((l) => l.catalogoId === "p30-b1000");
+    const umMetro = lista.find((l) => l.catalogoId === "barra-1000");
     expect(umMetro.qtd).toBe(2);
     expect(umMetro.pesoTotalKg).toBe(26);
   });
 
   it("sai sempre na mesma ordem do catálogo (a folha impressa não pode dançar)", () => {
     const ordem = listaDePecas(torre()).map((l) => l.catalogoId);
-    expect(ordem).toEqual(["p30-b1000", "p30-b2000", "p30-sapata-baixa"]);
+    expect(ordem).toEqual(["barra-1000", "barra-2000", "base-baixa"]);
   });
 
   it("carrega a procedência do peso, item a item", () => {
@@ -94,14 +94,14 @@ describe("parafusaria — CONTAGEM, não massa", () => {
   });
 
   it("sem junta, sem parafuso", () => {
-    expect(parafusaria(adicionarPecaLivre(novaMontagem(), "p30-b2000")).juntas).toBe(0);
+    expect(parafusaria(adicionarPecaLivre(novaMontagem(), "barra-2000")).juntas).toBe(0);
   });
 
   // o dia que o dono pesar as peças COM os parafusos, a massa já estará no total
   // e somar de novo infla o peso em silêncio
   it("avisa quando a massa dos parafusos já está no peso da peça", () => {
     expect(parafusaria(torre()).massaInclusaNoPeso).toBe(false);
-    expect(pecaPorId("p30-b2000").peso.incluiParafusos).toBe(false);
+    expect(pecaPorId("barra-2000").peso.incluiParafusos).toBe(false);
   });
 });
 

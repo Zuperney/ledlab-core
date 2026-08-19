@@ -20,8 +20,8 @@ describe("normalizarGiro", () => {
 });
 
 describe("resolverEncaixe — a regra fundamental", () => {
-  const b2 = barra("p30-b2000");
-  const b1 = barra("p30-b1000");
+  const b2 = barra("barra-2000");
+  const b1 = barra("barra-1000");
 
   it("os centros dos conectores COINCIDEM depois do encaixe", () => {
     const alvo = conectorNoMundo(con(b2, "b"), MATRIZ_IDENTIDADE);
@@ -68,8 +68,8 @@ describe("resolverEncaixe — a regra fundamental", () => {
 });
 
 describe("giro em passos de 90°", () => {
-  const cubo = pecaPorId("p30-cubo5");
-  const b1 = barra("p30-b1000");
+  const cubo = pecaPorId("cubo-5f");
+  const b1 = barra("barra-1000");
   const alvo = conectorNoMundo(con(cubo, "leste"), MATRIZ_IDENTIDADE);
 
   it("os 4 passos são poses distintas", () => {
@@ -95,8 +95,8 @@ describe("giro em passos de 90°", () => {
 
 describe("encaixeRecuado (a prévia fantasma)", () => {
   it("fica na mesma orientação, afastado ao longo da normal do alvo", () => {
-    const b2 = barra("p30-b2000");
-    const b1 = barra("p30-b1000");
+    const b2 = barra("barra-2000");
+    const b1 = barra("barra-1000");
     const alvo = conectorNoMundo(con(b2, "b"), MATRIZ_IDENTIDADE);
     const encaixado = resolverEncaixe(alvo, con(b1, "a"), 0);
     const recuado = encaixeRecuado(alvo, con(b1, "a"), 0, 60);
@@ -140,7 +140,7 @@ describe("afastamento e enfrentamento", () => {
 
 describe("conectorNoMundo", () => {
   it("a identidade devolve o conector local intacto", () => {
-    const c = con(barra("p30-b1000"), "b");
+    const c = con(barra("barra-1000"), "b");
     const m = conectorNoMundo(c, matriz(IDENTIDADE, [0, 0, 0]));
     perto(m.pos, c.pos);
     perto(m.dir, c.dir);

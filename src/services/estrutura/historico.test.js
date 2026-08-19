@@ -6,10 +6,10 @@ import {
 import { juntas, novaMontagem, pecaDaMontagem } from "./montagem.js";
 import { paraJSON } from "./serializar.js";
 
-const addLivre = (id, catalogoId = "p30-b2000") => ({
+const addLivre = (id, catalogoId = "barra-2000") => ({
   tipo: ACOES.ADICIONAR_LIVRE, id, catalogoId,
 });
-const addEncaixada = (id, de, catalogoId = "p30-b1000") => ({
+const addEncaixada = (id, de, catalogoId = "barra-1000") => ({
   tipo: ACOES.ADICIONAR_ENCAIXADA, id, catalogoId, de, conAlvo: "b", conNovo: "a",
 });
 
@@ -61,7 +61,7 @@ describe("desfazer e refazer", () => {
   it("comando novo LIMPA a pilha de refazer (o galho deixou de existir)", () => {
     let h = desfazerUm(torre());
     expect(podeRefazer(h)).toBe(true);
-    h = executar(h, addLivre("outra", "p30-cubo5"));
+    h = executar(h, addLivre("outra", "cubo-5f"));
     expect(podeRefazer(h)).toBe(false);
   });
 
@@ -123,9 +123,9 @@ describe("ação desconhecida", () => {
 describe("desfazer um GIRO", () => {
   const comCubo = () => {
     let h = criarHistorico();
-    h = executar(h, { tipo: ACOES.ADICIONAR_LIVRE, id: "c", catalogoId: "p30-cubo5" });
+    h = executar(h, { tipo: ACOES.ADICIONAR_LIVRE, id: "c", catalogoId: "cubo-5f" });
     h = executar(h, {
-      tipo: ACOES.ADICIONAR_ENCAIXADA, id: "b", catalogoId: "p30-b2000",
+      tipo: ACOES.ADICIONAR_ENCAIXADA, id: "b", catalogoId: "barra-2000",
       de: "c", conAlvo: "leste", conNovo: "a",
     });
     return h;

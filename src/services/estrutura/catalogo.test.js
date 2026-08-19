@@ -1,21 +1,22 @@
 // catalogo.test.js — o galpão do dono, e a geometria medida no modelo da casa.
 import { describe, it, expect } from "vitest";
 import {
-  ANGULO_DE_GIRO, CATALOGO, PARAFUSARIA_POR_JUNTA, PASSOS_DE_GIRO, SISTEMAS,
-  caixaLocal, conectorPorId, escadaDaBarra, escadasDaBarra, pecaPorId, pecasDoSistema,
+  ANGULO_DE_GIRO, CATALOGO, CATEGORIAS, PARAFUSARIA_POR_JUNTA, PASSOS_DE_GIRO, SISTEMAS,
+  caixaLocal, categoriaPorId, categoriasComPecas, conectorPorId, escadaDaBarra,
+  escadasDaBarra, pecaPorId, pecasDaCategoria, pecasDoSistema,
 } from "./catalogo.js";
 import { escalar, comprimento } from "./vetor.js";
 
 describe("o catálogo v1 é o estoque, não o catálogo da fábrica", () => {
   it("tem exatamente as 10 peças cravadas no espeque §3.2", () => {
     expect(CATALOGO).toHaveLength(10);
-    expect(CATALOGO.filter((p) => p.tipo === "barra")).toHaveLength(8);
-    expect(CATALOGO.filter((p) => p.tipo === "cubo")).toHaveLength(1);
-    expect(CATALOGO.filter((p) => p.tipo === "sapata")).toHaveLength(1);
+    expect(pecasDaCategoria("barra")).toHaveLength(8);
+    expect(pecasDaCategoria("cubo")).toHaveLength(1);
+    expect(pecasDaCategoria("base")).toHaveLength(1);
   });
 
   it("os comprimentos são os NOMINAIS do estoque (2 m = 2000 mm)", () => {
-    expect(CATALOGO.filter((p) => p.tipo === "barra").map((p) => p.comprimentoMm))
+    expect(pecasDaCategoria("barra").map((p) => p.comprimentoMm))
       .toEqual([200, 300, 500, 600, 1000, 2000, 3000, 4000]);
   });
 
@@ -27,8 +28,8 @@ describe("o catálogo v1 é o estoque, não o catálogo da fábrica", () => {
 
   // armadilha real: as duas medem 300 mm e mandar a errada pro caminhão é fácil
   it("a barra de 0,3 m e o cubo são peças DISTINTAS", () => {
-    const barra = pecaPorId("p30-b0300");
-    const cubo = pecaPorId("p30-cubo5");
+    const barra = pecaPorId("barra-0300");
+    const cubo = pecaPorId("cubo-5f");
     expect(barra.comprimentoMm).toBe(300);
     expect(cubo.ladoMm).toBe(300);
     expect(barra.id).not.toBe(cubo.id);
@@ -43,6 +44,72 @@ describe("o catálogo v1 é o estoque, não o catálogo da fábrica", () => {
 
   it("ids são únicos", () => {
     expect(new Set(CATALOGO.map((p) => p.id)).size).toBe(CATALOGO.length);
+  });
+});
+
+// Decisão do dono (19/08/2026): "sem fabricante, somente modelos e categorias".
+describe("a taxonomia: CATEGORIA × MODELO", () => {
+  it("o id é `categoria-modelo` e NÃO carrega fabricante", () => {
+    for (const p of CATALOGO) {
+      expect(p.id).toBe(`${p.categoria}-${p.modelo}`);
+      expect(p.id).not.toMatch(/p30|l30|r30|p50|feeling|auratec/i);
+    }
+  });
+
+  it("toda peça mora numa categoria conhecida", () => {
+    for (const p of CATALOGO) expect(categoriaPorId(p.categoria)).toBeTruthy();
+  });
+
+  // é o par (categoria, modelo) que identifica a peça — o id é só a colagem dos
+  // dois. Se o par repetir, o id repete, e projeto salvo passa a apontar pra
+  // peça errada sem ninguém perceber.
+  it("o par categoria × modelo não repete", () => {
+    const pares = CATALOGO.map((p) => `${p.categoria}/${p.modelo}`);
+    expect(new Set(pares).size).toBe(pares.length);
+  });
+
+  it("o modelo da barra é o comprimento em mm, com 4 casas pra ordenar sozinho", () => {
+    const barras = pecasDaCategoria("barra");
+    expect(barras.map((p) => p.modelo)).toEqual(
+      ["0200", "0300", "0500", "0600", "1000", "2000", "3000", "4000"],
+    );
+    expect([...barras.map((p) => p.modelo)].sort()).toEqual(barras.map((p) => p.modelo));
+  });
+
+  it("o nome é categoria + modelo, sem a linha do fabricante", () => {
+    expect(pecaPorId("barra-2000").nome).toBe("Barra 2 m");
+    expect(pecaPorId("cubo-5f").nome).toBe("Cubo 5 faces");
+    expect(pecaPorId("base-baixa").nome).toBe("Base baixa");
+    expect(CATALOGO.every((p) => !/P30/.test(p.nome))).toBe(true);
+  });
+
+  // ⚠️ a linha sai do ID, nunca do DADO: L30, P30 e R30 são todos 300×300 e
+  // encaixam entre si, mas a L30 vale metade da carga (espeque §2)
+  it("linha e sistema continuam CAMPOS de toda peça", () => {
+    for (const p of CATALOGO) {
+      expect(p.linha).toBe("P30");
+      expect(p.sistema).toBe(300);
+    }
+  });
+
+  it("as categorias futuras estão na lista, marcadas e com o motivo escrito", () => {
+    const futuras = CATEGORIAS.filter((c) => c.futura);
+    expect(futuras.map((c) => c.id)).toEqual(["sleeve", "pau-de-carga", "adaptador"]);
+    expect(futuras.every((c) => typeof c.porque === "string" && c.porque)).toBe(true);
+  });
+
+  // categoria futura no seletor seria promessa vazia: abre e não tem nada dentro
+  it("o seletor só oferece categoria que TEM peça", () => {
+    expect(categoriasComPecas().map((c) => c.id)).toEqual(["barra", "cubo", "base"]);
+    for (const c of CATEGORIAS.filter((x) => x.futura)) {
+      expect(pecasDaCategoria(c.id)).toHaveLength(0);
+    }
+  });
+
+  it("o catálogo sai ordenado por categoria — a folha impressa sai agrupada", () => {
+    const ordem = categoriasComPecas().map((c) => c.id);
+    const vistas = [...new Set(CATALOGO.map((p) => p.categoria))];
+    expect(vistas).toEqual(ordem);
   });
 });
 
@@ -95,19 +162,19 @@ describe("conectores do catálogo", () => {
   });
 
   it("a barra conecta nas duas pontas, ao longo do eixo Y", () => {
-    const b = pecaPorId("p30-b2000");
+    const b = pecaPorId("barra-2000");
     expect(conectorPorId(b, "a").pos).toEqual([0, -1000, 0]);
     expect(conectorPorId(b, "b").pos).toEqual([0, 1000, 0]);
   });
 
   it("o cubo tem 5 faces abertas — a de baixo é a fechada", () => {
-    const c = pecaPorId("p30-cubo5");
+    const c = pecaPorId("cubo-5f");
     expect(c.facesAbertas).toBe(5);
     expect(c.conectores.some((k) => k.dir[1] === -1)).toBe(false);
   });
 
-  it("a sapata conecta só no topo, e a origem dela é o CHÃO", () => {
-    const s = pecaPorId("p30-sapata-baixa");
+  it("a base conecta só no topo, e a origem dela é o CHÃO", () => {
+    const s = pecaPorId("base-baixa");
     expect(s.conectores).toHaveLength(1);
     expect(s.conectores[0].pos).toEqual([0, s.alturaMm, 0]);
     expect(caixaLocal(s).min[1]).toBe(0);
@@ -116,7 +183,7 @@ describe("conectores do catálogo", () => {
 
 describe("caixaLocal", () => {
   it("barra: seção × comprimento, centrada", () => {
-    expect(caixaLocal(pecaPorId("p30-b2000"))).toEqual({
+    expect(caixaLocal(pecaPorId("barra-2000"))).toEqual({
       min: [-150, -1000, -150],
       max: [150, 1000, 150],
     });
@@ -124,7 +191,7 @@ describe("caixaLocal", () => {
 
   it("peça desconhecida devolve null em vez de inventar", () => {
     expect(caixaLocal(null)).toBeNull();
-    expect(caixaLocal({ tipo: "curva", sistema: 300 })).toBeNull();
+    expect(caixaLocal({ categoria: "curva", sistema: 300 })).toBeNull();
   });
 });
 
@@ -152,7 +219,7 @@ describe("a escada — duas faces de 500, defasadas de 250", () => {
   });
 
   it("nenhuma travessa passa do comprimento, em nenhuma peça do catálogo", () => {
-    for (const p of CATALOGO.filter((x) => x.tipo === "barra")) {
+    for (const p of pecasDaCategoria("barra")) {
       for (const escada of escadasDaBarra(p.comprimentoMm)) {
         for (const y of escada) {
           expect(y).toBeGreaterThanOrEqual(0);
@@ -175,7 +242,7 @@ describe("a chapa de topo", () => {
   it("duas chapas cabem folgadas na barra mais curta", () => {
     const s = SISTEMAS[300];
     const menor = Math.min(
-      ...CATALOGO.filter((p) => p.tipo === "barra").map((p) => p.comprimentoMm),
+      ...pecasDaCategoria("barra").map((p) => p.comprimentoMm),
     );
     expect(2 * s.placaEspessuraMm).toBeLessThan(menor / 2);
   });

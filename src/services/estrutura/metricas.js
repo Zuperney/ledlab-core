@@ -76,8 +76,8 @@ export function caixaEnvolvente(montagem) {
 
 /**
  * A lista de peças — o artefato que vai pro galpão.
- * Ordenada por tipo (barra, cubo, sapata) e, dentro do tipo, pela ordem do
- * catálogo, pra que a folha impressa saia sempre igual.
+ * Ordenada por CATEGORIA (barra, cubo, base) e, dentro dela, por modelo — a
+ * ordem do catálogo, pra que a folha impressa saia sempre igual.
  */
 export function listaDePecas(montagem) {
   const ordem = new Map(CATALOGO.map((c, i) => [c.id, i]));
@@ -92,7 +92,7 @@ export function listaDePecas(montagem) {
       return {
         catalogoId,
         nome: cat?.nome ?? catalogoId,
-        tipo: cat?.tipo ?? "?",
+        categoria: cat?.categoria ?? "?",
         linha: cat?.linha ?? null,
         qtd,
         pesoUnitarioKg: typeof kg === "number" ? kg : null,

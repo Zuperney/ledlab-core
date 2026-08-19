@@ -24,7 +24,9 @@ import Segmented from "../../components/Segmented.jsx";
 import Select from "../../components/Select.jsx";
 import StatusPill from "../../components/StatusPill.jsx";
 import ZoomTrio from "../../components/ZoomTrio.jsx";
-import { CATALOGO, conectorPorId, pecaPorId } from "../../services/estrutura/catalogo.js";
+import {
+  categoriasComPecas, conectorPorId, pecaPorId, pecasDaCategoria,
+} from "../../services/estrutura/catalogo.js";
 import { resolverEncaixe } from "../../services/estrutura/encaixe.js";
 import { conectoresLivres } from "../../services/estrutura/montagem.js";
 import {
@@ -44,7 +46,7 @@ const chip = {
 const metro = (mm) => (mm == null ? "—" : `${(mm / 1000).toFixed(2).replace(".", ",")} m`);
 
 // Qual conector da peça NOVA encosta no alvo. A barra sempre entra pela ponta
-// "a"; cubo e sapata entram pelo "topo" — é a face que eles oferecem.
+// "a"; cubo e base entram pelo "topo" — é a face que eles oferecem.
 const conectorDeEntrada = (cat) =>
   cat?.conectores?.some((c) => c.id === "a") ? "a" : "topo";
 
@@ -54,7 +56,7 @@ export default function ProjectEstrutura({ project, patch }) {
     criarHistorico(deJSON(project?.estrutura ?? null, { descartarDesconhecidas: true })),
   );
   const [modo, setModo] = useState("montar");
-  const [catalogoId, setCatalogoId] = useState("p30-b2000");
+  const [catalogoId, setCatalogoId] = useState("barra-2000");
   const [giro, setGiro] = useState(0);
   const [selecionada, setSelecionada] = useState(null);
   const [alvo, setAlvo] = useState(null); // índice do conector apontado
@@ -118,6 +120,21 @@ export default function ProjectEstrutura({ project, patch }) {
     if (!entrada) return null;
     return { catalogoId, matriz: resolverEncaixe(conAlvo, entrada, giro).matriz };
   }, [alvo, livres, catalogoId, giro]);
+
+  // O catálogo é CATEGORIA × MODELO, e o seletor mostra isso em dois passos: a
+  // categoria (o que a peça é) e depois o modelo (a medida). Um combo só com as
+  // dez peças ainda cabia; com o galpão inteiro cadastrado (E5) não caberia, e a
+  // lista plana já obrigava a ler nome por nome pra achar "a de 3 m".
+  const categorias = useMemo(() => categoriasComPecas(), []);
+  const pecaEscolhida = pecaPorId(catalogoId);
+  const categoria = pecaEscolhida?.categoria ?? categorias[0].id;
+  const modelos = useMemo(() => pecasDaCategoria(categoria), [categoria]);
+
+  // trocar de categoria cai no primeiro modelo dela — nunca num id órfão
+  const trocarCategoria = (id) => {
+    const primeiro = pecasDaCategoria(id)[0];
+    if (primeiro) { setCatalogoId(primeiro.id); setAlvo(null); }
+  };
 
   const rodar = useCallback((acao) => setHist((h) => executar(h, acao)), []);
 
@@ -199,9 +216,24 @@ export default function ProjectEstrutura({ project, patch }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         {montando && (
           <>
-            <Select value={catalogoId} onChange={(e) => setCatalogoId(e.target.value)} style={{ minWidth: 190 }}>
-              {CATALOGO.map((p) => (
-                <option key={p.id} value={p.id}>{p.nome}</option>
+            <Select
+              value={categoria}
+              onChange={(e) => trocarCategoria(e.target.value)}
+              title="Categoria da peça"
+              style={{ minWidth: 130 }}
+            >
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </Select>
+            <Select
+              value={catalogoId}
+              onChange={(e) => { setCatalogoId(e.target.value); setAlvo(null); }}
+              title="Modelo"
+              style={{ minWidth: 120 }}
+            >
+              {modelos.map((p) => (
+                <option key={p.id} value={p.id}>{p.modeloNome}</option>
               ))}
             </Select>
             <button
@@ -296,7 +328,7 @@ export default function ProjectEstrutura({ project, patch }) {
         )}
         {r.pecas > 0 && !r.peso.conferido && <StatusPill color={T.amb} label="Peso não conferido" />}
         <HelpTip title="Estrutura">
-          <p><b>Para montar:</b> escolha a peça, passe o ponteiro num <b>ponto claro</b> da estrutura — ele mostra a peça em fantasma, onde ela vai ficar — e clique. O botão de graus gira a peça nova de 90 em 90.</p>
+          <p><b>Para montar:</b> escolha a peça em dois passos — a <b>categoria</b> (barra, cubo, base) e o <b>modelo</b> (a medida) —, passe o ponteiro num <b>ponto claro</b> da estrutura — ele mostra a peça em fantasma, onde ela vai ficar — e clique. O botão de graus gira a peça nova de 90 em 90.</p>
           <p><b>Adicionar peça</b> põe uma peça solta na origem: é assim que se começa a segunda torre.</p>
           <p>Clique numa peça montada para selecioná-la; daí dá pra girar ou excluir. Excluir <b>não</b> apaga o que estava preso nela — aquilo vira peça solta, no lugar onde estava.</p>
           <p>O peso vem do catálogo e ainda <b>não foi conferido na balança</b> — trate como ordem de grandeza. A procedência sai no Caderno.</p>

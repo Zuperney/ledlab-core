@@ -566,7 +566,18 @@ describe("folha ESTRUTURA (box truss)", () => {
     expect(json).toContain("BOX TRUSS · MONTAGEM");
     expect(json).toContain("166 kg");
     expect(json).toContain("4,36 m");
-    expect(json).toContain("Barra P30 2 m");
+    expect(json).toContain("Barra 2 m");
+  });
+
+  // o nome da peça largou o fabricante (categoria × modelo), mas a LINHA não
+  // pode sumir do papel: L30, P30 e R30 encaixam entre si e não valem a mesma
+  // carga — é a coluna Linha que impede misturar leve com pesado (espeque §2)
+  it("o nome é categoria × modelo, e a linha sai em coluna própria", () => {
+    expect(json).not.toContain("Barra P30");
+    expect(json).toContain("Cubo 5 faces");
+    expect(json).toContain("Base baixa");
+    expect(json).toContain("LINHA");
+    expect(json).toContain("P30");
   });
 
   it("conta a parafusaria da caixa", () => {

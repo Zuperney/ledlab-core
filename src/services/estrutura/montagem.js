@@ -15,7 +15,11 @@ import { conectorPorId, pecaPorId } from "./catalogo.js";
 import { conectorNoMundo, normalizarGiro, resolverEncaixe } from "./encaixe.js";
 import { MATRIZ_IDENTIDADE, arredMatriz } from "./vetor.js";
 
-export const VERSAO_MONTAGEM = 1;
+// A versão do ARQUIVO de montagem (o que vai pro IndexedDB e pro sync).
+// Toda subida vem com migração em `serializar.js` e teste de ida-e-volta.
+//   1 → ids com prefixo de linha (`p30-b2000`)
+//   2 → ids por CATEGORIA-MODELO (`barra-2000`), sem fabricante — 19/08/2026
+export const VERSAO_MONTAGEM = 2;
 
 export const novaMontagem = () => ({ versao: VERSAO_MONTAGEM, pecas: [] });
 
