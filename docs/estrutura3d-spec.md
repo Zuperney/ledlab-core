@@ -860,6 +860,10 @@ antiga é ela mesma).
 
 ### E quando não há face nenhuma ali: PULAR
 
+> ⚠️ **REVOGADO pelo §8.10** (mesmo dia). O dono derrubou a ideia de pular: travar
+> orientação é tratar desenho como parafuso. O texto fica porque a análise da
+> geometria segue válida — só a **conclusão** mudou.
+
 O cubo tem **5 faces, não 6**. Quando o giro leva a **face cega** pra cima do
 lugar onde há peça aparafusada, não existe furo pra reaparafusar.
 
@@ -889,6 +893,69 @@ nesse estado.
 
 ---
 
+## 8.10 Nada de travar: é desenho, não parafuso (E3.9)
+
+> *"acho que talvez esteja lidando com a coisa toda de uma forma muito literal,
+> uma peça só é parafusada quando está concluída [ou seja quando finalizei o
+> projeto], tudo o que vem a ser montado está livre pra edição desde que não
+> quebre as regras, todas as peças podem e devem poder ser rotacionadas (…) é
+> melhor o serviço de refazer o desenho em caso de exigência de terceiros que o
+> desenho siga uma regra do que travar todo o motor"*
+
+**Correção de rumo do dono, e ela derruba a decisão do §8.9.** Eu vinha modelando
+parafuso onde ainda é desenho: tratei "peça encaixada" como peça montada de
+verdade e, a partir daí, fui inventando regra física — primeiro arrastar o filho,
+depois **pular** a orientação "impossível". As duas eram trava.
+
+**A régua certa:** a peça só está aparafusada quando o projeto acabou. Até lá é
+composição, e composição tem que ceder ao que o evento pede — desenho de luz,
+vão, pedido do cliente, ou simplesmente a peça que o app supôs numa pose e o
+técnico quer noutra. **Quando existirem regras duras de posição, elas entram como
+regra explícita; até lá, o motor não decide orientação por ninguém.**
+
+### O que saiu
+
+- `proximoGiroLivre` e `proximaEntradaLivre` — as consultas que **pulavam** a
+  orientação que arrastaria um filho. Foram embora com os testes delas;
+- o aviso "sem orientação livre". Não existe mais orientação bloqueada.
+
+### O que ficou
+
+- **`R` sempre gira um passo.** Os quatro giros de qualquer peça encaixada estão
+  sempre disponíveis. Medido no projeto de teste: `g3 → g0 → g1 → g2 → g3`;
+- a **compensação** do §8.7/§8.9 continua: o filho é reancorado na face que
+  assumiu a pose antiga e não sai do lugar. Ela é um *conforto*, não uma lei —
+  quando não há face pra reancorar, o filho acompanha e ninguém é impedido de
+  nada;
+- `Shift+R` continua pulando **só o que é regra**: face que já tem peça pendurada
+  não serve de entrada, porque seriam duas juntas disputando o mesmo parafuso.
+
+### E a peça LIVRE também gira
+
+O item mais escondido do pedido — *"todas as peças podem e devem poder ser
+rotacionadas"* — era um lock que ninguém tinha visto: peça solta não tem junta,
+então `girarPeca` devolvia a montagem intacta. Uma barra que só sabe ficar em pé
+não desenha vão nenhum.
+
+Agora, com peça solta selecionada:
+
+| tecla | o que faz |
+| --- | --- |
+| `R` | gira 90° em torno da **vertical** — muda a direção no chão |
+| `Shift+R` | **tomba** 90° — é assim que barra em pé vira barra deitada |
+
+Ela gira em cima do **próprio centro** e volta com a base no **mesmo nível de
+antes**: deitar uma barra em pé deixa ela deitada NO CHÃO, não meio enterrada.
+A conta não precisa extrair quatérnio da matriz — numa matriz rígida as três
+primeiras colunas são as imagens dos eixos locais, então girar a peça é girar
+cada uma delas.
+
+O comando novo é `ACOES.MATRIZ`: peça livre não tem junta de onde derivar pose,
+então o comando carrega a matriz inteira e o inverso carrega a anterior. Exato no
+desfazer, sem acumular erro de float.
+
+---
+
 ## 9 · As fases
 
 | Fase | Entrega | Trava |
@@ -900,7 +967,8 @@ nesse estado.
 | **E3.5 · Consolidação** ✅ | fecha a auditoria do §8.5: **caderno próprio de Estrutura** (e a folha sai do Resumido/Gabinetes), **detecção de sobreposição** por SAT que avisa sem bloquear, **face de entrada** (o conserto do cubo), histórico que atravessa a aba, peça desconhecida que falha alto, imagem que não vira órfã, **seleção múltipla + atalhos + conta-gotas**, e **cor por peça com legenda** na cena e no Caderno | E3 |
 | **E3.6 · O ajuste fino** ✅ | §8.7: `V` segurado = modo Ver · **as duas rotações** (`R` gira, `Ctrl+R` troca a face de entrada) e o seletor de face fora da tela · **seta na face cega** do cubo · **paleta do catálogo** por categoria, que também é a legenda · **o piso nunca corta a peça** (nasce apoiada, e a grade desce se algo passar dela) | E3.5 |
 | **E3.7 · O gesto de montar** ✅ | §8.8: a peça **nasce ao clicar no piso** e o botão "Adicionar peça" sai (a primária vira a imagem do Caderno) · `Shift+R` no lugar do `Ctrl+R`, que recarregava o navegador · **girar mexe só na peça selecionada**, com os filhos compensados | E3.6 |
-| **E3.8 · O cubo também** ✅ | §8.9: girar o **cubo** deixou de arrastar o que está aparafusado nele — o filho é **reancorado na face que assumiu a pose antiga**, e a orientação impossível (face cega em cima de peça montada) é **pulada** · conserto do **clique no horizonte**, que nascia peça a 20 km | E3.7 |
+| **E3.8 · O cubo também** ✅ | §8.9: girar o **cubo** deixou de arrastar o que está encaixado nele — o filho é **reancorado na face que assumiu a pose antiga** · conserto do **clique no horizonte**, que nascia peça a 20 km | E3.7 |
+| **E3.9 · Destravar** ✅ | §8.10: o motor **não decide orientação por ninguém** — fora as consultas que pulavam giro, `R` sempre gira · e a **peça livre passa a girar** (`R` no chão, `Shift+R` tomba), que era o lock que ninguém tinha visto | E3.8 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

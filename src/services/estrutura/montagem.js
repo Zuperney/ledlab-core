@@ -11,11 +11,13 @@
 // mutado no lugar — é o que torna o histórico de desfazer barato e o teste trivial.
 
 import { genId } from "../ids.js";
-import { PASSOS_DE_GIRO, caixaLocal, conectorPorId, pecaPorId } from "./catalogo.js";
+import { ANGULO_DE_GIRO, caixaLocal, conectorPorId, pecaPorId } from "./catalogo.js";
 import {
   conectorNoMundo, mesmaPose, normalizarGiro, passosDeRolagem, resolverEncaixe,
 } from "./encaixe.js";
-import { IDENTIDADE, MATRIZ_IDENTIDADE, arredMatriz, matriz } from "./vetor.js";
+import {
+  IDENTIDADE, MATRIZ_IDENTIDADE, arredMatriz, matPonto, matriz, qAplicar, qDoEixo, soma, sub,
+} from "./vetor.js";
 
 export const VERSAO_MONTAGEM = 1;
 
@@ -283,41 +285,14 @@ export function girarPeca(montagem, id, giro, opcoes) {
   return reposicionar(montagem, id, (e) => ({ ...e, giro: normalizarGiro(giro) }), opcoes);
 }
 
-/** alguma peça presa nesta aqui sai do lugar se o encaixe mudar assim? */
-function arrastaFilhos(montagem, id, mudar) {
-  const depois = new Map(reposicionar(montagem, id, mudar).pecas.map((p) => [p.id, p]));
-  // basta olhar os filhos DIRETOS: parados eles, o resto da árvore nem se mexe
-  return montagem.pecas.some(
-    (p) => p.encaixe?.de === id
-      && String(depois.get(p.id)?.matriz) !== String(p.matriz),
-  );
-}
-
 /**
- * O próximo giro que NÃO arrasta nada — ou `null` se não existir nenhum.
+ * A próxima face por onde a peça pode entrar na junta.
  *
- * ⚠️ POR QUE PULAR, e não só girar: quando a rotação leva a FACE CEGA do cubo
- * pra cima do lugar onde há peça aparafusada, não existe furo pra reaparafusar,
- * e a peça teria que viajar junto. Só que essa orientação é **fisicamente
- * impossível** com aquela peça montada ali — o cubo não gira pra deixar a face
- * tapada olhando pra uma viga que está parafusada nele. Pular é dizer a verdade;
- * arrastar seria fingir que o técnico não vai reparar.
- *
- * A orientação pulada volta a existir assim que a peça que a impedia sai.
+ * Pula só o que é REGRA: face que já tem peça pendurada não serve de entrada,
+ * porque seriam duas juntas disputando o mesmo parafuso. Nada além disso — a
+ * orientação é escolha de quem desenha, não do app (§8.10).
  */
-export function proximoGiroLivre(montagem, id, sentido = 1) {
-  const peca = pecaDaMontagem(montagem, id);
-  if (!peca?.encaixe) return null;
-  const atual = normalizarGiro(peca.encaixe.giro ?? 0);
-  for (let k = 1; k < PASSOS_DE_GIRO; k++) {
-    const giro = normalizarGiro(atual + sentido * k);
-    if (!arrastaFilhos(montagem, id, (e) => ({ ...e, giro }))) return giro;
-  }
-  return null;
-}
-
-/** a próxima face de entrada livre que também não arrasta ninguém */
-export function proximaEntradaLivre(montagem, id) {
+export function proximaEntrada(montagem, id, sentido = 1) {
   const peca = pecaDaMontagem(montagem, id);
   const cat = pecaPorId(peca?.catalogoId);
   if (!peca?.encaixe || !cat) return null;
@@ -325,12 +300,64 @@ export function proximaEntradaLivre(montagem, id) {
   const faces = cat.conectores.map((c) => c.id);
   const i = faces.indexOf(peca.encaixe.conNovo);
   for (let k = 1; k < faces.length; k++) {
-    const conNovo = faces[(i + k) % faces.length];
-    // face com peça pendurada não serve de entrada: duas juntas, um parafuso só
-    if (ocupados.has(chaveConector(id, conNovo))) continue;
-    if (!arrastaFilhos(montagem, id, (e) => ({ ...e, conNovo }))) return conNovo;
+    const conNovo = faces[(((i + sentido * k) % faces.length) + faces.length) % faces.length];
+    if (!ocupados.has(chaveConector(id, conNovo))) return conNovo;
   }
   return null;
+}
+
+/**
+ * A matriz de uma peça LIVRE girada 90° em torno de um eixo do mundo.
+ *
+ * ⚠️ PEÇA LIVRE TAMBÉM GIRA (§8.10). Ela não tem junta, então não tem "eixo de
+ * encaixe" — mas isso não é motivo pra ela ficar parada. Uma barra que só sabe
+ * ficar em pé não desenha vão nenhum.
+ *
+ * Gira em cima do PRÓPRIO centro e devolve a peça com a base no mesmo nível de
+ * antes: deitar uma barra em pé deixa ela deitada NO CHÃO, não meio enterrada.
+ */
+export function matrizGirada(peca, eixo = [0, 1, 0], passos = 1) {
+  const caixa = caixaLocal(pecaPorId(peca?.catalogoId));
+  if (!caixa || !peca?.matriz) return peca?.matriz ?? null;
+
+  const cantos = [];
+  for (const x of [caixa.min[0], caixa.max[0]]) {
+    for (const y of [caixa.min[1], caixa.max[1]]) {
+      for (const z of [caixa.min[2], caixa.max[2]]) cantos.push([x, y, z]);
+    }
+  }
+  const extremos = (m) => {
+    const pts = cantos.map((c) => matPonto(m, c));
+    const eixos = [0, 1, 2].map((k) => pts.map((p) => p[k]));
+    return {
+      centro: eixos.map((v) => (Math.min(...v) + Math.max(...v)) / 2),
+      base: Math.min(...eixos[1]),
+    };
+  };
+
+  const antes = extremos(peca.matriz);
+  const q = qDoEixo(eixo, passos * ANGULO_DE_GIRO);
+  const m = peca.matriz;
+  // matriz rígida: as três primeiras colunas são as imagens dos eixos locais,
+  // então girar a peça é girar cada uma delas
+  const col = (i) => qAplicar(q, [m[i], m[i + 1], m[i + 2]]);
+  const [cx, cy, cz] = [col(0), col(4), col(8)];
+  const t = soma(qAplicar(q, sub([m[12], m[13], m[14]], antes.centro)), antes.centro);
+
+  const girada = [cx[0], cx[1], cx[2], 0, cy[0], cy[1], cy[2], 0, cz[0], cz[1], cz[2], 0, t[0], t[1], t[2], 1];
+  const depois = extremos(girada);
+  girada[13] += antes.base - depois.base; // a base volta pro nível de antes
+  return arredMatriz(girada);
+}
+
+/** troca a matriz de uma peça LIVRE (peça encaixada tem a matriz derivada) */
+export function definirMatriz(montagem, id, matriz) {
+  const peca = pecaDaMontagem(montagem, id);
+  if (!peca || peca.encaixe) return montagem;
+  return {
+    ...montagem,
+    pecas: montagem.pecas.map((p) => (p.id === id ? { ...p, matriz: arredMatriz(matriz) } : p)),
+  };
 }
 
 /**

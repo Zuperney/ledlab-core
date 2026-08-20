@@ -3,10 +3,11 @@ import { describe, it, expect } from "vitest";
 import {
   ErroDeMontagem, MOTIVOS, adicionarPecaEncaixada, adicionarPecaLivre, chaveConector, girarPeca,
   conectores, conectoresLivres, conectoresOcupados, juntas, matrizApoiada, mudarEntrada,
-  novaMontagem, pecaDaMontagem, proximaEntradaLivre, proximoGiroLivre, recalcular, removerPeca,
+  definirMatriz, matrizGirada, novaMontagem, pecaDaMontagem, proximaEntrada, recalcular,
+  removerPeca,
 } from "./montagem.js";
 import { caixaEnvolvente } from "./metricas.js";
-import { matriz, qDoEixo } from "./vetor.js";
+import { MATRIZ_IDENTIDADE, matriz, qDoEixo } from "./vetor.js";
 
 // torre: sapata + 2 m + 1 m, tudo com id fixo pro teste ser legível
 const torre = () => {
@@ -390,58 +391,78 @@ describe("a peça solta nasce apoiada, não enterrada", () => {
   });
 });
 
-describe("o giro pula a orientação impossível", () => {
-  // Com uma viga aparafusada numa face do cubo, a orientação que levaria a FACE
-  // CEGA pra cima daquela viga não existe no mundo físico — o cubo não gira pra
-  // deixar a face tapada olhando pra uma peça que está presa nele.
-  const cubeComBraco = () => {
+describe("nada de travar: toda peça gira, sempre", () => {
+  // Decisão do dono (19/08): peça só está aparafusada quando o projeto acabou.
+  // Até lá é DESENHO — e desenho tem que poder ser mexido. Melhor refazer o
+  // desenho quando um terceiro exigir uma regra do que travar o motor inteiro.
+  const cuboComBraco = () => {
     let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
     m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "norte" });
     return adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
   };
 
-  it("o giro escolhido nunca arrasta o que está preso", () => {
-    const m = cubeComBraco();
-    const antes = pecaDaMontagem(m, "braco").matriz;
-    for (let i = 0; i < 6; i++) {
-      const giro = proximoGiroLivre(m, "cubo");
-      expect(giro).not.toBeNull();
-      expect(pecaDaMontagem(girarPeca(m, "cubo", giro), "braco").matriz).toEqual(antes);
+  it("os quatro giros do cubo estão todos disponíveis, sem exceção", () => {
+    const m = cuboComBraco();
+    for (let g = 0; g < 4; g++) {
+      expect(pecaDaMontagem(girarPeca(m, "cubo", g), "cubo").encaixe.giro).toBe(g);
     }
   });
 
-  it("e ele realmente PULA — não é sempre o passo seguinte", () => {
-    const m = cubeComBraco();
-    const passos = [];
-    let atual = m;
-    for (let i = 0; i < 3; i++) {
-      const giro = proximoGiroLivre(atual, "cubo");
-      if (giro == null) break;
-      passos.push(giro);
-      atual = girarPeca(atual, "cubo", giro);
-    }
-    // se nenhum passo fosse pulado, a sequência a partir de 0 seria 1, 2, 3
-    expect(passos).not.toEqual([1, 2, 3]);
-  });
-
-  it("sem nada preso, todas as orientações estão livres", () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
-    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "norte" });
-    expect(proximoGiroLivre(m, "cubo")).toBe(1);
-  });
-
-  it("peça livre não tem giro nem entrada pra consultar", () => {
-    const m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "solto" });
-    expect(proximoGiroLivre(m, "solto")).toBeNull();
-    expect(proximaEntradaLivre(m, "solto")).toBeNull();
-  });
-
-  it("a face de entrada escolhida também não arrasta ninguém", () => {
-    const m = cubeComBraco();
-    const antes = pecaDaMontagem(m, "braco").matriz;
-    const face = proximaEntradaLivre(m, "cubo");
+  it("a face de entrada só pula o que é REGRA: face com peça pendurada", () => {
+    const m = cuboComBraco();
+    const face = proximaEntrada(m, "cubo");
     expect(face).not.toBeNull();
     expect(face).not.toBe("leste"); // essa tem viga pendurada
-    expect(pecaDaMontagem(mudarEntrada(m, "cubo", face), "braco").matriz).toEqual(antes);
+    expect(face).not.toBe("norte"); // essa é a entrada atual
+  });
+
+  it("sem face livre nenhuma, devolve null em vez de inventar", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "p30-b2000", de: "a", conAlvo: "b", conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id: "c", catalogoId: "p30-b0500", de: "b", conAlvo: "b", conNovo: "a" });
+    expect(proximaEntrada(m, "b")).toBeNull(); // as duas pontas da barra ocupadas
+  });
+});
+
+describe("a peça LIVRE também gira", () => {
+  // Uma barra que só sabe ficar em pé não desenha vão nenhum.
+  const emPe = () => adicionarPecaLivre(novaMontagem(), "p30-b2000", {
+    id: "solta", matriz: matrizApoiada("p30-b2000"),
+  });
+
+  it("deitar uma barra em pé deixa ela deitada NO CHÃO, não enterrada", () => {
+    const m = emPe();
+    const deitada = definirMatriz(m, "solta", matrizGirada(pecaDaMontagem(m, "solta"), [1, 0, 0]));
+    const caixa = caixaEnvolvente(deitada);
+    expect(caixa.min[1]).toBe(0); // a base ficou no mesmo nível
+    expect(caixa.alturaMm).toBe(300); // e agora ela é uma barra deitada
+    expect(caixa.profundidadeMm).toBe(2000);
+  });
+
+  it("girar em torno da vertical troca a direção sem sair do lugar", () => {
+    let m = emPe();
+    m = definirMatriz(m, "solta", matrizGirada(pecaDaMontagem(m, "solta"), [1, 0, 0])); // deita
+    const antes = caixaEnvolvente(m);
+    const virada = definirMatriz(m, "solta", matrizGirada(pecaDaMontagem(m, "solta"), [0, 1, 0]));
+    const depois = caixaEnvolvente(virada);
+    expect(depois.larguraMm).toBe(antes.profundidadeMm);
+    expect(depois.profundidadeMm).toBe(antes.larguraMm);
+    expect(depois.min[1]).toBe(antes.min[1]);
+  });
+
+  it("quatro voltas devolvem a peça ao lugar exato", () => {
+    const m = emPe();
+    let atual = m;
+    for (let i = 0; i < 4; i++) {
+      atual = definirMatriz(atual, "solta", matrizGirada(pecaDaMontagem(atual, "solta"), [1, 0, 0]));
+    }
+    pecaDaMontagem(atual, "solta").matriz.forEach((n, i) =>
+      expect(n).toBeCloseTo(pecaDaMontagem(m, "solta").matriz[i], 4));
+  });
+
+  it("peça ENCAIXADA não aceita matriz solta: a dela é derivada da junta", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b", catalogoId: "p30-b2000", de: "a", conAlvo: "b", conNovo: "a" });
+    expect(definirMatriz(m, "b", [...MATRIZ_IDENTIDADE])).toBe(m);
   });
 });
