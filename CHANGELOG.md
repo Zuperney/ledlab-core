@@ -2,6 +2,40 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.23.0] — 2026-08-19
+
+**A estrutura entra no app: box truss em 3D, com lista de peças, peso e medidas reais.**
+
+Módulo novo, do zero ao Caderno. A escolha de escopo veio do dono no primeiro dia: **Q30 (300 × 300 mm) da linha do estoque dele, linhas retas e cubo, sem peça curva** — e o essencial sendo o relatório, não o desenho bonito. Pesquisa e decisões em `docs/estrutura3d-pesquisa.md` e `docs/estrutura3d-spec.md`.
+
+**A aba Estrutura**
+
+- **Catálogo do galpão real**: barras de 0,2 · 0,3 · 0,5 · 0,6 · 1 · 2 · 3 · 4 m, cubo de 5 faces e sapata baixa, agrupados por categoria numa paleta ao lado do desenho — que também é a legenda, com a cor e quantas estão montadas.
+- **Montar é gesto, não formulário**: escolhe a peça, clica no **piso** e ela nasce apoiada ali; passa o ponteiro num conector livre e vê a peça em **fantasma** antes de soltar. Desktop-only por decisão do dono — montar 3D com o dedo não funciona, e todas as ferramentas do ramo são de computador.
+- **Atalhos**: `V` segurado vira modo Ver (clicar sem encaixar) · `Ctrl` segurado vira conta-gotas (a peça clicada vira a de inserção) · `Shift+clique` seleciona várias · `Delete` apaga · `Ctrl+Z` desfaz, e o desfazer sobrevive à troca de aba.
+- **Rotação pelas seis direções do piso** (`N · S · L · O · CIMA · BAIXO`): `R` e `Shift+R`. No cubo o que gira é a **face cega** — a única sem chapa, marcada por uma seta —, e ela só vai pra direção que não tem peça aparafusada. **Girar uma peça nunca arrasta as outras.**
+- **Cor por peça do catálogo**, nas preferências globais: o catálogo é o galpão, então a barra de 2 m é da mesma cor em todo projeto. Padrão pelo comprimento — curta fria, longa quente.
+
+**O que sai no Caderno**
+
+- Folha **Estrutura** com lista de peças por linha, **peso total**, **medidas reais**, contagem de juntas → **parafusaria** (parafuso 5/8" ASTM A325 chave 27, porca e arruela), procedência do peso item a item e a vista 3D capturada. Vai no DOM e no PDF.
+- **Caderno próprio "Estrutura"**: capa e a folha, e nada mais — o que vai pra equipe de montagem. A folha saiu do Resumido e do Gabinetes e ficou no Completo e nele.
+- **Aviso de responsabilidade impresso sempre**: o app **não dimensiona a estrutura e não diz se ela aguenta**. Vão, carga, flecha, içamento e contraventamento são do rigger habilitado e do engenheiro com ART no CREA. Nenhum fabricante brasileiro publica tabela de carga aberta, então o app não arbitra.
+
+**Integridade**
+
+- **Sobreposição é acusada**: dá pra montar peça dentro de peça sem perceber, e agora o app avisa (em vermelho na cena e registrado na folha) sem bloquear — quem monta às vezes precisa de um estado inválido no meio do caminho.
+- **Peça fora do catálogo falha alto**: a aba não monta e não grava, em vez de descartar a peça em silêncio.
+- **O piso nunca corta a peça**: peça solta nasce apoiada, e a grade desce se algo passar dela.
+- **Correção — junta se conta na geometria**: a montagem é uma árvore, então contar encaixes dava sempre "peças − soltas" e ficava **curto** quando a estrutura fecha. No pórtico a viga se aparafusa nos dois cubos e a segunda ponta não entrava: **8 juntas, não 7** — e 32 parafusos na caixa, não 28.
+
+**Sob o capô**
+
+- Motor puro em `services/estrutura/`, **sem uma linha de 3D**: encaixe por quatérnio, snap em grade espacial, histórico de comandos inversíveis, serialização versionada. A cena three.js vive num chunk à parte, **fora do precache do service worker**, pra que o Caderno continue abrindo no celular e offline sem baixar 150 KB de 3D.
+- O peso vem de catálogo de terceiro e sai **declarado como estimado** enquanto o dono não pesar peça por peça na balança.
+
+---
+
 ## [1.22.0] — 2026-08-18
 
 **O vão vira medida, o campo vira calculadora e o Caderno de Design vira briefing de conteúdo.**
