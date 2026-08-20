@@ -91,6 +91,28 @@ export function nivelDoChao(montagem) {
 }
 
 /**
+ * Onde o PISO é CENTRADO, em mm — o meio da estrutura, no plano do chão.
+ *
+ * A grade nasce centrada na origem do mundo, mas a estrutura nasce onde o
+ * técnico clicou — e num projeto de verdade isso é longe da origem. O desenho
+ * ficava com a estrutura num canto e o piso no outro, como se ela estivesse fora
+ * do palco.
+ *
+ * ARREDONDA NO METRO de propósito: a grade é a régua de 1 m do palco, e régua
+ * que anda em frações de metro deixa de ser régua. Assim as linhas continuam
+ * caindo em metro inteiro do mundo, e medir contando quadrado segue valendo.
+ *
+ * Acompanha só as PEÇAS. Painel pendurado balança pra fora da treliça e faria o
+ * piso perseguir a parede em vez da estrutura.
+ */
+export function centroDoChao(montagem, passoMm = 1000) {
+  const caixa = caixaEnvolvente(montagem);
+  if (!caixa) return [0, 0];
+  const meio = (k) => Math.round((caixa.min[k] + caixa.max[k]) / 2 / passoMm) * passoMm;
+  return [meio(0), meio(2)];
+}
+
+/**
  * A lista de peças — o artefato que vai pro galpão.
  * Ordenada por tipo (barra, cubo, sapata) e, dentro do tipo, pela ordem do
  * catálogo, pra que a folha impressa saia sempre igual.

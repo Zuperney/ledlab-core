@@ -20,7 +20,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { NIVEIS, geometriaDaPeca, geometriaPainel, limparCache } from "./geometria.js";
-import { caixaEnvolvente, nivelDoChao } from "../services/estrutura/metricas.js";
+import { caixaEnvolvente, centroDoChao, nivelDoChao } from "../services/estrutura/metricas.js";
 
 // distância da câmera (mm) a partir da qual a peça cai de nível
 const CORTES_LOD = [6000, 16000, 40000];
@@ -361,11 +361,21 @@ export function criarCena(canvas, cores) {
   // ── API ────────────────────────────────────────────────────
   function sincronizar(montagem) {
     pecas = montagem?.pecas ?? [];
-    // O PISO FICA SEMPRE ABAIXO DA PEÇA MAIS BAIXA (regra do dono, 19/08). Peça
-    // atravessada pelo chão é desenho que mente sobre o que está apoiado e o que
-    // está no ar — e é com esse desenho que se decide içamento. A régua mora no
-    // motor (`nivelDoChao`), porque é regra, não detalhe de renderização.
-    grade.position.y = nivelDoChao(montagem);
+    // O PISO ACOMPANHA A ESTRUTURA, nos três eixos.
+    //
+    // Em ALTURA: fica sempre abaixo da peça mais baixa (regra do dono, 19/08).
+    // Peça atravessada pelo chão é desenho que mente sobre o que está apoiado e
+    // o que está no ar — e é com esse desenho que se decide içamento.
+    //
+    // No PLANO: fica centrado na estrutura (20/08). A grade nasce na origem do
+    // mundo, mas a estrutura nasce onde o técnico clicou; num projeto de verdade
+    // isso é longe da origem, e o desenho ficava com a estrutura num canto e o
+    // piso no outro, como se ela estivesse fora do palco.
+    //
+    // As duas réguas moram no motor, porque são regra e não detalhe de
+    // renderização — e é lá que estão testadas.
+    const [cx, cz] = centroDoChao(montagem);
+    grade.position.set(cx, nivelDoChao(montagem), cz);
     // peça apagada encurta a lista: índice que não existe mais sai da seleção,
     // senão o destaque salta pra peça errada na renderização seguinte
     for (const i of [...selecao]) if (i >= pecas.length) selecao.delete(i);
@@ -478,8 +488,13 @@ export function criarCena(canvas, cores) {
     // piso, e o encontro dos dois vai parar a QUILÔMETROS: um clique de raspão
     // ali nascia peça a 20 km, que ninguém vê e que estraga toda medida do
     // projeto. Fora da grade o clique não vale nada — é céu, não chão.
+    //
+    // O limite é medido a partir do CENTRO DA GRADE, não da origem do mundo:
+    // com o piso acompanhando a estrutura, clicar na grade longe da origem é
+    // clique legítimo.
     const limite = LADO_DA_GRADE / 2;
-    if (Math.abs(p.x) > limite || Math.abs(p.z) > limite) return null;
+    if (Math.abs(p.x - grade.position.x) > limite
+        || Math.abs(p.z - grade.position.z) > limite) return null;
     return [p.x, p.y, p.z];
   }
 

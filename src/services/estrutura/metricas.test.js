@@ -1,7 +1,7 @@
 // metricas.test.js — peso, medidas e a lista que vai pro galpão.
 import { describe, it, expect } from "vitest";
 import {
-  caixaEnvolvente, listaDePecas, nivelDoChao, parafusaria, pesoTotal, resumo,
+  caixaEnvolvente, centroDoChao, listaDePecas, nivelDoChao, parafusaria, pesoTotal, resumo,
 } from "./metricas.js";
 import { adicionarPecaEncaixada, adicionarPecaLivre, novaMontagem } from "./montagem.js";
 import { pecaPorId } from "./catalogo.js";
@@ -151,5 +151,33 @@ describe("onde o piso é desenhado", () => {
       id: "a", matriz: matriz(IDENTIDADE, [0, 8000, 0]),
     });
     expect(nivelDoChao(m)).toBe(0);
+  });
+});
+
+describe("onde o piso é centrado", () => {
+  it("sem estrutura, fica na origem do palco", () => {
+    expect(centroDoChao(novaMontagem())).toEqual([0, 0]);
+    expect(centroDoChao(null)).toEqual([0, 0]);
+  });
+
+  // a estrutura nasce onde o técnico clicou, e num projeto de verdade isso é
+  // longe da origem — o piso tem que ir junto
+  it("segue o meio da estrutura, no plano do chão", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", {
+      id: "a", matriz: matriz(IDENTIDADE, [7400, 1000, -3200]),
+    });
+    expect(centroDoChao(m)).toEqual([7000, -3000]);
+  });
+
+  // régua que anda em fração de metro deixa de ser régua
+  it("arredonda no metro, pra grade continuar caindo em metro inteiro", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", {
+      id: "a", matriz: matriz(IDENTIDADE, [1499, 1000, 1501]),
+    });
+    expect(centroDoChao(m)).toEqual([1000, 2000]);
+  });
+
+  it("com o pórtico centrado na origem, não sai do lugar", () => {
+    expect(centroDoChao(porticoDeExemplo())).toEqual([0, 0]);
   });
 });

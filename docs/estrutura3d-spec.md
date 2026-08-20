@@ -740,6 +740,30 @@ está apoiado e o que está no ar — e é com esse desenho que se decide içame
 A régua mora no motor (`metricas.nivelDoChao`), não na cena: é regra de projeto,
 não detalhe de renderização, e assim ela é testável sem WebGL.
 
+### O piso acompanha a estrutura
+
+> *"montei esta estrutura pro projeto do Boticário, quero uma função de trazer o
+> piso para o centro da estrutura assim não fica com o piso deslocado"*
+
+A grade nasce centrada na **origem do mundo**, mas a peça nasce **onde o técnico
+clica** (§8.8) — e num projeto de verdade isso é longe da origem. O desenho ficava
+com a estrutura num canto e o piso no outro, como se ela estivesse fora do palco.
+
+Agora o piso acompanha a estrutura **nos três eixos**: em altura ele já ficava
+abaixo da peça mais baixa (§8.7), e no plano passa a ficar **centrado na
+estrutura** (`metricas.centroDoChao`).
+
+**Arredonda no metro** de propósito: a grade é a régua de 1 m do palco, e régua
+que anda em fração de metro deixa de ser régua. Assim as linhas continuam caindo
+em metro inteiro do mundo, e medir contando quadrado segue valendo.
+
+Acompanha só as **peças**. Painel pendurado balança pra fora da treliça e faria o
+piso perseguir a parede em vez da estrutura.
+
+> ⚠️ E o limite do clique (o conserto do horizonte, §8.9) passa a ser medido **a
+> partir do centro da grade**, não da origem do mundo — senão o piso andaria e o
+> clique nele deixaria de valer.
+
 ### A paleta do catálogo
 
 > *"outra coisa que ainda não entrou foi um card que tenha a lista de todas as
