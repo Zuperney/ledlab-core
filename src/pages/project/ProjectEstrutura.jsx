@@ -787,6 +787,9 @@ export default function ProjectEstrutura({ project, patch }) {
           <p><b>As direções são as do piso</b> — Norte, Sul, Leste, Oeste, Cima e Baixo —, e elas não se mexem. É por elas que se descreve giro aqui.</p>
           <p><b>R</b> · no <b>cubo</b>, leva a <b>face cega</b> (a que a seta marca) pra próxima direção livre do plano do chão. Na <b>barra</b> e na <b>sapata</b>, gira no próprio eixo: a peça não sai do lugar, muda só qual face leva a escada.</p>
           <p><b>Shift+R</b> · no <b>cubo</b>, leva a face cega pra <b>cima ou pra baixo</b>. Na <b>barra solta</b>, tomba 90° — é assim que uma barra em pé vira barra deitada, e ela cai apoiada no piso.</p>
+          <p><b>Para pendurar uma tela:</b> ela precisa existir na aba <b>Dados</b> (com gabinete escolhido — é de lá que saem a medida e o peso). Aqui, <b>selecione a peça</b> onde ela vai — segure <b>V</b> e clique nela —, escolha a tela no seletor que aparece e clique em <b>Pendurar</b>.</p>
+          <p>O painel nasce <b>pendurado por baixo</b> da peça. Clique no chip dele embaixo do desenho pra selecionar: aí <b>R</b> vira pra onde o LED olha, <b>Shift+R</b> passeia a face onde ele encosta (embaixo, em cima ou nos lados) e <b>Delete</b> solta.</p>
+          <p><b>O peso pendurado aparece separado:</b> quanto a treliça pesa por si, quanto ela está carregando e o <b>total suspenso</b> — e isso sai na folha do Caderno, com a lista dos painéis. O app continua sem dizer se aguenta.</p>
           <p><b>Direção que já tem peça é trava:</b> ali existe flange aparafusada, então a face cega não pode ir pra lá. Se não sobrar nenhuma direção livre, a tecla não faz nada e a aba diz o que está travando.</p>
           <p><b>Girar nunca arrasta.</b> Nenhuma rotação move outra peça: o que estava encaixado é reaparafusado na face que ficou virada pro lado certo, e continua exatamente onde estava.</p>
           <p><b>A seta</b> marca a face cega do cubo, aquela que veio tapada de fábrica e não aceita peça. Selecione o cubo para vê-la.</p>
@@ -872,6 +875,18 @@ export default function ProjectEstrutura({ project, patch }) {
               </div>
             )}
           </div>
+
+          {/* A DICA QUE FALTAVA. O botão "Pendurar" só existe com uma peça
+              selecionada — o que é certo (botão que não pode agir ensina errado),
+              mas deixava o caminho invisível pra quem não sabia que ele existia.
+              Some assim que o primeiro painel entra. */}
+          {!vazia && paineis.length === 0 && telas.length > 0 && (
+            <div style={{ fontSize: 12, color: T.dim, lineHeight: 1.5 }}>
+              <Layers size={13} style={{ verticalAlign: -2, marginRight: 5, color: T.mut }} />
+              Este projeto tem {plural(telas.length, "tela")} pra pendurar. Selecione a peça onde ela vai
+              — segure <b style={{ color: T.mut }}>V</b> e clique nela — e use <b style={{ color: T.mut }}>Pendurar</b>.
+            </div>
+          )}
 
           {/* OS PAINÉIS PENDURADOS. Clicar no chip seleciona — e aí R vira pra onde
               o LED olha, Shift+R passeia a face, Delete solta. */}
