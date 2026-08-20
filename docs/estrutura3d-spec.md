@@ -1245,6 +1245,27 @@ nas duas torres.
 > Nada disso é carga. O app não sabe e não vai dizer se a estrutura aguenta —
 > ele diz **quanto pesa** e **se cabe**, que são medidas, e o resto é do rigger.
 
+### O que a folha do Caderno passa a dizer
+
+O peso da treliça e o do que ela **carrega** saem separados, e o total fecha
+embaixo — na folha do DOM e no PDF:
+
+| | |
+| --- | --- |
+| Peso da treliça | 166 kg |
+| Painéis (1) | 96 kg |
+| **Total suspenso** | **262 kg** |
+
+E vem a **lista dos painéis**: tela, medida, em qual peça está pendurado,
+gabinetes e peso. Ela não é enfeite — **é o que torna o total conferível**. Sem
+ela o peso suspenso é palavra, e quem assina o içamento não assina palavra.
+
+O que não cabe vai **impresso**, com a mesma ressalva da tela: *"é medida, não
+carga — confira o desenho antes de subir"*.
+
+> Sem painel, a folha **não menciona nada disso**: nem a linha de peso, nem a
+> seção. Seção vazia ocupa papel e não informa (mesma régua do §E3).
+
 ### O arquivo sobe de versão só quando precisa
 
 `VERSAO_MONTAGEM` foi a 2 com os painéis, mas `paraJSON` grava **1 enquanto não

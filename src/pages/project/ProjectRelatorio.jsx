@@ -509,7 +509,25 @@ export default function ProjectRelatorio({ project }) {
                   <tbody>
                     <tr><td style={td}>Peças</td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.resumo.pecas}</td></tr>
                     <tr><td style={td}>Juntas</td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.juntas}</td></tr>
-                    <tr><td style={td}>Peso</td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.pesoTexto}</td></tr>
+                    <tr>
+                      <td style={td}>{estrutura.paineis ? "Peso da treliça" : "Peso"}</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.pesoTexto}</td>
+                    </tr>
+                    {/* O peso da treliça e o do que ela CARREGA saem separados, e o
+                        total fecha embaixo — é o número que o rigger pede antes de
+                        içar. O app segue sem dizer se aguenta. */}
+                    {estrutura.paineis && (
+                      <>
+                        <tr>
+                          <td style={td}>Painéis ({estrutura.paineis.paineis})</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.paineis.pesoTexto}</td>
+                        </tr>
+                        <tr>
+                          <td style={{ ...td, fontWeight: 700 }}>Total suspenso</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.pesoSuspensoTexto}</td>
+                        </tr>
+                      </>
+                    )}
                     {estrutura.medidas && (
                       <>
                         <tr><td style={td}>Largura</td><td style={{ ...td, textAlign: "right" }}>{estrutura.medidas.largura}</td></tr>
@@ -556,6 +574,37 @@ export default function ProjectRelatorio({ project }) {
                 <Chip key={i.id} title={`${i.qtd}×`} sub={i.spec} />
               ))}
             </div>
+
+            {estrutura.paineis && (
+              <>
+                <SubHead title="Painéis pendurados" right={plural(estrutura.paineis.paineis, "painel", "painéis")} />
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr><th style={th}>Tela</th><th style={th}>Medida</th><th style={th}>Onde</th><th style={th}>Gab.</th><th style={th}>Peso</th></tr></thead>
+                  <tbody>
+                    {estrutura.paineis.lista.map((p) => (
+                      <tr key={p.id}>
+                        <td style={td}>{p.nome}</td>
+                        <td style={td}>{p.medida}</td>
+                        <td style={td}>{p.em}</td>
+                        <td style={{ ...td, textAlign: "right" }}>{p.gabinetes ?? "—"}</td>
+                        <td style={{ ...td, textAlign: "right" }}>{p.pesoKg == null ? "—" : `${p.pesoKg} kg`}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ fontWeight: 700 }}>
+                      <td style={td}>Total</td><td style={td}></td><td style={td}></td><td style={td}></td>
+                      <td style={{ ...td, textAlign: "right" }}>{estrutura.paineis.pesoTexto}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                {estrutura.paineis.problemas.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    <WarnBox title="Painel fora de lugar" tone="amber">
+                      {estrutura.paineis.problemas.join(" · ")}. É <b>medida</b>, não carga — confira o desenho antes de subir.
+                    </WarnBox>
+                  </div>
+                )}
+              </>
+            )}
 
             {procedenciaDoPeso(estrutura).length > 0 && (
               <>

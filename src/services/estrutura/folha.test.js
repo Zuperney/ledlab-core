@@ -171,3 +171,48 @@ describe("peça dentro de peça vai impresso", () => {
     expect(c[0].mm).toBeGreaterThan(0);
   });
 });
+
+describe("os painéis na folha (E4)", () => {
+  const comPainel = (telaExtra = {}) => {
+    const p = projeto();
+    const viga = p.estrutura.pecas.find((x) => x.catalogoId === "p30-b4000");
+    p.estrutura.paineis = [{ id: "pn1", telaId: "t1", de: viga.id, face: "BAIXO", olha: "N" }];
+    p.telas = [{
+      id: "t1", nome: "Frontal", cols: 6, rows: 2,
+      gabinete: { dimW: "500", dimH: "500", peso: "8" },
+      ...telaExtra,
+    }];
+    return p;
+  };
+
+  it("sem painel, a folha nem menciona", () => {
+    expect(dadosDaFolha(projeto()).paineis).toBeNull();
+  });
+
+  it("separa o peso da treliça do peso do que ela carrega, e fecha o total", () => {
+    const d = dadosDaFolha(comPainel());
+    expect(d.pesoTexto).toBe("166 kg"); // a treliça, sozinha
+    expect(d.paineis.pesoTexto).toBe("96 kg"); // 12 gabinetes × 8 kg
+    expect(d.pesoSuspensoTexto).toBe("262 kg"); // o que sai do chão junto
+  });
+
+  // a lista é o que torna o total conferível: sem ela, o número é palavra
+  it("lista cada painel com medida, gabinetes, peso e onde está", () => {
+    const [item] = dadosDaFolha(comPainel()).paineis.lista;
+    expect(item.nome).toBe("Frontal");
+    expect(item.medida).toBe("3,00 m × 1,00 m");
+    expect(item.gabinetes).toBe(12);
+    expect(item.pesoKg).toBe(96);
+    expect(item.em).toBe("Barra P30 4 m");
+  });
+
+  it("o que não cabe vai IMPRESSO, em medida e não em carga", () => {
+    const d = dadosDaFolha(comPainel({ cols: 12 })); // 6 m no vão de 4 m
+    expect(d.paineis.problemas).toContain("não cabe no vão — entra na treliça");
+  });
+
+  it("tela sem peso de gabinete deixa o total parcial, e a folha sabe", () => {
+    const d = dadosDaFolha(comPainel({ gabinete: { dimW: "500", dimH: "500" } }));
+    expect(d.paineis.completo).toBe(false);
+  });
+});

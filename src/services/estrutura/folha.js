@@ -11,6 +11,9 @@
 
 import { pecaPorId } from "./catalogo.js";
 import { colisoes } from "./colisao.js";
+import {
+  MOTIVOS_DE_PAINEL, paineisNoMundo, pesoDosPaineis, problemasDosPaineis,
+} from "./paineis.js";
 import { legendaDaEstrutura } from "./cores.js";
 import { juntas } from "./montagem.js";
 import { resumo } from "./metricas.js";
@@ -46,6 +49,16 @@ const metroBR = (mm) =>
 
 const nomeDaPeca = (montagem, id) =>
   pecaPorId(montagem.pecas.find((p) => p.id === id)?.catalogoId)?.nome ?? "peça";
+
+const kg = (n) => `${Math.round(n * 10) / 10} kg`;
+
+// o que o papel diz de cada problema de painel — em MEDIDA, nunca em carga
+const TEXTO_DO_PROBLEMA = {
+  [MOTIVOS_DE_PAINEL.SEM_TELA]: "a tela saiu do projeto",
+  [MOTIVOS_DE_PAINEL.SEM_APOIO]: "a peça onde estava pendurado foi apagada",
+  [MOTIVOS_DE_PAINEL.ATRAVESSA]: "não cabe no vão — entra na treliça",
+  [MOTIVOS_DE_PAINEL.NO_CHAO]: "passa do piso — arrasta no chão",
+};
 
 /**
  * Os dados da folha, a partir do projeto.
@@ -109,6 +122,35 @@ export function dadosDaFolha(project, imagem = null, opcoes = {}) {
       : "Peso estimado — valores de catálogo, ainda não conferidos na balança.",
     imagem: imagem ?? null,
     imagemEm: project?.estruturaImg?.em ?? null,
+    // ── OS PAINÉIS (E4) ──
+    // O peso da treliça e o peso do que ela CARREGA saem separados, e o total
+    // fecha embaixo. É o número que o rigger pede antes de içar — e o app segue
+    // sem dizer se aguenta (§10).
+    paineis: (() => {
+      const telas = project?.telas ?? [];
+      const pendurado = pesoDosPaineis(montagem, telas);
+      if (!pendurado.paineis) return null; // sem painel, a folha nem menciona
+      return {
+        ...pendurado,
+        pesoTexto: kg(pendurado.kg),
+        // a lista é o que torna o total CONFERÍVEL: sem ela, o número é palavra
+        lista: paineisNoMundo(montagem, telas).map((item, i) => ({
+          id: item.painel.id,
+          nome: item.tela?.nome?.trim() || `Tela ${i + 1}`,
+          medida: item.medidas
+            ? `${metroBR(item.medidas.larguraMm)} × ${metroBR(item.medidas.alturaMm)}`
+            : "—",
+          gabinetes: item.medidas?.gabinetes ?? null,
+          pesoKg: item.medidas?.pesoKg ?? null,
+          em: nomeDaPeca(montagem, item.painel.de),
+        })),
+        problemas: [...new Set(
+          problemasDosPaineis(montagem, telas).map((x) => TEXTO_DO_PROBLEMA[x.motivo]),
+        )],
+      };
+    })(),
+    // o total suspenso: treliça + painéis, que é o que sai do chão junto
+    pesoSuspensoTexto: kg(r.peso.kg + pesoDosPaineis(montagem, project?.telas ?? []).kg),
     // a legenda do desenho: cor, nome e quantidade, só das peças que estão lá
     legenda: legendaDaEstrutura(montagem, opcoes.cores ?? null),
     // PEÇA DENTRO DE PEÇA vai IMPRESSO. Quem monta no galpão segue o papel, e

@@ -603,3 +603,51 @@ describe("folha ESTRUTURA (box truss)", () => {
     expect(comImg).toContain("data:image/png;base64,AAA");
   });
 });
+
+describe("folha ESTRUTURA — os painéis pendurados (E4)", () => {
+  const montagem = paraJSON(porticoDeExemplo());
+  const viga = montagem.pecas.find((p) => p.catalogoId === "p30-b4000");
+  const comPainel = (cols) => ({
+    ...project,
+    telas: [{ id: "t1", nome: "Frontal", cols, rows: 2, gabinete: { dimW: "500", dimH: "500", peso: "8" } }],
+    estrutura: { ...montagem, paineis: [{ id: "pn1", telaId: "t1", de: viga.id, face: "BAIXO", olha: "N" }] },
+  });
+  const doc = (cols) => JSON.stringify(
+    buildRelatorioDoc({ project: comPainel(cols), tipo: "Completo", cfg, logo: null, gerado: "20/08/2026" }).content,
+  );
+
+  // é o número que o rigger pede antes de içar, e hoje sai de planilha
+  it("separa o peso da treliça do peso dos painéis e fecha o total suspenso", () => {
+    const json = doc(6);
+    expect(json).toContain("PESO DA TRELIÇA"); // o specBox sobe o rótulo
+    expect(json).toContain("166 kg");
+    expect(json).toContain("96 kg"); // 12 gabinetes × 8 kg
+    expect(json).toContain("TOTAL SUSPENSO");
+    expect(json).toContain("262 kg");
+  });
+
+  it("lista cada painel — é o que torna o total conferível", () => {
+    const json = doc(6);
+    expect(json).toContain("Painéis pendurados");
+    expect(json).toContain("Frontal");
+    expect(json).toContain("3,00 m × 1,00 m");
+    expect(json).toContain("Barra P30 4 m");
+  });
+
+  it("o que não cabe vai IMPRESSO, e declarado como medida", () => {
+    const json = doc(12); // 6 m de parede no vão de 4 m
+    expect(json).toMatch(/não cabe no vão/);
+    expect(json).toMatch(/É medida, não carga/);
+  });
+
+  it("sem painel, a folha não inventa seção nenhuma", () => {
+    const json = JSON.stringify(
+      buildRelatorioDoc({
+        project: { ...project, estrutura: montagem },
+        tipo: "Completo", cfg, logo: null, gerado: "20/08/2026",
+      }).content,
+    );
+    expect(json).not.toContain("Painéis pendurados");
+    expect(json).not.toContain("TOTAL SUSPENSO");
+  });
+});

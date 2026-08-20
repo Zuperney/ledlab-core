@@ -993,7 +993,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               specBox([
                 ["Peças", String(d.resumo.pecas)],
                 ["Juntas", String(d.juntas)],
-                ["Peso", d.pesoTexto],
+                // o peso da treliça e o do que ela CARREGA saem separados, e o
+                // total fecha embaixo: é o número que o rigger pede antes de içar
+                [d.paineis ? "Peso da treliça" : "Peso", d.pesoTexto],
+                ...(d.paineis ? [
+                  [`Painéis (${d.paineis.paineis})`, d.paineis.pesoTexto],
+                  ["Total suspenso", d.pesoSuspensoTexto],
+                ] : []),
               ]),
               ...(d.medidas ? [specBox([
                 ["Largura", d.medidas.largura],
@@ -1043,6 +1049,43 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         columnGap: 16,
         margin: [0, 0, 0, 8],
       },
+      // OS PAINÉIS PENDURADOS. A lista é o que torna o total conferível — sem
+      // ela, o peso suspenso é palavra.
+      ...(!d.paineis ? [] : [
+        subHead(null, "Painéis pendurados", plural(d.paineis.paineis, "painel", "painéis")),
+        {
+          table: {
+            headerRows: 1,
+            widths: ["*", "auto", "auto", "auto", "auto"],
+            body: [
+              [th("Tela"), th("Medida"), th("Onde"), th("Gab.", "right"), th("Peso", "right")],
+              ...d.paineis.lista.map((p) => [
+                { text: p.nome },
+                { text: p.medida },
+                { text: p.em },
+                mono(p.gabinetes == null ? "—" : String(p.gabinetes), { alignment: "right" }),
+                mono(p.pesoKg == null ? "—" : `${p.pesoKg} kg`, { alignment: "right" }),
+              ]),
+              [
+                { text: "Total", bold: true }, "", "", "",
+                mono(d.paineis.pesoTexto, { alignment: "right", bold: true }),
+              ],
+            ],
+          },
+          layout: zebraLayout(),
+        },
+        ...(d.paineis.problemas.length ? [{
+          ...warnBox({
+            titulo: "Painel fora de lugar",
+            partes: [
+              { t: `${d.paineis.problemas.join(" · ")}. ` },
+              { t: "É medida, não carga", b: true },
+              { t: " — confira o desenho antes de subir." },
+            ],
+          }),
+          margin: [0, 8, 0, 0],
+        }] : []),
+      ]),
       ...(proc.length ? [
         { text: "PROCEDÊNCIA DO PESO", fontSize: 7, bold: true, color: PRINT.dim, characterSpacing: 0.8, margin: [0, 6, 0, 3] },
         ...proc.map((p) => ({
