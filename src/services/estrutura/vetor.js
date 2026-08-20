@@ -147,6 +147,39 @@ export function matDirecao(m, v) {
 
 export const matPosicao = (m) => [m[12], m[13], m[14]];
 
+/**
+ * A matriz girada por `q` em torno de um ponto do mundo.
+ *
+ * Não precisa extrair quatérnio da matriz: numa matriz RÍGIDA as três primeiras
+ * colunas são as imagens dos eixos locais, então girar a peça é girar cada uma
+ * delas. A translação acompanha o giro em volta do centro escolhido.
+ */
+export function matRodada(m, q, centro = [0, 0, 0]) {
+  const col = (i) => qAplicar(q, [m[i], m[i + 1], m[i + 2]]);
+  const [cx, cy, cz] = [col(0), col(4), col(8)];
+  const t = soma(qAplicar(q, sub([m[12], m[13], m[14]], centro)), centro);
+  return [
+    cx[0], cx[1], cx[2], 0,
+    cy[0], cy[1], cy[2], 0,
+    cz[0], cz[1], cz[2], 0,
+    t[0], t[1], t[2], 1,
+  ];
+}
+
+/**
+ * Duas matrizes descrevem a MESMA pose?
+ *
+ * Duas tolerâncias, porque as duas metades da matriz falam línguas diferentes: a
+ * rotação é adimensional (erro de float, ~1e-9) e a translação é em MILÍMETRO
+ * (meio milímetro é o arredondamento da casa).
+ */
+export function mesmaMatriz(a, b, { rotacao = 1e-4, posicaoMm = 0.5 } = {}) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== 16 || b.length !== 16) return false;
+  for (let i = 0; i < 12; i++) if (Math.abs(a[i] - b[i]) > rotacao) return false;
+  for (let i = 12; i < 15; i++) if (Math.abs(a[i] - b[i]) > posicaoMm) return false;
+  return true;
+}
+
 // ── arredondamento de saída ──────────────────────────────────
 // O JSON do projeto precisa ser estável e diffável: sem isso, dois encaixes
 // idênticos geram matrizes com lixo na 15ª casa e o sync marca mudança à toa.

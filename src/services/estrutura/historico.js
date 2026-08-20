@@ -11,8 +11,8 @@
 // o motor só recebe o comando pronto.
 
 import {
-  adicionarPecaEncaixada, adicionarPecaLivre, definirMatriz, girarPeca, mudarEntrada,
-  novaMontagem, pecaDaMontagem, removerPeca,
+  adicionarPecaEncaixada, adicionarPecaLivre, definirPose, novaMontagem,
+  pecaDaMontagem, removerPeca,
 } from "./montagem.js";
 
 export const LIMITE_PADRAO = 100;
@@ -29,13 +29,10 @@ export const ACOES = Object.freeze({
   ADICIONAR_LIVRE: "adicionar-livre",
   ADICIONAR_ENCAIXADA: "adicionar-encaixada",
   REMOVER: "remover",
-  GIRAR: "girar",
-  // a segunda rotação do cubo: trocar a face por onde ele entra na junta. É o
-  // que o giro não faz — a face cega mora no eixo do giro (§8.5).
-  ENTRADA: "entrada",
-  // a pose de uma peça LIVRE. Ela não tem junta pra derivar a matriz, então o
-  // comando carrega a matriz inteira — e o inverso carrega a anterior.
-  MATRIZ: "matriz",
+  // TODA rotação é uma POSE (§8.11). O comando carrega a matriz de mundo e o
+  // motor reancora as juntas em volta; o inverso carrega a matriz anterior.
+  // Um comando só pra barra e cubo, solta e encaixada — girar é girar.
+  POSE: "pose",
   RESTAURAR: "restaurar",
   // várias ações que valem como UMA no desfazer. Nasceu da seleção múltipla
   // (§8.6, C2): apagar 5 peças de uma vez e ter que apertar Ctrl+Z cinco vezes
@@ -55,12 +52,8 @@ export function aplicar(montagem, acao) {
       return adicionarPecaEncaixada(montagem, acao);
     case ACOES.REMOVER:
       return removerPeca(montagem, acao.id);
-    case ACOES.GIRAR:
-      return girarPeca(montagem, acao.id, acao.giro);
-    case ACOES.ENTRADA:
-      return mudarEntrada(montagem, acao.id, acao.conNovo);
-    case ACOES.MATRIZ:
-      return definirMatriz(montagem, acao.id, acao.matriz);
+    case ACOES.POSE:
+      return definirPose(montagem, acao.id, acao.matriz);
     case ACOES.LOTE:
       return (acao.acoes ?? []).reduce(aplicar, montagem);
     case ACOES.RESTAURAR:
@@ -87,20 +80,11 @@ function inversoDe(montagem, acao) {
     case ACOES.ADICIONAR_LIVRE:
     case ACOES.ADICIONAR_ENCAIXADA:
       return { tipo: ACOES.REMOVER, id: acao.id };
-    case ACOES.GIRAR: {
+    case ACOES.POSE: {
       const atual = pecaDaMontagem(montagem, acao.id);
-      if (!atual?.encaixe) return null;
-      return { tipo: ACOES.GIRAR, id: acao.id, giro: atual.encaixe.giro ?? 0 };
-    }
-    case ACOES.ENTRADA: {
-      const atual = pecaDaMontagem(montagem, acao.id);
-      if (!atual?.encaixe) return null;
-      return { tipo: ACOES.ENTRADA, id: acao.id, conNovo: atual.encaixe.conNovo };
-    }
-    case ACOES.MATRIZ: {
-      const atual = pecaDaMontagem(montagem, acao.id);
-      if (!atual || atual.encaixe) return null;
-      return { tipo: ACOES.MATRIZ, id: acao.id, matriz: atual.matriz };
+      // a pose anterior basta: como a rotação não move mais ninguém, reaplicar a
+      // matriz antiga devolve os encaixes de todo mundo idênticos
+      return atual ? { tipo: ACOES.POSE, id: acao.id, matriz: atual.matriz } : null;
     }
     case ACOES.REMOVER: {
       const peca = pecaDaMontagem(montagem, acao.id);

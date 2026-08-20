@@ -120,32 +120,6 @@ describe("ação desconhecida", () => {
   });
 });
 
-describe("desfazer um GIRO", () => {
-  const comCubo = () => {
-    let h = criarHistorico();
-    h = executar(h, { tipo: ACOES.ADICIONAR_LIVRE, id: "c", catalogoId: "p30-cubo5" });
-    h = executar(h, {
-      tipo: ACOES.ADICIONAR_ENCAIXADA, id: "b", catalogoId: "p30-b2000",
-      de: "c", conAlvo: "leste", conNovo: "a",
-    });
-    return h;
-  };
-
-  it("volta ao giro anterior, não ao zero", () => {
-    let h = comCubo();
-    h = executar(h, { tipo: ACOES.GIRAR, id: "b", giro: 2 });
-    h = executar(h, { tipo: ACOES.GIRAR, id: "b", giro: 3 });
-    expect(pecaDaMontagem(desfazerUm(h).montagem, "b").encaixe.giro).toBe(2);
-  });
-
-  it("girar → desfazer devolve o estado EXATO", () => {
-    const h = comCubo();
-    const antes = paraJSON(h.montagem);
-    const girado = executar(h, { tipo: ACOES.GIRAR, id: "b", giro: 1 });
-    expect(paraJSON(desfazerUm(girado).montagem)).toEqual(antes);
-  });
-});
-
 describe("o lote — várias ações que valem como uma", () => {
   // apagar 5 peças de uma vez e ter que apertar Ctrl+Z cinco vezes pra voltar
   // é o app cobrando pelo gesto que ele mesmo ofereceu (§8.6, C2)
@@ -202,18 +176,3 @@ describe("o lote — várias ações que valem como uma", () => {
   });
 });
 
-describe("desfazer a troca de face de entrada", () => {
-  const comCubo = () => {
-    let h = executar(criarHistorico(), { tipo: ACOES.ADICIONAR_LIVRE, id: "b", catalogoId: "p30-b2000" });
-    return executar(h, {
-      tipo: ACOES.ADICIONAR_ENCAIXADA, id: "c", catalogoId: "p30-cubo5",
-      de: "b", conAlvo: "b", conNovo: "topo",
-    });
-  };
-
-  it("volta a face que estava antes, não uma qualquer", () => {
-    const h = executar(comCubo(), { tipo: ACOES.ENTRADA, id: "c", conNovo: "leste" });
-    expect(h.montagem.pecas[1].encaixe.conNovo).toBe("leste");
-    expect(desfazerUm(h).montagem.pecas[1].encaixe.conNovo).toBe("topo");
-  });
-});

@@ -833,6 +833,10 @@ inteira a partir da base ainda é uma operação legítima — só não é o `R`
 
 ## 8.9 Girar o CUBO sem arrastar nada (E3.8)
 
+> ⚠️ **SUPERADA pela §8.11**, que nomeou a regra em vez de
+> consertar sintoma. A análise da geometria aqui continua válida; o modelo de
+> rotação (eixo da junta, face de entrada) foi trocado pelo das seis direções.
+
 > *"ao clicar utilizando a tecla v pra selecionar o cubo e usando R e shift + R
 > as peças estão rodando juntas, verifica o teste com o cubo selecionado"*
 
@@ -895,6 +899,10 @@ nesse estado.
 
 ## 8.10 Nada de travar: é desenho, não parafuso (E3.9)
 
+> ⚠️ **SUPERADA pela §8.11**, que nomeou a regra em vez de
+> consertar sintoma. A análise da geometria aqui continua válida; o modelo de
+> rotação (eixo da junta, face de entrada) foi trocado pelo das seis direções.
+
 > *"acho que talvez esteja lidando com a coisa toda de uma forma muito literal,
 > uma peça só é parafusada quando está concluída [ou seja quando finalizei o
 > projeto], tudo o que vem a ser montado está livre pra edição desde que não
@@ -956,6 +964,120 @@ desfazer, sem acumular erro de float.
 
 ---
 
+## 8.11 A regra das seis direções (E3.10)
+
+A rotação foi construída em três rodadas, e cada uma consertou um sintoma sem
+nomear a regra. O dono cortou o nó: **enquanto o projeto não acabou, é desenho** —
+mas desenho tem regra, e a regra é do **piso**, não da junta.
+
+Estas sete são o vocabulário. Comportamento novo sai delas; se não sair, é a regra
+que precisa mudar, não um remendo ao lado.
+
+### D1 · As seis direções do piso
+
+`N · S · L · O · CIMA · BAIXO`, fixas no mundo, ancoradas na grade. **Nunca se
+movem**; peça nenhuma as leva junto.
+
+| id | nome | vetor |
+| --- | --- | --- |
+| `N` | Norte | `[0, 0, -1]` |
+| `L` | Leste | `[1, 0, 0]` |
+| `S` | Sul | `[0, 0, 1]` |
+| `O` | Oeste | `[-1, 0, 0]` |
+| `CIMA` | Cima | `[0, 1, 0]` |
+| `BAIXO` | Baixo | `[0, -1, 0]` |
+
+> ⚠️ **Não confundir com os nomes dos conectores.** O catálogo chama os conectores
+> do cubo de `topo/norte/sul/leste/oeste`, mas aqueles são **locais**: viajam com a
+> peça quando ela gira. Estes são do **mundo**. É a distinção que torna a regra
+> dizível — *"a face cega está no OESTE"* é verdade absoluta; *"a face cega é a
+> `oeste`"* deixa de significar nada no primeiro giro.
+
+### D2 · Direção ocupada
+
+Uma direção está **ocupada** quando há junta ali — a junta com a mãe ou a junta de
+qualquer filha. O resto está **livre**. A face cega está sempre numa direção livre,
+por construção: não há onde parafusar nela.
+
+### D3 · Rotação nunca arrasta
+
+Girar uma peça **não move nenhuma outra**, nunca.
+
+O que faz isso funcionar é uma observação simples sobre peça simétrica: quando ela
+gira, **outro conector vai parar exatamente na pose que o primeiro tinha**. Então
+nada precisa se mexer — basta reancorar a junta da própria peça com a mãe e a junta
+de cada filha. É o que o técnico faz no galpão: gira o cubo e reaperta a viga na
+face que ficou virada pro lado certo.
+
+### D4 · Peça reta gira só no próprio eixo
+
+Barra e sapata giram **em torno do próprio eixo longo**. Posição e direção não
+mudam — o que muda é qual face leva a escada. Vale em pé, deitada, solta ou
+encaixada. As pontas da barra ficam EM CIMA desse eixo, então a junta nem sente.
+
+### D5 · Cubo gira movendo a face cega
+
+O estado visível de um cubo é **pra onde a face cega aponta**. Não é convenção: o
+`geometriaCubo` desenha chapa em *toda face aberta*, então a cega é a única sem
+chapa e as outras cinco são intercambiáveis.
+
+- **`R`** leva a face cega pra próxima direção **horizontal** livre, no ciclo da
+  bússola `N → L → S → O`;
+- **`Shift+R`** leva pra **CIMA** ou **BAIXO**, se estiver livre.
+
+### D6 · Direção com junta é trava
+
+A face cega **não pode** ir pra uma direção ocupada: ali existe peça aparafusada, e
+a junta precisa da flange. As ocupadas são puladas; quando não sobra nenhuma, a
+tecla não faz nada e a aba **diz o que está travando, pelo nome**.
+
+É a mesma regra que garante a D3: com a face cega proibida de cair onde há junta,
+sempre sobra conector no lugar antigo pra reancorar. Não são duas regras — é uma.
+
+### D7 · A exceção da peça solta
+
+Peça solta não tem junta, então nada trava. E ela ganha o único movimento que muda
+posição: **`Shift+R` tomba a barra 90°** (em pé ↔ deitada), caindo apoiada no piso.
+É o que permite nascer uma barra horizontal sem depender de cubo.
+
+> ⚠️ **Nem toda peça solta tomba.** A raiz de uma torre também é uma peça solta:
+> deitá-la deitaria a torre inteira junto, atropelando a D3. Então peça solta **com
+> peça encaixada nela** não tomba. Girar a estrutura toda é outra operação — não é
+> "girar a peça". *(Este limite foi encontrado pelo teste de propriedade da D3, não
+> por leitura do código.)*
+
+---
+
+### Como isso vira código
+
+| onde | o quê |
+| --- | --- |
+| `services/estrutura/direcoes.js` | a tabela do D1, `direcaoDe`, `vetorDe`, `listaDeNomes` |
+| `services/estrutura/orientacao.js` | D2 a D7 — e `poseDoGiro` / `poseDoTombo`, que são **o que cada tecla faz**. Moram no motor pra que o teste exercite exatamente o que o dedo exercita |
+| `montagem.js` · `definirPose` | recebe uma **pose de mundo** e reancora os dois lados da árvore. Único caminho de rotação |
+| `historico.js` · `ACOES.POSE` | um comando só, pra barra e cubo, solta e encaixada. O inverso carrega a matriz anterior |
+| `ProjectEstrutura.jsx` | as teclas, o chip **"Face cega · Oeste"** na F3 e o aviso que nomeia a trava |
+
+O `giro` de cada junta é achado por **tentativa** sobre os quatro passos, em vez de
+deduzido: são quatro contas baratas, e o resultado é exato por construção em vez de
+exato por argumento.
+
+### O que foi medido
+
+No pórtico de exemplo, cubo selecionado, `R` quatro vezes:
+
+```
+face cega:  Cima → Norte → Sul → Oeste → Norte
+peças que mudaram de matriz: [e-cubo]
+```
+
+O ciclo **pulou o Leste** — que é exatamente onde a viga está aparafusada — e
+**nenhuma das outras oito peças se mexeu**. No `Shift+R`, a face cega foi pro Cima e
+ficou lá, porque Baixo tem a torre: *"A face cega não cabe pra cima nem pra baixo:
+Baixo e Leste têm peça aparafusada"*.
+
+---
+
 ## 9 · As fases
 
 | Fase | Entrega | Trava |
@@ -969,6 +1091,7 @@ desfazer, sem acumular erro de float.
 | **E3.7 · O gesto de montar** ✅ | §8.8: a peça **nasce ao clicar no piso** e o botão "Adicionar peça" sai (a primária vira a imagem do Caderno) · `Shift+R` no lugar do `Ctrl+R`, que recarregava o navegador · **girar mexe só na peça selecionada**, com os filhos compensados | E3.6 |
 | **E3.8 · O cubo também** ✅ | §8.9: girar o **cubo** deixou de arrastar o que está encaixado nele — o filho é **reancorado na face que assumiu a pose antiga** · conserto do **clique no horizonte**, que nascia peça a 20 km | E3.7 |
 | **E3.9 · Destravar** ✅ | §8.10: o motor **não decide orientação por ninguém** — fora as consultas que pulavam giro, `R` sempre gira · e a **peça livre passa a girar** (`R` no chão, `Shift+R` tomba), que era o lock que ninguém tinha visto | E3.8 |
+| **E3.10 · As seis direções** ✅ | §8.11: a rotação passa a se descrever pelo **piso** (`N · S · L · O · CIMA · BAIXO`), e não pelo eixo da junta · sete regras nomeadas (D1–D7) · **um comando só** (`ACOES.POSE`) · chip da face cega na F3 · teste de **propriedade** provando que girar qualquer peça não move nenhuma outra | E3.9 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

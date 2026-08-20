@@ -42,9 +42,11 @@ import { resolverEncaixe } from "../../services/estrutura/encaixe.js";
 import { entradasDe, facesCegasNoMundo, melhorEntrada } from "../../services/estrutura/entrada.js";
 import { colisoes } from "../../services/estrutura/colisao.js";
 import { paletaDaEstrutura } from "../../services/estrutura/cores.js";
+import { conectoresLivres, matrizApoiada } from "../../services/estrutura/montagem.js";
+import { listaDeNomes, nomeDe } from "../../services/estrutura/direcoes.js";
 import {
-  conectoresLivres, matrizApoiada, matrizGirada, proximaEntrada,
-} from "../../services/estrutura/montagem.js";
+  direcoesLivres, direcoesOcupadas, faceCegaEm, poseDoGiro, poseDoTombo, temFilhas,
+} from "../../services/estrutura/orientacao.js";
 import {
   ACOES, criarHistorico, desfazerUm, executar, podeDesfazer, podeRefazer, refazerUm,
 } from "../../services/estrutura/historico.js";
@@ -78,7 +80,7 @@ const PECA_PADRAO =
   ?? CATALOGO[0]?.id
   ?? "";
 
-const nomeDe = (montagem, id) =>
+const nomeDaPeca = (montagem, id) =>
   pecaPorId(montagem.pecas.find((p) => p.id === id)?.catalogoId)?.nome ?? "peça";
 
 /**
@@ -248,6 +250,16 @@ export default function ProjectEstrutura({ project, patch }) {
     return out;
   }, [selecionadas, montagem]);
 
+  // A FACE CEGA DO CUBO, na direção do PISO (§8.11). É o chip que torna a regra
+  // visível sem abrir a ajuda: quem vê "Face cega · Oeste" entende num segundo
+  // por que o R leva a seta pra onde leva.
+  const faceCega = useMemo(() => {
+    if (selecionadas.length !== 1) return null;
+    const id = selecionadas[0];
+    const direcao = faceCegaEm(montagem, id);
+    return direcao ? { direcao, livres: direcoesLivres(montagem, id) } : null;
+  }, [selecionadas, montagem]);
+
   const conflitos = useMemo(() => colisoes(montagem), [montagem]);
   const indicesConflito = useMemo(() => {
     const ids = new Set(conflitos.flatMap((c) => [c.a, c.b]));
@@ -340,35 +352,55 @@ export default function ProjectEstrutura({ project, patch }) {
     [selecionadas, montagem],
   );
 
-  // TODA PEÇA GIRA, SEMPRE (§8.10, decisão do dono). Peça só está aparafusada
-  // quando o projeto acabou; até lá é desenho, e desenho tem que poder ser
-  // mexido. O app não decide orientação por ninguém: quem monta é que sabe se a
-  // treliça precisa virar por causa do desenho de luz, do vão, ou de um pedido
-  // do cliente.
+  // AS DUAS TECLAS SÃO AS REGRAS (§8.11). Rotação se descreve pelas direções do
+  // PISO — N · S · L · O · CIMA · BAIXO —, não pelo eixo da junta, que muda de
+  // peça pra peça e fazia a mesma tecla se comportar diferente em peças iguais.
   //
-  // Peça ENCAIXADA gira em torno do eixo da junta; peça LIVRE gira em torno do
-  // próprio centro, e cai apoiada de novo. Cada uma pelo caminho dela — mas
-  // nenhuma fica parada.
-  const mexerNaSelecao = useCallback((paraEncaixada, paraLivre) => {
-    const acoes = pecasSelecionadas().map((p) => (p.encaixe ? paraEncaixada(p) : paraLivre(p))).filter(Boolean);
+  //   `R`       · cubo: leva a face cega pra próxima direção HORIZONTAL livre
+  //             · barra e sapata: gira no próprio eixo, sem sair do lugar (D4)
+  //   `Shift+R` · cubo: leva a face cega pra CIMA ou BAIXO, se estiver livre
+  //             · barra SOLTA: tomba 90°, em pé ↔ deitada (D7)
+  //
+  // Direção que já tem junta é trava (D6): ali existe flange aparafusada. E
+  // rotação nenhuma arrasta outra peça (D3) — quem garante é o `definirPose`.
+  const mexerNaSelecao = useCallback((pose) => {
+    const pecas = pecasSelecionadas();
+    const acoes = pecas
+      .map((p) => {
+        const matriz = pose(p);
+        return matriz ? { tipo: ACOES.POSE, id: p.id, matriz } : null;
+      })
+      .filter(Boolean);
     if (acoes.length) rodar({ tipo: ACOES.LOTE, acoes });
+    return { pedidas: pecas.length, feitas: acoes.length };
   }, [pecasSelecionadas, rodar]);
 
-  // `R` — gira: na junta, se estiver encaixada; em torno da vertical, se solta
-  const girarSelecionadas = useCallback(() => mexerNaSelecao(
-    (p) => ({ tipo: ACOES.GIRAR, id: p.id, giro: (p.encaixe.giro ?? 0) + 1 }),
-    (p) => ({ tipo: ACOES.MATRIZ, id: p.id, matriz: matrizGirada(p, [0, 1, 0]) }),
-  ), [mexerNaSelecao]);
+  // POR QUE A PEÇA NÃO GIROU. A aba nunca fica muda quando a tecla não faz nada:
+  // tecla que às vezes funciona e às vezes não, sem dizer por quê, é o tipo de
+  // coisa que o técnico atribui a bug do app e para de usar.
+  const explicarTrava = useCallback((p, plano) => {
+    if (pecaPorId(p.catalogoId)?.tipo !== "cubo") {
+      if (p.encaixe) toast("A direção desta peça vem da junta — o R gira ela no próprio eixo");
+      else if (temFilhas(montagem, p.id)) toast("Não dá pra deitar: tem peça encaixada nela");
+      else toast("Esta peça não vira pra cima nem pra baixo");
+      return;
+    }
+    const travadas = [...direcoesOcupadas(montagem, p.id)];
+    const onde = plano === "vertical" ? "pra cima nem pra baixo" : "no plano do chão";
+    toast(travadas.length
+      ? `A face cega não cabe ${onde}: ${listaDeNomes(travadas)} ${travadas.length === 1 ? "tem" : "têm"} peça aparafusada`
+      : `Não há outra direção ${onde}`);
+  }, [montagem, toast]);
 
-  // `Shift+R` — a OUTRA rotação: troca a face de entrada na junta; na peça
-  // solta, tomba 90° — é como uma barra em pé vira barra deitada
-  const tiltarSelecionadas = useCallback(() => mexerNaSelecao(
-    (p) => {
-      const conNovo = proximaEntrada(montagem, p.id);
-      return conNovo == null ? null : { tipo: ACOES.ENTRADA, id: p.id, conNovo };
-    },
-    (p) => ({ tipo: ACOES.MATRIZ, id: p.id, matriz: matrizGirada(p, [1, 0, 0]) }),
-  ), [mexerNaSelecao, montagem]);
+  const girarSelecionadas = useCallback(() => {
+    const r = mexerNaSelecao((p) => poseDoGiro(montagem, p.id));
+    if (r.pedidas === 1 && r.feitas === 0) explicarTrava(pecasSelecionadas()[0], "horizontal");
+  }, [mexerNaSelecao, montagem, explicarTrava, pecasSelecionadas]);
+
+  const tombarSelecionadas = useCallback(() => {
+    const r = mexerNaSelecao((p) => poseDoTombo(montagem, p.id));
+    if (r.pedidas === 1 && r.feitas === 0) explicarTrava(pecasSelecionadas()[0], "vertical");
+  }, [mexerNaSelecao, montagem, explicarTrava, pecasSelecionadas]);
 
   const desfazer = useCallback(() => { mexerHist(desfazerUm); setSelecao([]); }, [mexerHist]);
   const refazer = useCallback(() => { mexerHist(refazerUm); setSelecao([]); }, [mexerHist]);
@@ -395,7 +427,7 @@ export default function ProjectEstrutura({ project, patch }) {
       // montagem leva o desfazer junto — atalho que às vezes apaga trabalho não
       // é atalho, é armadilha.
       if (e.shiftKey && e.key.toLowerCase() === "r") {
-        if (selecionadas.length) tiltarSelecionadas();
+        if (selecionadas.length) tombarSelecionadas();
         else setTilt((t) => t + 1);
         return;
       }
@@ -432,7 +464,7 @@ export default function ProjectEstrutura({ project, patch }) {
     };
   }, [
     isMobile, erro, desfazer, refazer, apagarSelecionadas, girarSelecionadas,
-    tiltarSelecionadas, selecionadas.length,
+    tombarSelecionadas, selecionadas.length,
   ]);
 
   // A imagem que vai pro Caderno é capturada AQUI e guardada no aparelho. Não dá
@@ -600,13 +632,24 @@ export default function ProjectEstrutura({ project, patch }) {
         {conflitos.length > 0 && (
           <StatusPill color={T.red} label={plural(conflitos.length, "sobreposição", "sobreposições")} />
         )}
+        {faceCega && (
+          <span
+            style={chip}
+            title={`O R leva a face cega pras direções livres: ${listaDeNomes(faceCega.livres) || "nenhuma"}. As outras já têm peça aparafusada.`}
+          >
+            Face cega · <b style={{ color: T.txt }}>{nomeDe(faceCega.direcao)}</b>
+          </span>
+        )}
         {r.pecas > 0 && !r.peso.conferido && <StatusPill color={T.amb} label="Peso não conferido" />}
         {verMomentaneo && <StatusPill color={T.acM} label="Ver — solte o V para montar" />}
         {ctrl && !verMomentaneo && <StatusPill color={T.acM} label="Conta-gotas — clique numa peça" />}
         <HelpTip title="Estrutura">
           <p><b>Para montar:</b> escolha a peça no catálogo ao lado do desenho e <b>clique no piso</b> — ela nasce ali, apoiada. Para emendar, passe o ponteiro num <b>ponto claro</b> da estrutura (ele mostra a peça em fantasma, onde ela vai ficar) e clique.</p>
-          <p><b>As duas rotações:</b> <b>R</b> gira a peça em torno da junta; <b>Shift+R</b> troca a <b>face por onde ela entra</b>. São coisas diferentes: no cubo, só o Shift+R tira a face cega de onde ela está — girar não tira, porque ela fica bem em cima do eixo do giro.</p>
-          <p><b>Toda peça gira</b>, encaixada ou solta — a solta tomba com o <b>Shift+R</b>, e é assim que uma barra em pé vira barra deitada. Girar mexe <b>só na peça selecionada</b>: o que está encaixado nela fica onde estava sempre que houver face pra reaparafusar; quando não houver, acompanha.</p>
+          <p><b>As direções são as do piso</b> — Norte, Sul, Leste, Oeste, Cima e Baixo —, e elas não se mexem. É por elas que se descreve giro aqui.</p>
+          <p><b>R</b> · no <b>cubo</b>, leva a <b>face cega</b> (a que a seta marca) pra próxima direção livre do plano do chão. Na <b>barra</b> e na <b>sapata</b>, gira no próprio eixo: a peça não sai do lugar, muda só qual face leva a escada.</p>
+          <p><b>Shift+R</b> · no <b>cubo</b>, leva a face cega pra <b>cima ou pra baixo</b>. Na <b>barra solta</b>, tomba 90° — é assim que uma barra em pé vira barra deitada, e ela cai apoiada no piso.</p>
+          <p><b>Direção que já tem peça é trava:</b> ali existe flange aparafusada, então a face cega não pode ir pra lá. Se não sobrar nenhuma direção livre, a tecla não faz nada e a aba diz o que está travando.</p>
+          <p><b>Girar nunca arrasta.</b> Nenhuma rotação move outra peça: o que estava encaixado é reaparafusado na face que ficou virada pro lado certo, e continua exatamente onde estava.</p>
           <p><b>A seta</b> marca a face cega do cubo, aquela que veio tapada de fábrica e não aceita peça. Selecione o cubo para vê-la.</p>
           <p><b>Atalhos:</b> <b>V</b> segurado vira modo Ver — dá pra clicar nas peças sem encaixar nada · <b>Ctrl</b> segurado vira conta-gotas (a peça clicada passa a ser a de inserção) · <b>Shift + clique</b> seleciona várias · <b>Delete</b> apaga · <b>Ctrl+Z</b> desfaz · <b>Esc</b> limpa.</p>
           <p>Excluir <b>não</b> apaga o que estava preso na peça — aquilo vira peça solta, no lugar onde estava.</p>
@@ -639,7 +682,7 @@ export default function ProjectEstrutura({ project, patch }) {
               {selecionadas.length > 0 && (
                 <span style={{ marginLeft: 8, color: T.acM, fontWeight: 600, letterSpacing: 0 }}>
                   · {selecionadas.length === 1
-                    ? nomeDe(montagem, selecionadas[0])
+                    ? nomeDaPeca(montagem, selecionadas[0])
                     : `${selecionadas.length} peças selecionadas`}
                 </span>
               )}
@@ -693,7 +736,7 @@ export default function ProjectEstrutura({ project, patch }) {
           {conflitos.length > 0 && (
             <div style={{ fontSize: 12, color: T.red, lineHeight: 1.5 }}>
               <b>Peça dentro de peça</b> (em vermelho na cena):{" "}
-              {conflitos.slice(0, 3).map((c) => `${nomeDe(montagem, c.a)} × ${nomeDe(montagem, c.b)}`).join(" · ")}
+              {conflitos.slice(0, 3).map((c) => `${nomeDaPeca(montagem, c.a)} × ${nomeDaPeca(montagem, c.b)}`).join(" · ")}
               {conflitos.length > 3 ? ` · e mais ${conflitos.length - 3}` : ""}.
               <span style={{ color: T.dim }}> Isso não trava a montagem — mas no truss de verdade elas não entrariam.</span>
             </div>
