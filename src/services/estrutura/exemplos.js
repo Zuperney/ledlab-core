@@ -1,11 +1,14 @@
 // services/estrutura/exemplos.js — montagens prontas, pra provar a cena (E1) e
 // pra servir de fixture nos testes.
 //
-// ⚠️ LIMITE CONHECIDO DO MODELO: a montagem é uma ÁRVORE, não um grafo — cada
-// peça tem no máximo um encaixe "pai". Um pórtico real se prende nas DUAS
-// pontas; aqui a segunda é coincidência geométrica, não vínculo. Não muda peso
-// nem medida (que é o que a gente afirma), mas o dia que o app contar juntas de
-// fechamento, isso vira grafo.
+// ⚠️ A montagem é uma ÁRVORE, não um grafo: cada peça tem no máximo um encaixe
+// "pai". Um pórtico real se prende nas DUAS pontas, e a segunda não cabe na
+// árvore — ela existe só na geometria.
+//
+// Isso NÃO some da conta: o `montagem.juntas` mede as juntas na geometria, então
+// o fechamento entra na contagem e na parafusaria (8 juntas no pórtico, não 7).
+// O que a árvore ainda não faz é PROPAGAR por ela — mexer numa ponta não arrasta
+// a outra. Pra isso, um dia, vira grafo.
 
 import { adicionarPecaEncaixada, adicionarPecaLivre, conectoresLivres, novaMontagem } from "./montagem.js";
 import { IDENTIDADE, matriz } from "./vetor.js";

@@ -35,9 +35,12 @@ describe("o que a folha entrega", () => {
   });
 
   it("conta as juntas e a parafusaria que vai na caixa", () => {
-    expect(d.juntas).toBe(7);
-    expect(d.parafusaria.itens.find((i) => i.id === "parafuso").qtd).toBe(28);
-    expect(d.parafusaria.itens.find((i) => i.id === "arruela").qtd).toBe(56);
+    // 8 juntas: o pórtico fecha nas duas pontas da viga, e a segunda leva
+    // parafuso igual — contar só os encaixes da árvore mandaria a equipe pro
+    // galpão com um jogo a menos
+    expect(d.juntas).toBe(8);
+    expect(d.parafusaria.itens.find((i) => i.id === "parafuso").qtd).toBe(32);
+    expect(d.parafusaria.itens.find((i) => i.id === "arruela").qtd).toBe(64);
   });
 
   // L30, P30 e R30 são todos 300×300 e encaixam entre si, mas a L30 vale

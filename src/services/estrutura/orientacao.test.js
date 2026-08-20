@@ -245,3 +245,32 @@ describe("D7 · o limite do tombo: peça solta COM peça pendurada", () => {
     expect(poseDoTombo(m, "a")).not.toBeNull();
   });
 });
+
+describe("a estrutura que FECHA", () => {
+  // O pórtico se aparafusa nos dois cubos. A segunda ponta da viga não é filha
+  // de ninguém na árvore, mas ocupa a face do mesmo jeito — e por isso a face
+  // cega não pode ir pra lá.
+  it("a ponta que fecha ocupa direção, mesmo sem ser filha de ninguém", () => {
+    const m = porticoDeExemplo();
+    const viga = m.pecas.find((p) => p.catalogoId === "p30-b4000");
+    const cubos = m.pecas.filter((p) => p.catalogoId === "p30-cubo5");
+    // o cubo que NÃO é mãe da viga: a ponta livre da viga encosta nele
+    const fechado = cubos.find((c) => c.id !== viga.encaixe.de);
+    expect(direcoesOcupadas(m, fechado.id).size).toBe(2); // a torre e a viga
+    expect(direcoesLivres(m, fechado.id)).toHaveLength(4);
+  });
+
+  it("e o R do cubo que fecha não passa por essa direção", () => {
+    const m = porticoDeExemplo();
+    const viga = m.pecas.find((p) => p.catalogoId === "p30-b4000");
+    const fechado = m.pecas.find((p) => p.catalogoId === "p30-cubo5" && p.id !== viga.encaixe.de);
+    const ocupadas = direcoesOcupadas(m, fechado.id);
+    let atual = m;
+    for (let i = 0; i < 4; i++) {
+      const proxima = proximaFaceCega(atual, fechado.id, "horizontal");
+      if (!proxima) break;
+      expect(ocupadas.has(proxima)).toBe(false);
+      atual = definirPose(atual, fechado.id, poseDoGiro(atual, fechado.id));
+    }
+  });
+});

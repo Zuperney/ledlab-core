@@ -36,9 +36,13 @@ describe("conectorApontandoPara", () => {
 describe("pórtico de exemplo", () => {
   const m = porticoDeExemplo();
 
-  it("tem as 9 peças e as 7 juntas esperadas", () => {
+  // OITO juntas, não sete: a árvore só registra 7 (cada peça tem uma mãe), mas o
+  // pórtico FECHA — a ponta direita da viga encosta no cubo direito e leva
+  // parafuso igual. Quem conta é a geometria (ver montagem.juntas).
+  it("tem as 9 peças e as 8 juntas do pórtico fechado", () => {
     expect(m.pecas).toHaveLength(9);
-    expect(juntas(m)).toHaveLength(7);
+    expect(juntas(m)).toHaveLength(8);
+    expect(m.pecas.filter((p) => p.encaixe)).toHaveLength(7); // a árvore, que é menor
     expect(listaDePecas(m).map((l) => [l.catalogoId, l.qtd])).toEqual([
       ["p30-b2000", 4], ["p30-b4000", 1], ["p30-cubo5", 2], ["p30-sapata-baixa", 2],
     ]);

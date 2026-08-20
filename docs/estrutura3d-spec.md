@@ -1078,6 +1078,57 @@ Baixo e Leste têm peça aparafusada"*.
 
 ---
 
+## 8.12 Junta se conta na geometria, não na árvore (E3.11)
+
+> *"a contagem de faces que estão sendo conectadas [juntas] está contabilizando
+> praticamente o total de peças −1, verifica isso"*
+
+Ele viu certo, e o motivo é estrutural: a montagem é uma **árvore**, cada peça tem
+no máximo uma mãe. Contar encaixes dá sempre `peças − soltas`, e um número que é
+sempre outro número não informa nada.
+
+Pior: **fica curto**. Estrutura de verdade FECHA. No pórtico, a viga se aparafusa
+nos **dois** cubos, e a segunda ponta não é filha de ninguém — a árvore não tinha
+onde anotar.
+
+Medido no pórtico de exemplo:
+
+| | juntas |
+| --- | --- |
+| encaixes da árvore | 7 |
+| faces que se encontram na geometria | **8** |
+
+A que faltava é a ponta direita da viga (`d-cubo:leste ↔ viga:b`). E junta que
+some da conta é **parafusaria a menos na caixa**: 28 parafusos em vez de 32. A
+equipe descobre isso no galpão, com a estrutura no chão.
+
+### A regra
+
+**Junta é onde duas faces de peças diferentes se encontram**: mesmo ponto, normais
+se enfrentando, mesmo sistema. É o que um parafuso veria — e não depende de qual
+peça o app decidiu chamar de mãe.
+
+`montagem.juntas` passa a medir isso, com a **grade espacial** do `snap.js` (a
+mesma que já existia pra achar encaixe) pra não virar O(n²).
+
+### O que veio junto de graça
+
+Como `conectoresOcupados` deriva de `juntas`, a mudança se propaga inteira:
+
+- **conector de fechamento deixa de ser oferecido**: antes, a ponta direita da
+  viga aparecia como livre e dava pra montar uma peça DENTRO dela — o detector de
+  sobreposição (§8.6-B1) reclamaria depois;
+- **a regra D6 passa a enxergar o fechamento**: a face cega de um cubo não vai
+  mais parar em cima de uma peça que encosta nele sem ser filha dele;
+- **a parafusaria do Caderno fecha**: 32 parafusos, 32 porcas, 64 arruelas no
+  pórtico.
+
+> A árvore continua sendo árvore: mexer numa ponta ainda não propaga pela outra.
+> O que mudou é que a CONTAGEM não depende mais dela. Propagar por fechamento é
+> o dia que o modelo vira grafo — e aí é outra fase.
+
+---
+
 ## 9 · As fases
 
 | Fase | Entrega | Trava |
@@ -1092,6 +1143,7 @@ Baixo e Leste têm peça aparafusada"*.
 | **E3.8 · O cubo também** ✅ | §8.9: girar o **cubo** deixou de arrastar o que está encaixado nele — o filho é **reancorado na face que assumiu a pose antiga** · conserto do **clique no horizonte**, que nascia peça a 20 km | E3.7 |
 | **E3.9 · Destravar** ✅ | §8.10: o motor **não decide orientação por ninguém** — fora as consultas que pulavam giro, `R` sempre gira · e a **peça livre passa a girar** (`R` no chão, `Shift+R` tomba), que era o lock que ninguém tinha visto | E3.8 |
 | **E3.10 · As seis direções** ✅ | §8.11: a rotação passa a se descrever pelo **piso** (`N · S · L · O · CIMA · BAIXO`), e não pelo eixo da junta · sete regras nomeadas (D1–D7) · **um comando só** (`ACOES.POSE`) · chip da face cega na F3 · teste de **propriedade** provando que girar qualquer peça não move nenhuma outra | E3.9 |
+| **E3.11 · A junta se mede** ✅ | §8.12: junta deixa de ser contada na ÁRVORE e passa a ser medida na GEOMETRIA — o pórtico fecha nas duas pontas, e a segunda valia parafuso que não entrava na caixa (8 juntas, não 7) | E3.10 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

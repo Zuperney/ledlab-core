@@ -15,8 +15,9 @@ import { PASSOS_DE_GIRO, caixaLocal, conectorPorId, pecaPorId } from "./catalogo
 import {
   conectorNoMundo, mesmaPose, normalizarGiro, passosDeRolagem, resolverEncaixe,
 } from "./encaixe.js";
+import { criarGrade, proximos } from "./snap.js";
 import {
-  IDENTIDADE, MATRIZ_IDENTIDADE, arredMatriz, matriz, mesmaMatriz,
+  IDENTIDADE, MATRIZ_IDENTIDADE, arredMatriz, matriz, mesmaMatriz, oposto,
 } from "./vetor.js";
 
 export const VERSAO_MONTAGEM = 1;
@@ -29,31 +30,74 @@ export const pecaDaMontagem = (montagem, id) =>
 /** chave canônica de um conector dentro da montagem */
 export const chaveConector = (pecaId, conectorId) => `${pecaId}:${conectorId}`;
 
-/**
- * As juntas da montagem — uma por peça encaixada.
- * @returns {{a:string,b:string,pecaA:string,conA:string,pecaB:string,conB:string}[]}
- */
-export function juntas(montagem) {
+/** todos os conectores da montagem, no MUNDO — sem dizer quais estão ocupados */
+export function conectoresNoMundo(montagem) {
   const out = [];
   for (const p of montagem?.pecas ?? []) {
-    const e = p.encaixe;
-    if (!e?.de) continue;
-    out.push({
-      a: chaveConector(e.de, e.conAlvo),
-      b: chaveConector(p.id, e.conNovo),
-      pecaA: e.de,
-      conA: e.conAlvo,
-      pecaB: p.id,
-      conB: e.conNovo,
-    });
+    const cat = pecaPorId(p.catalogoId);
+    if (!cat) continue;
+    for (const c of cat.conectores) {
+      out.push({
+        ...conectorNoMundo(c, p.matriz),
+        chave: chaveConector(p.id, c.id),
+        pecaId: p.id,
+        conectorId: c.id,
+        sistema: cat.sistema,
+      });
+    }
+  }
+  return out;
+}
+
+// células pequenas: os pares que interessam estão no MESMO ponto, então o balde
+// certo é minúsculo e a varredura das 27 células vizinhas custa quase nada
+const CELULA_DE_JUNTA_MM = 100;
+const ENCOSTE_MM = 1;
+
+/**
+ * As juntas da montagem — **medidas na geometria**, não lidas da árvore.
+ *
+ * ⚠️ POR QUE NÃO CONTAR OS ENCAIXES. A montagem é uma ÁRVORE: cada peça tem no
+ * máximo uma mãe, então contar encaixes dá sempre `peças − soltas`. Só que
+ * estrutura de verdade FECHA: no pórtico, a viga se aparafusa nos dois cubos, e
+ * a segunda ponta não é filha de ninguém — a árvore não tinha onde anotar.
+ *
+ * Medido no pórtico de exemplo: **8 juntas na geometria, 7 na árvore**. A que
+ * faltava é a ponta direita da viga. E junta some da conta é parafusaria a menos
+ * na caixa: 28 parafusos em vez de 32, e a equipe descobre isso no galpão.
+ *
+ * Junta é onde duas faces de peças diferentes se encontram: mesmo ponto, normais
+ * se enfrentando, mesmo sistema. É o que um parafuso veria.
+ *
+ * @returns {{a:string,b:string,pecaA:string,conA:string,pecaB:string,conB:string}[]}
+ */
+export function juntas(montagem, crus = null) {
+  const cs = crus ?? conectoresNoMundo(montagem);
+  if (cs.length < 2) return [];
+  const grade = criarGrade(cs, CELULA_DE_JUNTA_MM);
+  const vistos = new Set();
+  const out = [];
+  for (const a of cs) {
+    for (const b of proximos(grade, a.pos, ENCOSTE_MM)) {
+      if (b.pecaId === a.pecaId || a.sistema !== b.sistema) continue;
+      if (!mesmaPose(a, { pos: b.pos, dir: oposto(b.dir) })) continue;
+      const par = a.chave < b.chave ? `${a.chave}|${b.chave}` : `${b.chave}|${a.chave}`;
+      if (vistos.has(par)) continue;
+      vistos.add(par);
+      out.push({
+        a: a.chave, b: b.chave,
+        pecaA: a.pecaId, conA: a.conectorId,
+        pecaB: b.pecaId, conB: b.conectorId,
+      });
+    }
   }
   return out;
 }
 
 /** conectores ocupados, como Set de chaves */
-export function conectoresOcupados(montagem) {
+export function conectoresOcupados(montagem, crus = null) {
   const s = new Set();
-  for (const j of juntas(montagem)) {
+  for (const j of juntas(montagem, crus)) {
     s.add(j.a);
     s.add(j.b);
   }
@@ -62,24 +106,9 @@ export function conectoresOcupados(montagem) {
 
 /** todos os conectores da montagem, já no MUNDO, com a marca de ocupado */
 export function conectores(montagem) {
-  const ocupados = conectoresOcupados(montagem);
-  const out = [];
-  for (const p of montagem?.pecas ?? []) {
-    const cat = pecaPorId(p.catalogoId);
-    if (!cat) continue;
-    for (const c of cat.conectores) {
-      const chave = chaveConector(p.id, c.id);
-      out.push({
-        ...conectorNoMundo(c, p.matriz),
-        chave,
-        pecaId: p.id,
-        conectorId: c.id,
-        sistema: cat.sistema,
-        ocupado: ocupados.has(chave),
-      });
-    }
-  }
-  return out;
+  const crus = conectoresNoMundo(montagem);
+  const ocupados = conectoresOcupados(montagem, crus);
+  return crus.map((c) => ({ ...c, ocupado: ocupados.has(c.chave) }));
 }
 
 export const conectoresLivres = (montagem) =>

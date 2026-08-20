@@ -15,11 +15,10 @@
 //
 // ⚠️ Nada de `three` aqui: o Caderno abre no celular.
 
-import { caixaLocal, conectorPorId, pecaPorId, ANGULO_DE_GIRO } from "./catalogo.js";
+import { caixaLocal, pecaPorId, ANGULO_DE_GIRO } from "./catalogo.js";
 import { HORIZONTAIS, VERTICAIS, direcaoDe, vetorDe } from "./direcoes.js";
-import { conectorNoMundo } from "./encaixe.js";
 import { facesCegasNoMundo } from "./entrada.js";
-import { pecaDaMontagem } from "./montagem.js";
+import { conectores, pecaDaMontagem } from "./montagem.js";
 import {
   arredMatriz, matDirecao, matPonto, matRodada, qDoEixo, qEntreVetores,
 } from "./vetor.js";
@@ -41,24 +40,19 @@ export function faceCegaEm(montagem, id) {
 }
 
 /**
- * As direções do piso que já têm JUNTA nesta peça (D2) — a junta com a mãe e a
- * junta de cada filha. É o que trava a face cega: ali tem flange aparafusada.
+ * As direções do piso que já têm JUNTA nesta peça (D2). É o que trava a face
+ * cega: ali tem flange aparafusada.
+ *
+ * Pergunta pra GEOMETRIA, não pra árvore: quando a estrutura fecha (o pórtico
+ * que se aparafusa nos dois cubos), a segunda ponta não é filha de ninguém, mas
+ * ocupa a face do mesmo jeito. Ver `montagem.juntas`.
  */
 export function direcoesOcupadas(montagem, id) {
   const out = new Set();
-  const peca = pecaDaMontagem(montagem, id);
-  const cat = catDa(peca);
-  if (!peca || !cat) return out;
-
-  const direcaoDoConector = (conectorId) => {
-    const c = conectorPorId(cat, conectorId);
-    return c ? direcaoDe(conectorNoMundo(c, peca.matriz).dir) : null;
-  };
-
-  const marcar = (d) => { if (d) out.add(d); };
-  if (peca.encaixe?.conNovo) marcar(direcaoDoConector(peca.encaixe.conNovo));
-  for (const filha of montagem?.pecas ?? []) {
-    if (filha.encaixe?.de === id) marcar(direcaoDoConector(filha.encaixe.conAlvo));
+  for (const c of conectores(montagem)) {
+    if (c.pecaId !== id || !c.ocupado) continue;
+    const d = direcaoDe(c.dir);
+    if (d) out.add(d);
   }
   return out;
 }

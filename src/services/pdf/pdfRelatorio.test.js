@@ -569,8 +569,12 @@ describe("folha ESTRUTURA (box truss)", () => {
     expect(json).toContain("Barra P30 2 m");
   });
 
-  it("conta a parafusaria da caixa", () => {
-    expect(json).toContain("28× ");
+  // 8 juntas × 4 parafusos: o pórtico FECHA nas duas pontas da viga, e a
+  // segunda leva jogo igual. Contar só os encaixes da árvore mandaria a equipe
+  // pro galpão com um jogo a menos (ver montagem.juntas).
+  it("conta a parafusaria da caixa, com a junta de fechamento", () => {
+    expect(json).toContain("32× ");
+    expect(json).toContain("64× ");
     expect(json).toMatch(/A325/);
   });
 
