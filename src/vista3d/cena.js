@@ -19,7 +19,7 @@ import {
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { NIVEIS, geometriaDaPeca, limparCache } from "./geometria.js";
+import { NIVEIS, geometriaDaPeca, geometriaPainel, limparCache } from "./geometria.js";
 import { caixaEnvolvente, nivelDoChao } from "../services/estrutura/metricas.js";
 
 // distância da câmera (mm) a partir da qual a peça cai de nível
@@ -104,6 +104,42 @@ export function criarCena(canvas, cores) {
   let listaConectores = [];
   let conectorAtivo = null;
   let fantasma = null;
+
+  // ── os PAINÉIS de LED (E4) ─────────────────────────────────
+  // Uma malha por painel, e não InstancedMesh: cada parede tem a medida dela, e
+  // são poucas. O material é o do painel APAGADO — é registro de montagem, não
+  // simulação de imagem; painel aceso na cena viraria expectativa de preview.
+  const matPainel = new MeshLambertMaterial({ color: 0x2b2f3a });
+  const matPainelSel = new MeshLambertMaterial({ color: cores.selecao });
+  const matPainelRuim = new MeshLambertMaterial({ color: cores.conflito ?? "#dc2626" });
+  const malhasDePainel = new Map(); // id → Mesh
+
+  function limparPaineis() {
+    for (const m of malhasDePainel.values()) {
+      scene.remove(m);
+      m.geometry.dispose();
+    }
+    malhasDePainel.clear();
+  }
+
+  /**
+   * @param {Array} lista [{ id, matriz, larguraMm, alturaMm, espessuraMm, cols, rows,
+   *                         selecionado, problema }]
+   */
+  function mostrarPaineis(lista) {
+    limparPaineis();
+    for (const p of lista ?? []) {
+      if (!p?.matriz) continue;
+      const malha = new Mesh(geometriaPainel(p), p.selecionado ? matPainelSel : p.problema ? matPainelRuim : matPainel);
+      malha.frustumCulled = false;
+      malha.matrixAutoUpdate = false;
+      malha.matrix.fromArray(p.matriz);
+      malha.userData.painelId = p.id;
+      scene.add(malha);
+      malhasDePainel.set(p.id, malha);
+    }
+    solicitar();
+  }
 
   // ── a seta da FACE CEGA ────────────────────────────────────
   // O cubo tem uma face que veio tapada de fábrica, e ela é INVISÍVEL no
@@ -494,6 +530,7 @@ export function criarCena(canvas, cores) {
       fantasma: fantasma?.visible ?? false,
       setas: malhaSetas?.visible ?? false,
     };
+    // o PAINEL fica: ele é parte do que foi montado, não andaime de tela
     // Some com os ANDAIMES DA TELA. Grade, marcadores de conector e prévia
     // fantasma existem pra ajudar a montar; no papel viram ruído — e o fantasma
     // chega a mentir, desenhando uma peça que ainda não foi colocada.
@@ -525,6 +562,10 @@ export function criarCena(canvas, cores) {
     vivo = false;
     if (malhaConectores) { scene.remove(malhaConectores); malhaConectores.dispose(); }
     if (malhaSetas) { scene.remove(malhaSetas); malhaSetas.dispose(); }
+    limparPaineis();
+    matPainel.dispose();
+    matPainelSel.dispose();
+    matPainelRuim.dispose();
     if (fantasma) scene.remove(fantasma);
     geoSeta.dispose();
     matSeta.dispose();
@@ -550,6 +591,7 @@ export function criarCena(canvas, cores) {
     marcarConflitos, definirCores,
     trocarTema, capturar, destruir, solicitar,
     mostrarConectores, conectorEm, realcarConector, mostrarFantasma, limparFantasma, mostrarSetas,
+    mostrarPaineis,
     mostrarGrade: (v) => { grade.visible = v; solicitar(); },
   };
 }

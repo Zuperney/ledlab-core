@@ -176,3 +176,39 @@ describe("o lote — várias ações que valem como uma", () => {
   });
 });
 
+
+describe("os painéis no desfazer (E4)", () => {
+  const comPeca = () => executar(criarHistorico(), {
+    tipo: ACOES.ADICIONAR_LIVRE, id: "a", catalogoId: "p30-b2000",
+  });
+
+  it("pendurar e desfazer tira o painel", () => {
+    const h = executar(comPeca(), {
+      tipo: ACOES.PENDURAR, id: "p1", telaId: "t1", de: "a", face: "BAIXO", olha: "N",
+    });
+    expect(h.montagem.paineis).toHaveLength(1);
+    expect(desfazerUm(h).montagem.paineis).toHaveLength(0);
+  });
+
+  it("soltar e desfazer devolve o painel inteiro, na mesma face", () => {
+    let h = executar(comPeca(), {
+      tipo: ACOES.PENDURAR, id: "p1", telaId: "t1", de: "a", face: "L", olha: "S",
+    });
+    h = executar(h, { tipo: ACOES.SOLTAR, id: "p1" });
+    expect(h.montagem.paineis).toHaveLength(0);
+    expect(desfazerUm(h).montagem.paineis[0]).toMatchObject({
+      id: "p1", telaId: "t1", de: "a", face: "L", olha: "S",
+    });
+  });
+
+  it("ajustar volta só o que mudou, com o valor de antes", () => {
+    let h = executar(comPeca(), {
+      tipo: ACOES.PENDURAR, id: "p1", telaId: "t1", de: "a", face: "BAIXO", olha: "N",
+    });
+    h = executar(h, { tipo: ACOES.PAINEL, id: "p1", mudanca: { olha: "L" } });
+    expect(h.montagem.paineis[0].olha).toBe("L");
+    const voltou = desfazerUm(h).montagem.paineis[0];
+    expect(voltou.olha).toBe("N");
+    expect(voltou.face).toBe("BAIXO"); // o que não mudou não é tocado
+  });
+});

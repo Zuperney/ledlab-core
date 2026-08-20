@@ -9,7 +9,9 @@
 // 3. a saída é ESTÁVEL — mesmas peças, mesmo JSON. Sem isso o sync marcaria
 //    mudança a cada abertura por causa de lixo na 15ª casa decimal.
 
-import { MOTIVOS, ErroDeMontagem, VERSAO_MONTAGEM, novaMontagem, recalcular } from "./montagem.js";
+import {
+  MOTIVOS, ErroDeMontagem, VERSAO_MONTAGEM, novaMontagem, recalcular, versaoDe,
+} from "./montagem.js";
 import { arredMatriz, MATRIZ_IDENTIDADE } from "./vetor.js";
 import { pecaPorId } from "./catalogo.js";
 
@@ -18,8 +20,13 @@ const numeros = (v, n) =>
 
 /** montagem → objeto puro, pronto pra JSON.stringify */
 export function paraJSON(montagem) {
+  const paineis = (montagem?.paineis ?? []).map((p) => ({
+    id: p.id, telaId: p.telaId, de: p.de, face: p.face, olha: p.olha,
+  }));
   return {
-    versao: VERSAO_MONTAGEM,
+    // só sobe de versão quando usa recurso novo: estrutura sem painel continua
+    // abrindo em quem ainda não atualizou o app
+    versao: versaoDe(montagem),
     pecas: (montagem?.pecas ?? []).map((p) => {
       const saida = {
         id: p.id,
@@ -37,6 +44,8 @@ export function paraJSON(montagem) {
       }
       return saida;
     }),
+    // chave ausente em vez de lista vazia: mantém o diff limpo e o JSON enxuto
+    ...(paineis.length ? { paineis } : {}),
   };
 }
 
@@ -103,7 +112,24 @@ export function deJSON(dados, opcoes = {}) {
     if (p.encaixe && !ids.has(p.encaixe.de)) p.encaixe = null;
   }
 
-  const montagem = { versao: VERSAO_MONTAGEM, pecas };
+  const paineis = [];
+  for (const bruto of dados.paineis ?? []) {
+    if (!bruto || typeof bruto.id !== "string" || typeof bruto.telaId !== "string") {
+      throw new ErroDeMontagem("painel-invalido", { bruto });
+    }
+    paineis.push({
+      id: bruto.id,
+      telaId: bruto.telaId,
+      de: bruto.de ?? null,
+      face: bruto.face ?? "BAIXO",
+      olha: bruto.olha ?? "N",
+    });
+  }
+
+  // a `versao` em memória é sempre a que o CONTEÚDO exige, nunca a máxima que o
+  // app suporta — assim ela quer dizer a mesma coisa dentro e fora do arquivo
+  const montagem = { versao: 1, pecas, paineis };
+  montagem.versao = versaoDe(montagem);
   // reconstruir do encaixe simbólico é o que endireita projeto antigo quando a
   // geometria do catálogo é corrigida
   return recalcularMatrizes ? recalcular(montagem) : montagem;

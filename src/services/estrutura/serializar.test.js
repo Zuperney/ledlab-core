@@ -3,7 +3,8 @@
 import { describe, it, expect } from "vitest";
 import { deJSON, paraJSON } from "./serializar.js";
 import {
-  adicionarPecaEncaixada, adicionarPecaLivre, juntas, novaMontagem, pecaDaMontagem,
+  ErroDeMontagem, adicionarPecaEncaixada, adicionarPecaLivre, juntas, novaMontagem,
+  pecaDaMontagem, pendurarPainel, removerPeca,
 } from "./montagem.js";
 import { matriz, qDoEixo } from "./vetor.js";
 
@@ -119,5 +120,40 @@ describe("recalcular ao carregar", () => {
     j.pecas[2].matriz = matriz(qDoEixo([1, 0, 0], 0.7), [999, 999, 999]);
     const m = deJSON(j, { recalcularMatrizes: false });
     expect(pecaDaMontagem(m, "b2").matriz[13]).toBe(999);
+  });
+});
+
+describe("os painéis atravessam o arquivo (E4)", () => {
+  const comPainel = () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" });
+    return pendurarPainel(m, { id: "p1", telaId: "t9", de: "a", face: "BAIXO", olha: "L" });
+  };
+
+  it("ida e volta preserva o painel inteiro", () => {
+    const json = paraJSON(comPainel());
+    expect(json.paineis).toEqual([
+      { id: "p1", telaId: "t9", de: "a", face: "BAIXO", olha: "L" },
+    ]);
+    expect(deJSON(json).paineis).toEqual(json.paineis);
+  });
+
+  // estrutura sem painel continua abrindo em quem ainda não atualizou o app
+  it("só sobe pra versão 2 quando tem painel de verdade", () => {
+    expect(paraJSON(adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" })).versao).toBe(1);
+    expect(paraJSON(comPainel()).versao).toBe(2);
+  });
+
+  it("sem painel, a chave nem aparece no arquivo", () => {
+    expect("paineis" in paraJSON(adicionarPecaLivre(novaMontagem(), "p30-b2000"))).toBe(false);
+  });
+
+  it("painel torto é erro, não silêncio", () => {
+    expect(() => deJSON({ versao: 2, pecas: [], paineis: [{ id: "x" }] })).toThrow(ErroDeMontagem);
+  });
+
+  it("apagar a peça NÃO apaga o painel — ele fica sem apoio", () => {
+    const m = removerPeca(comPainel(), "a");
+    expect(m.paineis).toHaveLength(1);
+    expect(m.pecas).toHaveLength(0);
   });
 });

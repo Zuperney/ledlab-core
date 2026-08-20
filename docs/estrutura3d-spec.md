@@ -1144,7 +1144,7 @@ Como `conectoresOcupados` deriva de `juntas`, a mudança se propaga inteira:
 | **E3.9 · Destravar** ✅ | §8.10: o motor **não decide orientação por ninguém** — fora as consultas que pulavam giro, `R` sempre gira · e a **peça livre passa a girar** (`R` no chão, `Shift+R` tomba), que era o lock que ninguém tinha visto | E3.8 |
 | **E3.10 · As seis direções** ✅ | §8.11: a rotação passa a se descrever pelo **piso** (`N · S · L · O · CIMA · BAIXO`), e não pelo eixo da junta · sete regras nomeadas (D1–D7) · **um comando só** (`ACOES.POSE`) · chip da face cega na F3 · teste de **propriedade** provando que girar qualquer peça não move nenhuma outra | E3.9 |
 | **E3.11 · A junta se mede** ✅ | §8.12: junta deixa de ser contada na ÁRVORE e passa a ser medida na GEOMETRIA — o pórtico fecha nas duas pontas, e a segunda valia parafuso que não entrava na caixa (8 juntas, não 7) | E3.10 |
-| **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
+| **E4 · Os painéis** ✅ | §11: as telas do projeto **penduradas em qualquer face** da estrutura, com o **peso suspenso** separado (treliça · painel · total), o painel **desenhado com a grade de gabinetes** e o **aviso de vão** — quando a parede não cabe ou arrasta no chão. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |
 
@@ -1175,7 +1175,90 @@ Regra dura, do mesmo naipe do "nunca somar fator em cima do WLL" do
 
 ---
 
-## 11 · O que trava, e quem destrava
+## 11 · Os painéis na estrutura (E4)
+
+A entrega da E4 é **quanto está pendurado**. A treliça pesa X, os painéis pesam Y,
+o total suspenso é Z — e o app segue sem dizer se aguenta, que é a fronteira do
+§10. É o número que o rigger pede antes de içar, e hoje ele sai de planilha.
+
+### As decisões do dono (19/08)
+
+| pergunta | resposta |
+| --- | --- |
+| como a tela se prende | **em qualquer face** da peça — pendurada por baixo, apoiada em cima ou encostada de lado |
+| a "barra de içamento" do §9 | é a **barra do painel**, não treliça: item do painel, e entra quando as medidas reais dela existirem |
+| o que a E4 precisa entregar | **peso pendurado** · **painel no desenho** · **aviso de vão** |
+
+Ficou de fora desta fase, por escolha dele: a lista de painéis por peça no Caderno.
+
+### A tela NÃO é copiada
+
+O painel guarda só o `telaId`. Medida e peso saem da tela do projeto, **viva**:
+mexeu em `cols`/`rows` na aba Dados, o painel acompanha na hora. Duas cópias da
+mesma parede é como elas começam a divergir — e a parede é a mesma coisa vista de
+dois lugares, não duas coisas.
+
+Medida e peso vêm de onde já vinham: `cols × gabinete.dimW` por
+`rows × gabinete.dimH`, e `gabinetes × gabinete.peso`. Nada de cadastro novo.
+
+> ⚠️ **A profundidade é nominal.** O cadastro de gabinete tem marca, resolução,
+> medida da face, peso e potência — profundidade nunca fez falta. Os 100 mm do
+> desenho não entram no peso nem na lista, e a medida que o Caderno afirma
+> continua sendo a da face.
+
+### Onde o painel encosta, e pra onde ele olha
+
+Duas coisas, e as duas no vocabulário das seis direções (§8.11):
+
+- **`face`** — em qual das seis faces da peça o painel encosta. Ele **encosta e
+  não invade**: o centro sai do centro da face empurrado pela metade da própria
+  extensão naquela direção. Pendurado por baixo, a borda de cima toca a peça;
+  apoiado em cima, a de baixo; de lado, é a lateral ou as costas, conforme ele
+  esteja de frente ou de perfil pra face;
+- **`olha`** — pra onde o LED aponta, sempre horizontal (N/S/L/O). Painel
+  inclinado não existe nesta fase.
+
+Nascendo, o painel entra pela face **BAIXO** (clamp na treliça, painel descendo, o
+caso de campo) e olhando **perpendicular ao comprimento da peça** — painel numa
+viga que corre leste–oeste olha pro norte ou pro sul, nunca pra ponta da viga.
+
+**No teclado**, o mesmo par de sempre: com o painel selecionado, `R` vira pra onde
+o LED olha e `Shift+R` passeia a face. Quem aprendeu a girar treliça já sabe girar
+painel.
+
+### O aviso é de MEDIDA, nunca de carga
+
+Quatro coisas, e todas se veem no desenho:
+
+| motivo | o que é |
+| --- | --- |
+| `sem-tela` | a tela saiu do projeto e o painel ficou apontando pro vazio |
+| `sem-apoio` | a peça onde ele estava pendurado foi apagada |
+| `atravessa` | **é o "não cabe no vão"** — parede mais larga que o espaço livre bate na torre |
+| `no-chao` | a borda de baixo passa do piso; no palco, arrasta |
+
+O `atravessa` reusa o detector de sobreposição do §8.6-B1: o painel é mais uma
+caixa orientada, e o SAT que já achava peça dentro de peça acha painel dentro de
+treliça. Medido no pórtico: parede de 3 m passa limpa no vão de 4 m; a de 6 m bate
+nas duas torres.
+
+> Nada disso é carga. O app não sabe e não vai dizer se a estrutura aguenta —
+> ele diz **quanto pesa** e **se cabe**, que são medidas, e o resto é do rigger.
+
+### O arquivo sobe de versão só quando precisa
+
+`VERSAO_MONTAGEM` foi a 2 com os painéis, mas `paraJSON` grava **1 enquanto não
+houver painel**. Projeto de estrutura pura continua abrindo em quem ainda não
+atualizou o app; só quem usa recurso novo fica incompatível — e aí a recusa é
+explícita (`versao-futura`), nunca um arquivo aberto pela metade.
+
+E **apagar a peça não apaga o painel**: ele fica *sem apoio*, some do desenho e a
+aba avisa. Apagar junto seria perder trabalho por tabela — mesma régua dos órfãos
+do §5.5.
+
+---
+
+## 12 · O que trava, e quem destrava
 
 ### ✅ Resolvido em 19/08 — a geometria
 

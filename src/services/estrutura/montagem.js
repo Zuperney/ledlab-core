@@ -20,9 +20,15 @@ import {
   IDENTIDADE, MATRIZ_IDENTIDADE, arredMatriz, matriz, mesmaMatriz, oposto,
 } from "./vetor.js";
 
-export const VERSAO_MONTAGEM = 1;
+// A versão 2 nasceu com os PAINÉIS (E4). Um arquivo só sobe pra 2 quando tem
+// painel de verdade — projeto de estrutura pura continua na 1 e continua abrindo
+// em quem ainda não atualizou. Ver `versaoDe`.
+export const VERSAO_MONTAGEM = 2;
 
-export const novaMontagem = () => ({ versao: VERSAO_MONTAGEM, pecas: [] });
+export const novaMontagem = () => ({ versao: 1, pecas: [], paineis: [] });
+
+/** a versão que ESTE arquivo precisa — só sobe quando usa recurso novo */
+export const versaoDe = (montagem) => ((montagem?.paineis?.length ?? 0) > 0 ? 2 : 1);
 
 export const pecaDaMontagem = (montagem, id) =>
   montagem?.pecas?.find((p) => p.id === id) ?? null;
@@ -209,6 +215,34 @@ export function adicionarPecaEncaixada(montagem, pedido) {
   return { ...montagem, pecas: [...montagem.pecas, peca] };
 }
 
+// ── painéis (E4) ─────────────────────────────────────────────
+// O painel guarda só o `telaId`: medida e peso saem da tela do projeto, viva.
+// Ver `paineis.js` pra geometria.
+
+export function pendurarPainel(montagem, pedido) {
+  const { telaId, de, face = "BAIXO", olha = "N" } = pedido;
+  if (!telaId || !pecaDaMontagem(montagem, de)) {
+    throw new ErroDeMontagem(MOTIVOS.ALVO_INEXISTENTE, { de });
+  }
+  const painel = { id: pedido.id ?? genId("pn"), telaId, de, face, olha };
+  return { ...montagem, paineis: [...(montagem.paineis ?? []), painel] };
+}
+
+export function removerPainel(montagem, id) {
+  return { ...montagem, paineis: (montagem.paineis ?? []).filter((p) => p.id !== id) };
+}
+
+/** muda a face onde o painel encosta, ou pra onde ele olha */
+export function ajustarPainel(montagem, id, mudanca) {
+  return {
+    ...montagem,
+    paineis: (montagem.paineis ?? []).map((p) => (p.id === id ? { ...p, ...mudanca } : p)),
+  };
+}
+
+export const painelDaMontagem = (montagem, id) =>
+  (montagem?.paineis ?? []).find((p) => p.id === id) ?? null;
+
 // ── remover ──────────────────────────────────────────────────
 
 /**
@@ -223,6 +257,9 @@ export function removerPeca(montagem, id) {
   const pecas = montagem.pecas
     .filter((p) => p.id !== id)
     .map((p) => (p.encaixe?.de === id ? { ...p, encaixe: null } : p));
+  // ⚠️ O PAINEL PENDURADO NELA NÃO SOME. Ele fica sem apoio — sem pose, e a aba
+  // avisa. Apagar o painel junto seria perder trabalho por tabela, e o desfazer
+  // conserta tarde demais na cabeça de quem monta (mesma régua dos órfãos).
   return { ...montagem, pecas };
 }
 

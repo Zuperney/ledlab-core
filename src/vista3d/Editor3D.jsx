@@ -34,6 +34,7 @@ export default function Editor3D({
   onEncaixar, // (indice) — comita a peça
   fantasma = null, // { catalogoId, matriz } da prévia
   setas = null, // matrizes de mundo das setas de face cega (§8.6, C1)
+  paineis = null, // as telas penduradas (E4)
   // ── conta-gotas (Ctrl segurado) ──
   contaGotas = false, // o Ctrl está segurado AGORA?
   onContaGotas, // (indice) — a peça clicada vira a peça de inserção
@@ -143,6 +144,7 @@ export default function Editor3D({
   useEffect(() => { cenaRef.current?.selecionar(selecao ?? null); }, [selecao]);
   useEffect(() => { cenaRef.current?.marcarConflitos(conflitos ?? []); }, [conflitos]);
   useEffect(() => { cenaRef.current?.mostrarSetas(setas ?? []); }, [setas]);
+  useEffect(() => { cenaRef.current?.mostrarPaineis(paineis ?? []); }, [paineis]);
   useEffect(() => { cenaRef.current?.definirCores(cores ?? null); }, [cores]);
   useEffect(() => { cenaRef.current?.mostrarGrade(mostrarGrade); }, [mostrarGrade]);
   useEffect(() => { cenaRef.current?.mostrarConectores(conectores ?? []); }, [conectores]);

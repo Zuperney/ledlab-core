@@ -21,7 +21,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Box, FileText, Frame, Grid3x3, Hand, Palette, Plus, Redo2, RotateCw,
+  Box, FileText, Frame, Grid3x3, Hand, Layers, Palette, Plus, Redo2, RotateCw,
   SlidersHorizontal, Trash2, Undo2,
 } from "lucide-react";
 import { PRINT, T } from "../../ui/tokens.js";
@@ -33,6 +33,7 @@ import Placeholder from "../../components/Placeholder.jsx";
 import HelpTip from "../../components/HelpTip.jsx";
 import LightModal from "../../components/LightModal.jsx";
 import Segmented from "../../components/Segmented.jsx";
+import Select from "../../components/Select.jsx";
 import StatusPill from "../../components/StatusPill.jsx";
 import ZoomTrio from "../../components/ZoomTrio.jsx";
 import PaletaEstrutura from "../../components/PaletaEstrutura.jsx";
@@ -41,9 +42,13 @@ import { CATALOGO, conectorPorId, pecaPorId } from "../../services/estrutura/cat
 import { resolverEncaixe } from "../../services/estrutura/encaixe.js";
 import { entradasDe, facesCegasNoMundo, melhorEntrada } from "../../services/estrutura/entrada.js";
 import { colisoes } from "../../services/estrutura/colisao.js";
+import {
+  MOTIVOS_DE_PAINEL, medidasDaTela, melhorOlhar, paineisNoMundo, pesoDosPaineis,
+  problemasDosPaineis, telaMensuravel,
+} from "../../services/estrutura/paineis.js";
 import { paletaDaEstrutura } from "../../services/estrutura/cores.js";
 import { conectoresLivres, matrizApoiada } from "../../services/estrutura/montagem.js";
-import { listaDeNomes, nomeDe } from "../../services/estrutura/direcoes.js";
+import { HORIZONTAIS, listaDeNomes, nomeDe } from "../../services/estrutura/direcoes.js";
 import {
   direcoesLivres, direcoesOcupadas, faceCegaEm, poseDoGiro, poseDoTombo, temFilhas,
 } from "../../services/estrutura/orientacao.js";
@@ -67,6 +72,17 @@ const chip = {
 const rotuloCard = { fontSize: 11, letterSpacing: 0.6, color: T.dim, fontWeight: 700 };
 
 const metro = (mm) => (mm == null ? "—" : `${(mm / 1000).toFixed(2).replace(".", ",")} m`);
+
+// as seis do §8.11, na ordem em que o Shift+R passeia a face do painel
+const TODAS_AS_FACES = ["BAIXO", "N", "L", "S", "O", "CIMA"];
+
+// o que dizer de cada problema de painel — em medida, nunca em carga
+const TEXTO_DO_PROBLEMA = {
+  [MOTIVOS_DE_PAINEL.SEM_TELA]: "a tela saiu do projeto",
+  [MOTIVOS_DE_PAINEL.SEM_APOIO]: "a peça onde ele estava pendurado foi apagada",
+  [MOTIVOS_DE_PAINEL.ATRAVESSA]: "não cabe no vão — entra na treliça",
+  [MOTIVOS_DE_PAINEL.NO_CHAO]: "passa do piso — arrasta no chão",
+};
 
 // o cone da seta tem 240 mm; 160 à frente da face deixa a base dele para fora da
 // peça, sem descolar dela
@@ -125,6 +141,9 @@ export default function ProjectEstrutura({ project, patch }) {
   const [usarCores, setUsarCores] = useState(true);
   const [ajustes, setAjustes] = useState(false);
   const [ctrl, setCtrl] = useState(false); // Ctrl segurado = conta-gotas
+  // E4 — as telas do projeto penduradas na estrutura
+  const [telaId, setTelaId] = useState(null);
+  const [painelSel, setPainelSel] = useState(null);
   const [verMomentaneo, setVerMomentaneo] = useState(false); // V segurado = modo Ver
   const [Editor, setEditor] = useState(null);
   const [erroCarga, setErroCarga] = useState(false);
@@ -259,6 +278,37 @@ export default function ProjectEstrutura({ project, patch }) {
     const direcao = faceCegaEm(montagem, id);
     return direcao ? { direcao, livres: direcoesLivres(montagem, id) } : null;
   }, [selecionadas, montagem]);
+
+  // ── os painéis (E4) ────────────────────────────────────────
+  // A tela NÃO é copiada: medida e peso saem da tela do projeto, viva. Mexeu em
+  // cols/rows na aba Screens, o painel acompanha.
+  const telas = useMemo(
+    () => (project?.telas ?? []).filter(telaMensuravel),
+    [project?.telas],
+  );
+  const paineis = useMemo(
+    () => paineisNoMundo(montagem, project?.telas ?? []),
+    [montagem, project?.telas],
+  );
+  const pesoPendurado = useMemo(
+    () => pesoDosPaineis(montagem, project?.telas ?? []),
+    [montagem, project?.telas],
+  );
+  const problemas = useMemo(
+    () => problemasDosPaineis(montagem, project?.telas ?? []),
+    [montagem, project?.telas],
+  );
+  const paineisComProblema = useMemo(
+    () => new Set(problemas.map((x) => x.painelId)),
+    [problemas],
+  );
+  const paraDesenhar = useMemo(() => paineis.map((item) => ({
+    id: item.painel.id,
+    matriz: item.matriz,
+    ...(item.medidas ?? {}),
+    selecionado: item.painel.id === painelSel,
+    problema: paineisComProblema.has(item.painel.id),
+  })), [paineis, painelSel, paineisComProblema]);
 
   const conflitos = useMemo(() => colisoes(montagem), [montagem]);
   const indicesConflito = useMemo(() => {
@@ -402,8 +452,52 @@ export default function ProjectEstrutura({ project, patch }) {
     if (r.pedidas === 1 && r.feitas === 0) explicarTrava(pecasSelecionadas()[0], "vertical");
   }, [mexerNaSelecao, montagem, explicarTrava, pecasSelecionadas]);
 
-  const desfazer = useCallback(() => { mexerHist(desfazerUm); setSelecao([]); }, [mexerHist]);
-  const refazer = useCallback(() => { mexerHist(refazerUm); setSelecao([]); }, [mexerHist]);
+  // PENDURAR: a tela escolhida entra na face de BAIXO da peça selecionada, que é
+  // o caso de campo (clamp na treliça, painel descendo). As outras cinco faces
+  // ficam a um Shift+R de distância.
+  const pendurar = useCallback(() => {
+    const alvo = selecionadas[0];
+    const tela = telas.find((t) => t.id === telaId) ?? telas[0];
+    if (!alvo || !tela) return;
+    const id = genId("pn");
+    rodar({
+      tipo: ACOES.PENDURAR,
+      id,
+      telaId: tela.id,
+      de: alvo,
+      face: "BAIXO",
+      olha: melhorOlhar(montagem, alvo),
+    });
+    setPainelSel(id);
+  }, [selecionadas, telas, telaId, montagem, rodar]);
+
+  const mexerNoPainel = useCallback((mudanca) => {
+    if (painelSel) rodar({ tipo: ACOES.PAINEL, id: painelSel, mudanca });
+  }, [painelSel, rodar]);
+
+  // `R` passeia PRA ONDE O LED OLHA (as quatro da bússola); `Shift+R` passeia a
+  // FACE da peça onde o painel encosta (as seis). Mesmo vocabulário do §8.11 —
+  // quem aprendeu a girar treliça já sabe girar painel.
+  const girarPainel = useCallback((campo) => {
+    const painel = paineis.find((x) => x.painel.id === painelSel)?.painel;
+    if (!painel) return;
+    const ciclo = campo === "olha" ? HORIZONTAIS : TODAS_AS_FACES;
+    const i = ciclo.indexOf(painel[campo]);
+    mexerNoPainel({ [campo]: ciclo[(i + 1 + ciclo.length) % ciclo.length] });
+  }, [paineis, painelSel, mexerNoPainel]);
+
+  const soltarPainel = useCallback(() => {
+    if (!painelSel) return;
+    rodar({ tipo: ACOES.SOLTAR, id: painelSel });
+    setPainelSel(null);
+  }, [painelSel, rodar]);
+
+  const desfazer = useCallback(() => {
+    mexerHist(desfazerUm); setSelecao([]); setPainelSel(null);
+  }, [mexerHist]);
+  const refazer = useCallback(() => {
+    mexerHist(refazerUm); setSelecao([]); setPainelSel(null);
+  }, [mexerHist]);
 
   // ── atalhos de teclado (§8.6 C3 · §8.7) ────────────────────
   useEffect(() => {
@@ -427,18 +521,23 @@ export default function ProjectEstrutura({ project, patch }) {
       // montagem leva o desfazer junto — atalho que às vezes apaga trabalho não
       // é atalho, é armadilha.
       if (e.shiftKey && e.key.toLowerCase() === "r") {
-        if (selecionadas.length) tombarSelecionadas();
+        // painel selecionado manda: Shift+R passeia a FACE onde ele encosta
+        if (painelSel) girarPainel("face");
+        else if (selecionadas.length) tombarSelecionadas();
         else setTilt((t) => t + 1);
         return;
       }
       if (e.key.toLowerCase() === "v") { setVerMomentaneo(true); return; }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault(); // Backspace solto ainda navega pra trás em alguns navegadores
-        apagarSelecionadas();
+        if (painelSel) soltarPainel();
+        else apagarSelecionadas();
         return;
       }
-      if (e.key === "Escape") { setSelecao([]); setAlvo(null); return; }
+      if (e.key === "Escape") { setSelecao([]); setAlvo(null); setPainelSel(null); return; }
       if (e.key.toLowerCase() === "r") {
+        // com painel selecionado, o R vira PRA ONDE O LED OLHA
+        if (painelSel) { girarPainel("olha"); return; }
         // sem seleção, o R gira a PEÇA NOVA — que é o giro que o técnico ajusta
         // enquanto mira o encaixe
         if (selecionadas.length) girarSelecionadas();
@@ -464,7 +563,7 @@ export default function ProjectEstrutura({ project, patch }) {
     };
   }, [
     isMobile, erro, desfazer, refazer, apagarSelecionadas, girarSelecionadas,
-    tombarSelecionadas, selecionadas.length,
+    tombarSelecionadas, selecionadas.length, painelSel, girarPainel, soltarPainel,
   ]);
 
   // A imagem que vai pro Caderno é capturada AQUI e guardada no aparelho. Não dá
@@ -579,6 +678,32 @@ export default function ProjectEstrutura({ project, patch }) {
           <Redo2 size={15} />
         </button>
 
+        {/* PENDURAR (E4): a tela do projeto vira painel na peça selecionada. Só
+            aparece quando há uma peça escolhida e há tela com medida — botão que
+            não pode agir é botão que ensina errado. */}
+        {selecionadas.length === 1 && telas.length > 0 && (
+          <>
+            <Select
+              value={telaId ?? telas[0].id}
+              onChange={(e) => setTelaId(e.target.value)}
+              title="Qual tela do projeto pendurar"
+              style={{ minWidth: 150 }}
+            >
+              {telas.map((t, i) => {
+                const m = medidasDaTela(t);
+                return (
+                  <option key={t.id} value={t.id}>
+                    {t.nome?.trim() || `Tela ${i + 1}`} · {metro(m.larguraMm)} × {metro(m.alturaMm)}
+                  </option>
+                );
+              })}
+            </Select>
+            <button style={btn("ghost")} title="Pendurar a tela na peça selecionada" onClick={pendurar}>
+              <Layers size={15} /> Pendurar
+            </button>
+          </>
+        )}
+
         {selecionadas.length > 0 && (
           <>
             <button style={btn("ghost")} title="Girar a seleção (tecla R)" aria-label="Girar peça" onClick={girarSelecionadas}>
@@ -622,8 +747,22 @@ export default function ProjectEstrutura({ project, patch }) {
         <span style={chip}>{r.juntas} junta{r.juntas === 1 ? "" : "s"}</span>
         <span style={chip}>
           {r.peso.kg} kg
+          {pesoPendurado.paineis > 0 && <span style={{ color: T.dim }}> de treliça</span>}
           {!r.peso.conferido && r.pecas > 0 && <span style={{ color: T.amb }}> · estimado</span>}
         </span>
+        {/* O NÚMERO QUE O RIGGER PEDE: quanto a treliça pesa por si, quanto ela
+            está carregando, e o total suspenso. O app segue sem dizer se aguenta. */}
+        {pesoPendurado.paineis > 0 && (
+          <>
+            <span style={chip}>
+              {pesoPendurado.kg} kg de painel
+              {!pesoPendurado.completo && <span style={{ color: T.amb }}> · parcial</span>}
+            </span>
+            <span style={{ ...chip, borderColor: T.acc, color: T.acM }}>
+              <b>{Math.round((r.peso.kg + pesoPendurado.kg) * 10) / 10} kg</b> suspensos
+            </span>
+          </>
+        )}
         {r.caixa && (
           <span style={chip}>
             {metro(r.caixa.larguraMm)} × {metro(r.caixa.alturaMm)} × {metro(r.caixa.profundidadeMm)}
@@ -714,6 +853,7 @@ export default function ProjectEstrutura({ project, patch }) {
                 conflitos={indicesConflito}
                 cores={paleta}
                 setas={setas}
+                paineis={paraDesenhar}
                 contaGotas={ctrl}
                 onContaGotas={contaGotas}
                 mostrarGrade={grade}
@@ -732,6 +872,48 @@ export default function ProjectEstrutura({ project, patch }) {
               </div>
             )}
           </div>
+
+          {/* OS PAINÉIS PENDURADOS. Clicar no chip seleciona — e aí R vira pra onde
+              o LED olha, Shift+R passeia a face, Delete solta. */}
+          {paineis.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {paineis.map((item, i) => {
+                const ativo = item.painel.id === painelSel;
+                const ruim = paineisComProblema.has(item.painel.id);
+                return (
+                  <button
+                    key={item.painel.id}
+                    onClick={() => { setPainelSel(ativo ? null : item.painel.id); setSelecao([]); }}
+                    aria-pressed={ativo}
+                    title={item.tela ? `${metro(item.medidas.larguraMm)} × ${metro(item.medidas.alturaMm)} · ${item.medidas.pesoKg} kg` : "a tela saiu do projeto"}
+                    style={{
+                      ...chip, cursor: "pointer", fontFamily: "inherit",
+                      borderColor: ativo ? T.acc : ruim ? T.red : T.bd,
+                      color: ativo ? T.acM : ruim ? T.red : T.mut,
+                      background: ativo ? T.sel : T.card2,
+                    }}
+                  >
+                    <Layers size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
+                    {item.tela?.nome?.trim() || `Tela ${i + 1}`}
+                    {item.tela && <span style={{ color: T.dim }}> · {nomeDe(item.painel.olha)}</span>}
+                  </button>
+                );
+              })}
+              {painelSel && (
+                <span style={{ fontSize: 11, color: T.dim }}>
+                  R vira o LED · Shift+R muda a face · Delete solta
+                </span>
+              )}
+            </div>
+          )}
+
+          {problemas.length > 0 && (
+            <div style={{ fontSize: 12, color: T.red, lineHeight: 1.5 }}>
+              <b>Painel fora de lugar</b>:{" "}
+              {[...new Set(problemas.map((x) => TEXTO_DO_PROBLEMA[x.motivo]))].join(" · ")}.
+              <span style={{ color: T.dim }}> É medida, não carga — o app continua sem dizer se a estrutura aguenta.</span>
+            </div>
+          )}
 
           {conflitos.length > 0 && (
             <div style={{ fontSize: 12, color: T.red, lineHeight: 1.5 }}>

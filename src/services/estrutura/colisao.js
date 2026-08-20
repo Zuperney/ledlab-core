@@ -50,7 +50,7 @@ export function caixaNoMundo(peca) {
 }
 
 // o quanto a caixa se estende ao longo de um eixo qualquer
-const alcance = (caixa, eixo) =>
+export const alcance = (caixa, eixo) =>
   caixa.meias[0] * Math.abs(escalar(caixa.eixos[0], eixo)) +
   caixa.meias[1] * Math.abs(escalar(caixa.eixos[1], eixo)) +
   caixa.meias[2] * Math.abs(escalar(caixa.eixos[2], eixo));

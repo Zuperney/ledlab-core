@@ -11,8 +11,8 @@
 // o motor só recebe o comando pronto.
 
 import {
-  adicionarPecaEncaixada, adicionarPecaLivre, definirPose, novaMontagem,
-  pecaDaMontagem, removerPeca,
+  adicionarPecaEncaixada, adicionarPecaLivre, ajustarPainel, definirPose, novaMontagem,
+  painelDaMontagem, pecaDaMontagem, pendurarPainel, removerPainel, removerPeca,
 } from "./montagem.js";
 
 export const LIMITE_PADRAO = 100;
@@ -33,6 +33,10 @@ export const ACOES = Object.freeze({
   // motor reancora as juntas em volta; o inverso carrega a matriz anterior.
   // Um comando só pra barra e cubo, solta e encaixada — girar é girar.
   POSE: "pose",
+  // os painéis da E4: pendurar, soltar e ajustar (face / pra onde olha)
+  PENDURAR: "pendurar",
+  SOLTAR: "soltar",
+  PAINEL: "painel",
   RESTAURAR: "restaurar",
   // várias ações que valem como UMA no desfazer. Nasceu da seleção múltipla
   // (§8.6, C2): apagar 5 peças de uma vez e ter que apertar Ctrl+Z cinco vezes
@@ -54,6 +58,12 @@ export function aplicar(montagem, acao) {
       return removerPeca(montagem, acao.id);
     case ACOES.POSE:
       return definirPose(montagem, acao.id, acao.matriz);
+    case ACOES.PENDURAR:
+      return pendurarPainel(montagem, acao);
+    case ACOES.SOLTAR:
+      return removerPainel(montagem, acao.id);
+    case ACOES.PAINEL:
+      return ajustarPainel(montagem, acao.id, acao.mudanca);
     case ACOES.LOTE:
       return (acao.acoes ?? []).reduce(aplicar, montagem);
     case ACOES.RESTAURAR:
@@ -80,6 +90,20 @@ function inversoDe(montagem, acao) {
     case ACOES.ADICIONAR_LIVRE:
     case ACOES.ADICIONAR_ENCAIXADA:
       return { tipo: ACOES.REMOVER, id: acao.id };
+    case ACOES.PENDURAR:
+      return { tipo: ACOES.SOLTAR, id: acao.id };
+    case ACOES.SOLTAR: {
+      const painel = painelDaMontagem(montagem, acao.id);
+      return painel ? { tipo: ACOES.PENDURAR, ...painel } : null;
+    }
+    case ACOES.PAINEL: {
+      const painel = painelDaMontagem(montagem, acao.id);
+      if (!painel) return null;
+      // o inverso carrega só as chaves que mudaram, com o valor de antes
+      const mudanca = {};
+      for (const k of Object.keys(acao.mudanca ?? {})) mudanca[k] = painel[k];
+      return { tipo: ACOES.PAINEL, id: acao.id, mudanca };
+    }
     case ACOES.POSE: {
       const atual = pecaDaMontagem(montagem, acao.id);
       // a pose anterior basta: como a rotação não move mais ninguém, reaplicar a

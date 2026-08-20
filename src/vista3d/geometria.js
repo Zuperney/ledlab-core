@@ -225,3 +225,36 @@ export function limparCache() {
   for (const g of cache.values()) g.dispose();
   cache.clear();
 }
+
+// ── o painel de LED (E4) ─────────────────────────────────────
+// A tela pendurada na estrutura. Não é peça de catálogo: cada uma tem a medida
+// da própria parede, então não dá pra instanciar — é uma geometria por painel,
+// e são poucos.
+//
+// A GRADE DE GABINETES é o que faz o desenho valer: uma parede lisa não diz
+// quantos gabinetes tem nem onde está a emenda. As linhas ficam levemente à
+// FRENTE da face de LED (o +Z local), pra não brigar em z-fighting com ela.
+
+const RIPA_MM = 12; // espessura da linha da grade, em mm de mundo
+
+export function geometriaPainel({ larguraMm, alturaMm, espessuraMm, cols, rows }) {
+  const L = Math.max(1, larguraMm);
+  const A = Math.max(1, alturaMm);
+  const E = Math.max(1, espessuraMm);
+  const partes = [new BoxGeometry(L, A, E)];
+
+  const zGrade = E / 2 + RIPA_MM / 2;
+  const emenda = (w, h, x, y) => {
+    const g = new BoxGeometry(w, h, RIPA_MM);
+    g.translate(x, y, zGrade);
+    return g;
+  };
+  // as emendas VERTICAIS (entre colunas) e HORIZONTAIS (entre linhas)
+  for (let i = 1; i < (cols || 1); i++) {
+    partes.push(emenda(RIPA_MM, A, -L / 2 + (L * i) / cols, 0));
+  }
+  for (let j = 1; j < (rows || 1); j++) {
+    partes.push(emenda(L, RIPA_MM, 0, -A / 2 + (A * j) / rows));
+  }
+  return mergeGeometries(partes, false);
+}
