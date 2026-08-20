@@ -831,6 +831,64 @@ inteira a partir da base ainda é uma operação legítima — só não é o `R`
 
 ---
 
+## 8.9 Girar o CUBO sem arrastar nada (E3.8)
+
+> *"ao clicar utilizando a tecla v pra selecionar o cubo e usando R e shift + R
+> as peças estão rodando juntas, verifica o teste com o cubo selecionado"*
+
+A E3.7 tinha resolvido a barra e **declarado o cubo como limite físico**. Estava
+errado — o cubo tem conserto, e a sonda mostrou o tamanho do problema: com o cubo
+selecionado, o braço aparafusado nele viajava 90° junto.
+
+### O conserto: reancorar na face que assumiu a pose
+
+A compensação da E3.7 só mexia no `giro` do filho, e isso basta enquanto o
+conector do pai **não sai do lugar** (barra, que encaixa pelas pontas). No cubo as
+faces laterais saem.
+
+Mas numa peça simétrica **outra face vai parar exatamente na pose antiga**. Então
+o filho é **reancorado nessa face** e o `giro` dele é corrigido nos passos de 90°
+que a rolagem andou. O filho não se move um milímetro e continua aparafusado no
+mesmo cubo — só que na face que agora está onde a outra estava.
+
+É o que o técnico faz: gira o cubo e reaperta a viga na face que ficou virada pro
+lado certo.
+
+A conta de compensação é a mesma de sempre — `passosDeRolagem(depois, antes,
+eixo)` — e o caso da barra virou caso particular deste (a face que assume a pose
+antiga é ela mesma).
+
+### E quando não há face nenhuma ali: PULAR
+
+O cubo tem **5 faces, não 6**. Quando o giro leva a **face cega** pra cima do
+lugar onde há peça aparafusada, não existe furo pra reaparafusar.
+
+A saída não é arrastar a peça: é reconhecer que **aquela orientação é fisicamente
+impossível** com aquela peça montada ali. O cubo não gira pra deixar a face
+tapada olhando pra uma viga que está parafusada nele.
+
+Então `R` e `Shift+R` **pulam** para o próximo passo que não arrasta ninguém
+(`proximoGiroLivre` / `proximaEntradaLivre`, no motor). Medido: o cubo do projeto
+de teste pulou de `g1` direto pra `g3`. Quando nenhuma orientação está livre, a
+aba avisa em vez de fingir que girou.
+
+> A orientação pulada volta a existir assim que a peça que a impedia sai. Não é
+> uma trava do app: é a estrutura dizendo o que ela é.
+
+### O bug do HORIZONTE (encontrado nos dados do dono)
+
+Nascer peça ao clicar no piso (§8.8) tinha um buraco que só aparece em uso: perto
+da **linha do horizonte** o raio da câmera fica quase paralelo ao piso, e o
+encontro dos dois vai parar a quilômetros. Um clique de raspão ali nascia uma
+peça a **20 km** — invisível na tela e catastrófica no relatório, que passou a
+medir *11 326 m × 8,30 m × 20 425 m*.
+
+Agora o clique fora da grade (40 × 40 m) simplesmente não vale: ali é céu, não
+chão. Foi encontrado no projeto `teste estrutura` do dono, com uma peça exatamente
+nesse estado.
+
+---
+
 ## 9 · As fases
 
 | Fase | Entrega | Trava |
@@ -842,6 +900,7 @@ inteira a partir da base ainda é uma operação legítima — só não é o `R`
 | **E3.5 · Consolidação** ✅ | fecha a auditoria do §8.5: **caderno próprio de Estrutura** (e a folha sai do Resumido/Gabinetes), **detecção de sobreposição** por SAT que avisa sem bloquear, **face de entrada** (o conserto do cubo), histórico que atravessa a aba, peça desconhecida que falha alto, imagem que não vira órfã, **seleção múltipla + atalhos + conta-gotas**, e **cor por peça com legenda** na cena e no Caderno | E3 |
 | **E3.6 · O ajuste fino** ✅ | §8.7: `V` segurado = modo Ver · **as duas rotações** (`R` gira, `Ctrl+R` troca a face de entrada) e o seletor de face fora da tela · **seta na face cega** do cubo · **paleta do catálogo** por categoria, que também é a legenda · **o piso nunca corta a peça** (nasce apoiada, e a grade desce se algo passar dela) | E3.5 |
 | **E3.7 · O gesto de montar** ✅ | §8.8: a peça **nasce ao clicar no piso** e o botão "Adicionar peça" sai (a primária vira a imagem do Caderno) · `Shift+R` no lugar do `Ctrl+R`, que recarregava o navegador · **girar mexe só na peça selecionada**, com os filhos compensados | E3.6 |
+| **E3.8 · O cubo também** ✅ | §8.9: girar o **cubo** deixou de arrastar o que está aparafusado nele — o filho é **reancorado na face que assumiu a pose antiga**, e a orientação impossível (face cega em cima de peça montada) é **pulada** · conserto do **clique no horizonte**, que nascia peça a 20 km | E3.7 |
 | **E4 · Os painéis** | pendurar as telas do projeto na estrutura; o peso da parede aparece somado; a barra de içamento vira peça. **É o diferencial que ninguém tem** | E3 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |

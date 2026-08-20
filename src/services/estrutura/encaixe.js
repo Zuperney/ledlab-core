@@ -110,6 +110,29 @@ export function podeEncaixar(a, b, { sistemaA, sistemaB, tolerancia = -0.5 } = {
   return d <= tolerancia;
 }
 
+/**
+ * Quantos passos de 90° separam duas referências de rolagem, em torno do mesmo
+ * eixo. É o que permite CANCELAR uma rotação: se o `rolo` do conector do pai
+ * andou k passos, dar −k no giro do filho devolve o filho ao lugar.
+ */
+export function passosDeRolagem(roloDe, roloPara, eixo) {
+  return normalizarGiro(Math.round(anguloEmTorno(roloDe, roloPara, eixo) / ANGULO_DE_GIRO));
+}
+
+/**
+ * Dois conectores de mundo ocupam a MESMA pose? (posição e normal; a rolagem
+ * pode diferir — é justamente ela que a compensação acerta.)
+ *
+ * A tolerância de posição é generosa de propósito: a matriz é arredondada em 6
+ * casas e a pose vem de duas cadeias de contas diferentes.
+ */
+export function mesmaPose(a, b, { toleranciaMm = 0.5, toleranciaDir = 0.999 } = {}) {
+  if (!a || !b) return false;
+  const d = sub(a.pos, b.pos);
+  if (Math.hypot(d[0], d[1], d[2]) > toleranciaMm) return false;
+  return escalar(unitario(a.dir), unitario(b.dir)) > toleranciaDir;
+}
+
 // distância entre dois conectores de mundo (mm) — usada pelo snap
 export function afastamento(a, b) {
   const d = sub(a.pos, b.pos);

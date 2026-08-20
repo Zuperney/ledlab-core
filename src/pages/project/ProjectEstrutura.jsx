@@ -43,7 +43,7 @@ import { entradasDe, facesCegasNoMundo, melhorEntrada } from "../../services/est
 import { colisoes } from "../../services/estrutura/colisao.js";
 import { paletaDaEstrutura } from "../../services/estrutura/cores.js";
 import {
-  chaveConector, conectoresLivres, conectoresOcupados, matrizApoiada,
+  conectoresLivres, matrizApoiada, proximaEntradaLivre, proximoGiroLivre,
 } from "../../services/estrutura/montagem.js";
 import {
   ACOES, criarHistorico, desfazerUm, executar, podeDesfazer, podeRefazer, refazerUm,
@@ -340,31 +340,35 @@ export default function ProjectEstrutura({ project, patch }) {
     [selecionadas, montagem],
   );
 
-  // `R` — o giro em torno do eixo do encaixe
-  const girarSelecionadas = useCallback(() => {
-    const acoes = pecasSelecionadas()
-      .filter((p) => p.encaixe)
-      .map((p) => ({ tipo: ACOES.GIRAR, id: p.id, giro: (p.encaixe.giro ?? 0) + 1 }));
-    if (acoes.length) rodar({ tipo: ACOES.LOTE, acoes });
-  }, [pecasSelecionadas, rodar]);
-
-  // `Ctrl+R` — a OUTRA rotação: trocar a face por onde a peça entra na junta.
-  // Pula as faces que já têm peça pendurada (o motor recusa, e com razão).
-  const tiltarSelecionadas = useCallback(() => {
-    const ocupados = conectoresOcupados(montagem);
+  // Quem escolhe o próximo passo é o MOTOR, e ele pula o que seria impossível:
+  // a orientação que levaria a face cega do cubo pra cima de uma peça
+  // aparafusada não existe no mundo físico (§8.9). Pular é dizer a verdade;
+  // arrastar a peça junto seria fingir que o técnico não vai reparar.
+  const mexerNaSelecao = useCallback((proximo, tipo, campo) => {
     const acoes = pecasSelecionadas()
       .filter((p) => p.encaixe)
       .map((p) => {
-        const faces = entradasDe(pecaPorId(p.catalogoId))
-          .map((c) => c.id)
-          .filter((id) => id === p.encaixe.conNovo || !ocupados.has(chaveConector(p.id, id)));
-        if (faces.length < 2) return null;
-        const i = faces.indexOf(p.encaixe.conNovo);
-        return { tipo: ACOES.ENTRADA, id: p.id, conNovo: faces[(i + 1) % faces.length] };
+        const valor = proximo(montagem, p.id);
+        return valor == null ? null : { tipo, id: p.id, [campo]: valor };
       })
       .filter(Boolean);
     if (acoes.length) rodar({ tipo: ACOES.LOTE, acoes });
-  }, [pecasSelecionadas, montagem, rodar]);
+    else if (selecionadas.length) {
+      toast("Sem orientação livre — o que está aparafusado teria que sair do lugar");
+    }
+  }, [pecasSelecionadas, montagem, rodar, selecionadas.length, toast]);
+
+  // `R` — o giro em torno do eixo do encaixe
+  const girarSelecionadas = useCallback(
+    () => mexerNaSelecao(proximoGiroLivre, ACOES.GIRAR, "giro"),
+    [mexerNaSelecao],
+  );
+
+  // `Shift+R` — a OUTRA rotação: trocar a face por onde a peça entra na junta
+  const tiltarSelecionadas = useCallback(
+    () => mexerNaSelecao(proximaEntradaLivre, ACOES.ENTRADA, "conNovo"),
+    [mexerNaSelecao],
+  );
 
   const desfazer = useCallback(() => { mexerHist(desfazerUm); setSelecao([]); }, [mexerHist]);
   const refazer = useCallback(() => { mexerHist(refazerUm); setSelecao([]); }, [mexerHist]);
@@ -602,7 +606,7 @@ export default function ProjectEstrutura({ project, patch }) {
         <HelpTip title="Estrutura">
           <p><b>Para montar:</b> escolha a peça no catálogo ao lado do desenho e <b>clique no piso</b> — ela nasce ali, apoiada. Para emendar, passe o ponteiro num <b>ponto claro</b> da estrutura (ele mostra a peça em fantasma, onde ela vai ficar) e clique.</p>
           <p><b>As duas rotações:</b> <b>R</b> gira a peça em torno da junta; <b>Shift+R</b> troca a <b>face por onde ela entra</b>. São coisas diferentes: no cubo, só o Shift+R tira a face cega de onde ela está — girar não tira, porque ela fica bem em cima do eixo do giro.</p>
-          <p><b>Girar mexe só na peça selecionada</b> — o que está encaixado nela fica onde estava. A exceção é física: girando um <b>cubo</b>, o que está aparafusado nas faces laterais viaja junto, e no truss de verdade também viaja.</p>
+          <p><b>Girar mexe só na peça selecionada</b> — o que está encaixado nela fica onde estava, inclusive no cubo: a peça é reaparafusada na face que ficou virada pro lado certo. A única exceção é quando a <b>face cega</b> vai parar bem onde havia peça; aí não existe furo pra reaparafusar, e ela acompanha.</p>
           <p><b>A seta</b> marca a face cega do cubo, aquela que veio tapada de fábrica e não aceita peça. Selecione o cubo para vê-la.</p>
           <p><b>Atalhos:</b> <b>V</b> segurado vira modo Ver — dá pra clicar nas peças sem encaixar nada · <b>Ctrl</b> segurado vira conta-gotas (a peça clicada passa a ser a de inserção) · <b>Shift + clique</b> seleciona várias · <b>Delete</b> apaga · <b>Ctrl+Z</b> desfaz · <b>Esc</b> limpa.</p>
           <p>Excluir <b>não</b> apaga o que estava preso na peça — aquilo vira peça solta, no lugar onde estava.</p>

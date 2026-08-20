@@ -56,7 +56,8 @@ export function criarCena(canvas, cores) {
   scene.add(contra);
 
   // grade de 1 m, 40 × 40 m — a referência de escala do palco
-  const grade = new GridHelper(40000, 40, cores.gradeEixo, cores.grade);
+  const LADO_DA_GRADE = 40000;
+  const grade = new GridHelper(LADO_DA_GRADE, 40, cores.gradeEixo, cores.grade);
   scene.add(grade);
 
   const controls = new OrbitControls(camera, canvas);
@@ -436,7 +437,14 @@ export function criarCena(canvas, cores) {
     raycaster.setFromCamera(ponteiro, camera);
     planoDoChao.constant = -grade.position.y;
     const p = raycaster.ray.intersectPlane(planoDoChao, alvoDoChao);
-    return p ? [p.x, p.y, p.z] : null;
+    if (!p) return null;
+    // ⚠️ O HORIZONTE. Perto da linha do horizonte o raio fica quase paralelo ao
+    // piso, e o encontro dos dois vai parar a QUILÔMETROS: um clique de raspão
+    // ali nascia peça a 20 km, que ninguém vê e que estraga toda medida do
+    // projeto. Fora da grade o clique não vale nada — é céu, não chão.
+    const limite = LADO_DA_GRADE / 2;
+    if (Math.abs(p.x) > limite || Math.abs(p.z) > limite) return null;
+    return [p.x, p.y, p.z];
   }
 
   function selecionar(indices) {

@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   ErroDeMontagem, MOTIVOS, adicionarPecaEncaixada, adicionarPecaLivre, chaveConector, girarPeca,
   conectores, conectoresLivres, conectoresOcupados, juntas, matrizApoiada, mudarEntrada,
-  novaMontagem, pecaDaMontagem, recalcular, removerPeca,
+  novaMontagem, pecaDaMontagem, proximaEntradaLivre, proximoGiroLivre, recalcular, removerPeca,
 } from "./montagem.js";
 import { caixaEnvolvente } from "./metricas.js";
 import { matriz, qDoEixo } from "./vetor.js";
@@ -224,17 +224,65 @@ describe("girar", () => {
     expect(pecaDaMontagem(volta, "b2").matriz).toEqual(pecaDaMontagem(m, "b2").matriz);
   });
 
-  // O LIMITE, e ele é físico: a face lateral do cubo fica FORA do eixo do giro.
-  // Girar o cubo muda o lugar dessa face, e o que está aparafusado nela viaja
-  // junto — no truss de verdade também viaja.
-  it("no cubo, o que está na face lateral acompanha — não há compensação que segure", () => {
+  // O CUBO, que é o caso que o dono estava testando. Girar o cubo tira a face
+  // "leste" de lugar — mas outra face vai parar EXATAMENTE onde ela estava, e o
+  // braço é reancorado ali. É o que o técnico faz: gira o cubo e reaperta a viga
+  // na face que ficou virada pro lado certo.
+  it("girar o CUBO não arrasta o que está aparafusado nele", () => {
     let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
     m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "topo" });
+    m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
+    const antes = pecaDaMontagem(m, "braco").matriz;
+
+    const girada = girarPeca(m, "cubo", 1);
+    expect(pecaDaMontagem(girada, "cubo").encaixe.giro).toBe(1);
+    expect(pecaDaMontagem(girada, "braco").matriz).toEqual(antes); // nem um milímetro
+    expect(pecaDaMontagem(girada, "braco").encaixe.conAlvo).not.toBe("leste"); // reancorado
+    expect(juntas(girada)).toHaveLength(2); // e sem soltar parafuso
+  });
+
+  it("trocar a face de entrada do cubo também segura os filhos", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
+    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "topo" });
+    m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
+    const antes = pecaDaMontagem(m, "braco").matriz;
+    expect(pecaDaMontagem(mudarEntrada(m, "cubo", "norte"), "braco").matriz).toEqual(antes);
+  });
+
+  it("dois braços no mesmo cubo não caem no mesmo parafuso", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
+    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "topo" });
+    m = adicionarPecaEncaixada(m, { id: "b1", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
+    m = adicionarPecaEncaixada(m, { id: "b2", catalogoId: "p30-b1000", de: "cubo", conAlvo: "norte", conNovo: "a" });
+
+    const girada = girarPeca(m, "cubo", 1);
+    const alvos = girada.pecas.filter((p) => p.encaixe?.de === "cubo").map((p) => p.encaixe.conAlvo);
+    expect(new Set(alvos).size).toBe(alvos.length);
+    expect(pecaDaMontagem(girada, "b1").matriz).toEqual(pecaDaMontagem(m, "b1").matriz);
+    expect(pecaDaMontagem(girada, "b2").matriz).toEqual(pecaDaMontagem(m, "b2").matriz);
+  });
+
+  // O LIMITE que sobra, e ele é do CATÁLOGO, não da matemática: o cubo tem 5
+  // faces, não 6. Quando o giro leva a FACE CEGA pra cima do lugar onde havia
+  // peça, não existe conector ali pra reancorar — e no truss de verdade também
+  // não existiria furo.
+  it("quando a face CEGA vai parar onde estava o braço, o braço acompanha", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
+    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "norte" });
     m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
     const antes = pecaDaMontagem(m, "braco").matriz.slice(12, 15);
     const girada = girarPeca(m, "cubo", 1);
     expect(pecaDaMontagem(girada, "braco").matriz.slice(12, 15)).not.toEqual(antes);
-    expect(juntas(girada)).toHaveLength(2);
+    expect(juntas(girada)).toHaveLength(2); // mas continua aparafusado
+  });
+
+  it("girar e voltar devolve o cubo e os filhos ao estado exato", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
+    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "topo" });
+    m = adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
+    const volta = girarPeca(girarPeca(girarPeca(girarPeca(m, "cubo", 1), "cubo", 2), "cubo", 3), "cubo", 0);
+    expect(pecaDaMontagem(volta, "braco").matriz).toEqual(pecaDaMontagem(m, "braco").matriz);
+    expect(pecaDaMontagem(volta, "cubo").matriz).toEqual(pecaDaMontagem(m, "cubo").matriz);
   });
 
   it("dá pra pedir o comportamento antigo — arrastar os filhos junto", () => {
@@ -339,5 +387,61 @@ describe("a peça solta nasce apoiada, não enterrada", () => {
       id: "a", matriz: matrizApoiada("p30-b2000"),
     });
     expect(caixaEnvolvente(m).min[1]).toBe(0);
+  });
+});
+
+describe("o giro pula a orientação impossível", () => {
+  // Com uma viga aparafusada numa face do cubo, a orientação que levaria a FACE
+  // CEGA pra cima daquela viga não existe no mundo físico — o cubo não gira pra
+  // deixar a face tapada olhando pra uma peça que está presa nele.
+  const cubeComBraco = () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
+    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "norte" });
+    return adicionarPecaEncaixada(m, { id: "braco", catalogoId: "p30-b1000", de: "cubo", conAlvo: "leste", conNovo: "a" });
+  };
+
+  it("o giro escolhido nunca arrasta o que está preso", () => {
+    const m = cubeComBraco();
+    const antes = pecaDaMontagem(m, "braco").matriz;
+    for (let i = 0; i < 6; i++) {
+      const giro = proximoGiroLivre(m, "cubo");
+      expect(giro).not.toBeNull();
+      expect(pecaDaMontagem(girarPeca(m, "cubo", giro), "braco").matriz).toEqual(antes);
+    }
+  });
+
+  it("e ele realmente PULA — não é sempre o passo seguinte", () => {
+    const m = cubeComBraco();
+    const passos = [];
+    let atual = m;
+    for (let i = 0; i < 3; i++) {
+      const giro = proximoGiroLivre(atual, "cubo");
+      if (giro == null) break;
+      passos.push(giro);
+      atual = girarPeca(atual, "cubo", giro);
+    }
+    // se nenhum passo fosse pulado, a sequência a partir de 0 seria 1, 2, 3
+    expect(passos).not.toEqual([1, 2, 3]);
+  });
+
+  it("sem nada preso, todas as orientações estão livres", () => {
+    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "base" });
+    m = adicionarPecaEncaixada(m, { id: "cubo", catalogoId: "p30-cubo5", de: "base", conAlvo: "b", conNovo: "norte" });
+    expect(proximoGiroLivre(m, "cubo")).toBe(1);
+  });
+
+  it("peça livre não tem giro nem entrada pra consultar", () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-cubo5", { id: "solto" });
+    expect(proximoGiroLivre(m, "solto")).toBeNull();
+    expect(proximaEntradaLivre(m, "solto")).toBeNull();
+  });
+
+  it("a face de entrada escolhida também não arrasta ninguém", () => {
+    const m = cubeComBraco();
+    const antes = pecaDaMontagem(m, "braco").matriz;
+    const face = proximaEntradaLivre(m, "cubo");
+    expect(face).not.toBeNull();
+    expect(face).not.toBe("leste"); // essa tem viga pendurada
+    expect(pecaDaMontagem(mudarEntrada(m, "cubo", face), "braco").matriz).toEqual(antes);
   });
 });
