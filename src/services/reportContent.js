@@ -4,7 +4,7 @@
 // meses, o bug é aqui, não em dois lugares.
 
 import { viewingOf } from "./viewing.js";
-import { compLayout } from "./layout.js";
+import { compLayout, compDimOf, extensaoCoberta } from "./layout.js";
 import { videoSpecs, VIDEO_CAMPOS } from "./videoSpecs.js";
 
 // disciplinas do caderno técnico: cor de índice por seção (produção / vídeo /
@@ -71,19 +71,31 @@ export const distVisaoGroups = (telas) => {
 };
 
 // ── CANVAS DE CONTEÚDO (caderno de Design) ──
-// O quadro em que a arte é entregue: a caixa envolvente da Composição. No caderno
-// de Design ele ocupa o lugar das distâncias de visão — quem recebe essa folha é
-// quem MONTA O CONTEÚDO, e o que essa pessoa precisa é o tamanho do quadro, não a
-// que distância a plateia enxerga o pixel (isso é critério de engenharia e segue
-// nos cadernos Completo e Resumido).
+// O quadro em que a arte é entregue. No caderno de Design ele ocupa o lugar das
+// distâncias de visão — quem recebe essa folha é quem MONTA O CONTEÚDO, e o que
+// essa pessoa precisa é o tamanho do quadro, não a que distância a plateia
+// enxerga o pixel (isso é critério de engenharia e segue nos cadernos Completo
+// e Resumido).
+//
+// ⚠️ SEM O VÃO (decisão do dono, 20/08). O espaço que o técnico deixa entre as
+// telas no canvas é referência VISUAL de como elas ficam separadas no palco —
+// não é LED, não é processamento e não entra em conta de resolução. É a mesma
+// régua da Screen (`screenResolucao`) e a que a área em m² já usava.
+//
+// A `caixa` continua saindo junto, com o nome dela: é a DISPOSIÇÃO, o retângulo
+// que o desenho ocupa. Serve pra desenhar e pro caderno declarar o espaçamento.
 //
 // px é a verdade. Metros só saem quando TODAS as telas têm o MESMO pitch: canvas
 // de pitch misto não tem escala física única, e um número em metros ali seria
-// chute. Área em m² é a soma das telas (o vão entre painéis não é LED).
+// chute.
 export function canvasResumo(telas, compPos) {
   const lista = telas || [];
-  const { bbox } = compLayout(lista, compPos);
-  const w = Math.round(bbox.w), h = Math.round(bbox.h);
+  const { pos, bbox } = compLayout(lista, compPos);
+  const eixo = (k, tam) => Math.round(extensaoCoberta(
+    lista.map((t) => [pos[t.id][k], pos[t.id][k] + compDimOf(t)[tam]]),
+  ));
+  const w = eixo("x", "w"), h = eixo("y", "h");
+  const caixa = { w: Math.round(bbox.w), h: Math.round(bbox.h) };
   // todas as telas com pitch, e um só valor entre elas (comparado arredondado —
   // dimW/resX é float): fora disso, o canvas não tem escala física única
   const comPitch = lista.map((t) => videoOf(t).pitch).filter((p) => p > 0);
@@ -99,6 +111,8 @@ export function canvasResumo(telas, compPos) {
   }, 0);
   return {
     w, h, ar, mp: (w * h) / 1e6, areaM2,
+    caixa,
+    temVao: w !== caixa.w || h !== caixa.h,
     largM: pitch > 0 ? (w * pitch) / 1000 : 0,
     altM: pitch > 0 ? (h * pitch) / 1000 : 0,
   };
@@ -124,6 +138,10 @@ export function fichaPainel(project) {
     ["Tamanho", tam.join("  +  ") || "—"],
     ["Resolução", res.join("  +  ") || "—"],
     ["Canvas de conteúdo", cv.w ? `${cv.w.toLocaleString("pt-BR")} × ${cv.h.toLocaleString("pt-BR")} px  ·  ${cv.ar}` : "—"],
+    // o espaçamento não some do papel: muda de nome, e o nome diz o que é
+    ...(cv.temVao
+      ? [["Disposição no desenho", `${cv.caixa.w.toLocaleString("pt-BR")} × ${cv.caixa.h.toLocaleString("pt-BR")} px`]]
+      : []),
   ];
 }
 

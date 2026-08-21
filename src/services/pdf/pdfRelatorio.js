@@ -414,12 +414,23 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
 
   // ── VÍDEO / RESOLUÇÃO ──
   const fila = showVideo ? telasLayoutSvg(telas, project.comp?.pos, colorOf) : null;
+  // o SVG desenha a disposição (com o vão); a legenda conta só o LED
+  const videoCanvas = canvasResumo(telas, project.comp?.pos);
   const video = !showVideo ? [] : [
     sectionHead(sec(), "Vídeo / Resolução", "Sinal e proporção", DISC.video),
-    { text: "As telas na disposição da Composição (nome de cada uma no seu bloco); a caixa envolvente é o canvas de conteúdo do projeto.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
+    { text: "As telas na disposição da Composição (nome de cada uma no seu bloco). O canvas de conteúdo conta só o LED — o espaço entre as telas é referência de montagem, não é pixel.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 6] },
     ...(fila ? [
       { svg: fila.svg, width: fila.width, margin: [0, 0, 0, 4] },
-      { text: [{ text: "Canvas de conteúdo (caixa envolvente) — " }, { text: `${ptBR(fila.linW)} × ${ptBR(fila.linH)} px`, bold: true, color: PRINT.ink }], fontSize: 8, color: PRINT.dim, margin: [0, 0, 0, 8] },
+      {
+        text: [
+          { text: "Canvas de conteúdo — " },
+          { text: `${ptBR(videoCanvas.w)} × ${ptBR(videoCanvas.h)} px`, bold: true, color: PRINT.ink },
+          ...(videoCanvas.temVao
+            ? [{ text: ` · ${ptBR(videoCanvas.caixa.w)} × ${ptBR(videoCanvas.caixa.h)} px de disposição no desenho` }]
+            : []),
+        ],
+        fontSize: 8, color: PRINT.dim, margin: [0, 0, 0, 8],
+      },
     ] : []),
     {
       table: {
@@ -449,6 +460,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
       const cv = canvasResumo(telas, project.comp?.pos);
       return [statRow([
         ["Canvas de conteúdo", `${ptBR(cv.w)} × ${ptBR(cv.h)} px`],
+        ...(cv.temVao ? [["Disposição no desenho", `${ptBR(cv.caixa.w)} × ${ptBR(cv.caixa.h)} px`]] : []),
         ["Proporção", cv.ar],
         ["Total", `${cv.mp.toFixed(1).replace(".", ",")} MP`],
         ...(cv.largM ? [["Tamanho", `${cv.largM.toFixed(2).replace(".", ",")} × ${cv.altM.toFixed(2).replace(".", ",")} m`]] : []),

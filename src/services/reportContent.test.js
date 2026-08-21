@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import { DISC, capaNomeCqi, videoOf, distVisaoGroups, GLOSSARIO, canvasResumo } from "./reportContent.js";
 
 // (a suíte de rigging saiu junto com o motor — decisão do dono, 02/08/2026;
@@ -94,6 +94,28 @@ describe("capa e disciplinas", () => {
 describe("canvasResumo — o quadro do caderno de Design", () => {
   const gab = { resX: "168", resY: "168", dimW: "500", dimH: "500" }; // Unilumin P2.9 (2,98 mm)
   const tela = (id, cols, rows) => ({ id, cols, rows, gabinete: gab });
+
+  // ⚠️ SEM O VÃO (dono, 20/08). O espaço entre as telas no canvas é referência
+  // visual de como elas ficam separadas no palco — não é LED, não é
+  // processamento, e não pode virar resolução de conteúdo.
+  it("o vão entre as telas não vira pixel de canvas", () => {
+    // duas de 10×2 (1.680 × 336) lado a lado, com 500 px de respiro no desenho
+    const telas = [tela("a", 10, 2), tela("b", 10, 2)];
+    const cv = canvasResumo(telas, { a: { x: 0, y: 0 }, b: { x: 2180, y: 0 } });
+    expect([cv.w, cv.h]).toEqual([3360, 336]); // 1.680 + 1.680, o LED que existe
+    expect(cv.caixa).toEqual({ w: 3860, h: 336 }); // a caixa do desenho, à parte
+    expect(cv.temVao).toBe(true);
+    // os metros seguem a mesma régua: é a soma das telas, não o alcance no palco
+    expect(cv.largM).toBeCloseTo(10, 2);
+  });
+
+  it("telas encostadas: nada muda, e não há vão pra declarar", () => {
+    const telas = [tela("a", 10, 2), tela("b", 10, 2)];
+    const cv = canvasResumo(telas, { a: { x: 0, y: 0 }, b: { x: 1680, y: 0 } });
+    expect([cv.w, cv.h]).toEqual([3360, 336]);
+    expect(cv.temVao).toBe(false);
+    expect(cv.caixa).toEqual({ w: cv.w, h: cv.h });
+  });
 
   it("caixa envolvente da Composição, com proporção, megapixels e área de LED", () => {
     // testeira 76×1 em (0,0) + painel 32×9 em (0, 168): canvas 12.768 × 1.680

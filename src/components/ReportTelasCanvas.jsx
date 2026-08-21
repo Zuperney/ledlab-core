@@ -6,6 +6,7 @@
 // depender de "Gráficos de segundo plano".
 import { useCablePalette } from "../hooks/useCablePalette.js";
 import { compLayout, overlappingIds } from "../services/layout.js";
+import { canvasResumo } from "../services/reportContent.js";
 
 export default function ReportTelasCanvas({ project, maxWidth = 1040, maxHeight = 340 }) {
   const { colorOf } = useCablePalette();
@@ -17,6 +18,10 @@ export default function ReportTelasCanvas({ project, maxWidth = 1040, maxHeight 
   const colOf = (t) => colorOf(Math.max(0, models.indexOf(t.gabinete?.nome)));
 
   const { pos, dims, bbox } = compLayout(telas, project.comp?.pos);
+  // ⚠️ O DESENHO mostra o vão (é disposição); a LEGENDA conta só o LED. O
+  // espaçamento entre as telas é referência visual de como elas ficam separadas
+  // no palco — não é pixel, e não entra em conta de resolução.
+  const cv = canvasResumo(telas, project.comp?.pos);
   const overlap = overlappingIds(telas.map((t) => ({ id: t.id, ...pos[t.id], ...dims[t.id] })));
   const bw = bbox.w || 1, bh = bbox.h || 1;
   const scale = Math.min(maxWidth / bw, maxHeight / bh);
@@ -46,7 +51,8 @@ export default function ReportTelasCanvas({ project, maxWidth = 1040, maxHeight 
         })}
       </svg>
       <div style={{ textAlign: "center", fontSize: 11, color: "#475569", marginTop: 8 }}>
-        Canvas de conteúdo (caixa envolvente) — <b style={{ color: "#0f172a" }}>{Math.round(bbox.w).toLocaleString("pt-BR")} × {Math.round(bbox.h).toLocaleString("pt-BR")} px</b>
+        Canvas de conteúdo — <b style={{ color: "#0f172a" }}>{cv.w.toLocaleString("pt-BR")} × {cv.h.toLocaleString("pt-BR")} px</b>
+        {cv.temVao && ` · ${cv.caixa.w.toLocaleString("pt-BR")} × ${cv.caixa.h.toLocaleString("pt-BR")} px de disposição no desenho`}
       </div>
     </div>
   );

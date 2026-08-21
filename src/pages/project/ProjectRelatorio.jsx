@@ -1,4 +1,4 @@
-// pages/project/ProjectRelatorio.jsx — relatório imprimível (PDF via navegador).
+﻿// pages/project/ProjectRelatorio.jsx — relatório imprimível (PDF via navegador).
 // Completo inclui: visão geral, vídeo/resolução, elétrica, cabeamento de SINAL e de
 // ENERGIA (AC) — cada um com descrição (nº de cabos, capacidade) e o MAPA DE CABOS
 // no mesmo visual da aba Cabeamento (services/cabling.js).
@@ -246,7 +246,7 @@ export default function ProjectRelatorio({ project }) {
         {showVideo && (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Vídeo / Resolução" tag="Sinal e proporção" color={DISC.video} Icon={Monitor} />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas na disposição da Composição (nome de cada uma no seu bloco); a caixa envolvente é o canvas de conteúdo do projeto.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>As telas na disposição da Composição (nome de cada uma no seu bloco). O canvas de conteúdo conta só o LED — o espaço entre as telas é referência de montagem, não é pixel.</p>
             <ReportTelasCanvas project={project} />
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>Tela</th><th style={th}>Resolução (px)</th><th style={th}>Proporção</th><th style={th}>Fração</th><th style={th}>Pitch</th><th style={th}>Grade</th><th style={th}>Pixel por gabinete</th></tr></thead>
@@ -262,6 +262,7 @@ export default function ProjectRelatorio({ project }) {
               <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 28px", marginTop: 12, padding: "10px 14px", background: PRINT.head, borderRadius: 8, border: `1px solid ${PRINT.line}` }}>
                 {[
                   ["Canvas de conteúdo", `${cv.w.toLocaleString("pt-BR")} × ${cv.h.toLocaleString("pt-BR")} px`],
+                  ...(cv.temVao ? [["Disposição no desenho", `${cv.caixa.w.toLocaleString("pt-BR")} × ${cv.caixa.h.toLocaleString("pt-BR")} px`]] : []),
                   ["Proporção", cv.ar],
                   ["Total", `${cv.mp.toFixed(1).replace(".", ",")} MP`],
                   ...(cv.largM ? [["Tamanho", `${cv.largM.toFixed(2).replace(".", ",")} × ${cv.altM.toFixed(2).replace(".", ",")} m`]] : []),
