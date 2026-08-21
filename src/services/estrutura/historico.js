@@ -11,8 +11,8 @@
 // o motor só recebe o comando pronto.
 
 import {
-  adicionarPecaEncaixada, adicionarPecaLivre, ajustarPainel, definirPose, novaMontagem,
-  painelDaMontagem, pecaDaMontagem, pendurarPainel, removerPainel, removerPeca,
+  adicionarPainel, adicionarPecaEncaixada, adicionarPecaLivre, ajustarPainel, definirPose,
+  novaMontagem, painelDaMontagem, pecaDaMontagem, removerPainel, removerPeca,
 } from "./montagem.js";
 
 export const LIMITE_PADRAO = 100;
@@ -33,9 +33,11 @@ export const ACOES = Object.freeze({
   // motor reancora as juntas em volta; o inverso carrega a matriz anterior.
   // Um comando só pra barra e cubo, solta e encaixada — girar é girar.
   POSE: "pose",
-  // os painéis da E4: pendurar, soltar e ajustar (face / pra onde olha)
-  PENDURAR: "pendurar",
-  SOLTAR: "soltar",
+  // as telas no desenho (E4 · E5): pôr, tirar e mexer (posição / pra onde olha).
+  // O arraste inteiro entra como UM `PAINEL` só, comitado no soltar do botão —
+  // senão um gesto de dois segundos enche o desfazer com cem passos.
+  PAINEL_NOVO: "painel-novo",
+  PAINEL_FORA: "painel-fora",
   PAINEL: "painel",
   RESTAURAR: "restaurar",
   // várias ações que valem como UMA no desfazer. Nasceu da seleção múltipla
@@ -58,9 +60,9 @@ export function aplicar(montagem, acao) {
       return removerPeca(montagem, acao.id);
     case ACOES.POSE:
       return definirPose(montagem, acao.id, acao.matriz);
-    case ACOES.PENDURAR:
-      return pendurarPainel(montagem, acao);
-    case ACOES.SOLTAR:
+    case ACOES.PAINEL_NOVO:
+      return adicionarPainel(montagem, acao);
+    case ACOES.PAINEL_FORA:
       return removerPainel(montagem, acao.id);
     case ACOES.PAINEL:
       return ajustarPainel(montagem, acao.id, acao.mudanca);
@@ -90,11 +92,11 @@ function inversoDe(montagem, acao) {
     case ACOES.ADICIONAR_LIVRE:
     case ACOES.ADICIONAR_ENCAIXADA:
       return { tipo: ACOES.REMOVER, id: acao.id };
-    case ACOES.PENDURAR:
-      return { tipo: ACOES.SOLTAR, id: acao.id };
-    case ACOES.SOLTAR: {
+    case ACOES.PAINEL_NOVO:
+      return { tipo: ACOES.PAINEL_FORA, id: acao.id };
+    case ACOES.PAINEL_FORA: {
       const painel = painelDaMontagem(montagem, acao.id);
-      return painel ? { tipo: ACOES.PENDURAR, ...painel } : null;
+      return painel ? { tipo: ACOES.PAINEL_NOVO, ...painel } : null;
     }
     case ACOES.PAINEL: {
       const painel = painelDaMontagem(montagem, acao.id);

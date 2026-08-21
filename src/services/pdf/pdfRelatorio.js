@@ -997,7 +997,9 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
                 // total fecha embaixo: é o número que o rigger pede antes de içar
                 [d.paineis ? "Peso da treliça" : "Peso", d.pesoTexto],
                 ...(d.paineis ? [
-                  [`Painéis (${d.paineis.paineis})`, d.paineis.pesoTexto],
+                  [`Telas (${d.paineis.paineis})`, d.paineis.pesoTexto],
+                  ...(d.paineis.kgNoChao > 0
+                    ? [["Telas apoiadas no chão", d.paineis.noChaoTexto]] : []),
                   ["Total suspenso", d.pesoSuspensoTexto],
                 ] : []),
               ]),
@@ -1049,16 +1051,16 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         columnGap: 16,
         margin: [0, 0, 0, 8],
       },
-      // OS PAINÉIS PENDURADOS. A lista é o que torna o total conferível — sem
+      // AS TELAS NO DESENHO. A lista é o que torna o total conferível — sem
       // ela, o peso suspenso é palavra.
       ...(!d.paineis ? [] : [
-        subHead(null, "Painéis pendurados", plural(d.paineis.paineis, "painel", "painéis")),
+        subHead(null, "Telas no desenho", plural(d.paineis.paineis, "tela")),
         {
           table: {
             headerRows: 1,
             widths: ["*", "auto", "auto", "auto", "auto"],
             body: [
-              [th("Tela"), th("Medida"), th("Onde"), th("Gab.", "right"), th("Peso", "right")],
+              [th("Tela"), th("Medida"), th("Onde começa"), th("Gab.", "right"), th("Peso", "right")],
               ...d.paineis.lista.map((p) => [
                 { text: p.nome },
                 { text: p.medida },
@@ -1076,7 +1078,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
         },
         ...(d.paineis.problemas.length ? [{
           ...warnBox({
-            titulo: "Painel fora de lugar",
+            titulo: "Tela fora de lugar",
             partes: [
               { t: `${d.paineis.problemas.join(" · ")}. ` },
               { t: "É medida, não carga", b: true },

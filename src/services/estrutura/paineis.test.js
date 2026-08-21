@@ -1,9 +1,9 @@
-// paineis.test.js — as telas do projeto penduradas na estrutura (E4).
+// paineis.test.js — as telas do projeto no desenho (E4 · E5).
 import { describe, it, expect } from "vitest";
 import {
   ESPESSURA_PADRAO_MM, MOTIVOS_DE_PAINEL, caixaDoPainel, eixosDoPainel, medidasDaTela,
-  melhorOlhar, paineisNoMundo, pesoDosPaineis, poseDoPainel, problemasDosPaineis,
-  telaMensuravel,
+  meiasNoMundo, melhorOlhar, migrarPaineis, paineisNoMundo, painelSolto, pesoDosPaineis,
+  poseDoPainel, poseNoChao, problemasDosPaineis, telaMensuravel,
 } from "./paineis.js";
 import { adicionarPecaEncaixada, adicionarPecaLivre, matrizApoiada, novaMontagem } from "./montagem.js";
 import { caixaNoMundo, penetracao } from "./colisao.js";
@@ -231,5 +231,80 @@ describe("o aviso de VÃO, no pórtico de verdade", () => {
 
   it("parede alta demais arrasta no chão", () => {
     expect(motivos(tela({ cols: 6, rows: 10 }))).toContain(MOTIVOS_DE_PAINEL.NO_CHAO); // 5 m de altura
+  });
+});
+
+// ── E5: a tela é SOLTA ───────────────────────────────────────
+describe("a tela solta (E5)", () => {
+  const solta = (pos, olha = "N") => ({
+    ...novaMontagem(),
+    paineis: [{ id: "p1", telaId: "t1", olha, pos }],
+  });
+
+  it("a pose sai da posição, sem peça dona nenhuma", () => {
+    const m = poseDoPainel(solta([1500, 2500, -400]), solta([1500, 2500, -400]).paineis[0], tela());
+    expect([m[12], m[13], m[14]]).toEqual([1500, 2500, -400]);
+    expect(painelSolto(solta([0, 0, 0]).paineis[0])).toBe(true);
+  });
+
+  it("o quanto ela ocupa em cada eixo do mundo acompanha o giro do LED", () => {
+    // olhando pro norte, a largura mora no X; olhando pro leste, mora no Z
+    expect(meiasNoMundo(medidasDaTela(tela()), "N")[0]).toBe(1000);
+    expect(meiasNoMundo(medidasDaTela(tela()), "L")[2]).toBe(1000);
+    // a altura é a altura, olhe ela pra onde olhar
+    for (const olha of ["N", "S", "L", "O"]) {
+      expect(meiasNoMundo(medidasDaTela(tela()), olha)[1]).toBe(500);
+    }
+  });
+
+  it("nasce em pé, com a borda de baixo no chão", () => {
+    const pos = poseNoChao([2000, 0, -3000], medidasDaTela(tela()), "N", 0);
+    expect(pos).toEqual([2000, 500, -3000]); // meia altura acima do piso
+  });
+
+  // ⚠️ NO CHÃO NÃO É PESO SUSPENSO. É o número que o rigger lê antes de içar.
+  it("separa o que está no ar do que está apoiado no piso", () => {
+    const noChao = pesoDosPaineis(solta([0, 500, 0]), [tela()]);
+    expect(noChao.kg).toBe(64);
+    expect(noChao.kgNoChao).toBe(64);
+    expect(noChao.kgSuspenso).toBe(0);
+    expect(noChao.suspensos).toBe(0);
+
+    const noAr = pesoDosPaineis(solta([0, 4000, 0]), [tela()]);
+    expect(noAr.kgSuspenso).toBe(64);
+    expect(noAr.kgNoChao).toBe(0);
+    expect(paineisNoMundo(solta([0, 4000, 0]), [tela()])[0].apoiado).toBe(false);
+  });
+
+  // parede APOIADA no piso é caso normal desde a E5; só enterrada é problema
+  it("apoiada no chão não é aviso; enterrada é", () => {
+    expect(problemasDosPaineis(solta([0, 500, 0]), [tela()])).toEqual([]);
+    expect(problemasDosPaineis(solta([0, -500, 0]), [tela()]).map((x) => x.motivo))
+      .toContain(MOTIVOS_DE_PAINEL.NO_CHAO);
+  });
+});
+
+// ⚠️ MIGRAÇÃO QUE MOVE A COISA É MIGRAÇÃO QUE O TÉCNICO DESCOBRE NO GALPÃO
+describe("o painel do formato antigo vira solto sem sair do lugar", () => {
+  it("a pose depois de migrar é idêntica à de antes", () => {
+    const base = { ...vigaAlta(), paineis: [{ id: "p1", telaId: "t1", de: "cubo", face: "BAIXO", olha: "N" }] };
+    const antes = poseDoPainel(base, base.paineis[0], tela());
+    const depois = migrarPaineis(base, [tela()]);
+    expect(painelSolto(depois.paineis[0])).toBe(true);
+    expect(poseDoPainel(depois, depois.paineis[0], tela())).toEqual(antes);
+  });
+
+  it("montagem já solta passa direto, sem cópia nova", () => {
+    const m = { ...novaMontagem(), paineis: [{ id: "p1", telaId: "t1", olha: "N", pos: [0, 0, 0] }] };
+    expect(migrarPaineis(m, [tela()])).toBe(m);
+  });
+
+  // painel cuja peça sumiu não tem pose pra congelar: fica como está, e a aba
+  // continua avisando que ele está sem apoio
+  it("sem peça pra ancorar, ele continua sem apoio em vez de virar lixo", () => {
+    const m = { ...novaMontagem(), paineis: [{ id: "p1", telaId: "t1", de: "sumiu", face: "BAIXO", olha: "N" }] };
+    const depois = migrarPaineis(m, [tela()]);
+    expect(painelSolto(depois.paineis[0])).toBe(false);
+    expect(problemasDosPaineis(depois, [tela()])[0].motivo).toBe(MOTIVOS_DE_PAINEL.SEM_APOIO);
   });
 });

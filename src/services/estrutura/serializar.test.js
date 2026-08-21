@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import { deJSON, paraJSON } from "./serializar.js";
 import {
   ErroDeMontagem, adicionarPecaEncaixada, adicionarPecaLivre, juntas, novaMontagem,
-  pecaDaMontagem, pendurarPainel, removerPeca,
+  pecaDaMontagem, adicionarPainel, removerPeca,
 } from "./montagem.js";
 import { matriz, qDoEixo } from "./vetor.js";
 
@@ -123,14 +123,27 @@ describe("recalcular ao carregar", () => {
   });
 });
 
-describe("os painéis atravessam o arquivo (E4)", () => {
+describe("os painéis atravessam o arquivo (E4 · E5)", () => {
+  const comAncora = () => {
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" });
+    return adicionarPainel(m, { id: "p1", telaId: "t9", de: "a", face: "BAIXO", olha: "L" });
+  };
   const comPainel = () => {
-    let m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" });
-    return pendurarPainel(m, { id: "p1", telaId: "t9", de: "a", face: "BAIXO", olha: "L" });
+    const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" });
+    return adicionarPainel(m, { id: "p1", telaId: "t9", pos: [1000, 2500, -300], olha: "L" });
   };
 
-  it("ida e volta preserva o painel inteiro", () => {
+  it("ida e volta preserva o painel solto inteiro", () => {
     const json = paraJSON(comPainel());
+    expect(json.paineis).toEqual([
+      { id: "p1", telaId: "t9", olha: "L", pos: [1000, 2500, -300] },
+    ]);
+    expect(deJSON(json).paineis).toEqual(json.paineis);
+  });
+
+  // ⚠️ O FORMATO ANTIGO NÃO PODE QUEBRAR: projeto gravado antes da E5 abre igual
+  it("ida e volta preserva o painel ancorado do formato antigo", () => {
+    const json = paraJSON(comAncora());
     expect(json.paineis).toEqual([
       { id: "p1", telaId: "t9", de: "a", face: "BAIXO", olha: "L" },
     ]);
@@ -138,9 +151,16 @@ describe("os painéis atravessam o arquivo (E4)", () => {
   });
 
   // estrutura sem painel continua abrindo em quem ainda não atualizou o app
-  it("só sobe pra versão 2 quando tem painel de verdade", () => {
+  it("cada versão só entra quando o recurso dela entra", () => {
     expect(paraJSON(adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" })).versao).toBe(1);
-    expect(paraJSON(comPainel()).versao).toBe(2);
+    expect(paraJSON(comAncora()).versao).toBe(2);
+    expect(paraJSON(comPainel()).versao).toBe(3);
+  });
+
+  it("posição torta é erro, não painel no lugar errado", () => {
+    expect(() => deJSON({
+      versao: 3, pecas: [], paineis: [{ id: "x", telaId: "t", pos: [1, "dois", 3] }],
+    })).toThrowError(/painel-invalido/);
   });
 
   it("sem painel, a chave nem aparece no arquivo", () => {
@@ -152,7 +172,7 @@ describe("os painéis atravessam o arquivo (E4)", () => {
   });
 
   it("apagar a peça NÃO apaga o painel — ele fica sem apoio", () => {
-    const m = removerPeca(comPainel(), "a");
+    const m = removerPeca(comAncora(), "a");
     expect(m.paineis).toHaveLength(1);
     expect(m.pecas).toHaveLength(0);
   });

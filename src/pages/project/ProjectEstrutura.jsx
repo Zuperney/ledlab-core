@@ -1,28 +1,28 @@
 // pages/project/ProjectEstrutura.jsx — a aba Estrutura (box truss em 3D).
 //
-// Espeque: docs/estrutura3d-spec.md §8 (as 5 faixas), §8.6 (E3.5) e §8.7.
+// Espeque: docs/estrutura3d-spec.md §8 (as 5 faixas), §8.11 (as seis direções)
+// e §12 (as telas soltas, o ímã e a trena).
 //
-// O FLUXO DE MONTAGEM, em três gestos:
-//   1. escolhe a peça na PALETA (o catálogo, separado por categoria) — ou segura
-//      Ctrl e clica numa peça já montada, que é o CONTA-GOTAS;
-//   2. passa o ponteiro num CONECTOR livre → vê a peça em fantasma, onde ela
-//      vai ficar; `R` gira, `Ctrl+R` troca a face por onde ela entra;
-//   3. clica → comita.
-// Peça solta entra pela primária ("Adicionar peça"), que é o que permite começar
-// uma segunda torre sem estar preso à primeira.
+// QUATRO MODOS, e cada um com UM gesto (§12). Foi o que resolveu a colisão de
+// teclas: antes, o mesmo clique tentava encaixar peça, selecionar e pendurar
+// tela, e o técnico descobria qual das três tinha acontecido depois.
 //
-// AS DUAS ROTAÇÕES, e por que são duas: `R` roda em torno do EIXO DO ENCAIXE, e
-// isso nunca tira a face cega do cubo do topo — ela mora nesse eixo (§8.5). Quem
-// move a face cega é `Ctrl+R`, que troca a FACE POR ONDE A PEÇA ENTRA. Com a
-// peça selecionada, as duas teclas mexem no que já está montado.
+//   · MONTAR — escolhe a peça na paleta, clica no piso (nasce ali) ou num
+//     conector livre (emenda). `R` gira, `Shift+R` passeia a face cega;
+//   · TELAS  — escolhe a tela na paleta e clica no piso: ela nasce em pé, no
+//     chão. Arrasta pra mover, `Shift+arrasta` pra subir, `R` vira o LED. O ÍMÃ
+//     encosta a borda no que já está lá;
+//   · MEDIR  — dois cliques e a distância entre eles, em metro, no desenho;
+//   · VER    — o clique só seleciona. `V` segurado vira este modo sem sair do
+//     Montar, que é o que evita encaixar peça sem querer.
 //
 // DESKTOP-ONLY por decisão do dono: montar 3D com o dedo é ruim, e todas as
 // ferramentas do ramo são de desktop. O celular fica com a CONSULTA.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Box, FileText, Frame, Grid3x3, Hand, Layers, Palette, Plus, Redo2, RotateCw,
-  SlidersHorizontal, Trash2, Undo2,
+  Box, FileText, Frame, Grid3x3, Hand, Layers, Magnet, Palette, Plus, Redo2, RotateCw,
+  Ruler, SlidersHorizontal, Trash2, Undo2,
 } from "lucide-react";
 import { PRINT, T } from "../../ui/tokens.js";
 import { btn, card } from "../../ui/styles.js";
@@ -33,22 +33,27 @@ import Placeholder from "../../components/Placeholder.jsx";
 import HelpTip from "../../components/HelpTip.jsx";
 import LightModal from "../../components/LightModal.jsx";
 import Segmented from "../../components/Segmented.jsx";
-import Select from "../../components/Select.jsx";
 import StatusPill from "../../components/StatusPill.jsx";
 import ZoomTrio from "../../components/ZoomTrio.jsx";
 import PaletaEstrutura from "../../components/PaletaEstrutura.jsx";
+import PaletaTelas from "../../components/PaletaTelas.jsx";
 import { CoresEstruturaPrefs } from "../../components/EstruturaPrefs.jsx";
 import { CATALOGO, conectorPorId, pecaPorId } from "../../services/estrutura/catalogo.js";
 import { resolverEncaixe } from "../../services/estrutura/encaixe.js";
 import { entradasDe, facesCegasNoMundo, melhorEntrada } from "../../services/estrutura/entrada.js";
 import { colisoes } from "../../services/estrutura/colisao.js";
 import {
-  MOTIVOS_DE_PAINEL, medidasDaTela, melhorOlhar, paineisNoMundo, pesoDosPaineis,
+  MOTIVOS_DE_PAINEL, medidasDaTela, migrarPaineis, paineisNoMundo, pesoDosPaineis,
   problemasDosPaineis, telaMensuravel,
 } from "../../services/estrutura/paineis.js";
+import {
+  IMA_MM, imantar, imantarPonto, medir, planosDeImante, pontosNotaveis,
+} from "../../services/estrutura/imantar.js";
 import { paletaDaEstrutura } from "../../services/estrutura/cores.js";
 import { conectoresLivres, matrizApoiada } from "../../services/estrutura/montagem.js";
-import { HORIZONTAIS, listaDeNomes, nomeDe } from "../../services/estrutura/direcoes.js";
+import {
+  HORIZONTAIS, direcaoDominante, listaDeNomes, nomeDe,
+} from "../../services/estrutura/direcoes.js";
 import {
   direcoesLivres, direcoesOcupadas, faceCegaEm, poseDoGiro, poseDoTombo, temFilhas,
 } from "../../services/estrutura/orientacao.js";
@@ -73,20 +78,23 @@ const rotuloCard = { fontSize: 11, letterSpacing: 0.6, color: T.dim, fontWeight:
 
 const metro = (mm) => (mm == null ? "—" : `${(mm / 1000).toFixed(2).replace(".", ",")} m`);
 
-// as seis do §8.11, na ordem em que o Shift+R passeia a face do painel
-const TODAS_AS_FACES = ["BAIXO", "N", "L", "S", "O", "CIMA"];
-
 // o que dizer de cada problema de painel — em medida, nunca em carga
 const TEXTO_DO_PROBLEMA = {
   [MOTIVOS_DE_PAINEL.SEM_TELA]: "a tela saiu do projeto",
   [MOTIVOS_DE_PAINEL.SEM_APOIO]: "a peça onde ele estava pendurado foi apagada",
-  [MOTIVOS_DE_PAINEL.ATRAVESSA]: "não cabe no vão — entra na treliça",
-  [MOTIVOS_DE_PAINEL.NO_CHAO]: "passa do piso — arrasta no chão",
+  [MOTIVOS_DE_PAINEL.ATRAVESSA]: "entra na treliça — não cabe no vão",
+  [MOTIVOS_DE_PAINEL.NO_CHAO]: "passa do piso — está enterrado",
 };
 
 // o cone da seta tem 240 mm; 160 à frente da face deixa a base dele para fora da
 // peça, sem descolar dela
 const RECUO_DA_SETA = 160;
+
+// O ALCANCE DO ÍMÃ EM PIXELS, e vale o MAIOR entre ele e os milímetros do motor.
+// Sem isto o ímã tem tamanho fixo no mundo: generoso a dois metros de câmera,
+// meio pixel a quarenta — e o técnico afastado nunca consegue encostar nada.
+// Mesma régua que o `snap.js` já usa pros conectores.
+const IMA_PX = 20;
 
 // A peça que a aba já vem com ela escolhida: a barra de 2 m, que é a que mais
 // sai do galpão. Achada pelo QUE ELA É, não pelo id — id de catálogo é coisa que
@@ -99,6 +107,8 @@ const PECA_PADRAO =
 const nomeDaPeca = (montagem, id) =>
   pecaPorId(montagem.pecas.find((p) => p.id === id)?.catalogoId)?.nome ?? "peça";
 
+const nomeDaTela = (item, i) => item?.tela?.nome?.trim() || `Tela ${i + 1}`;
+
 /**
  * Abre a montagem do projeto — e FALHA ALTO quando não consegue (§8.6, B2).
  *
@@ -107,11 +117,13 @@ const nomeDaPeca = (montagem, id) =>
  * Agora a aba não deixa nem montar, e diz por quê — perder peça calado é pior
  * que travar.
  *
- * É aqui também que o desfazer volta ao atravessar a troca de aba (§8.6, B3).
+ * É aqui também que o desfazer volta ao atravessar a troca de aba (§8.6, B3) e
+ * que o painel do formato antigo vira painel solto (§12) — congelado exatamente
+ * onde já estava desenhado, e gravado só quando o técnico mexer em alguma coisa.
  */
 function abrir(project) {
   try {
-    const montagem = deJSON(project?.estrutura ?? null);
+    const montagem = migrarPaineis(deJSON(project?.estrutura ?? null), project?.telas ?? []);
     return {
       hist: retomarHistorico(project?.id, montagem) ?? criarHistorico(montagem),
       erro: null,
@@ -133,7 +145,7 @@ export default function ProjectEstrutura({ project, patch }) {
   const [catalogoId, setCatalogoId] = useState(PECA_PADRAO);
   const [giro, setGiro] = useState(0);
   // o "tilt": passo dentro da lista de faces de entrada, que começa sempre na
-  // escolha AUTOMÁTICA. Não é um seletor na tela — é `Ctrl+R` (§8.7).
+  // escolha AUTOMÁTICA. Não é um seletor na tela — é `Shift+R` sem seleção (§8.7).
   const [tilt, setTilt] = useState(0);
   const [selecao, setSelecao] = useState([]); // IDs, não índices: apagar peça mexe nos índices
   const [alvo, setAlvo] = useState(null); // índice do conector apontado
@@ -141,9 +153,14 @@ export default function ProjectEstrutura({ project, patch }) {
   const [usarCores, setUsarCores] = useState(true);
   const [ajustes, setAjustes] = useState(false);
   const [ctrl, setCtrl] = useState(false); // Ctrl segurado = conta-gotas
-  // E4 — as telas do projeto penduradas na estrutura
-  const [telaId, setTelaId] = useState(null);
+  // ── as telas no desenho (§12) ──
+  const [telaId, setTelaId] = useState(null); // a tela que nasce no próximo clique
   const [painelSel, setPainelSel] = useState(null);
+  const [ima, setIma] = useState(true);
+  const [arrasto, setArrasto] = useState(null); // { id, pos, presos } enquanto segura
+  const arrastoRef = useRef(null);
+  // ── a trena (§12) ──
+  const [pontas, setPontas] = useState(null); // { a, b|null }
   const [verMomentaneo, setVerMomentaneo] = useState(false); // V segurado = modo Ver
   const [Editor, setEditor] = useState(null);
   const [erroCarga, setErroCarga] = useState(false);
@@ -200,12 +217,14 @@ export default function ProjectEstrutura({ project, patch }) {
   }, [hist, project?.id, erro]);
 
   const r = useMemo(() => resumo(montagem), [montagem]);
-  const vazia = r.pecas === 0;
+  const vazia = r.pecas === 0 && (montagem.paineis?.length ?? 0) === 0;
   // O `V` SEGURADO É MODO VER (§8.7, pedido do dono): sem ele, clicar numa peça
   // pra selecionar em modo Montar é uma corrida contra os conectores, que têm
   // prioridade no clique — e o técnico acaba encaixando peça sem querer.
-  const modoEfetivo = verMomentaneo ? "ver" : modo;
+  const modoEfetivo = verMomentaneo && modo === "montar" ? "ver" : modo;
   const montando = modoEfetivo === "montar" && !!Editor;
+  const emTelas = modoEfetivo === "telas" && !!Editor;
+  const medindo = modoEfetivo === "medir" && !!Editor;
 
   const livres = useMemo(
     () => (montando ? conectoresLivres(montagem) : []),
@@ -216,7 +235,7 @@ export default function ProjectEstrutura({ project, patch }) {
   const conAlvo = alvo == null ? null : livres[alvo];
 
   // As faces de entrada, com a ESCOLHA AUTOMÁTICA na frente — a que não fecha o
-  // topo da estrutura. O `Ctrl+R` só anda nessa lista, então o padrão é sempre o
+  // topo da estrutura. O `Shift+R` só anda nessa lista, então o padrão é sempre o
   // automático e o técnico não precisa saber o nome de face nenhuma.
   const entradas = useMemo(() => {
     if (!cat) return [];
@@ -279,21 +298,38 @@ export default function ProjectEstrutura({ project, patch }) {
     return direcao ? { direcao, livres: direcoesLivres(montagem, id) } : null;
   }, [selecionadas, montagem]);
 
-  // ── os painéis (E4) ────────────────────────────────────────
+  // ── as telas no desenho (§12) ──────────────────────────────
   // A tela NÃO é copiada: medida e peso saem da tela do projeto, viva. Mexeu em
-  // cols/rows na aba Screens, o painel acompanha.
+  // cols/rows na aba Dados, o painel acompanha.
   const telas = useMemo(
     () => (project?.telas ?? []).filter(telaMensuravel),
     [project?.telas],
   );
+  const telaEscolhida = telas.find((t) => t.id === telaId) ?? telas[0] ?? null;
+
+  // A MONTAGEM DA VISTA: durante o arraste, a posição que vale é a do ponteiro,
+  // e ela não passa pelo histórico. Só os painéis entram nesta cópia — refazer a
+  // montagem inteira 60 vezes por segundo faria a colisão das PEÇAS, que nem se
+  // moveram, recalcular junto.
+  const montagemVista = useMemo(() => {
+    if (!arrasto) return montagem;
+    return {
+      ...montagem,
+      paineis: (montagem.paineis ?? []).map((p) =>
+        (p.id === arrasto.id ? { ...p, pos: arrasto.pos } : p)),
+    };
+  }, [montagem, arrasto]);
+
   const paineis = useMemo(
-    () => paineisNoMundo(montagem, project?.telas ?? []),
-    [montagem, project?.telas],
+    () => paineisNoMundo(montagemVista, project?.telas ?? []),
+    [montagemVista, project?.telas],
   );
   const pesoPendurado = useMemo(
-    () => pesoDosPaineis(montagem, project?.telas ?? []),
-    [montagem, project?.telas],
+    () => pesoDosPaineis(montagemVista, project?.telas ?? []),
+    [montagemVista, project?.telas],
   );
+  // os problemas saem da montagem COMITADA: o teste de sobreposição varre a
+  // estrutura inteira, e refazer isso a cada quadro do arraste travaria o gesto
   const problemas = useMemo(
     () => problemasDosPaineis(montagem, project?.telas ?? []),
     [montagem, project?.telas],
@@ -309,6 +345,39 @@ export default function ProjectEstrutura({ project, patch }) {
     selecionado: item.painel.id === painelSel,
     problema: paineisComProblema.has(item.painel.id),
   })), [paineis, painelSel, paineisComProblema]);
+
+  const painelAtivo = useMemo(() => {
+    const i = paineis.findIndex((x) => x.painel.id === painelSel);
+    return i < 0 ? null : { ...paineis[i], nome: nomeDaTela(paineis[i], i) };
+  }, [paineis, painelSel]);
+
+  const quantidadesDeTela = useMemo(() => {
+    const out = {};
+    for (const p of montagem.paineis ?? []) out[p.telaId] = (out[p.telaId] ?? 0) + 1;
+    return out;
+  }, [montagem.paineis]);
+
+  // ── o ÍMÃ (§12) ────────────────────────────────────────────
+  // Os planos saem UMA VEZ por montagem e ficam ordenados: o arraste consulta
+  // isto a cada quadro, e varrer a estrutura inteira ali derrubaria o gesto.
+  const planos = useMemo(
+    () => planosDeImante(montagem, project?.telas ?? [], arrasto?.id ?? null),
+    [montagem, project?.telas, arrasto?.id],
+  );
+
+  // ── a TRENA (§12) ──────────────────────────────────────────
+  const notaveis = useMemo(
+    () => pontosNotaveis(montagem, project?.telas ?? []),
+    [montagem, project?.telas],
+  );
+  const trena = useMemo(
+    () => (pontas?.a && pontas?.b ? medir(pontas.a, pontas.b) : null),
+    [pontas],
+  );
+  const medidaNaCena = useMemo(
+    () => (pontas ? { ...pontas, texto: trena ? metro(trena.mm) : null } : null),
+    [pontas, trena],
+  );
 
   const conflitos = useMemo(() => colisoes(montagem), [montagem]);
   const indicesConflito = useMemo(() => {
@@ -388,9 +457,9 @@ export default function ProjectEstrutura({ project, patch }) {
     setTilt(0); // a próxima peça volta ao encaixe automático
   }, [livres, cat, catalogoId, entradaEfetiva, giro, rodar]);
 
-  // Apagar, girar e trocar face em LOTE: o desfazer volta tudo num Ctrl+Z só.
-  // Apagar cinco peças de uma vez e ter que desfazer cinco vezes é o app
-  // cobrando pelo gesto que ele mesmo ofereceu.
+  // Apagar e girar em LOTE: o desfazer volta tudo num Ctrl+Z só. Apagar cinco
+  // peças de uma vez e ter que desfazer cinco vezes é o app cobrando pelo gesto
+  // que ele mesmo ofereceu.
   const apagarSelecionadas = useCallback(() => {
     if (!selecionadas.length) return;
     rodar({ tipo: ACOES.LOTE, acoes: selecionadas.map((id) => ({ tipo: ACOES.REMOVER, id })) });
@@ -417,8 +486,8 @@ export default function ProjectEstrutura({ project, patch }) {
     const pecas = pecasSelecionadas();
     const acoes = pecas
       .map((p) => {
-        const matriz = pose(p);
-        return matriz ? { tipo: ACOES.POSE, id: p.id, matriz } : null;
+        const m = pose(p);
+        return m ? { tipo: ACOES.POSE, id: p.id, matriz: m } : null;
       })
       .filter(Boolean);
     if (acoes.length) rodar({ tipo: ACOES.LOTE, acoes });
@@ -443,54 +512,100 @@ export default function ProjectEstrutura({ project, patch }) {
   }, [montagem, toast]);
 
   const girarSelecionadas = useCallback(() => {
-    const r = mexerNaSelecao((p) => poseDoGiro(montagem, p.id));
-    if (r.pedidas === 1 && r.feitas === 0) explicarTrava(pecasSelecionadas()[0], "horizontal");
+    const feito = mexerNaSelecao((p) => poseDoGiro(montagem, p.id));
+    if (feito.pedidas === 1 && feito.feitas === 0) explicarTrava(pecasSelecionadas()[0], "horizontal");
   }, [mexerNaSelecao, montagem, explicarTrava, pecasSelecionadas]);
 
   const tombarSelecionadas = useCallback(() => {
-    const r = mexerNaSelecao((p) => poseDoTombo(montagem, p.id));
-    if (r.pedidas === 1 && r.feitas === 0) explicarTrava(pecasSelecionadas()[0], "vertical");
+    const feito = mexerNaSelecao((p) => poseDoTombo(montagem, p.id));
+    if (feito.pedidas === 1 && feito.feitas === 0) explicarTrava(pecasSelecionadas()[0], "vertical");
   }, [mexerNaSelecao, montagem, explicarTrava, pecasSelecionadas]);
 
-  // PENDURAR: a tela escolhida entra na face de BAIXO da peça selecionada, que é
-  // o caso de campo (clamp na treliça, painel descendo). As outras cinco faces
-  // ficam a um Shift+R de distância.
-  const pendurar = useCallback(() => {
-    const alvo = selecionadas[0];
-    const tela = telas.find((t) => t.id === telaId) ?? telas[0];
-    if (!alvo || !tela) return;
-    const id = genId("pn");
-    rodar({
-      tipo: ACOES.PENDURAR,
-      id,
-      telaId: tela.id,
-      de: alvo,
-      face: "BAIXO",
-      olha: melhorOlhar(montagem, alvo),
+  // ── as telas: nascer, arrastar, girar, tirar (§12) ─────────
+
+  // A TELA NASCE EM PÉ, NO CHÃO, ONDE SE CLICA — e já virada pra quem está
+  // vendo. Parede que nasce deitada ou de costas obriga a dois gestos de
+  // correção antes de qualquer trabalho de verdade.
+  const nascerTela = useCallback((ponto) => {
+    if (!telaEscolhida) return;
+    const olha = direcaoDominante(apiRef.current?.olhar?.() ?? [0, 0, 1]);
+    const medidas = medidasDaTela(telaEscolhida);
+    const chao = nivelDoChao(montagem);
+    const bruto = [ponto[0], chao + medidas.alturaMm / 2, ponto[2]];
+    const { pos } = imantar(planos, medidas, olha, bruto, {
+      ligado: ima,
+      imaMm: Math.max(IMA_MM, IMA_PX * (apiRef.current?.mmPorPixel?.(bruto) ?? 0)),
     });
+    const id = genId("pn");
+    rodar({ tipo: ACOES.PAINEL_NOVO, id, telaId: telaEscolhida.id, olha, pos });
     setPainelSel(id);
-  }, [selecionadas, telas, telaId, montagem, rodar]);
+  }, [telaEscolhida, montagem, planos, ima, rodar]);
 
-  const mexerNoPainel = useCallback((mudanca) => {
-    if (painelSel) rodar({ tipo: ACOES.PAINEL, id: painelSel, mudanca });
-  }, [painelSel, rodar]);
+  // O ARRASTE NÃO PASSA PELO HISTÓRICO. Ele mexe num estado de vista, 60 vezes
+  // por segundo; o comando entra inteiro no soltar do botão (ver `soltarTela`).
+  const arrastarTela = useCallback((id, pos, mmPorPixel = 0) => {
+    const item = paineis.find((x) => x.painel.id === id);
+    if (!item?.medidas) return;
+    const preso = imantar(planos, item.medidas, item.painel.olha, pos, {
+      ligado: ima,
+      imaMm: Math.max(IMA_MM, IMA_PX * mmPorPixel),
+    });
+    arrastoRef.current = { id, pos: preso.pos, presos: preso.presos };
+    setArrasto(arrastoRef.current);
+  }, [paineis, planos, ima]);
 
-  // `R` passeia PRA ONDE O LED OLHA (as quatro da bússola); `Shift+R` passeia a
-  // FACE da peça onde o painel encosta (as seis). Mesmo vocabulário do §8.11 —
-  // quem aprendeu a girar treliça já sabe girar painel.
-  const girarPainel = useCallback((campo) => {
-    const painel = paineis.find((x) => x.painel.id === painelSel)?.painel;
-    if (!painel) return;
-    const ciclo = campo === "olha" ? HORIZONTAIS : TODAS_AS_FACES;
-    const i = ciclo.indexOf(painel[campo]);
-    mexerNoPainel({ [campo]: ciclo[(i + 1 + ciclo.length) % ciclo.length] });
-  }, [paineis, painelSel, mexerNoPainel]);
+  const soltarTela = useCallback((id) => {
+    const a = arrastoRef.current;
+    arrastoRef.current = null;
+    setArrasto(null);
+    if (a?.id === id) rodar({ tipo: ACOES.PAINEL, id, mudanca: { pos: a.pos } });
+  }, [rodar]);
 
-  const soltarPainel = useCallback(() => {
+  // `R` vira PRA ONDE O LED OLHA, nas quatro da bússola. Mesmo vocabulário do
+  // §8.11 — quem aprendeu a girar treliça já sabe girar tela.
+  const girarTela = useCallback(() => {
+    const item = paineis.find((x) => x.painel.id === painelSel);
+    if (!item) return;
+    const i = HORIZONTAIS.indexOf(item.painel.olha);
+    rodar({
+      tipo: ACOES.PAINEL,
+      id: painelSel,
+      mudanca: { olha: HORIZONTAIS[(i + 1 + HORIZONTAIS.length) % HORIZONTAIS.length] },
+    });
+  }, [paineis, painelSel, rodar]);
+
+  /**
+   * SUBIR E DESCER PELO TECLADO, e não é enfeite do arraste.
+   *
+   * Levantar uma parede com o mouse depende do Shift, e tecla que ninguém
+   * descobre é tecla que não existe: sem as setas, quem não achou o Shift nunca
+   * tira a tela do chão. Aqui a altura é EXATA — 10 cm por toque, 1 m com Shift
+   * —, que é como se ajusta cota de içamento.
+   */
+  const subirTela = useCallback((mm) => {
+    const item = paineis.find((x) => x.painel.id === painelSel);
+    window.__subir = { mm, painelSel, achou: !!item, matriz: item?.matriz?.slice(12, 15), n: paineis.length };
+    if (!item?.matriz) return;
+    rodar({
+      tipo: ACOES.PAINEL,
+      id: painelSel,
+      mudanca: { pos: [item.matriz[12], Math.round(item.matriz[13] + mm), item.matriz[14]] },
+    });
+  }, [paineis, painelSel, rodar]);
+
+  const tirarTela = useCallback(() => {
     if (!painelSel) return;
-    rodar({ tipo: ACOES.SOLTAR, id: painelSel });
+    rodar({ tipo: ACOES.PAINEL_FORA, id: painelSel });
     setPainelSel(null);
   }, [painelSel, rodar]);
+
+  // ── a trena (§12) ──────────────────────────────────────────
+  // Cada clique é uma ponta, e o terceiro começa uma medida nova: obrigar a
+  // limpar antes de medir de novo é um gesto a mais em cima do gesto principal.
+  const pontaDaTrena = useCallback((ponto) => {
+    const { ponto: p } = imantarPonto(notaveis, ponto);
+    setPontas((atual) => (!atual || atual.b ? { a: p, b: null } : { a: atual.a, b: p }));
+  }, [notaveis]);
 
   const desfazer = useCallback(() => {
     mexerHist(desfazerUm); setSelecao([]); setPainelSel(null);
@@ -499,7 +614,7 @@ export default function ProjectEstrutura({ project, patch }) {
     mexerHist(refazerUm); setSelecao([]); setPainelSel(null);
   }, [mexerHist]);
 
-  // ── atalhos de teclado (§8.6 C3 · §8.7) ────────────────────
+  // ── atalhos de teclado (§8.6 C3 · §8.7 · §12) ──────────────
   useEffect(() => {
     if (isMobile || erro) return undefined;
     // digitando num campo, o teclado é do campo: Delete apaga texto, não peça
@@ -521,23 +636,29 @@ export default function ProjectEstrutura({ project, patch }) {
       // montagem leva o desfazer junto — atalho que às vezes apaga trabalho não
       // é atalho, é armadilha.
       if (e.shiftKey && e.key.toLowerCase() === "r") {
-        // painel selecionado manda: Shift+R passeia a FACE onde ele encosta
-        if (painelSel) girarPainel("face");
-        else if (selecionadas.length) tombarSelecionadas();
-        else setTilt((t) => t + 1);
+        if (selecionadas.length) tombarSelecionadas();
+        else if (modo === "montar") setTilt((t) => t + 1);
+        return;
+      }
+      if (painelSel && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        e.preventDefault(); // seta solta rola a página, e a tela sai de vista
+        subirTela((e.key === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 1000 : 100));
         return;
       }
       if (e.key.toLowerCase() === "v") { setVerMomentaneo(true); return; }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault(); // Backspace solto ainda navega pra trás em alguns navegadores
-        if (painelSel) soltarPainel();
+        if (painelSel) tirarTela();
         else apagarSelecionadas();
         return;
       }
-      if (e.key === "Escape") { setSelecao([]); setAlvo(null); setPainelSel(null); return; }
+      if (e.key === "Escape") {
+        setSelecao([]); setAlvo(null); setPainelSel(null); setPontas(null);
+        return;
+      }
       if (e.key.toLowerCase() === "r") {
-        // com painel selecionado, o R vira PRA ONDE O LED OLHA
-        if (painelSel) { girarPainel("olha"); return; }
+        // com tela selecionada, o R vira PRA ONDE O LED OLHA
+        if (painelSel) { girarTela(); return; }
         // sem seleção, o R gira a PEÇA NOVA — que é o giro que o técnico ajusta
         // enquanto mira o encaixe
         if (selecionadas.length) girarSelecionadas();
@@ -562,8 +683,8 @@ export default function ProjectEstrutura({ project, patch }) {
       window.removeEventListener("blur", soltarTudo);
     };
   }, [
-    isMobile, erro, desfazer, refazer, apagarSelecionadas, girarSelecionadas,
-    tombarSelecionadas, selecionadas.length, painelSel, girarPainel, soltarPainel,
+    isMobile, erro, modo, desfazer, refazer, apagarSelecionadas, girarSelecionadas,
+    tombarSelecionadas, selecionadas.length, painelSel, girarTela, tirarTela, subirTela,
   ]);
 
   // A imagem que vai pro Caderno é capturada AQUI e guardada no aparelho. Não dá
@@ -611,20 +732,22 @@ export default function ProjectEstrutura({ project, patch }) {
       {/* F1 · MODO — o `V` segurado força "Ver" sem mexer na escolha do técnico */}
       <Segmented
         value={modoEfetivo}
-        onChange={(v) => { setModo(v); setAlvo(null); }}
+        onChange={(v) => { setModo(v); setAlvo(null); setPainelSel(null); }}
         options={[
           { value: "montar", label: "Montar", Icon: Plus },
+          { value: "telas", label: "Telas", Icon: Layers },
+          { value: "medir", label: "Medir", Icon: Ruler },
           { value: "ver", label: "Ver", Icon: Hand },
         ]}
       />
 
       {/* F2 · FERRAMENTAS — exibição e ações à esquerda, UMA primária à direita.
-          A escolha da peça saiu daqui: mora na paleta do catálogo, na F4. */}
+          A escolha da peça (e da tela) mora na paleta, na F4. */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         {montando && (
           <button
             style={btn("ghost")}
-            title={`Girar a peça nova — ${giro * 90}° (tecla R). Ctrl+R troca a face de entrada`}
+            title={`Girar a peça nova — ${giro * 90}° (tecla R)`}
             aria-label="Girar a peça nova"
             onClick={() => setGiro((g) => (g + 1) % 4)}
           >
@@ -641,6 +764,20 @@ export default function ProjectEstrutura({ project, patch }) {
         >
           <Grid3x3 size={15} />
         </button>
+        {/* O ÍMÃ (§12): a borda da tela pula pra borda do que já está lá.
+            Desligado, ela para na grade de 10 cm — que é o mínimo pra medida do
+            Caderno não sair com resto. */}
+        {emTelas && (
+          <button
+            style={btn("ghost", ima ? { borderColor: T.acc, color: T.acM } : {})}
+            aria-pressed={ima}
+            title="Ímã: encostar a tela no que já está no desenho"
+            aria-label="Ímã"
+            onClick={() => setIma((v) => !v)}
+          >
+            <Magnet size={15} />
+          </button>
+        )}
         <button
           style={btn("ghost", usarCores ? { borderColor: T.acc, color: T.acM } : {})}
           aria-pressed={usarCores}
@@ -678,28 +815,13 @@ export default function ProjectEstrutura({ project, patch }) {
           <Redo2 size={15} />
         </button>
 
-        {/* PENDURAR (E4): a tela do projeto vira painel na peça selecionada. Só
-            aparece quando há uma peça escolhida e há tela com medida — botão que
-            não pode agir é botão que ensina errado. */}
-        {selecionadas.length === 1 && telas.length > 0 && (
+        {painelAtivo && (
           <>
-            <Select
-              value={telaId ?? telas[0].id}
-              onChange={(e) => setTelaId(e.target.value)}
-              title="Qual tela do projeto pendurar"
-              style={{ minWidth: 150 }}
-            >
-              {telas.map((t, i) => {
-                const m = medidasDaTela(t);
-                return (
-                  <option key={t.id} value={t.id}>
-                    {t.nome?.trim() || `Tela ${i + 1}`} · {metro(m.larguraMm)} × {metro(m.alturaMm)}
-                  </option>
-                );
-              })}
-            </Select>
-            <button style={btn("ghost")} title="Pendurar a tela na peça selecionada" onClick={pendurar}>
-              <Layers size={15} /> Pendurar
+            <button style={btn("ghost")} title="Virar o LED (tecla R)" aria-label="Virar a tela" onClick={girarTela}>
+              <RotateCw size={15} /> {nomeDe(painelAtivo.painel.olha)}
+            </button>
+            <button style={btn("ghost", { color: T.red })} title="Tirar a tela do desenho (Delete)" aria-label="Tirar a tela" onClick={tirarTela}>
+              <Trash2 size={15} />
             </button>
           </>
         )}
@@ -715,6 +837,12 @@ export default function ProjectEstrutura({ project, patch }) {
           </>
         )}
 
+        {pontas && (
+          <button style={btn("ghost")} title="Apagar a medida (Esc)" onClick={() => setPontas(null)}>
+            <Ruler size={15} /> Limpar
+          </button>
+        )}
+
         {vazia && (
           <button
             style={btn("ghost")}
@@ -726,9 +854,9 @@ export default function ProjectEstrutura({ project, patch }) {
         )}
 
         <div style={{ flex: 1 }} />
-        {/* A PRIMÁRIA da aba passou a ser a imagem (§8.7). "Adicionar peça" saiu:
-            peça nova nasce de clicar no piso, que é gesto, não botão. O que
-            sobra de razão de existir aqui é ENTREGAR a estrutura pro Caderno. */}
+        {/* A PRIMÁRIA da aba é a imagem (§8.7). "Adicionar peça" saiu: peça e
+            tela nascem de clicar no piso, que é gesto, não botão. O que sobra de
+            razão de existir aqui é ENTREGAR a estrutura pro Caderno. */}
         {!vazia && (
           <button
             style={btn("primary", capturando ? { opacity: 0.6, cursor: "wait" } : {})}
@@ -750,16 +878,20 @@ export default function ProjectEstrutura({ project, patch }) {
           {pesoPendurado.paineis > 0 && <span style={{ color: T.dim }}> de treliça</span>}
           {!r.peso.conferido && r.pecas > 0 && <span style={{ color: T.amb }}> · estimado</span>}
         </span>
-        {/* O NÚMERO QUE O RIGGER PEDE: quanto a treliça pesa por si, quanto ela
-            está carregando, e o total suspenso. O app segue sem dizer se aguenta. */}
+        {/* O NÚMERO QUE O RIGGER PEDE: quanto a treliça pesa por si e quanto
+            está NO AR. Tela apoiada no chão não pendura em nada, e somar as duas
+            daria um "suspenso" que ninguém vai içar. */}
         {pesoPendurado.paineis > 0 && (
           <>
             <span style={chip}>
-              {pesoPendurado.kg} kg de painel
+              {pesoPendurado.kg} kg de tela
               {!pesoPendurado.completo && <span style={{ color: T.amb }}> · parcial</span>}
             </span>
             <span style={{ ...chip, borderColor: T.acc, color: T.acM }}>
-              <b>{Math.round((r.peso.kg + pesoPendurado.kg) * 10) / 10} kg</b> suspensos
+              <b>{Math.round((r.peso.kg + pesoPendurado.kgSuspenso) * 10) / 10} kg</b> suspensos
+              {pesoPendurado.kgNoChao > 0 && (
+                <span style={{ color: T.dim }}> · {pesoPendurado.kgNoChao} kg no chão</span>
+              )}
             </span>
           </>
         )}
@@ -779,20 +911,45 @@ export default function ProjectEstrutura({ project, patch }) {
             Face cega · <b style={{ color: T.txt }}>{nomeDe(faceCega.direcao)}</b>
           </span>
         )}
+        {/* A MEDIDA DA TRENA, e as três projeções: quem mede vão quer a
+            horizontal, quem mede içamento quer a vertical, e a reta entre dois
+            pontos em diagonal não responde nem uma nem outra. */}
+        {trena && (
+          <span style={{ ...chip, borderColor: T.acc, color: T.acM }}>
+            <Ruler size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
+            <b>{metro(trena.mm)}</b>
+            <span style={{ color: T.dim }}>
+              {" "}· {metro(trena.horizontalMm)} no plano · {metro(trena.verticalMm)} de altura
+            </span>
+          </span>
+        )}
+        {/* O ÍMÃ PRECISA SE VER PEGANDO. Sem isto, "encostou" e "parou perto"
+            são a mesma imagem na tela — e o técnico só descobre a diferença
+            medindo depois. */}
+        {arrasto?.presos?.some(Boolean) && (
+          <span style={{ ...chip, borderColor: T.acc, color: T.acM }}>
+            <Magnet size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
+            Colado em <b>{["X", "altura", "Z"].filter((_, i) => arrasto.presos[i]).join(" · ")}</b>
+          </span>
+        )}
         {r.pecas > 0 && !r.peso.conferido && <StatusPill color={T.amb} label="Peso não conferido" />}
-        {verMomentaneo && <StatusPill color={T.acM} label="Ver — solte o V para montar" />}
+        {verMomentaneo && modo === "montar" && <StatusPill color={T.acM} label="Ver — solte o V para montar" />}
         {ctrl && !verMomentaneo && <StatusPill color={T.acM} label="Conta-gotas — clique numa peça" />}
         <HelpTip title="Estrutura">
+          <p><b>A aba tem quatro modos</b>, e cada um com um gesto só: <b>Montar</b> a treliça, pôr as <b>Telas</b>, <b>Medir</b> distância e <b>Ver</b> sem mexer em nada.</p>
           <p><b>Para montar:</b> escolha a peça no catálogo ao lado do desenho e <b>clique no piso</b> — ela nasce ali, apoiada. Para emendar, passe o ponteiro num <b>ponto claro</b> da estrutura (ele mostra a peça em fantasma, onde ela vai ficar) e clique.</p>
           <p><b>As direções são as do piso</b> — Norte, Sul, Leste, Oeste, Cima e Baixo —, e elas não se mexem. É por elas que se descreve giro aqui.</p>
           <p><b>R</b> · no <b>cubo</b>, leva a <b>face cega</b> (a que a seta marca) pra próxima direção livre do plano do chão. Na <b>barra</b> e na <b>sapata</b>, gira no próprio eixo: a peça não sai do lugar, muda só qual face leva a escada.</p>
           <p><b>Shift+R</b> · no <b>cubo</b>, leva a face cega pra <b>cima ou pra baixo</b>. Na <b>barra solta</b>, tomba 90° — é assim que uma barra em pé vira barra deitada, e ela cai apoiada no piso.</p>
-          <p><b>Para pendurar uma tela:</b> ela precisa existir na aba <b>Dados</b> (com gabinete escolhido — é de lá que saem a medida e o peso). Aqui, <b>selecione a peça</b> onde ela vai — segure <b>V</b> e clique nela —, escolha a tela no seletor que aparece e clique em <b>Pendurar</b>.</p>
-          <p>O painel nasce <b>pendurado por baixo</b> da peça. Clique no chip dele embaixo do desenho pra selecionar: aí <b>R</b> vira pra onde o LED olha, <b>Shift+R</b> passeia a face onde ele encosta (embaixo, em cima ou nos lados) e <b>Delete</b> solta.</p>
-          <p><b>O peso pendurado aparece separado:</b> quanto a treliça pesa por si, quanto ela está carregando e o <b>total suspenso</b> — e isso sai na folha do Caderno, com a lista dos painéis. O app continua sem dizer se aguenta.</p>
+          <p><b>As telas são soltas.</b> No modo <b>Telas</b>, escolha a tela na lista ao lado do desenho e <b>clique no piso</b>: ela nasce em pé, no chão, virada pra você. Depois é só <b>arrastar</b> pra passear pelo palco, <b>R</b> pra virar o LED e <b>Delete</b> pra tirar.</p>
+          <p><b>Pra levantar a tela do chão</b> tem dois jeitos: segurar <b>Shift</b> enquanto arrasta (dá pra segurar no meio do gesto) ou usar as <b>setas ↑ ↓</b> — 10 cm por toque, 1 m com Shift. As setas dão a cota exata, que é como se ajusta altura de içamento.</p>
+          <p>A tela precisa existir na aba <b>Dados</b>, com <b>gabinete escolhido</b> — é de lá que saem a medida e o peso. Tela sem gabinete aparece apagada na lista.</p>
+          <p><b>O ímã</b> encosta a borda da tela no que já está no desenho: em outra tela, numa peça da treliça, ou no piso. Assim duas paredes ficam emendadas de verdade, e não "quase". Desligue no botão do ímã se quiser posicionar livre — aí ela para na grade de 10 cm.</p>
+          <p><b>A trena:</b> no modo <b>Medir</b>, clique em dois pontos e a distância aparece no desenho, em metro. Os cliques <b>grudam</b> nos pontos que importam — nó da treliça, quina de tela. O terceiro clique começa uma medida nova, e <b>Esc</b> apaga. A medida fica visível nos outros modos e <b>sai na imagem do Caderno</b>, se você capturar com ela na tela.</p>
+          <p><b>O peso das telas aparece separado:</b> quanto a treliça pesa por si, quanto está <b>suspenso</b> e quanto está <b>apoiado no chão</b> — parede no piso não pendura em nada. Isso sai na folha do Caderno, com a lista das telas. O app continua sem dizer se aguenta.</p>
+          <p><b>Isto é um preview de montagem</b>, não a montagem. O app não sabe de clamp, de sapata nem de ponto de içamento — a tela vai onde você puser, e conferir se aquilo se prende é do rigger.</p>
           <p><b>Direção que já tem peça é trava:</b> ali existe flange aparafusada, então a face cega não pode ir pra lá. Se não sobrar nenhuma direção livre, a tecla não faz nada e a aba diz o que está travando.</p>
           <p><b>Girar nunca arrasta.</b> Nenhuma rotação move outra peça: o que estava encaixado é reaparafusado na face que ficou virada pro lado certo, e continua exatamente onde estava.</p>
-          <p><b>A seta</b> marca a face cega do cubo, aquela que veio tapada de fábrica e não aceita peça. Selecione o cubo para vê-la.</p>
           <p><b>Atalhos:</b> <b>V</b> segurado vira modo Ver — dá pra clicar nas peças sem encaixar nada · <b>Ctrl</b> segurado vira conta-gotas (a peça clicada passa a ser a de inserção) · <b>Shift + clique</b> seleciona várias · <b>Delete</b> apaga · <b>Ctrl+Z</b> desfaz · <b>Esc</b> limpa.</p>
           <p>Excluir <b>não</b> apaga o que estava preso na peça — aquilo vira peça solta, no lugar onde estava.</p>
           <p><b>Peça em vermelho está sobreposta</b> a outra: duas ocupando o mesmo espaço. O app avisa e deixa seguir — no truss de verdade elas não entrariam.</p>
@@ -802,26 +959,49 @@ export default function ProjectEstrutura({ project, patch }) {
         </HelpTip>
       </div>
 
-      {/* F4 · CONTEÚDO — a paleta do catálogo e o desenho, lado a lado */}
+      {/* F4 · CONTEÚDO — a paleta e o desenho, lado a lado. No modo Medir a
+          paleta some: ali não se escolhe nada, e o desenho ganha a largura. */}
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <div style={card({ padding: 10, width: 212, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 })}>
-          <span style={rotuloCard}>CATÁLOGO</span>
-          <div style={{ maxHeight: "min(62vh, 620px)", overflowY: "auto" }}>
-            <PaletaEstrutura
-              escolhida={catalogoId}
-              onEscolher={escolherPeca}
-              cores={prefs.estruturaCores}
-              usarCores={usarCores}
-              quantidades={quantidades}
-            />
+        {!medindo && (
+          <div style={card({ padding: 10, width: 212, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 })}>
+            <span style={rotuloCard}>{emTelas ? "TELAS" : "CATÁLOGO"}</span>
+            <div style={{ maxHeight: "min(62vh, 620px)", overflowY: "auto" }}>
+              {emTelas ? (
+                <PaletaTelas
+                  telas={telas}
+                  escolhida={telaEscolhida?.id ?? null}
+                  onEscolher={setTelaId}
+                  quantidades={quantidadesDeTela}
+                />
+              ) : (
+                <PaletaEstrutura
+                  escolhida={catalogoId}
+                  onEscolher={escolherPeca}
+                  cores={prefs.estruturaCores}
+                  usarCores={usarCores}
+                  quantidades={quantidades}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div style={card({ padding: 10, flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 })}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <span style={rotuloCard}>
               ESTRUTURA
-              {selecionadas.length > 0 && (
+              {painelAtivo && (
+                <span style={{ marginLeft: 8, color: T.acM, fontWeight: 600, letterSpacing: 0 }}>
+                  · {painelAtivo.nome}
+                  {painelAtivo.medidas && (
+                    <span style={{ color: T.dim, fontWeight: 400 }}>
+                      {" "}{metro(painelAtivo.medidas.larguraMm)} × {metro(painelAtivo.medidas.alturaMm)}
+                      {" · "}{painelAtivo.apoiado ? "no chão" : "no ar"}
+                    </span>
+                  )}
+                </span>
+              )}
+              {!painelAtivo && selecionadas.length > 0 && (
                 <span style={{ marginLeft: 8, color: T.acM, fontWeight: 600, letterSpacing: 0 }}>
                   · {selecionadas.length === 1
                     ? nomeDaPeca(montagem, selecionadas[0])
@@ -850,6 +1030,7 @@ export default function ProjectEstrutura({ project, patch }) {
             ) : (
               <Editor
                 api={apiRef}
+                modo={modoEfetivo}
                 montagem={montagem}
                 selecao={indicesSel}
                 onSelecionar={selecionar}
@@ -857,6 +1038,12 @@ export default function ProjectEstrutura({ project, patch }) {
                 cores={paleta}
                 setas={setas}
                 paineis={paraDesenhar}
+                onPainelSelecionar={emTelas ? setPainelSel : undefined}
+                onPainelArrastar={emTelas ? arrastarTela : undefined}
+                onPainelSoltar={emTelas ? soltarTela : undefined}
+                onChaoTela={emTelas && telaEscolhida ? nascerTela : undefined}
+                medida={medidaNaCena}
+                onMedir={medindo ? pontaDaTrena : undefined}
                 contaGotas={ctrl}
                 onContaGotas={contaGotas}
                 mostrarGrade={grade}
@@ -867,29 +1054,34 @@ export default function ProjectEstrutura({ project, patch }) {
                 fantasma={fantasma}
               />
             )}
-            {vazia && Editor && !erroCarga && (
-              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-                <span style={{ ...chip, background: T.card, padding: "8px 16px" }}>
-                  Escolha a peça no <b style={{ color: T.acM }}>catálogo</b> e clique no <b style={{ color: T.acM }}>piso</b> — depois clique nos pontos claros para emendar
-                </span>
-              </div>
+            {/* A DICA DO MODO, e ela some assim que o gesto acontece: parágrafo
+                explicativo fixo é o que a casa não faz (R4), mas modo novo sem
+                nenhuma pista é modo que ninguém descobre. */}
+            {Editor && !erroCarga && (
+              (() => {
+                const dica = medindo
+                  ? (pontas ? null : "Clique em dois pontos para medir — eles grudam nos nós da treliça e nas quinas das telas")
+                  : emTelas && !paineis.length && telas.length > 0
+                    ? "Escolha a tela na lista e clique no piso — depois arraste para posicionar"
+                    : emTelas && !telas.length
+                      ? "Este projeto ainda não tem tela — cadastre uma na aba Dados"
+                      : vazia && montando
+                        ? "Escolha a peça no catálogo e clique no piso — depois clique nos pontos claros para emendar"
+                        : null;
+                if (!dica) return null;
+                return (
+                  <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+                    <span style={{ ...chip, background: T.card, padding: "8px 16px", whiteSpace: "normal", maxWidth: 460, textAlign: "center" }}>
+                      {dica}
+                    </span>
+                  </div>
+                );
+              })()
             )}
           </div>
 
-          {/* A DICA QUE FALTAVA. O botão "Pendurar" só existe com uma peça
-              selecionada — o que é certo (botão que não pode agir ensina errado),
-              mas deixava o caminho invisível pra quem não sabia que ele existia.
-              Some assim que o primeiro painel entra. */}
-          {!vazia && paineis.length === 0 && telas.length > 0 && (
-            <div style={{ fontSize: 12, color: T.dim, lineHeight: 1.5 }}>
-              <Layers size={13} style={{ verticalAlign: -2, marginRight: 5, color: T.mut }} />
-              Este projeto tem {plural(telas.length, "tela")} pra pendurar. Selecione a peça onde ela vai
-              — segure <b style={{ color: T.mut }}>V</b> e clique nela — e use <b style={{ color: T.mut }}>Pendurar</b>.
-            </div>
-          )}
-
-          {/* OS PAINÉIS PENDURADOS. Clicar no chip seleciona — e aí R vira pra onde
-              o LED olha, Shift+R passeia a face, Delete solta. */}
+          {/* AS TELAS NO DESENHO. Clicar no chip seleciona — e aí R vira o LED,
+              o arraste move e Delete tira. */}
           {paineis.length > 0 && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               {paineis.map((item, i) => {
@@ -900,7 +1092,9 @@ export default function ProjectEstrutura({ project, patch }) {
                     key={item.painel.id}
                     onClick={() => { setPainelSel(ativo ? null : item.painel.id); setSelecao([]); }}
                     aria-pressed={ativo}
-                    title={item.tela ? `${metro(item.medidas.larguraMm)} × ${metro(item.medidas.alturaMm)} · ${item.medidas.pesoKg} kg` : "a tela saiu do projeto"}
+                    title={item.tela
+                      ? `${metro(item.medidas.larguraMm)} × ${metro(item.medidas.alturaMm)} · ${item.medidas.pesoKg} kg`
+                      : "a tela saiu do projeto"}
                     style={{
                       ...chip, cursor: "pointer", fontFamily: "inherit",
                       borderColor: ativo ? T.acc : ruim ? T.red : T.bd,
@@ -909,14 +1103,18 @@ export default function ProjectEstrutura({ project, patch }) {
                     }}
                   >
                     <Layers size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
-                    {item.tela?.nome?.trim() || `Tela ${i + 1}`}
-                    {item.tela && <span style={{ color: T.dim }}> · {nomeDe(item.painel.olha)}</span>}
+                    {nomeDaTela(item, i)}
+                    {item.tela && (
+                      <span style={{ color: T.dim }}>
+                        {" "}· {nomeDe(item.painel.olha)}{item.apoiado ? "" : " · no ar"}
+                      </span>
+                    )}
                   </button>
                 );
               })}
               {painelSel && (
                 <span style={{ fontSize: 11, color: T.dim }}>
-                  R vira o LED · Shift+R muda a face · Delete solta
+                  arraste move · Shift+arraste ou ↑↓ sobe · R vira o LED · Delete tira
                 </span>
               )}
             </div>
@@ -924,7 +1122,7 @@ export default function ProjectEstrutura({ project, patch }) {
 
           {problemas.length > 0 && (
             <div style={{ fontSize: 12, color: T.red, lineHeight: 1.5 }}>
-              <b>Painel fora de lugar</b>:{" "}
+              <b>Tela fora de lugar</b>:{" "}
               {[...new Set(problemas.map((x) => TEXTO_DO_PROBLEMA[x.motivo]))].join(" · ")}.
               <span style={{ color: T.dim }}> É medida, não carga — o app continua sem dizer se a estrutura aguenta.</span>
             </div>
@@ -954,7 +1152,7 @@ export default function ProjectEstrutura({ project, patch }) {
             </div>
           )}
 
-          {!vazia && (
+          {r.pecas > 0 && (
             <span style={{ ...chip, alignSelf: "flex-start" }}>
               <b style={{ color: T.txt }}>{r.parafusaria.itens.find((i) => i.id === "parafuso")?.qtd ?? 0}×</b> parafuso 5/8&quot;
             </span>

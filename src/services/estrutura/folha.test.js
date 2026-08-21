@@ -197,13 +197,28 @@ describe("os painéis na folha (E4)", () => {
   });
 
   // a lista é o que torna o total conferível: sem ela, o número é palavra
-  it("lista cada painel com medida, gabinetes, peso e onde está", () => {
+  it("lista cada tela com medida, gabinetes, peso e a que altura começa", () => {
     const [item] = dadosDaFolha(comPainel()).paineis.lista;
     expect(item.nome).toBe("Frontal");
     expect(item.medida).toBe("3,00 m × 1,00 m");
     expect(item.gabinetes).toBe(12);
     expect(item.pesoKg).toBe(96);
-    expect(item.em).toBe("Barra P30 4 m");
+    // a borda DE BAIXO, que é a cota que se mede com a trena no galpão
+    expect(item.em).toMatch(/^\d,\d\d m do piso$/);
+    expect(item.suspenso).toBe(true);
+  });
+
+  // ⚠️ TELA NO CHÃO NÃO É PESO SUSPENSO. Somar as duas daria um "suspenso" que
+  // ninguém vai içar — e é justamente esse o número que o rigger lê.
+  it("separa o que está no ar do que está apoiado no piso", () => {
+    const p = comPainel();
+    p.estrutura.paineis = [{ id: "pn1", telaId: "t1", olha: "N", pos: [0, 500, 0] }];
+    const d = dadosDaFolha(p);
+    expect(d.paineis.pesoTexto).toBe("96 kg");
+    expect(d.paineis.noChaoTexto).toBe("96 kg");
+    expect(d.paineis.suspensoTexto).toBe("0 kg");
+    expect(d.pesoSuspensoTexto).toBe("166 kg"); // só a treliça sai do chão
+    expect(d.paineis.lista[0].em).toBe("no chão");
   });
 
   it("o que não cabe vai IMPRESSO, em medida e não em carga", () => {

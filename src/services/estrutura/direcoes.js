@@ -61,6 +61,20 @@ export function direcaoDe(vetor) {
   return melhor;
 }
 
+/**
+ * A horizontal MAIS PRÓXIMA de um vetor — sempre devolve uma das quatro.
+ *
+ * Diferente do `direcaoDe`, que exige alinhamento e devolve `null` na dúvida.
+ * Aqui a dúvida não serve: é o que responde "pra onde o técnico está olhando"
+ * quando a câmera está em diagonal, e nessa hora o app tem que escolher uma.
+ */
+export function direcaoDominante(vetor) {
+  if (!Array.isArray(vetor)) return HORIZONTAIS[0];
+  const [x, , z] = vetor;
+  if (Math.abs(x) >= Math.abs(z)) return x >= 0 ? "L" : "O";
+  return z >= 0 ? "S" : "N";
+}
+
 /** "N, L e BAIXO" — pra frase de aviso não sair com vírgula sobrando */
 export function listaDeNomes(ids = []) {
   const nomes = [...ids].map((id) => nomeDe(id) ?? id);

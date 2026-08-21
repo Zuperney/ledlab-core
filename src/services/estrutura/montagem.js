@@ -20,15 +20,22 @@ import {
   IDENTIDADE, MATRIZ_IDENTIDADE, arredMatriz, matriz, mesmaMatriz, oposto,
 } from "./vetor.js";
 
-// A versão 2 nasceu com os PAINÉIS (E4). Um arquivo só sobe pra 2 quando tem
-// painel de verdade — projeto de estrutura pura continua na 1 e continua abrindo
-// em quem ainda não atualizou. Ver `versaoDe`.
-export const VERSAO_MONTAGEM = 2;
+// AS VERSÕES DO ARQUIVO, e por que são três:
+//   1 — estrutura pura, como nasceu;
+//   2 — painel PENDURADO numa peça (E4);
+//   3 — painel SOLTO, com posição de mundo (E5).
+// Um arquivo só sobe quando usa mesmo o recurso novo, então projeto de estrutura
+// pura continua na 1 e continua abrindo em quem ainda não atualizou o app.
+export const VERSAO_MONTAGEM = 3;
 
 export const novaMontagem = () => ({ versao: 1, pecas: [], paineis: [] });
 
 /** a versão que ESTE arquivo precisa — só sobe quando usa recurso novo */
-export const versaoDe = (montagem) => ((montagem?.paineis?.length ?? 0) > 0 ? 2 : 1);
+export function versaoDe(montagem) {
+  const paineis = montagem?.paineis ?? [];
+  if (!paineis.length) return 1;
+  return paineis.some((p) => Array.isArray(p.pos)) ? 3 : 2;
+}
 
 export const pecaDaMontagem = (montagem, id) =>
   montagem?.pecas?.find((p) => p.id === id) ?? null;
@@ -215,16 +222,24 @@ export function adicionarPecaEncaixada(montagem, pedido) {
   return { ...montagem, pecas: [...montagem.pecas, peca] };
 }
 
-// ── painéis (E4) ─────────────────────────────────────────────
+// ── painéis (E4 · E5) ────────────────────────────────────────
 // O painel guarda só o `telaId`: medida e peso saem da tela do projeto, viva.
 // Ver `paineis.js` pra geometria.
+//
+// DESDE A E5 ELE É SOLTO: `pos` é o centro dele no mundo, em mm, e não há peça
+// dona. O formato antigo (`de` + `face`) continua sendo aceito aqui só pra
+// desfazer e refazer o que veio de um projeto v2 — quem cria painel novo manda
+// `pos`.
 
-export function pendurarPainel(montagem, pedido) {
-  const { telaId, de, face = "BAIXO", olha = "N" } = pedido;
-  if (!telaId || !pecaDaMontagem(montagem, de)) {
+export function adicionarPainel(montagem, pedido) {
+  const { telaId, pos, de, face, olha = "N" } = pedido;
+  if (!telaId) throw new ErroDeMontagem(MOTIVOS.ALVO_INEXISTENTE, { telaId });
+  if (!Array.isArray(pos) && !pecaDaMontagem(montagem, de)) {
     throw new ErroDeMontagem(MOTIVOS.ALVO_INEXISTENTE, { de });
   }
-  const painel = { id: pedido.id ?? genId("pn"), telaId, de, face, olha };
+  const painel = Array.isArray(pos)
+    ? { id: pedido.id ?? genId("pn"), telaId, olha, pos: [...pos] }
+    : { id: pedido.id ?? genId("pn"), telaId, de, face: face ?? "BAIXO", olha };
   return { ...montagem, paineis: [...(montagem.paineis ?? []), painel] };
 }
 
@@ -232,7 +247,7 @@ export function removerPainel(montagem, id) {
   return { ...montagem, paineis: (montagem.paineis ?? []).filter((p) => p.id !== id) };
 }
 
-/** muda a face onde o painel encosta, ou pra onde ele olha */
+/** muda a posição do painel, ou pra onde ele olha */
 export function ajustarPainel(montagem, id, mudanca) {
   return {
     ...montagem,
@@ -257,9 +272,10 @@ export function removerPeca(montagem, id) {
   const pecas = montagem.pecas
     .filter((p) => p.id !== id)
     .map((p) => (p.encaixe?.de === id ? { ...p, encaixe: null } : p));
-  // ⚠️ O PAINEL PENDURADO NELA NÃO SOME. Ele fica sem apoio — sem pose, e a aba
-  // avisa. Apagar o painel junto seria perder trabalho por tabela, e o desfazer
-  // conserta tarde demais na cabeça de quem monta (mesma régua dos órfãos).
+  // ⚠️ O PAINEL NÃO SOME JUNTO. Desde a E5 ele nem depende da peça — fica no
+  // lugar onde está, como qualquer outra coisa do desenho. No formato antigo
+  // (v2) ele fica sem apoio e a aba avisa: apagar o painel por tabela seria
+  // perder trabalho que o desfazer conserta tarde demais na cabeça de quem monta.
   return { ...montagem, pecas };
 }
 

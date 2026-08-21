@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import { buildRelatorioDoc } from "./pdfRelatorio.js";
 import { CRITERIOS, REFERENCIAS } from "../reportContent.js";
 import { paraJSON } from "../estrutura/serializar.js";
@@ -604,7 +604,7 @@ describe("folha ESTRUTURA (box truss)", () => {
   });
 });
 
-describe("folha ESTRUTURA — os painéis pendurados (E4)", () => {
+describe("folha ESTRUTURA — as telas no desenho (E4 · E5)", () => {
   const montagem = paraJSON(porticoDeExemplo());
   const viga = montagem.pecas.find((p) => p.catalogoId === "p30-b4000");
   const comPainel = (cols) => ({
@@ -626,12 +626,13 @@ describe("folha ESTRUTURA — os painéis pendurados (E4)", () => {
     expect(json).toContain("262 kg");
   });
 
-  it("lista cada painel — é o que torna o total conferível", () => {
+  it("lista cada tela — é o que torna o total conferível", () => {
     const json = doc(6);
-    expect(json).toContain("Painéis pendurados");
+    expect(json).toContain("Telas no desenho");
     expect(json).toContain("Frontal");
     expect(json).toContain("3,00 m × 1,00 m");
-    expect(json).toContain("Barra P30 4 m");
+    // a ALTURA da borda de baixo, que é a cota que se mede no galpão
+    expect(json).toMatch(/\d,\d\d m do piso/);
   });
 
   it("o que não cabe vai IMPRESSO, e declarado como medida", () => {
@@ -647,7 +648,7 @@ describe("folha ESTRUTURA — os painéis pendurados (E4)", () => {
         tipo: "Completo", cfg, logo: null, gerado: "20/08/2026",
       }).content,
     );
-    expect(json).not.toContain("Painéis pendurados");
+    expect(json).not.toContain("Telas no desenho");
     expect(json).not.toContain("TOTAL SUSPENSO");
   });
 });

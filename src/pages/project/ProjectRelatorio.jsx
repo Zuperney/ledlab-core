@@ -513,15 +513,22 @@ export default function ProjectRelatorio({ project }) {
                       <td style={td}>{estrutura.paineis ? "Peso da treliça" : "Peso"}</td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.pesoTexto}</td>
                     </tr>
-                    {/* O peso da treliça e o do que ela CARREGA saem separados, e o
-                        total fecha embaixo — é o número que o rigger pede antes de
-                        içar. O app segue sem dizer se aguenta. */}
+                    {/* O peso da treliça e o das TELAS saem separados, e o que
+                        fecha embaixo é o SUSPENSO — tela apoiada no chão não
+                        pendura em nada, e somá-la daria um número que ninguém
+                        vai içar. O app segue sem dizer se aguenta. */}
                     {estrutura.paineis && (
                       <>
                         <tr>
-                          <td style={td}>Painéis ({estrutura.paineis.paineis})</td>
+                          <td style={td}>Telas ({estrutura.paineis.paineis})</td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.paineis.pesoTexto}</td>
                         </tr>
+                        {estrutura.paineis.kgNoChao > 0 && (
+                          <tr>
+                            <td style={td}>Telas apoiadas no chão</td>
+                            <td style={{ ...td, textAlign: "right" }}>{estrutura.paineis.noChaoTexto}</td>
+                          </tr>
+                        )}
                         <tr>
                           <td style={{ ...td, fontWeight: 700 }}>Total suspenso</td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{estrutura.pesoSuspensoTexto}</td>
@@ -577,9 +584,9 @@ export default function ProjectRelatorio({ project }) {
 
             {estrutura.paineis && (
               <>
-                <SubHead title="Painéis pendurados" right={plural(estrutura.paineis.paineis, "painel", "painéis")} />
+                <SubHead title="Telas no desenho" right={plural(estrutura.paineis.paineis, "tela")} />
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr><th style={th}>Tela</th><th style={th}>Medida</th><th style={th}>Onde</th><th style={th}>Gab.</th><th style={th}>Peso</th></tr></thead>
+                  <thead><tr><th style={th}>Tela</th><th style={th}>Medida</th><th style={th}>Onde começa</th><th style={th}>Gab.</th><th style={th}>Peso</th></tr></thead>
                   <tbody>
                     {estrutura.paineis.lista.map((p) => (
                       <tr key={p.id}>
@@ -598,7 +605,7 @@ export default function ProjectRelatorio({ project }) {
                 </table>
                 {estrutura.paineis.problemas.length > 0 && (
                   <div style={{ marginTop: 10 }}>
-                    <WarnBox title="Painel fora de lugar" tone="amber">
+                    <WarnBox title="Tela fora de lugar" tone="amber">
                       {estrutura.paineis.problemas.join(" · ")}. É <b>medida</b>, não carga — confira o desenho antes de subir.
                     </WarnBox>
                   </div>

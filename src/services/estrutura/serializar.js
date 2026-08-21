@@ -20,9 +20,14 @@ const numeros = (v, n) =>
 
 /** montagem → objeto puro, pronto pra JSON.stringify */
 export function paraJSON(montagem) {
-  const paineis = (montagem?.paineis ?? []).map((p) => ({
-    id: p.id, telaId: p.telaId, de: p.de, face: p.face, olha: p.olha,
-  }));
+  // o painel SOLTO (E5) grava posição; o do formato antigo grava a âncora. Não
+  // convertemos aqui de propósito: a conversão precisa das medidas da tela, que
+  // o serializador não tem — ela mora no `migrarPaineis`, na abertura da aba.
+  const paineis = (montagem?.paineis ?? []).map((p) => (
+    Array.isArray(p.pos)
+      ? { id: p.id, telaId: p.telaId, olha: p.olha, pos: p.pos.map((v) => Math.round(v * 10) / 10) }
+      : { id: p.id, telaId: p.telaId, de: p.de, face: p.face, olha: p.olha }
+  ));
   return {
     // só sobe de versão quando usa recurso novo: estrutura sem painel continua
     // abrindo em quem ainda não atualizou o app
@@ -117,13 +122,20 @@ export function deJSON(dados, opcoes = {}) {
     if (!bruto || typeof bruto.id !== "string" || typeof bruto.telaId !== "string") {
       throw new ErroDeMontagem("painel-invalido", { bruto });
     }
-    paineis.push({
-      id: bruto.id,
-      telaId: bruto.telaId,
-      de: bruto.de ?? null,
-      face: bruto.face ?? "BAIXO",
-      olha: bruto.olha ?? "N",
-    });
+    if (bruto.pos != null && !numeros(bruto.pos, 3)) {
+      throw new ErroDeMontagem("painel-invalido", { bruto });
+    }
+    paineis.push(
+      numeros(bruto.pos, 3)
+        ? { id: bruto.id, telaId: bruto.telaId, olha: bruto.olha ?? "N", pos: [...bruto.pos] }
+        : {
+            id: bruto.id,
+            telaId: bruto.telaId,
+            de: bruto.de ?? null,
+            face: bruto.face ?? "BAIXO",
+            olha: bruto.olha ?? "N",
+          },
+    );
   }
 
   // a `versao` em memória é sempre a que o CONTEÚDO exige, nunca a máxima que o

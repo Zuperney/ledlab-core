@@ -16,7 +16,7 @@ import {
 } from "./paineis.js";
 import { legendaDaEstrutura } from "./cores.js";
 import { juntas } from "./montagem.js";
-import { resumo } from "./metricas.js";
+import { nivelDoChao, resumo } from "./metricas.js";
 import { deJSON } from "./serializar.js";
 
 // O que o app NUNCA afirma sobre estrutura. Vai impresso, sempre — não é
@@ -52,12 +52,25 @@ const nomeDaPeca = (montagem, id) =>
 
 const kg = (n) => `${Math.round(n * 10) / 10} kg`;
 
-// o que o papel diz de cada problema de painel — em MEDIDA, nunca em carga
+/**
+ * Onde a tela está, pra sair no papel: "no chão", ou a que altura ela começa.
+ *
+ * A borda DE BAIXO, e não o centro: quem monta olha onde a parede começa, e é
+ * essa a cota que ele mede com a trena no galpão.
+ */
+function onde(item, chaoMm) {
+  if (!item?.matriz || !item.medidas) return "—";
+  if (item.apoiado) return "no chão";
+  const base = item.matriz[13] - item.medidas.alturaMm / 2 - chaoMm;
+  return `${metroBR(base)} do piso`;
+}
+
+// o que o papel diz de cada problema de tela — em MEDIDA, nunca em carga
 const TEXTO_DO_PROBLEMA = {
   [MOTIVOS_DE_PAINEL.SEM_TELA]: "a tela saiu do projeto",
-  [MOTIVOS_DE_PAINEL.SEM_APOIO]: "a peça onde estava pendurado foi apagada",
+  [MOTIVOS_DE_PAINEL.SEM_APOIO]: "a peça onde estava pendurada foi apagada",
   [MOTIVOS_DE_PAINEL.ATRAVESSA]: "não cabe no vão — entra na treliça",
-  [MOTIVOS_DE_PAINEL.NO_CHAO]: "passa do piso — arrasta no chão",
+  [MOTIVOS_DE_PAINEL.NO_CHAO]: "passa do piso — está enterrada",
 };
 
 /**
@@ -122,17 +135,23 @@ export function dadosDaFolha(project, imagem = null, opcoes = {}) {
       : "Peso estimado — valores de catálogo, ainda não conferidos na balança.",
     imagem: imagem ?? null,
     imagemEm: project?.estruturaImg?.em ?? null,
-    // ── OS PAINÉIS (E4) ──
-    // O peso da treliça e o peso do que ela CARREGA saem separados, e o total
-    // fecha embaixo. É o número que o rigger pede antes de içar — e o app segue
-    // sem dizer se aguenta (§10).
+    // ── AS TELAS NO DESENHO (E4 · E5) ──
+    // O peso da treliça e o peso das TELAS saem separados, e o que fecha embaixo
+    // é o SUSPENSO: treliça mais as telas que estão no ar. Tela apoiada no chão
+    // não pendura em nada, e somá-la daria um número que ninguém vai içar.
+    //
+    // É o número que o rigger pede antes de subir — e o app segue sem dizer se
+    // aguenta (§10).
     paineis: (() => {
       const telas = project?.telas ?? [];
-      const pendurado = pesoDosPaineis(montagem, telas);
-      if (!pendurado.paineis) return null; // sem painel, a folha nem menciona
+      const peso = pesoDosPaineis(montagem, telas);
+      if (!peso.paineis) return null; // sem tela no desenho, a folha nem menciona
+      const chao = nivelDoChao(montagem);
       return {
-        ...pendurado,
-        pesoTexto: kg(pendurado.kg),
+        ...peso,
+        pesoTexto: kg(peso.kg),
+        suspensoTexto: kg(peso.kgSuspenso),
+        noChaoTexto: kg(peso.kgNoChao),
         // a lista é o que torna o total CONFERÍVEL: sem ela, o número é palavra
         lista: paineisNoMundo(montagem, telas).map((item, i) => ({
           id: item.painel.id,
@@ -142,15 +161,19 @@ export function dadosDaFolha(project, imagem = null, opcoes = {}) {
             : "—",
           gabinetes: item.medidas?.gabinetes ?? null,
           pesoKg: item.medidas?.pesoKg ?? null,
-          em: nomeDaPeca(montagem, item.painel.de),
+          suspenso: !item.apoiado,
+          // ONDE ELA ESTÁ é a ALTURA da borda de baixo, não o nome de uma peça:
+          // desde que a tela é solta (§12) ela não tem peça dona, e quem vai
+          // montar precisa saber a que altura ela começa.
+          em: onde(item, chao),
         })),
         problemas: [...new Set(
           problemasDosPaineis(montagem, telas).map((x) => TEXTO_DO_PROBLEMA[x.motivo]),
         )],
       };
     })(),
-    // o total suspenso: treliça + painéis, que é o que sai do chão junto
-    pesoSuspensoTexto: kg(r.peso.kg + pesoDosPaineis(montagem, project?.telas ?? []).kg),
+    // o total SUSPENSO: treliça + as telas que estão no ar
+    pesoSuspensoTexto: kg(r.peso.kg + pesoDosPaineis(montagem, project?.telas ?? []).kgSuspenso),
     // a legenda do desenho: cor, nome e quantidade, só das peças que estão lá
     legenda: legendaDaEstrutura(montagem, opcoes.cores ?? null),
     // PEÇA DENTRO DE PEÇA vai IMPRESSO. Quem monta no galpão segue o papel, e

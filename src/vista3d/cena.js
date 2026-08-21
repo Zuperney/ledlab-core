@@ -13,9 +13,10 @@
 //    redesenhar pixels idênticos a 60fps aquece o aparelho até o clock cair.
 
 import {
-  AmbientLight, Color, ConeGeometry, DirectionalLight, DynamicDrawUsage, GridHelper, InstancedMesh,
+  AmbientLight, BufferGeometry, CanvasTexture, Color, ConeGeometry, DirectionalLight,
+  DynamicDrawUsage, GridHelper, InstancedMesh, Line, LineBasicMaterial,
   Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Plane, Raycaster,
-  Scene, SphereGeometry, Vector2, Vector3,
+  Scene, SphereGeometry, Sprite, SpriteMaterial, Vector2, Vector3,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -153,6 +154,105 @@ export function criarCena(canvas, cores) {
   const matSeta = new MeshBasicMaterial({ color: cores.selecao });
   let malhaSetas = null;
 
+  // ── a TRENA (E5) ──────────────────────────────────────
+  // Dois pontos, a reta entre eles e o número em cima. `depthTest: false` de
+  // propósito: quem mede o vão de um pórtico mede ATRAVÉS da treliça, e uma
+  // linha escondida atrás da peça não mede nada.
+  const matTrena = new LineBasicMaterial({
+    color: cores.selecao, transparent: true, depthTest: false,
+  });
+  const matPonta = new MeshBasicMaterial({ color: cores.selecao, depthTest: false });
+  const geoPonta = new SphereGeometry(60, 12, 12);
+  let linhaTrena = null;
+  let pontasTrena = null;
+  let rotuloTrena = null;
+  let texturaRotulo = null;
+
+  // O RÓTULO É UM SPRITE, e o tamanho dele é corrigido a cada quadro pela
+  // distância da câmera: sprite em perspectiva encolhe com o afastamento, e uma
+  // medida que vira dois pixels quando a pessoa se afasta não serve de medida.
+  const ALTURA_DO_ROTULO = 0.045; // fração da altura da tela
+  const FONTE_DO_ROTULO = "700 102px system-ui, sans-serif";
+  function desenharRotulo(texto) {
+    const cv = document.createElement("canvas");
+    const regua = cv.getContext("2d");
+    regua.font = FONTE_DO_ROTULO;
+    // medir ANTES de dimensionar: mexer em width/height zera o contexto inteiro
+    cv.width = Math.ceil(regua.measureText(texto).width) + 78;
+    cv.height = 184;
+    const ctx = cv.getContext("2d");
+    ctx.font = FONTE_DO_ROTULO;
+    ctx.fillStyle = cores.fundo;
+    ctx.globalAlpha = 0.88;
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = cores.selecao;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = cores.selecao;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(texto, cv.width / 2, cv.height / 2);
+    return { cv, proporcao: cv.width / cv.height };
+  }
+
+  function limparTrena() {
+    for (const o of [linhaTrena, pontasTrena, rotuloTrena]) {
+      if (!o) continue;
+      scene.remove(o);
+      if (o.geometry) o.geometry.dispose();
+      if (o.dispose) o.dispose();
+      if (o.isSprite) o.material.dispose();
+    }
+    if (texturaRotulo) { texturaRotulo.dispose(); texturaRotulo = null; }
+    linhaTrena = null;
+    pontasTrena = null;
+    rotuloTrena = null;
+  }
+
+  /**
+   * A medida na cena: `{ a, b, texto }`. Só com `a`, desenha a primeira ponta;
+   * `null` limpa tudo.
+   */
+  function mostrarMedida(medida) {
+    limparTrena();
+    const pontos = [medida?.a, medida?.b].filter(Boolean);
+    if (pontos.length) {
+      pontasTrena = new InstancedMesh(geoPonta, matPonta, pontos.length);
+      pontasTrena.frustumCulled = false;
+      pontasTrena.renderOrder = 5;
+      pontos.forEach((p, i) => pontasTrena.setMatrixAt(i, mat4.makeTranslation(p[0], p[1], p[2])));
+      pontasTrena.instanceMatrix.needsUpdate = true;
+      scene.add(pontasTrena);
+    }
+    if (pontos.length === 2) {
+      const geo = new BufferGeometry().setFromPoints(
+        pontos.map((p) => new Vector3(p[0], p[1], p[2])),
+      );
+      linhaTrena = new Line(geo, matTrena);
+      linhaTrena.frustumCulled = false;
+      linhaTrena.renderOrder = 5;
+      scene.add(linhaTrena);
+
+      if (medida.texto) {
+        const rot = desenharRotulo(medida.texto);
+        texturaRotulo = new CanvasTexture(rot.cv);
+        rotuloTrena = new Sprite(new SpriteMaterial({
+          map: texturaRotulo, transparent: true, depthTest: false,
+        }));
+        rotuloTrena.renderOrder = 6;
+        rotuloTrena.userData.proporcao = rot.proporcao;
+        rotuloTrena.position.set(
+          (medida.a[0] + medida.b[0]) / 2,
+          (medida.a[1] + medida.b[1]) / 2,
+          (medida.a[2] + medida.b[2]) / 2,
+        );
+        scene.add(rotuloTrena);
+      }
+    }
+    solicitar();
+  }
+
   const grupos = new Map(); // `${catalogoId}#${nivel}` → InstancedMesh
   let pecas = [];
   // SELEÇÃO É CONJUNTO (§8.6, C2): com `Shift + clique` o técnico marca várias,
@@ -166,12 +266,23 @@ export function criarCena(canvas, cores) {
   const mat4 = new Matrix4();
   // o piso como plano matemático, pra saber onde o clique encosta nele
   const planoDoChao = new Plane(new Vector3(0, 1, 0), 0);
+  // o plano do arraste da tela: muda a cada gesto, então nasce vazio
+  const planoLivre = new Plane(new Vector3(0, 1, 0), 0);
+  const normalDoPlano = new Vector3();
+  const pontoDoPlano = new Vector3();
   const alvoDoChao = new Vector3();
 
   // ── render sob demanda ─────────────────────────────────────
   function desenhar() {
     pendente = 0;
     controls.update();
+    // o rótulo da trena mantém o TAMANHO NA TELA: a escala em mm de mundo sai da
+    // distância, senão a medida vira dois pixels quando a pessoa se afasta
+    if (rotuloTrena) {
+      const d = camera.position.distanceTo(rotuloTrena.position);
+      const alt = 2 * d * Math.tan((camera.fov * Math.PI) / 360) * ALTURA_DO_ROTULO;
+      rotuloTrena.scale.set(alt * rotuloTrena.userData.proporcao, alt, 1);
+    }
     renderer.render(scene, camera);
     // o damping continua se movendo depois do gesto: mantém o laço vivo só
     // enquanto desacelera, e para sozinho
@@ -469,6 +580,26 @@ export function criarCena(canvas, cores) {
 
   /** aceita um índice, uma lista deles, ou null pra limpar */
   /**
+   * ⚠️ O HORIZONTE, e ele já custou caro uma vez.
+   *
+   * Todo plano infinito tem um lugar onde o raio da câmera fica quase paralelo a
+   * ele, e o encontro dos dois vai parar a QUILÔMETROS. Foi assim que um clique
+   * de raspão nasceu uma peça a 20 km, e é assim que um arraste de raspão joga
+   * uma parede pra fora do mundo.
+   *
+   * A régua é o PALCO: a grade tem 40 × 40 m e é ela que o técnico enxerga. Fora
+   * dela o ponteiro não está apontando pra lugar nenhum, e a resposta honesta é
+   * não devolver ponto. Medida a partir do CENTRO DA GRADE, que acompanha a
+   * estrutura — clicar longe da origem é clique legítimo.
+   */
+  function dentroDoPalco(p) {
+    const limite = LADO_DA_GRADE / 2;
+    return Math.abs(p.x - grade.position.x) <= limite
+      && Math.abs(p.z - grade.position.z) <= limite
+      && Math.abs(p.y - grade.position.y) <= limite;
+  }
+
+  /**
    * Onde o ponteiro encosta NO PISO, em mm de mundo — ou `null` se ele estiver
    * apontando pro céu.
    *
@@ -483,20 +614,98 @@ export function criarCena(canvas, cores) {
     raycaster.setFromCamera(ponteiro, camera);
     planoDoChao.constant = -grade.position.y;
     const p = raycaster.ray.intersectPlane(planoDoChao, alvoDoChao);
-    if (!p) return null;
-    // ⚠️ O HORIZONTE. Perto da linha do horizonte o raio fica quase paralelo ao
-    // piso, e o encontro dos dois vai parar a QUILÔMETROS: um clique de raspão
-    // ali nascia peça a 20 km, que ninguém vê e que estraga toda medida do
-    // projeto. Fora da grade o clique não vale nada — é céu, não chão.
-    //
-    // O limite é medido a partir do CENTRO DA GRADE, não da origem do mundo:
-    // com o piso acompanhando a estrutura, clicar na grade longe da origem é
-    // clique legítimo.
-    const limite = LADO_DA_GRADE / 2;
-    if (Math.abs(p.x - grade.position.x) > limite
-        || Math.abs(p.z - grade.position.z) > limite) return null;
+    // fora da grade o clique não vale nada — é céu, não chão (ver `dentroDoPalco`)
+    if (!p || !dentroDoPalco(p)) return null;
     return [p.x, p.y, p.z];
   }
+
+  /**
+   * Qual painel está sob o ponteiro. Sem os anéis de tolerância do `pecaEm`: o
+   * painel é uma chapa cheia, e chapa cheia se acerta no tiro direto.
+   */
+  function painelEm(evento) {
+    const alvos = [...malhasDePainel.values()];
+    if (!alvos.length) return null;
+    const r = canvas.getBoundingClientRect();
+    ponteiro.x = ((evento.clientX - r.left) / r.width) * 2 - 1;
+    ponteiro.y = -((evento.clientY - r.top) / r.height) * 2 + 1;
+    raycaster.setFromCamera(ponteiro, camera);
+    const hit = raycaster.intersectObjects(alvos, false)[0];
+    return hit ? hit.object.userData.painelId ?? null : null;
+  }
+
+  /**
+   * Onde o ponteiro encosta num PLANO qualquer, em mm de mundo.
+   *
+   * É o que sustenta o arraste da tela (§12): o plano é escolhido no momento em
+   * que se pega o painel — horizontal pra passear pelo palco, vertical de frente
+   * pra câmera pra subir e descer — e a tela acompanha o ponteiro dentro dele.
+   */
+  function pontoNoPlano(evento, ponto, normal) {
+    const r = canvas.getBoundingClientRect();
+    ponteiro.x = ((evento.clientX - r.left) / r.width) * 2 - 1;
+    ponteiro.y = -((evento.clientY - r.top) / r.height) * 2 + 1;
+    raycaster.setFromCamera(ponteiro, camera);
+    normalDoPlano.set(normal[0], normal[1], normal[2]).normalize();
+    pontoDoPlano.set(ponto[0], ponto[1], ponto[2]);
+    planoLivre.setFromNormalAndCoplanarPoint(normalDoPlano, pontoDoPlano);
+    const p = raycaster.ray.intersectPlane(planoLivre, alvoDoChao);
+    return p && dentroDoPalco(p) ? [p.x, p.y, p.z] : null;
+  }
+
+  /**
+   * Onde o clique ENCOSTA na cena: na peça, no painel, ou no piso.
+   *
+   * É o ponto de partida da trena. Encostar na superfície e não no centro da
+   * peça é o que permite medir de uma quina à outra — quem chama depois gruda
+   * isso no ponto notável mais próximo, que é conta do motor.
+   */
+  function pontoDeCena(evento) {
+    const r = canvas.getBoundingClientRect();
+    ponteiro.x = ((evento.clientX - r.left) / r.width) * 2 - 1;
+    ponteiro.y = -((evento.clientY - r.top) / r.height) * 2 + 1;
+    raycaster.setFromCamera(ponteiro, camera);
+    const alvos = [...grupos.values(), ...malhasDePainel.values()];
+    const hit = alvos.length ? raycaster.intersectObjects(alvos, false)[0] : null;
+    if (hit) return [hit.point.x, hit.point.y, hit.point.z];
+    return pontoNoChao(evento);
+  }
+
+  /**
+   * Pra onde a câmera olha, no plano do chão — o vetor que sai da cena EM
+   * DIREÇÃO a quem está vendo.
+   *
+   * A tela nova nasce virada pra cá. Painel que nasce de costas obriga a girar
+   * antes de qualquer outra coisa, e ninguém desenha uma parede pra ela olhar
+   * pro fundo do palco.
+   */
+  function olharDaCamera() {
+    const v = new Vector3().subVectors(camera.position, controls.target);
+    v.y = 0;
+    if (v.lengthSq() < 1e-6) return [0, 0, 1];
+    v.normalize();
+    return [v.x, 0, v.z];
+  }
+
+  /**
+   * Quantos MILÍMETROS DE MUNDO cabem num pixel de tela, na profundidade de um
+   * ponto.
+   *
+   * É o que deixa o ímã com o mesmo tamanho na MÃO em qualquer zoom: 300 mm de
+   * alcance é generoso a dois metros e virou meio pixel a quarenta. Mesma régua
+   * que o `snap.js` já usa pros conectores — quem sabe converter tolerância de
+   * tela em mm é a vista, nunca o motor.
+   */
+  function mmPorPixel(ponto) {
+    const d = camera.position.distanceTo(
+      pontoDoPlano.set(ponto[0], ponto[1], ponto[2]),
+    );
+    const alturaVisivel = 2 * d * Math.tan((camera.fov * Math.PI) / 360);
+    return alturaVisivel / Math.max(1, canvas.clientHeight);
+  }
+
+  /** trava a órbita enquanto se arrasta uma tela — senão o palco gira junto */
+  function travarOrbita(v) { controls.enabled = !v; }
 
   function selecionar(indices) {
     selecao = new Set(
@@ -577,6 +786,10 @@ export function criarCena(canvas, cores) {
     vivo = false;
     if (malhaConectores) { scene.remove(malhaConectores); malhaConectores.dispose(); }
     if (malhaSetas) { scene.remove(malhaSetas); malhaSetas.dispose(); }
+    limparTrena();
+    matTrena.dispose();
+    matPonta.dispose();
+    geoPonta.dispose();
     limparPaineis();
     matPainel.dispose();
     matPainelSel.dispose();
@@ -606,7 +819,8 @@ export function criarCena(canvas, cores) {
     marcarConflitos, definirCores,
     trocarTema, capturar, destruir, solicitar,
     mostrarConectores, conectorEm, realcarConector, mostrarFantasma, limparFantasma, mostrarSetas,
-    mostrarPaineis,
+    mostrarPaineis, painelEm, pontoNoPlano, pontoDeCena, olharDaCamera, travarOrbita, mostrarMedida,
+    mmPorPixel,
     mostrarGrade: (v) => { grade.visible = v; solicitar(); },
   };
 }

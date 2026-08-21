@@ -4,6 +4,12 @@
 // que se move 60 vezes por segundo (câmera, matrizes, seleção) fica do lado de
 // lá, imperativo. É o motivo de não usarmos react-three-fiber (espeque §4.1).
 //
+// O GESTO DEPENDE DO MODO (§12), e é o que impede uma tecla de fazer duas coisas:
+//   · montar — o clique encaixa peça, o Ctrl é conta-gotas;
+//   · telas  — o clique põe/pega a tela e o arraste move ela;
+//   · medir  — cada clique é uma ponta da trena;
+//   · ver    — o clique só seleciona.
+//
 // Este arquivo e tudo que ele importa moram no chunk `vista3d` — lazy pro
 // roteador e FORA do precache do service worker (§7.2).
 
@@ -21,8 +27,14 @@ const coresDoTema = (porPeca = null) => ({
   porPeca,
 });
 
+const PONTEIRO = {
+  medir: "crosshair",
+  telas: "grab",
+};
+
 export default function Editor3D({
   montagem,
+  modo = "montar", // "montar" | "telas" | "medir" | "ver"
   selecao = null, // índices das peças selecionadas (§8.6, C2)
   onSelecionar, // (indice|null, { shift }) — shift acumula
   conflitos = null, // índices das peças montadas uma dentro da outra
@@ -34,7 +46,15 @@ export default function Editor3D({
   onEncaixar, // (indice) — comita a peça
   fantasma = null, // { catalogoId, matriz } da prévia
   setas = null, // matrizes de mundo das setas de face cega (§8.6, C1)
-  paineis = null, // as telas penduradas (E4)
+  // ── modo Telas (§12) ──
+  paineis = null, // as telas no desenho, com a matriz de mundo já resolvida
+  onPainelSelecionar, // (id|null)
+  onPainelArrastar, // (id, [x,y,z]) — 60×/s, sem passar pelo histórico
+  onPainelSoltar, // (id) — o arraste virou UM comando só
+  onChaoTela, // ([x,y,z]) — clique no piso vazio: a tela escolhida nasce ali
+  // ── modo Medir (§12) ──
+  medida = null, // { a, b, texto } da trena, ou null
+  onMedir, // ([x,y,z]) — mais uma ponta
   // ── conta-gotas (Ctrl segurado) ──
   contaGotas = false, // o Ctrl está segurado AGORA?
   onContaGotas, // (indice) — a peça clicada vira a peça de inserção
@@ -46,11 +66,15 @@ export default function Editor3D({
   // as cores no MOMENTO da criação da cena; depois disso quem manda é o efeito
   const coresRef = useRef(cores);
   useEffect(() => { coresRef.current = cores; });
-  // Callbacks por REF: a cena é montada uma vez só, e o pai re-renderiza a cada
-  // peça adicionada. Sem isto, remontaríamos a cena inteira a cada clique.
+  // Callbacks e modo por REF: a cena é montada uma vez só, e o pai re-renderiza
+  // a cada peça adicionada. Sem isto, remontaríamos a cena inteira a cada clique.
   const cb = useRef({});
   useEffect(() => {
-    cb.current = { onSelecionar, onApontarConector, onEncaixar, onContaGotas, onChao };
+    cb.current = {
+      onSelecionar, onApontarConector, onEncaixar, onContaGotas, onChao,
+      onPainelSelecionar, onPainelArrastar, onPainelSoltar, onChaoTela, onMedir,
+      modo, paineis,
+    };
   });
 
   useEffect(() => {
@@ -68,11 +92,69 @@ export default function Editor3D({
     let y0 = 0;
     let arrastou = false;
     let ultimoConector = null;
+    // o arraste de tela em curso: `null` quando ninguém está segurando nada
+    let pegada = null;
 
-    const onDown = (e) => { x0 = e.clientX; y0 = e.clientY; arrastou = false; };
+    const centroDoPainel = (id) => {
+      const p = (cb.current.paineis ?? []).find((x) => x.id === id);
+      return p?.matriz ? [p.matriz[12], p.matriz[13], p.matriz[14]] : null;
+    };
+
+    /**
+     * O PLANO DO ARRASTE. Sem Shift, a tela passeia pelo palco (plano
+     * horizontal); com Shift, sobe e desce num plano de frente pra câmera. São
+     * os dois movimentos que existem numa parede de LED, e separar por tecla
+     * evita a tela subir sozinha quando a pessoa quis só andar.
+     *
+     * ⚠️ REANCORA NA POSIÇÃO ATUAL, e é o que permite trocar de plano NO MEIO do
+     * gesto: segurar o Shift depois de já ter pegado a tela troca pra vertical
+     * sem que ela pule de lugar. Sem isso, quem não descobriu a tecla antes de
+     * clicar teria que largar e recomeçar.
+     */
+    const escolherPlano = (e, vertical) => {
+      if (!pegada || pegada.vertical === vertical) return;
+      pegada.vertical = vertical;
+      pegada.centro = pegada.atual;
+      pegada.normal = vertical ? cena.olharDaCamera() : [0, 1, 0];
+      const agarrado = cena.pontoNoPlano(e, pegada.centro, pegada.normal);
+      // a DIFERENÇA entre onde pegou e o centro: sem ela a tela pula pro
+      // ponteiro no primeiro pixel de arraste, e some de onde estava
+      pegada.off = agarrado
+        ? [0, 1, 2].map((k) => pegada.centro[k] - agarrado[k])
+        : [0, 0, 0];
+    };
+
+    const onDown = (e) => {
+      x0 = e.clientX; y0 = e.clientY; arrastou = false;
+      if (cb.current.modo !== "telas") return;
+      const id = cena.painelEm(e);
+      if (!id) return;
+      const centro = centroDoPainel(id);
+      if (!centro) return;
+      // O PLANO DO ARRASTE SE ESCOLHE AQUI. Sem Shift, a tela passeia pelo palco
+      // (plano horizontal); com Shift, sobe e desce num plano de frente pra
+      // câmera. São os dois movimentos que existem numa parede de LED, e separar
+      // por tecla evita a tela subir sozinha quando a pessoa quis só andar.
+      pegada = { id, centro, atual: centro, vertical: null, normal: null, off: null, moveu: false };
+      escolherPlano(e, !!e.shiftKey);
+      cena.travarOrbita(true);
+      cb.current.onPainelSelecionar?.(id);
+    };
 
     const onMove = (e) => {
       if (Math.abs(e.clientX - x0) > 5 || Math.abs(e.clientY - y0) > 5) arrastou = true;
+      if (pegada) {
+        escolherPlano(e, !!e.shiftKey); // dá pra trocar de plano no meio do gesto
+        const p = cena.pontoNoPlano(e, pegada.centro, pegada.normal);
+        if (!p) return;
+        pegada.moveu = true;
+        pegada.atual = [0, 1, 2].map((k) => p[k] + pegada.off[k]);
+        // o `mmPorPixel` viaja junto: é o que deixa o ímã do mesmo tamanho na
+        // mão em qualquer zoom, e converter tela em mundo é conta da vista
+        cb.current.onPainelArrastar?.(pegada.id, pegada.atual, cena.mmPorPixel(pegada.centro));
+        return;
+      }
+      if (cb.current.modo !== "montar") return;
       // com o Ctrl segurado o clique é conta-gotas, não encaixe: realçar
       // conector e desenhar fantasma ali seria prometer uma peça que não vem
       if (e.ctrlKey || e.metaKey) { onSai(); return; }
@@ -85,7 +167,32 @@ export default function Editor3D({
     };
 
     const onUp = (e) => {
+      // O ARRASTE INTEIRO É UM COMANDO SÓ, comitado aqui: sessenta passos de
+      // desfazer por gesto é o app cobrando pelo gesto que ele mesmo ofereceu.
+      if (pegada) {
+        const { id, moveu } = pegada;
+        pegada = null;
+        cena.travarOrbita(false);
+        if (moveu) cb.current.onPainelSoltar?.(id);
+        return;
+      }
       if (arrastou) return;
+
+      if (cb.current.modo === "medir") {
+        const p = cena.pontoDeCena(e);
+        if (p) cb.current.onMedir?.(p);
+        return;
+      }
+
+      if (cb.current.modo === "telas") {
+        // clicou no piso vazio: a tela escolhida nasce ali. Clicou no nada
+        // (céu), larga a seleção — mesmo gesto de sair de tudo do modo Montar.
+        const ponto = cena.pontoNoChao(e);
+        if (ponto && cb.current.onChaoTela) cb.current.onChaoTela(ponto);
+        else cb.current.onPainelSelecionar?.(null);
+        return;
+      }
+
       // CONTA-GOTAS (§8.6, C3): com o Ctrl segurado, a peça clicada vira a peça
       // de inserção. Vem ANTES do conector de propósito — segurando Ctrl o
       // técnico está escolhendo peça, não montando.
@@ -118,10 +225,16 @@ export default function Editor3D({
       cb.current.onApontarConector?.(null);
     };
 
+    // largar o botão FORA do canvas não pode deixar a tela grudada no ponteiro
+    const onSaiuComTela = (e) => {
+      if (pegada) onUp(e);
+      onSai();
+    };
+
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointermove", onMove);
     canvas.addEventListener("pointerup", onUp);
-    canvas.addEventListener("pointerleave", onSai);
+    canvas.addEventListener("pointerleave", onSaiuComTela);
 
     // o contexto WebGL morre quando o SO precisa de memória. Como a cena é
     // PROCEDURAL, ela se reconstrói inteira do JSON — sem baixar nada.
@@ -133,7 +246,7 @@ export default function Editor3D({
       canvas.removeEventListener("pointerdown", onDown);
       canvas.removeEventListener("pointermove", onMove);
       canvas.removeEventListener("pointerup", onUp);
-      canvas.removeEventListener("pointerleave", onSai);
+      canvas.removeEventListener("pointerleave", onSaiuComTela);
       canvas.removeEventListener("webglcontextlost", onPerdeu);
       cena.destruir();
       cenaRef.current = null;
@@ -145,6 +258,7 @@ export default function Editor3D({
   useEffect(() => { cenaRef.current?.marcarConflitos(conflitos ?? []); }, [conflitos]);
   useEffect(() => { cenaRef.current?.mostrarSetas(setas ?? []); }, [setas]);
   useEffect(() => { cenaRef.current?.mostrarPaineis(paineis ?? []); }, [paineis]);
+  useEffect(() => { cenaRef.current?.mostrarMedida(medida ?? null); }, [medida]);
   useEffect(() => { cenaRef.current?.definirCores(cores ?? null); }, [cores]);
   useEffect(() => { cenaRef.current?.mostrarGrade(mostrarGrade); }, [mostrarGrade]);
   useEffect(() => { cenaRef.current?.mostrarConectores(conectores ?? []); }, [conectores]);
@@ -157,17 +271,21 @@ export default function Editor3D({
     enquadrar: () => cenaRef.current?.enquadrar(montagem),
     aproximar: (f) => cenaRef.current?.aproximar(f),
     capturar: (o) => cenaRef.current?.capturar(o),
+    mmPorPixel: (p) => cenaRef.current?.mmPorPixel(p) ?? 0,
+    // pra onde a câmera olha, no plano do chão: é assim que a tela nova nasce
+    // virada pra quem está vendo, em vez de nascer de costas
+    olhar: () => cenaRef.current?.olharDaCamera() ?? [0, 0, 1],
   }), [montagem]);
 
   return (
     <canvas
       ref={canvasRef}
-      // O ponteiro AVISA que o modo mudou: sem isso o conta-gotas é invisível, e
-      // modo invisível é modo que pega o técnico de surpresa.
+      // O PONTEIRO AVISA QUE O MODO MUDOU: sem isso o conta-gotas e a trena são
+      // invisíveis, e modo invisível é modo que pega o técnico de surpresa.
       // sem `touchAction: none` o navegador rouba o gesto pra rolar a página
       style={{
         width: "100%", height: "100%", display: "block", touchAction: "none", borderRadius: 12,
-        cursor: contaGotas ? "copy" : "default",
+        cursor: contaGotas ? "copy" : PONTEIRO[modo] ?? "default",
       }}
     />
   );
