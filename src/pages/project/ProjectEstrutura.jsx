@@ -1,9 +1,9 @@
 // pages/project/ProjectEstrutura.jsx — a aba Estrutura (box truss em 3D).
 //
 // Espeque: docs/estrutura3d-spec.md §8 (as 5 faixas), §8.11 (as seis direções)
-// e §12 (as telas soltas, o ímã e a trena).
+// e §11.5 (as telas soltas, o ímã e a trena).
 //
-// QUATRO MODOS, e cada um com UM gesto (§12). Foi o que resolveu a colisão de
+// QUATRO MODOS, e cada um com UM gesto (§11.5). Foi o que resolveu a colisão de
 // teclas: antes, o mesmo clique tentava encaixar peça, selecionar e pendurar
 // tela, e o técnico descobria qual das três tinha acontecido depois.
 //
@@ -119,7 +119,7 @@ const nomeDaTela = (item, i) => item?.tela?.nome?.trim() || `Tela ${i + 1}`;
  * que travar.
  *
  * É aqui também que o desfazer volta ao atravessar a troca de aba (§8.6, B3) e
- * que o painel do formato antigo vira painel solto (§12) — congelado exatamente
+ * que o painel do formato antigo vira painel solto (§11.5) — congelado exatamente
  * onde já estava desenhado, e gravado só quando o técnico mexer em alguma coisa.
  */
 function abrir(project) {
@@ -154,13 +154,13 @@ export default function ProjectEstrutura({ project, patch }) {
   const [usarCores, setUsarCores] = useState(true);
   const [ajustes, setAjustes] = useState(false);
   const [ctrl, setCtrl] = useState(false); // Ctrl segurado = conta-gotas
-  // ── as telas no desenho (§12) ──
+  // ── as telas no desenho (§11.5) ──
   const [telaId, setTelaId] = useState(null); // a tela que nasce no próximo clique
   const [painelSel, setPainelSel] = useState(null);
   const [ima, setIma] = useState(true);
   const [arrasto, setArrasto] = useState(null); // { id, pos, presos } enquanto segura
   const arrastoRef = useRef(null);
-  // ── a trena (§12) ──
+  // ── a trena (§11.5) ──
   const [pontas, setPontas] = useState(null); // { a, b|null }
   const [verMomentaneo, setVerMomentaneo] = useState(false); // V segurado = modo Ver
   const [Editor, setEditor] = useState(null);
@@ -306,7 +306,7 @@ export default function ProjectEstrutura({ project, patch }) {
     return direcao ? { direcao, livres: direcoesLivres(montagem, id) } : null;
   }, [selecionadas, montagem]);
 
-  // ── as telas no desenho (§12) ──────────────────────────────
+  // ── as telas no desenho (§11.5) ──────────────────────────────
   // A tela NÃO é copiada: medida e peso saem da tela do projeto, viva. Mexeu em
   // cols/rows na aba Dados, o painel acompanha.
   const telas = useMemo(
@@ -365,7 +365,7 @@ export default function ProjectEstrutura({ project, patch }) {
     return out;
   }, [montagem.paineis]);
 
-  // ── o ÍMÃ (§12) ────────────────────────────────────────────
+  // ── o ÍMÃ (§11.5) ────────────────────────────────────────────
   // Os planos saem UMA VEZ por montagem e ficam ordenados: o arraste consulta
   // isto a cada quadro, e varrer a estrutura inteira ali derrubaria o gesto.
   const planos = useMemo(
@@ -399,7 +399,7 @@ export default function ProjectEstrutura({ project, patch }) {
     };
   }, [emTelas, painelAtivo, montagem, project?.telas, arrasto?.ancora]);
 
-  // ── a TRENA (§12) ──────────────────────────────────────────
+  // ── a TRENA (§11.5) ──────────────────────────────────────────
   const notaveis = useMemo(
     () => pontosNotaveis(montagem, project?.telas ?? []),
     [montagem, project?.telas],
@@ -555,7 +555,7 @@ export default function ProjectEstrutura({ project, patch }) {
     if (feito.pedidas === 1 && feito.feitas === 0) explicarTrava(pecasSelecionadas()[0], "vertical");
   }, [mexerNaSelecao, montagem, explicarTrava, pecasSelecionadas]);
 
-  // ── as telas: nascer, arrastar, girar, tirar (§12) ─────────
+  // ── as telas: nascer, arrastar, girar, tirar (§11.5) ─────────
 
   // A TELA NASCE EM PÉ, NO CHÃO, ONDE SE CLICA — e já virada pra quem está
   // vendo. Parede que nasce deitada ou de costas obriga a dois gestos de
@@ -657,7 +657,7 @@ export default function ProjectEstrutura({ project, patch }) {
     setPainelSel(null);
   }, [painelSel, rodar]);
 
-  // ── a trena (§12) ──────────────────────────────────────────
+  // ── a trena (§11.5) ──────────────────────────────────────────
   // Cada clique é uma ponta, e o terceiro começa uma medida nova: obrigar a
   // limpar antes de medir de novo é um gesto a mais em cima do gesto principal.
   const pontaDaTrena = useCallback((ponto) => {
@@ -672,7 +672,7 @@ export default function ProjectEstrutura({ project, patch }) {
     mexerHist(refazerUm); setSelecao([]); setPainelSel(null);
   }, [mexerHist]);
 
-  // ── atalhos de teclado (§8.6 C3 · §8.7 · §12) ──────────────
+  // ── atalhos de teclado (§8.6 C3 · §8.7 · §11.5) ──────────────
   useEffect(() => {
     if (isMobile || erro) return undefined;
     // digitando num campo, o teclado é do campo: Delete apaga texto, não peça
@@ -833,7 +833,7 @@ export default function ProjectEstrutura({ project, patch }) {
         >
           <Grid3x3 size={15} />
         </button>
-        {/* O ÍMÃ (§12): a borda da tela pula pra borda do que já está lá.
+        {/* O ÍMÃ (§11.5): a borda da tela pula pra borda do que já está lá.
             Desligado, ela para na grade de 10 cm — que é o mínimo pra medida do
             Caderno não sair com resto. */}
         {emTelas && (

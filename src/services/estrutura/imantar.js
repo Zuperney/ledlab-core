@@ -1,9 +1,9 @@
 // services/estrutura/imantar.js — o ímã do desenho e a trena.
 //
-// Espeque: docs/estrutura3d-spec.md §12 (E5).
+// Espeque: docs/estrutura3d-spec.md §11.5 (E4.5).
 //
 // DUAS COISAS, e as duas existem pela mesma razão: **posicionar à mão erra**.
-// Desde que a tela virou objeto solto (§12), largar uma parede "quase" encostada
+// Desde que a tela virou objeto solto (§11.5), largar uma parede "quase" encostada
 // na outra é o resultado normal do mouse — e um "quase" de 3 cm no desenho vira
 // uma emenda que não fecha no galpão.
 //

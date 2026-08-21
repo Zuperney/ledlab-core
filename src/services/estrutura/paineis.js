@@ -1,8 +1,8 @@
 // services/estrutura/paineis.js — as telas do projeto DENTRO do desenho.
 //
-// Espeque: docs/estrutura3d-spec.md §11 (E4) e §12 (E5).
+// Espeque: docs/estrutura3d-spec.md §11 (E4) e §11.5 (E4.5).
 //
-// ⚠️ A E5 VIROU A MESA, e foi decisão do dono (20/08): o painel **não é mais
+// ⚠️ A E4.5 VIROU A MESA, e foi decisão do dono (20/08): o painel **não é mais
 // pendurado numa peça**. Ele é um objeto SOLTO no mundo — posição livre em mm —
 // porque o que a aba entrega aqui é **preview de montagem**, não montagem. Regra
 // de fixação (clamp, sapata, apoio) é do rigger e ainda não existe no app; até
@@ -113,7 +113,7 @@ export function poseLivre(pos, olha) {
  *
  * Ele encosta e não invade: o centro sai do centro da face, empurrado pela
  * metade da própria extensão naquela direção. Continua aqui porque projeto
- * gravado antes da E5 tem que abrir desenhando igual.
+ * gravado antes da E4.5 tem que abrir desenhando igual.
  */
 export function poseAncorada(montagem, painel, tela) {
   const peca = pecaDaMontagem(montagem, painel?.de);
@@ -135,7 +135,7 @@ export function poseAncorada(montagem, painel, tela) {
 }
 
 /**
- * A matriz de mundo do painel — solto (E5) ou ancorado (v2, legado).
+ * A matriz de mundo do painel — solto (E4.5) ou ancorado (v2, legado).
  *
  * Quem tem `pos` é solto e manda; sem `pos`, cai na âncora. Um `if` só, e é o
  * que deixa o formato antigo abrindo sem migração forçada.
@@ -146,7 +146,7 @@ export function poseDoPainel(montagem, painel, tela) {
   return poseAncorada(montagem, painel, tela);
 }
 
-/** o painel está solto (E5) ou ainda preso numa peça (v2)? */
+/** o painel está solto (E4.5) ou ainda preso numa peça (v2)? */
 export const painelSolto = (painel) => Array.isArray(painel?.pos);
 
 /**
@@ -258,7 +258,7 @@ export const MATRIZ_SOLTA = arredMatriz(matriz(IDENTIDADE, [0, 0, 0]));
  * O peso das telas no desenho — e QUANTO DELE ESTÁ NO AR.
  *
  * Separado do peso da estrutura de propósito: quem monta precisa saber quanto a
- * treliça pesa por si e quanto ela está CARREGANDO. Com o painel solto (E5) a
+ * treliça pesa por si e quanto ela está CARREGANDO. Com o painel solto (E4.5) a
  * separação virou três números, porque parede apoiada no chão não pendura em
  * nada — e somar as duas daria um "suspenso" que ninguém vai içar.
  *
@@ -307,7 +307,7 @@ export const MOTIVOS_DE_PAINEL = Object.freeze({
  * - `sem-apoio`  — só no formato antigo: a peça onde ele estava pendurado sumiu;
  * - `atravessa`  — o painel entra numa peça da estrutura. É o "não cabe no vão";
  * - `no-chao`    — a borda de baixo passa DO piso, ou seja, o painel está
- *                  enterrado. Painel APOIADO no piso é caso normal desde a E5 e
+ *                  enterrado. Painel APOIADO no piso é caso normal desde a E4.5 e
  *                  não é problema nenhum.
  */
 export function problemasDosPaineis(montagem, telas = []) {

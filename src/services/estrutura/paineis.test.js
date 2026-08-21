@@ -1,4 +1,4 @@
-// paineis.test.js — as telas do projeto no desenho (E4 · E5).
+// paineis.test.js — as telas do projeto no desenho (E4 · E4.5).
 import { describe, it, expect } from "vitest";
 import {
   ESPESSURA_PADRAO_MM, MOTIVOS_DE_PAINEL, caixaDoPainel, eixosDoPainel, medidasDaTela,
@@ -234,8 +234,8 @@ describe("o aviso de VÃO, no pórtico de verdade", () => {
   });
 });
 
-// ── E5: a tela é SOLTA ───────────────────────────────────────
-describe("a tela solta (E5)", () => {
+// ── E4.5: a tela é SOLTA ───────────────────────────────────────
+describe("a tela solta (E4.5)", () => {
   const solta = (pos, olha = "N") => ({
     ...novaMontagem(),
     paineis: [{ id: "p1", telaId: "t1", olha, pos }],
@@ -276,7 +276,7 @@ describe("a tela solta (E5)", () => {
     expect(paineisNoMundo(solta([0, 4000, 0]), [tela()])[0].apoiado).toBe(false);
   });
 
-  // parede APOIADA no piso é caso normal desde a E5; só enterrada é problema
+  // parede APOIADA no piso é caso normal desde a E4.5; só enterrada é problema
   it("apoiada no chão não é aviso; enterrada é", () => {
     expect(problemasDosPaineis(solta([0, 500, 0]), [tela()])).toEqual([]);
     expect(problemasDosPaineis(solta([0, -500, 0]), [tela()]).map((x) => x.motivo))

@@ -4,7 +4,8 @@
 > Motor puro em `src/services/estrutura/`, cena em `src/vista3d/`, a aba
 > Estrutura montando de verdade e a **folha ESTRUTURA no Caderno e no PDF** —
 > lista de peças, peso, medidas, ferragem e a vista 3D capturada. 626 testes.
-> A próxima é a **E4** (os painéis pendurados na estrutura).
+> A **E4** saiu, e a **E4.5** virou a mesa dela: as telas são objetos SOLTOS no
+> desenho (§11.5). A próxima é a **E5** (a biblioteca do galpão).
 >
 > 📚 **Base de pesquisa:** [`estrutura3d-pesquisa.md`](./estrutura3d-pesquisa.md) —
 > dissecação do TrussTool, mercado, stack medida e os dados reais do truss
@@ -1169,6 +1170,7 @@ Como `conectoresOcupados` deriva de `juntas`, a mudança se propaga inteira:
 | **E3.10 · As seis direções** ✅ | §8.11: a rotação passa a se descrever pelo **piso** (`N · S · L · O · CIMA · BAIXO`), e não pelo eixo da junta · sete regras nomeadas (D1–D7) · **um comando só** (`ACOES.POSE`) · chip da face cega na F3 · teste de **propriedade** provando que girar qualquer peça não move nenhuma outra | E3.9 |
 | **E3.11 · A junta se mede** ✅ | §8.12: junta deixa de ser contada na ÁRVORE e passa a ser medida na GEOMETRIA — o pórtico fecha nas duas pontas, e a segunda valia parafuso que não entrava na caixa (8 juntas, não 7) | E3.10 |
 | **E4 · Os painéis** ✅ | §11: as telas do projeto **penduradas em qualquer face** da estrutura, com o **peso suspenso** separado (treliça · painel · total), o painel **desenhado com a grade de gabinetes** e o **aviso de vão** — quando a parede não cabe ou arrasta no chão. **É o diferencial que ninguém tem** | E3 |
+| **E4.5 · As telas soltas** ✅ | §11.5: o painel deixa de ser pendurado numa peça e vira objeto SOLTO — o que a aba entrega é **preview de montagem**, não montagem · quatro modos (Montar · Telas · Medir · Ver) · ímã de **nove pontos** entre telas e por plano com a estrutura · trava de eixo (`Shift` altura, `Ctrl` comprimento) e setas de ajuste fino · **trena** de dois cliques · peso separado em suspenso e apoiado no chão | E4 |
 | **E5 · A biblioteca do galpão** | o dono cadastra o estoque real — peso pesado na balança, com procedência, igual à biblioteca de gabinetes | E3 |
 | **E6 · Backlog** | campo **ART** no projeto · tabela de carga da Feeling *(só com a revisão confirmada)* · **DXF 2D** de planta e elevação · export **GLB** · import/export **MVR** | — |
 
@@ -1302,6 +1304,126 @@ aba avisa. Apagar junto seria perder trabalho por tabela — mesma régua dos ó
 do §5.5.
 
 ---
+
+## 11.5 · As telas soltas (E4.5)
+
+A E4 prendeu a tela numa **face de peça**: você selecionava a treliça e o painel
+nascia grudado nela. O dono derrubou a premissa em uma frase (20/08):
+
+> *"vamos tornar agora a parte de painéis como um layout, não vamos se prender a
+> regras de montagem ainda, quero como se fosse um preview de montagem, então as
+> telas devem estar disponíveis e soltas pra poder por onde achar melhor"*
+
+Ele está certo, e a razão é do produto: **o app não sabe de fixação**. Clamp,
+sapata, meia-lua, ponto de içamento — nada disso existe aqui, e enquanto não
+existir, prender a tela à treliça é o app fingindo uma regra que ele não tem. O
+que a aba entrega é **preview de montagem**, e preview se desenha.
+
+### O painel vira objeto solto
+
+`painel.pos` é o centro dele no mundo, em mm. Não há peça dona. O arquivo sobe
+pra **versão 3** — e só quando existe painel solto de verdade, pela mesma régua
+de sempre (§5.5).
+
+**O formato antigo continua desenhando.** Painel v2 (`de` + `face`) é resolvido
+pela âncora, como sempre foi, e `migrarPaineis` congela a pose de mundo na
+abertura — **exatamente onde ele já estava**. Migração que move a coisa é
+migração que o técnico descobre no galpão.
+
+### Quatro modos, um gesto cada
+
+Foi o que resolveu a colisão que a E4 criou: o mesmo clique tentava encaixar
+peça, selecionar e pendurar tela, e o técnico descobria qual das três tinha
+acontecido depois do fato.
+
+| modo | o gesto |
+| --- | --- |
+| **Montar** | escolhe a peça, clica no piso (nasce ali) ou num conector (emenda) |
+| **Telas** | escolhe a tela, clica no piso; arrasta pra mover, `R` vira o LED |
+| **Medir** | dois cliques e a distância entre eles, em metro, no desenho |
+| **Ver** | o clique só seleciona (o `V` segurado faz isso sem sair do Montar) |
+
+A tela nasce **em pé, no chão, virada pra câmera**. Parede que nasce deitada ou
+de costas cobra dois gestos de correção antes de qualquer trabalho de verdade.
+
+### O ímã: duas réguas, e a diferença é de propósito
+
+- **tela × tela — PONTO A PONTO.** Cada parede tem **nove pontos**: as quatro
+  quinas, os quatro meios de borda e o centro. O par mais próximo dentro do
+  alcance vence, e a correção vale **nos três eixos de uma vez**. Parede com
+  parede é emenda, e emenda que erra 3 cm no desenho é emenda que não fecha no
+  galpão;
+- **tela × treliça e tela × piso — POR PLANO.** Cada eixo decide sozinho, contra
+  as bordas e o meio. Mais frouxo, e é o que se quer: encostar num truss é
+  **apoiar**, não casar quina.
+
+Mesmo motor, duas fontes de candidato — o ponto tenta primeiro, o plano é a rede
+embaixo. Sem nada por perto, a grade de 10 cm.
+
+O **alcance é em pixels de tela**, não em mm fixos: 300 mm é generoso com a
+câmera perto e vira meio pixel com ela longe. É a mesma régua que o `snap.js` já
+usava pros conectores — quem converte tolerância de tela em mundo é a vista.
+
+### Os pontos aparecem, e a cor segue a superfície
+
+Ímã invisível parece bug: o técnico via a parede pular e não via pra **onde**.
+Com a tela selecionada, os nove pontos dela e os das vizinhas são desenhados, e o
+que **pegou** acende maior.
+
+> ⚠️ A cor não é escolha, é **lei do manual** (§2.1: *sobre lime a tinta é SEMPRE
+> preta*). A tela que se arrasta é a selecionada, e a selecionada é **lime** —
+> ponto lime nela seria invisível. A de destino é o **escuro** do painel, onde o
+> preto sumiria. Então os pontos da tela que se move são **pretos** e os das
+> vizinhas são **lime**. Uma cor só não resolve as duas: o par de superfícies é
+> claro e escuro — e por isso não foi preciso inventar cor fora da marca.
+
+Só no modo Telas e só com tela selecionada. E são **andaime**: somem na foto do
+Caderno, junto com a grade e os conectores.
+
+### A trava de eixo: cada modificador deixa UM eixo livre
+
+| tecla | o que se move |
+| --- | --- |
+| — | a tela anda no chão (dois eixos livres) |
+| `Shift` | só a **altura**. X e Z ficam exatamente onde estavam |
+| `Ctrl` | só o **comprimento da parede**: desliza pro lado sem subir nem avançar |
+
+**Trava de verdade, não "plano de arraste".** O plano vertical da primeira versão
+ainda deixava a tela escorregar de lado enquanto se tentava levantá-la — quem
+segura Shift quer levantar, não passear. Dá pra trocar de trava no meio do gesto,
+e o eixo travado **não gruda em nada**: a trava é do dedo do técnico, e ímã que a
+desfaz é ímã que atrapalha.
+
+**As setas fazem o ajuste fino**, com cota exata — 10 cm por toque, 1 m com
+Shift. `↑↓` sobem, `←→` andam no chão pros lados, `Ctrl+↑↓` andam pra frente e
+pra trás (Ctrl é sempre "no chão", igual no arraste). O mouse posiciona, a seta
+acerta.
+
+### A trena
+
+Dois cliques e a distância entre eles, desenhada em cima da estrutura com o
+número em metro. Os cliques **grudam** nos pontos que importam — nó de treliça,
+quina de tela —, porque medir "mais ou menos de onde eu cliquei" não mede nada. A
+faixa mostra também a projeção **horizontal** e a **vertical**: quem mede vão
+quer uma, quem mede içamento quer a outra, e a reta em diagonal não responde
+nenhuma das duas.
+
+A medida fica visível nos outros modos e **sai na imagem do Caderno**, se a
+captura for feita com ela na tela. É informação, não andaime.
+
+### O peso virou três números
+
+Tela apoiada no chão **não pendura em nada**. Somar as duas daria um "suspenso"
+que ninguém vai içar — e é justamente esse o número que o rigger lê antes de
+subir. Então: quanto a **treliça** pesa, quanto está **suspenso** e quanto está
+**apoiado no piso**. Vale na aba e na folha do Caderno.
+
+### O horizonte, outra vez
+
+Todo plano infinito tem um lugar onde o raio da câmera fica quase paralelo a ele,
+e o encontro dos dois vai parar a quilômetros. Foi assim que um clique de raspão
+nasceu peça a 20 km (§8.7), e foi assim que um arraste de raspão jogou uma parede
+a 51 m. A guarda do palco (a grade de 40 × 40 m) agora vale pros **dois**.
 
 ## 12 · O que trava, e quem destrava
 

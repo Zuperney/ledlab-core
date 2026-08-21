@@ -20,7 +20,7 @@ const numeros = (v, n) =>
 
 /** montagem → objeto puro, pronto pra JSON.stringify */
 export function paraJSON(montagem) {
-  // o painel SOLTO (E5) grava posição; o do formato antigo grava a âncora. Não
+  // o painel SOLTO (E4.5) grava posição; o do formato antigo grava a âncora. Não
   // convertemos aqui de propósito: a conversão precisa das medidas da tela, que
   // o serializador não tem — ela mora no `migrarPaineis`, na abertura da aba.
   const paineis = (montagem?.paineis ?? []).map((p) => (

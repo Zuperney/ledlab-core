@@ -154,7 +154,7 @@ export function criarCena(canvas, cores) {
   const matSeta = new MeshBasicMaterial({ color: cores.selecao });
   let malhaSetas = null;
 
-  // ── os PONTOS DE ÍMÃ da tela (E5) ──────────────────────────
+  // ── os PONTOS DE ÍMÃ da tela (E4.5) ──────────────────────────
   // Nove por parede: as quatro quinas, os quatro meios de borda e o centro. Sem
   // eles o técnico via a tela pular e não via pra ONDE ela estava pulando — ímã
   // invisível parece bug, não ajuda.
@@ -206,7 +206,7 @@ export function criarCena(canvas, cores) {
     solicitar();
   }
 
-  // ── a TRENA (E5) ──────────────────────────────────────
+  // ── a TRENA (E4.5) ──────────────────────────────────────
   // Dois pontos, a reta entre eles e o número em cima. `depthTest: false` de
   // propósito: quem mede o vão de um pórtico mede ATRAVÉS da treliça, e uma
   // linha escondida atrás da peça não mede nada.
@@ -689,7 +689,7 @@ export function criarCena(canvas, cores) {
   /**
    * Onde o ponteiro encosta num PLANO qualquer, em mm de mundo.
    *
-   * É o que sustenta o arraste da tela (§12): o plano é escolhido no momento em
+   * É o que sustenta o arraste da tela (§11.5): o plano é escolhido no momento em
    * que se pega o painel — horizontal pra passear pelo palco, vertical de frente
    * pra câmera pra subir e descer — e a tela acompanha o ponteiro dentro dele.
    */

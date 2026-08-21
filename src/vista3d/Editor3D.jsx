@@ -4,7 +4,7 @@
 // que se move 60 vezes por segundo (câmera, matrizes, seleção) fica do lado de
 // lá, imperativo. É o motivo de não usarmos react-three-fiber (espeque §4.1).
 //
-// O GESTO DEPENDE DO MODO (§12), e é o que impede uma tecla de fazer duas coisas:
+// O GESTO DEPENDE DO MODO (§11.5), e é o que impede uma tecla de fazer duas coisas:
 //   · montar — o clique encaixa peça, o Ctrl é conta-gotas;
 //   · telas  — o clique põe/pega a tela e o arraste move ela;
 //   · medir  — cada clique é uma ponta da trena;
@@ -49,14 +49,14 @@ export default function Editor3D({
   onEncaixar, // (indice) — comita a peça
   fantasma = null, // { catalogoId, matriz } da prévia
   setas = null, // matrizes de mundo das setas de face cega (§8.6, C1)
-  // ── modo Telas (§12) ──
+  // ── modo Telas (§11.5) ──
   paineis = null, // as telas no desenho, com a matriz de mundo já resolvida
   onPainelSelecionar, // (id|null)
   onPainelArrastar, // (id, [x,y,z], mmPorPixel, eixosLivres) — 60×/s, fora do histórico
   onPainelSoltar, // (id) — o arraste virou UM comando só
   onChaoTela, // ([x,y,z]) — clique no piso vazio: a tela escolhida nasce ali
-  pontosIma = null, // { meus, alvos, ancora } — os nove pontos de encaixe (§12)
-  // ── modo Medir (§12) ──
+  pontosIma = null, // { meus, alvos, ancora } — os nove pontos de encaixe (§11.5)
+  // ── modo Medir (§11.5) ──
   medida = null, // { a, b, texto } da trena, ou null
   onMedir, // ([x,y,z]) — mais uma ponta
   // ── conta-gotas (Ctrl segurado) ──

@@ -2,6 +2,108 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.24.0] — 2026-08-20
+
+**As telas entram no desenho 3D como layout solto, o processamento ganha o corte dentro da Screen — e o vão sai da conta de resolução.**
+
+### A aba Estrutura: as telas soltas (E4.5)
+
+A E4 tinha prendido a tela numa face de peça. O dono derrubou a premissa: *"quero
+como se fosse um preview de montagem, então as telas devem estar disponíveis e
+soltas pra poder por onde achar melhor"*. Ele está certo pela razão do produto —
+**o app não sabe de fixação**, e enquanto não souber, prender a tela à treliça é
+fingir uma regra que ele não tem. Espeque em `docs/estrutura3d-spec.md` §11.5.
+
+- **Quatro modos, um gesto cada**: `Montar` · `Telas` · `Medir` · `Ver`. Foi o que
+  resolveu a colisão que a E4 criou — o mesmo clique tentava encaixar peça,
+  selecionar e pendurar tela, e o técnico descobria qual das três tinha
+  acontecido depois do fato.
+- **A tela nasce em pé, no chão, virada pra câmera**, e se arrasta pelo palco.
+  Parede que nasce deitada ou de costas cobra dois gestos de correção antes de
+  qualquer trabalho de verdade.
+- **O ímã tem duas réguas.** Entre **tela e tela** é ponto a ponto: cada parede
+  tem **nove pontos** (quatro quinas, quatro meios de borda e o centro), e o par
+  mais próximo casa nos três eixos de uma vez. Entre **tela e treliça** (e com o
+  piso) é por plano, mais frouxo — encostar num truss é apoiar, não casar quina.
+  O alcance é em **pixels de tela**, não em mm fixos: mesma régua que o `snap.js`
+  já usava pros conectores.
+- **Os pontos são desenhados**, e a cor segue a superfície: pretos na tela que se
+  move (que é a selecionada, logo lime) e lime nas vizinhas (que são escuras). É
+  lei do manual §2.1, não escolha — e por isso não foi preciso inventar cor fora
+  da marca. O ponto que pega **acende maior**.
+- **Trava de eixo — cada modificador deixa UM eixo livre**: `Shift` só a altura,
+  `Ctrl` só o comprimento da parede. Dá pra trocar de trava no meio do gesto, e
+  eixo travado não gruda em nada.
+- **As setas fazem o ajuste fino**, com cota exata: `↑↓` sobem, `←→` andam no
+  chão pros lados, `Ctrl+↑↓` andam pra frente e pra trás. 10 cm por toque, 1 m
+  com `Shift`.
+- **Trena**: dois cliques e a distância entre eles em metro, desenhada em cima da
+  estrutura, com as projeções horizontal e vertical na faixa. Os cliques grudam
+  nos nós da treliça e nas quinas das telas. A medida **sai na imagem do
+  Caderno** — é informação, não andaime.
+- **O peso virou três números**: quanto a treliça pesa, quanto está **suspenso** e
+  quanto está **apoiado no chão**. Parede no piso não pendura em nada, e somar as
+  duas dava um "suspenso" que ninguém vai içar.
+- **Formato**: `paineis[].pos` (arquivo na versão 3). Painel do formato antigo
+  continua desenhando e é **congelado exatamente onde já estava** na abertura —
+  migração que move a coisa é migração que o técnico descobre no galpão.
+
+### Partir a tela dentro da Screen
+
+Quando o processamento divide a parede, o único jeito de representar isso era
+duplicar a tela no cadastro, encolher as duas e chamar de "parte 1" e "parte 2" —
+o que funciona no desenho e mente em peso, área e elétrica.
+
+- **O corte se declara na Screen**: selecione a tela, ligue a tesoura e clique na
+  divisão entre gabinetes. Corte reto, na vertical e na horizontal, e pode ser
+  desigual (10 + 6) — que é como a parede se divide de verdade.
+- **Nenhuma porta atravessa o corte.** Cada parte é uma ilha de orçamento e um
+  aglomerado próprio, nas duas réguas (px e área). O mapa desenha a linha, na aba
+  e no papel.
+- **A tela continua inteira no cadastro.** Visão Geral, peso, área e elétrica
+  seguem falando de uma parede só, porque no palco ela é uma só. As partes
+  aparecem só no cabeamento: `Partes` na ficha da Screen, `P1`/`P2` nas portas e
+  no mapa de pixels.
+- **Só pro sinal** (decisão do dono): energia não tem motivo pra respeitar limite
+  de processador, e os circuitos de AC continuam correndo pela tela toda.
+- Corte fora do intervalo é **saneado na leitura** — encolher a tela na aba Dados
+  não deixa a Screen num estado torto. Cabo desenhado à mão que atravessa o corte
+  é **declarado no papel**, não corrigido em silêncio.
+
+### Correção — o vão entre telas não é pixel
+
+O espaço que o técnico deixa entre as telas no canvas é **referência visual** de
+como elas ficam separadas no palco. Não é LED, não é processamento — e estava
+entrando na conta de resolução do Caderno.
+
+- **Resolução da Screen**: duas telas de 512 px com um respiro saíam como
+  `1.536 × 384` em vez de `1.024 × 384`. É esse número que alguém digita no
+  NovaLCT. Agora a resolução soma só o que cada eixo realmente cobre; a caixa do
+  desenho continua no papel, com o nome certo — **Disposição no desenho** —, e só
+  quando existe vão.
+- **Canvas de conteúdo** (aba Composição, caderno Design): mesma régua, a pedido
+  do dono. Mudam junto, por consequência, os **megapixels** e o **Tamanho** em
+  metros — que agora é o LED que existe, não o alcance no palco. A área em m² já
+  era assim desde sempre; era a resolução que estava fora da régua.
+- É a mesma armadilha que já tinha mordido a **grade da Screen** (a caixa contava
+  gabinete que não existe). Agora a régua é uma só, e são duas medidas com dois
+  nomes.
+- **Telas encostadas não mudam em nada** — o caso comum devolve exatamente o
+  número de antes.
+
+### Correções de bastidor
+
+- **O horizonte, outra vez**: arrastar uma tela num raio rasante a jogava a 51 m.
+  É o mesmo plano infinito que um dia nasceu peça a 20 km; a guarda do palco
+  agora vale pros dois.
+- **Duas setas no mesmo quadro não se somavam**: cada uma partia da posição da
+  renderização, então a segunda apagava a primeira e dez toques andavam 10 cm.
+- **O `Ctrl` acendia o conta-gotas em todo modo** — cursor de copiar e pílula na
+  faixa —, prometendo no modo Telas uma coisa que só existe no Montar.
+- **A aba ensina a pôr a tela**: a ajuda ganhou o caminho inteiro e a paleta de
+  telas ficou ao lado do desenho, igual à do catálogo. Na E4 o gesto morava atrás
+  de um botão que só existia com peça selecionada, e o próprio dono não achou.
+
 ## [1.23.0] — 2026-08-19
 
 **A estrutura entra no app: box truss em 3D, com lista de peças, peso e medidas reais.**

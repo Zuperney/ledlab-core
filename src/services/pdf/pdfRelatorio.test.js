@@ -664,7 +664,7 @@ describe("folha ESTRUTURA (box truss)", () => {
   });
 });
 
-describe("folha ESTRUTURA — as telas no desenho (E4 · E5)", () => {
+describe("folha ESTRUTURA — as telas no desenho (E4 · E4.5)", () => {
   const montagem = paraJSON(porticoDeExemplo());
   const viga = montagem.pecas.find((p) => p.catalogoId === "p30-b4000");
   const comPainel = (cols) => ({

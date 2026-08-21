@@ -1,4 +1,4 @@
-// imantar.test.js — o ímã do desenho e a trena (E5).
+// imantar.test.js — o ímã do desenho e a trena (E4.5).
 import { describe, it, expect } from "vitest";
 import {
   IMA_MM, PASSO_PADRAO_MM, imantar, imantarPonto, maisProximo, medir, planosDeImante,

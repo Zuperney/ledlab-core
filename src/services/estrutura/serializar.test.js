@@ -123,7 +123,7 @@ describe("recalcular ao carregar", () => {
   });
 });
 
-describe("os painéis atravessam o arquivo (E4 · E5)", () => {
+describe("os painéis atravessam o arquivo (E4 · E4.5)", () => {
   const comAncora = () => {
     const m = adicionarPecaLivre(novaMontagem(), "p30-b2000", { id: "a" });
     return adicionarPainel(m, { id: "p1", telaId: "t9", de: "a", face: "BAIXO", olha: "L" });
@@ -141,7 +141,7 @@ describe("os painéis atravessam o arquivo (E4 · E5)", () => {
     expect(deJSON(json).paineis).toEqual(json.paineis);
   });
 
-  // ⚠️ O FORMATO ANTIGO NÃO PODE QUEBRAR: projeto gravado antes da E5 abre igual
+  // ⚠️ O FORMATO ANTIGO NÃO PODE QUEBRAR: projeto gravado antes da E4.5 abre igual
   it("ida e volta preserva o painel ancorado do formato antigo", () => {
     const json = paraJSON(comAncora());
     expect(json.paineis).toEqual([

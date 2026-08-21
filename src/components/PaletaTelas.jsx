@@ -1,6 +1,6 @@
 // components/PaletaTelas.jsx — as telas do projeto, prontas pra entrar no desenho.
 //
-// Espeque: docs/estrutura3d-spec.md §12 (E5).
+// Espeque: docs/estrutura3d-spec.md §11.5 (E4.5).
 //
 // MESMO GESTO DO CATÁLOGO, de propósito: escolhe aqui, clica no piso, nasce ali.
 // Quem já sabe pôr uma barra sabe pôr uma parede — e foi justamente o gesto

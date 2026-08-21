@@ -135,7 +135,7 @@ export function dadosDaFolha(project, imagem = null, opcoes = {}) {
       : "Peso estimado — valores de catálogo, ainda não conferidos na balança.",
     imagem: imagem ?? null,
     imagemEm: project?.estruturaImg?.em ?? null,
-    // ── AS TELAS NO DESENHO (E4 · E5) ──
+    // ── AS TELAS NO DESENHO (E4 · E4.5) ──
     // O peso da treliça e o peso das TELAS saem separados, e o que fecha embaixo
     // é o SUSPENSO: treliça mais as telas que estão no ar. Tela apoiada no chão
     // não pendura em nada, e somá-la daria um número que ninguém vai içar.
@@ -163,7 +163,7 @@ export function dadosDaFolha(project, imagem = null, opcoes = {}) {
           pesoKg: item.medidas?.pesoKg ?? null,
           suspenso: !item.apoiado,
           // ONDE ELA ESTÁ é a ALTURA da borda de baixo, não o nome de uma peça:
-          // desde que a tela é solta (§12) ela não tem peça dona, e quem vai
+          // desde que a tela é solta (§11.5) ela não tem peça dona, e quem vai
           // montar precisa saber a que altura ela começa.
           em: onde(item, chao),
         })),

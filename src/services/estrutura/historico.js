@@ -33,7 +33,7 @@ export const ACOES = Object.freeze({
   // motor reancora as juntas em volta; o inverso carrega a matriz anterior.
   // Um comando só pra barra e cubo, solta e encaixada — girar é girar.
   POSE: "pose",
-  // as telas no desenho (E4 · E5): pôr, tirar e mexer (posição / pra onde olha).
+  // as telas no desenho (E4 · E4.5): pôr, tirar e mexer (posição / pra onde olha).
   // O arraste inteiro entra como UM `PAINEL` só, comitado no soltar do botão —
   // senão um gesto de dois segundos enche o desfazer com cem passos.
   PAINEL_NOVO: "painel-novo",

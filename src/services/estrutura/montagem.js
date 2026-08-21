@@ -23,7 +23,7 @@ import {
 // AS VERSÕES DO ARQUIVO, e por que são três:
 //   1 — estrutura pura, como nasceu;
 //   2 — painel PENDURADO numa peça (E4);
-//   3 — painel SOLTO, com posição de mundo (E5).
+//   3 — painel SOLTO, com posição de mundo (E4.5).
 // Um arquivo só sobe quando usa mesmo o recurso novo, então projeto de estrutura
 // pura continua na 1 e continua abrindo em quem ainda não atualizou o app.
 export const VERSAO_MONTAGEM = 3;
@@ -222,11 +222,11 @@ export function adicionarPecaEncaixada(montagem, pedido) {
   return { ...montagem, pecas: [...montagem.pecas, peca] };
 }
 
-// ── painéis (E4 · E5) ────────────────────────────────────────
+// ── painéis (E4 · E4.5) ────────────────────────────────────────
 // O painel guarda só o `telaId`: medida e peso saem da tela do projeto, viva.
 // Ver `paineis.js` pra geometria.
 //
-// DESDE A E5 ELE É SOLTO: `pos` é o centro dele no mundo, em mm, e não há peça
+// DESDE A E4.5 ELE É SOLTO: `pos` é o centro dele no mundo, em mm, e não há peça
 // dona. O formato antigo (`de` + `face`) continua sendo aceito aqui só pra
 // desfazer e refazer o que veio de um projeto v2 — quem cria painel novo manda
 // `pos`.
@@ -272,7 +272,7 @@ export function removerPeca(montagem, id) {
   const pecas = montagem.pecas
     .filter((p) => p.id !== id)
     .map((p) => (p.encaixe?.de === id ? { ...p, encaixe: null } : p));
-  // ⚠️ O PAINEL NÃO SOME JUNTO. Desde a E5 ele nem depende da peça — fica no
+  // ⚠️ O PAINEL NÃO SOME JUNTO. Desde a E4.5 ele nem depende da peça — fica no
   // lugar onde está, como qualquer outra coisa do desenho. No formato antigo
   // (v2) ele fica sem apoio e a aba avisa: apagar o painel por tabela seria
   // perder trabalho que o desfazer conserta tarde demais na cabeça de quem monta.
