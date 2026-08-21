@@ -9,7 +9,7 @@
 // fora de qualquer Screen = "sem sistema" (aparece nos disponíveis, ainda não cabeada).
 // Um projeto pode ter 1 Screen com tudo (caso Colação) ou N Screens (caso Admicon) —
 // é escolha dele. Cada Screen tem origem própria (0,0), igual no NovaLCT.
-import { packByModel } from "./layout.js";
+import { extensaoCoberta, packByModel } from "./layout.js";
 import { dimOf, modelKey } from "./canvasCabling.js";
 
 // id vem de fora (genId no componente) pra manter isto puro/testável. sinal começa
@@ -46,6 +46,37 @@ export function screenSize(screen, telas) {
     h = Math.max(h, p.y + d.h);
   }
   return { w, h };
+}
+
+/**
+ * A RESOLUÇÃO da Screen: o retângulo de pixels que o processador dirige de
+ * verdade — SEM O VÃO.
+ *
+ * ⚠️ VÃO NÃO É PIXEL. O espaço que o técnico deixa entre as telas no canvas é
+ * referência visual de como elas vão ficar separadas no palco; não é LED, não é
+ * processamento e não pode entrar em conta de resolução. Contar o vão inflava a
+ * "Resolução da Screen" do caderno — duas telas de 1024 com um respiro no
+ * desenho viravam 2248 px em vez de 2048, e é esse número que alguém digita no
+ * NovaLCT.
+ *
+ * É a mesma régua que já vale pra grade (`screenGrid` conta gabinete real) e
+ * pra área em m² do canvas de conteúdo (o vão entre painéis não é LED).
+ *
+ * A `caixa` continua saindo junto: é a DISPOSIÇÃO, o retângulo que o desenho
+ * ocupa. Serve pro canvas da aba e pro caderno declarar o espaçamento — desde
+ * que com esse nome, nunca com o nome de resolução.
+ */
+export function screenResolucao(screen, telas) {
+  const membros = screenTelas(screen, telas);
+  const rects = membros.map((t) => {
+    const p = screen?.pos?.[t.id] || { x: 0, y: 0 };
+    const d = dimOf(t);
+    return { x: p.x, y: p.y, w: d.w, h: d.h };
+  });
+  const w = extensaoCoberta(rects.map((r) => [r.x, r.x + r.w]));
+  const h = extensaoCoberta(rects.map((r) => [r.y, r.y + r.h]));
+  const caixa = screenSize(screen, telas);
+  return { w, h, caixa, temVao: w !== caixa.w || h !== caixa.h };
 }
 
 // vão padrão da Screen (px): a folga que o técnico deixa entre telas. 0 = encostadas.

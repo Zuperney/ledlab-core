@@ -102,6 +102,34 @@ export function gapsAround(alvo, outros) {
   return [melhor.left, melhor.right, melhor.top, melhor.bottom].filter(Boolean);
 }
 
+/**
+ * Quanto um eixo está REALMENTE COBERTO, em px — a soma dos trechos com tela,
+ * ignorando o vazio entre eles.
+ *
+ * ⚠️ É a diferença entre RESOLUÇÃO e DISPOSIÇÃO, e ela já mordeu o caderno uma
+ * vez (a grade da Screen contava gabinete que não existe). O vão que o técnico
+ * deixa no canvas é referência VISUAL de como as telas ficam separadas — não é
+ * pixel de LED e não entra em nenhuma conta de resolução. Duas telas de 1024
+ * afastadas continuam sendo 2048 px de largura, não 2248.
+ *
+ * @param {Array<[number, number]>} intervalos pares [início, fim] no eixo
+ */
+export function extensaoCoberta(intervalos) {
+  const ordenados = (intervalos || [])
+    .filter((i) => Array.isArray(i) && i[1] > i[0])
+    .sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  let ini = null;
+  let fim = null;
+  for (const [a, b] of ordenados) {
+    if (ini === null) { ini = a; fim = b; continue; }
+    if (a <= fim) { fim = Math.max(fim, b); continue; } // encosta ou sobrepõe: junta
+    total += fim - ini;
+    ini = a; fim = b;
+  }
+  return ini === null ? 0 : total + (fim - ini);
+}
+
 // resolução real da tela em pixels (mesma regra do draw: gabinete vazio = 128)
 export const compDimOf = (t) => ({
   w: (t.cols || 1) * (parseFloat(t.gabinete?.resX) || 128),

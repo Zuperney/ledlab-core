@@ -13,7 +13,7 @@
 import { cableMeta, cablePorts, balancedChunks, buildAuto, portOffset, ampCabTipico } from "./cabling.js";
 import { acTone } from "./electricalCalc.js";
 import { canvasCells, snakeCellsPorTela, clusterTelas, portAreaPx, telaRects, panelIds, modelKey, orderCanvasPorts } from "./canvasCabling.js";
-import { screenTelas, screenOfTela, unassignedTelas, screenSize } from "./screens.js";
+import { screenTelas, screenOfTela, unassignedTelas, screenResolucao, screenSize } from "./screens.js";
 
 const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
 const cfgOf = (screen, kind) => (kind === "ac" ? screen?.ac : screen?.sinal) || {};
@@ -241,7 +241,17 @@ export function projectScreenReport(project, kind = "sinal", numbering = "row-tb
   const telas = project?.telas || [];
   return (project?.screens || [])
     .filter((s) => screenTelas(s, telas).length) // só telas existentes (LLC-11)
-    .map((s) => ({ id: s.id, nome: s.nome, size: screenSize(s, telas), grid: screenGrid(s, telas), ports: screenPortSummary(s, telas, kind, numbering, elCfg) }));
+    .map((s) => ({
+      id: s.id,
+      nome: s.nome,
+      // `res` é a RESOLUÇÃO (sem o vão) e `size` é a DISPOSIÇÃO (a caixa que o
+      // desenho ocupa). Duas coisas, dois nomes — misturá-las foi o que fez o
+      // caderno anunciar pixel que não existe.
+      res: screenResolucao(s, telas),
+      size: screenSize(s, telas),
+      grid: screenGrid(s, telas),
+      ports: screenPortSummary(s, telas, kind, numbering, elCfg),
+    }));
 }
 
 // Todos os cabos AC do projeto como [{ n, load, loadTip }] — o insumo do rodízio

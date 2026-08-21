@@ -361,6 +361,31 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(encostadas).toContain('"text":"8 × 3"');
   });
 
+  // ⚠️ O NÚMERO QUE ALGUÉM DIGITA NO NOVALCT. O vão do canvas é referência de
+  // montagem — contá-lo fazia a folha anunciar processamento que não existe.
+  it("Screen com VÃO: a resolução impressa é a REAL, e a caixa sai como disposição", () => {
+    const g128 = { ...gab, resX: 128, resY: 128 };
+    const mk = (id, nome) => ({ id, nome, cols: 4, rows: 3, gabinete: g128 }); // 512 × 384 cada
+    const scr = (posB) => ({ id: "s1", nome: "Screen 1", telaIds: ["tA", "tB"], pos: { tA: { x: 0, y: 0 }, tB: { x: posB, y: 0 } }, sinal: { rule: "px", strategy: "auto" } });
+    const doc = (posB) => JSON.stringify(buildRelatorioDoc({ project: { ...project, telas: [mk("tA", "Tela A"), mk("tB", "Tela B")], screens: [scr(posB)] }, tipo: "Mapa de cabos", cfg, logo: null }).content);
+
+    const comVao = doc(1024); // bbox 1.536 × 384; LED de verdade: 1.024 × 384
+    // O RÓTULO CARREGA O NÚMERO REAL. O `(?!"stack")` prende a busca dentro do
+    // mesmo item do specBox — sem isso ela vazaria pro item vizinho, que é
+    // justamente onde a caixa mora agora.
+    const noRotulo = (n) => new RegExp(`RESOLUÇÃO DA SCREEN(?:(?!"stack")[^])*?${n.replace(".", "\\.")}`);
+    expect(comVao).toMatch(noRotulo("1.024 × 384 px"));
+    expect(comVao).not.toMatch(noRotulo("1.536 × 384 px"));
+    // o espaçamento não some do papel: muda de nome, e o nome diz o que é
+    expect(comVao).toContain('"DISPOSIÇÃO NO DESENHO"');
+    expect(comVao).toContain('"1.536 × 384 px"'); // a caixa, declarada como disposição
+
+    // encostadas: nada a declarar, e a resolução é a mesma caixa
+    const encostadas = doc(512);
+    expect(encostadas).toContain('"1.024 × 384 px"');
+    expect(encostadas).not.toContain('"DISPOSIÇÃO NO DESENHO"');
+  });
+
   it("porta atravessando VÃO: o caderno declara se o vazio entrou na cota", () => {
     // duas telas 128×256 (1×3) afastadas, um cabo desenhado cobrindo as duas
     const gab128 = { ...gab, resX: 128, resY: 256 };

@@ -274,6 +274,25 @@ describe("screenGrid — contagem real de gabinetes (o vão não conta)", () => 
   });
 });
 
+// ⚠️ MESMA RÉGUA DA GRADE, agora no número mais visível do caderno: o vão que o
+// técnico deixa no canvas é referência de montagem, não pixel. Contá-lo fazia a
+// "Resolução da Screen" anunciar processamento que não existe.
+describe("projectScreenReport — resolução SEM o vão, disposição à parte", () => {
+  const comVao = { ...scTiras, telaIds: ["t1", "central"], pos: { t1: { x: 0, y: 0 }, central: { x: 1280, y: 0 } } };
+
+  it("a resolução conta só o que é LED; a caixa continua disponível, com outro nome", () => {
+    const [r] = projectScreenReport({ telas, screens: [comVao] });
+    expect(r.res).toMatchObject({ w: 1408, h: 768, temVao: true }); // 128 + 1280
+    expect(r.size).toEqual({ w: 2560, h: 768 }); // a bbox — o número antigo
+  });
+
+  it("Screen encostada: resolução e disposição batem, e não há vão pra declarar", () => {
+    const [r] = projectScreenReport({ telas, screens: [scTiras] });
+    expect(r.res.temVao).toBe(false);
+    expect([r.res.w, r.res.h]).toEqual([r.size.w, r.size.h]);
+  });
+});
+
 describe("projectScreenReport", () => {
   it("uma entrada por Screen com tela, com tamanho e portas 1..N por Screen", () => {
     const proj = { telas, screens: [scTiras, scImag, { id: "vazia", nome: "Vazia", telaIds: [], pos: {} }] };

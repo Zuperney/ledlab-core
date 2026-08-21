@@ -19,7 +19,7 @@ import HelpTip from "../../components/HelpTip.jsx";
 import { genId } from "../../services/ids.js";
 import { overlappingIds, snapAxis, gapsAround } from "../../services/layout.js";
 import { dimOf, modelKey } from "../../services/canvasCabling.js";
-import { makeScreen, unassignedTelas, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela, vaoOf } from "../../services/screens.js";
+import { makeScreen, unassignedTelas, screenTelas, screenSize, screenResolucao, arrangeScreen, addTela, removeTela, oneScreenPerTela, vaoOf } from "../../services/screens.js";
 
 // cor por modelo de gabinete (estável no projeto): mesma cor = a cadeia pode
 // encadear entre as telas. Numa Screen que mistura modelos, isso mostra o que junta.
@@ -91,7 +91,14 @@ export default function ProjectScreens({ project, patch }) {
   const posOf = (t) => (drag && drag.id === t.id ? drag : active.pos?.[t.id] || { x: 0, y: 0 });
   const overlapIds = overlappingIds(membros.map((t) => { const p = posOf(t), d = dimOf(t); return { id: t.id, x: p.x, y: p.y, w: d.w, h: d.h }; }));
   // bbox reagindo ao arraste em andamento (pro canvas não "pular"); screenSize é barato, sem hook
-  const size = screenSize(drag ? { ...active, pos: { ...active.pos, [drag.id]: { x: drag.x, y: drag.y } } } : active, telas);
+  const emArraste = drag ? { ...active, pos: { ...active.pos, [drag.id]: { x: drag.x, y: drag.y } } } : active;
+  const size = screenSize(emArraste, telas);
+  // ⚠️ DUAS MEDIDAS, DOIS NOMES. `size` é a caixa que o DESENHO ocupa — é ela que
+  // dimensiona o canvas aqui. `res` é a RESOLUÇÃO, sem o vão: o vão é referência
+  // visual de como as telas ficam separadas no palco, não é LED e não é
+  // processamento. Mostrar a caixa com cara de resolução fazia o técnico levar
+  // pro NovaLCT um número maior que a Screen.
+  const res = screenResolucao(emArraste, telas);
 
   const maxH = isMobile ? 260 : 380;
   const scale = size.w && size.h ? Math.min(wrapW / size.w, maxH / size.h, 1) : 1;
@@ -173,9 +180,18 @@ export default function ProjectScreens({ project, patch }) {
           <button style={{ ...iconBtn, color: T.red }} onClick={() => deleteScreen(active.id)} title="Excluir esta Screen" aria-label="Excluir Screen"><Trash2 size={15} /></button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-          <span style={{ color: T.dim, fontSize: 11.5, fontFamily: "ui-monospace, monospace" }}>{size.w.toLocaleString("pt-BR")} × {size.h.toLocaleString("pt-BR")} px</span>
+          <span
+            style={{ color: T.dim, fontSize: 11.5, fontFamily: "ui-monospace, monospace" }}
+            title={res.temVao
+              ? "Resolução = só o LED. O vão entre as telas é referência de montagem e não entra na conta."
+              : "Resolução da Screen"}
+          >
+            <b style={{ color: T.mut }}>{res.w.toLocaleString("pt-BR")} × {res.h.toLocaleString("pt-BR")} px</b>
+            {res.temVao && ` · ${size.w.toLocaleString("pt-BR")} × ${size.h.toLocaleString("pt-BR")} no desenho`}
+          </span>
           {/* o vão muda O QUE A SCREEN É (a montagem), então mora aqui no conteúdo —
-              não em ajustes de exibição. Arrastar encaixa nele; o auto-arrumar aplica. */}
+              não em ajustes de exibição. Arrastar encaixa nele; o auto-arrumar aplica.
+              Ele é DESENHO: separa as telas na figura e no papel, e nunca vira pixel. */}
           <label style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, color: T.mut, fontSize: 12, whiteSpace: "nowrap" }}>
             Vão (px)
             <NumField value={vao} onChange={(v) => patchScreen(active.id, { vao: Math.max(0, v) })}

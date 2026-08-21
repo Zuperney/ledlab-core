@@ -362,7 +362,16 @@ export default function ProjectRelatorio({ project }) {
               <div key={s.id} className="rp-block" style={telaBlock}>
                 <SubHead n={`${S}.${i + 1}`} title={s.nome} />
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", fontSize: 11.5, color: PRINT.mut, margin: "0 0 10px", padding: "9px 13px", background: PRINT.head, borderRadius: 8, border: `1px solid ${PRINT.line}` }}>
-                  <span>Resolução da Screen <b style={{ color: PRINT.ink }}>{s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px</b></span>
+                  {/* SEM O VÃO. O espaçamento que o técnico deixa no canvas é
+                      referência visual de como as telas ficam separadas — não é
+                      LED e não é processamento. É este número que alguém digita
+                      no NovaLCT. */}
+                  <span>Resolução da Screen <b style={{ color: PRINT.ink }}>{s.res.w.toLocaleString("pt-BR")} × {s.res.h.toLocaleString("pt-BR")} px</b></span>
+                  {s.res.temVao && (
+                    <span title="O espaçamento entre as telas no desenho é referência de montagem — não entra na resolução">
+                      Disposição no desenho <b style={{ color: PRINT.ink }}>{s.size.w.toLocaleString("pt-BR")} × {s.size.h.toLocaleString("pt-BR")} px</b>
+                    </span>
+                  )}
                   <span>Frequência <b style={{ color: PRINT.ink }}>{sp.hz} Hz</b></span>
                   <span>Gabinete <b style={{ color: PRINT.ink }}>{sp.resX} × {sp.resY} px</b></span>
                   {/* contagem REAL: a bbox da Screen inclui o vão entre telas afastadas, então a grade só sai quando a Screen é um retângulo cheio */}

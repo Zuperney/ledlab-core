@@ -1,7 +1,7 @@
-// layout.test.js — detecção de sobreposição da Composição (segurança de campo)
+﻿// layout.test.js — detecção de sobreposição da Composição (segurança de campo)
 // e o layout puro da Composição (fonte única da aba, do Caderno e do PDF).
 import { describe, it, expect } from "vitest";
-import { overlappingIds, reorder, packByModel, compLayout, regionEdges, snapAxis, gapsAround } from "./layout.js";
+import { overlappingIds, reorder, packByModel, compLayout, regionEdges, snapAxis, gapsAround, extensaoCoberta } from "./layout.js";
 
 const r = (id, x, y, w, h) => ({ id, x, y, w, h });
 
@@ -242,5 +242,31 @@ describe("gapsAround — a cota de px do vão no canvas", () => {
   it("sem alvo ou sem vizinhos → nada a cotar", () => {
     expect(gapsAround(null, [])).toEqual([]);
     expect(gapsAround(alvo, [])).toEqual([]);
+  });
+});
+
+// ⚠️ VÃO NÃO É PIXEL. O espaço entre as telas no canvas é referência visual de
+// como elas ficam separadas no palco — contá-lo inflava a resolução do caderno.
+describe("extensaoCoberta — o eixo sem o vão", () => {
+  it("trechos encostados viram um só", () => {
+    expect(extensaoCoberta([[0, 10], [10, 20]])).toBe(20);
+  });
+
+  it("o vazio entre os trechos NÃO conta", () => {
+    expect(extensaoCoberta([[0, 1024], [1224, 2248]])).toBe(2048);
+  });
+
+  it("sobreposição não conta duas vezes", () => {
+    expect(extensaoCoberta([[0, 100], [50, 150]])).toBe(150);
+  });
+
+  it("a ordem da entrada não importa", () => {
+    expect(extensaoCoberta([[1224, 2248], [0, 1024]])).toBe(2048);
+  });
+
+  it("vazio, trecho de largura zero e lixo somem", () => {
+    expect(extensaoCoberta([])).toBe(0);
+    expect(extensaoCoberta(null)).toBe(0);
+    expect(extensaoCoberta([[10, 10], null, [0, 5]])).toBe(5);
   });
 });

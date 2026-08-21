@@ -696,7 +696,7 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
                 return [
                   { text: `${S}.${i + 1}  ${s.nome}`, bold: true },
                   { text: nomes.join(", "), fontSize: 8.5, color: PRINT.mut },
-                  mono(`${ptBR(s.size.w)} × ${ptBR(s.size.h)} px`),
+                  mono(`${ptBR(s.res.w)} × ${ptBR(s.res.h)} px`),
                   mono(`${sp.hz} Hz`, { alignment: "right" }),
                   mono(String(s.ports.length), { alignment: "right", bold: true }),
                 ];
@@ -728,7 +728,12 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
           return bloco([
             subHead(`${S}.${i + 1}`, s.nome),
             specBox([
-              ["Resolução da Screen", `${ptBR(s.size.w)} × ${ptBR(s.size.h)} px`],
+              // SEM O VÃO: o espaçamento do desenho é referência de montagem,
+              // não é LED e não é processamento (ver `screenResolucao`)
+              ["Resolução da Screen", `${ptBR(s.res.w)} × ${ptBR(s.res.h)} px`],
+              ...(s.res.temVao
+                ? [["Disposição no desenho", `${ptBR(s.size.w)} × ${ptBR(s.size.h)} px`]]
+                : []),
               ["Frequência", `${sp.hz} Hz`],
               ["Gabinete", `${sp.resX} × ${sp.resY} px`],
               // contagem REAL: a bbox da Screen inclui o vão entre telas

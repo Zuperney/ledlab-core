@@ -1,6 +1,6 @@
 ﻿// screens.test.js — Screens que o técnico monta à mão (agrupamento manual).
 import { describe, it, expect } from "vitest";
-import { makeScreen, unassignedTelas, screenOfTela, screenTelas, screenSize, arrangeScreen, addTela, removeTela, oneScreenPerTela, dropTela, vaoOf } from "./screens.js";
+import { makeScreen, unassignedTelas, screenOfTela, screenTelas, screenSize, screenResolucao, arrangeScreen, addTela, removeTela, oneScreenPerTela, dropTela, vaoOf } from "./screens.js";
 
 const gabTira = { resX: "128", resY: "256" };
 const gabImag = { resX: "192", resY: "192" };
@@ -147,3 +147,46 @@ describe("dropTela — exclusão de tela limpa TODAS as Screens (LLC-11)", () =>
   });
 });
 
+
+// ⚠️ O NÚMERO QUE ALGUÉM DIGITA NO NOVALCT. O vão que o técnico deixa no canvas
+// é referência visual de como as telas ficam separadas — não é LED, não é
+// processamento, e contá-lo fazia o caderno anunciar pixel que não existe.
+describe("screenResolucao — a resolução SEM o vão", () => {
+  // IMAG = 6×3 de 192×192 → 1152 × 576 px cada
+  it("lado a lado com respiro: soma as larguras, ignora o vão", () => {
+    const s = { id: "s1", telaIds: ["imagE", "imagD"], pos: { imagE: { x: 0, y: 0 }, imagD: { x: 1352, y: 0 } } };
+    const r = screenResolucao(s, telas);
+    expect(r).toMatchObject({ w: 2304, h: 576, temVao: true });
+    // a caixa continua saindo, com o nome dela: é DISPOSIÇÃO, não resolução
+    expect(r.caixa).toEqual({ w: 2504, h: 576 });
+  });
+
+  it("empilhadas com respiro: o vão some da altura", () => {
+    const s = { id: "s1", telaIds: ["imagE", "imagD"], pos: { imagE: { x: 0, y: 0 }, imagD: { x: 0, y: 776 } } };
+    expect(screenResolucao(s, telas)).toMatchObject({ w: 1152, h: 1152, temVao: true });
+  });
+
+  // a correção não pode mexer no caso comum: encostadas, resolução == caixa
+  it("encostadas, é igual à caixa — e a aba não avisa vão nenhum", () => {
+    const s = { id: "s1", telaIds: ["imagE", "imagD"], pos: { imagE: { x: 0, y: 0 }, imagD: { x: 1152, y: 0 } } };
+    const r = screenResolucao(s, telas);
+    expect(r).toMatchObject({ w: 2304, h: 576, temVao: false });
+    expect(r.caixa).toEqual({ w: 2304, h: 576 });
+  });
+
+  // margem antes da primeira tela é espaçamento igual ao vão: não é pixel
+  it("tela afastada da origem não ganha resolução de graça", () => {
+    const s = { id: "s1", telaIds: ["imagE"], pos: { imagE: { x: 200, y: 100 } } };
+    expect(screenResolucao(s, telas)).toMatchObject({ w: 1152, h: 576, temVao: true });
+  });
+
+  it("telas de modelos diferentes somam o que cada uma cobre", () => {
+    // central 10×3 de 128×256 → 1280 × 768; tira 1×3 → 128 × 768
+    const s = { id: "s1", telaIds: ["central", "t1"], pos: { central: { x: 0, y: 0 }, t1: { x: 1380, y: 0 } } };
+    expect(screenResolucao(s, telas)).toMatchObject({ w: 1408, h: 768, temVao: true });
+  });
+
+  it("Screen vazia = 0 × 0, sem vão", () => {
+    expect(screenResolucao(makeScreen("s1", "A"), telas)).toMatchObject({ w: 0, h: 0, temVao: false });
+  });
+});
