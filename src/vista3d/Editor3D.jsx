@@ -49,7 +49,7 @@ export default function Editor3D({
   // ── modo Telas (§12) ──
   paineis = null, // as telas no desenho, com a matriz de mundo já resolvida
   onPainelSelecionar, // (id|null)
-  onPainelArrastar, // (id, [x,y,z]) — 60×/s, sem passar pelo histórico
+  onPainelArrastar, // (id, [x,y,z], mmPorPixel, eixosLivres) — 60×/s, fora do histórico
   onPainelSoltar, // (id) — o arraste virou UM comando só
   onChaoTela, // ([x,y,z]) — clique no piso vazio: a tela escolhida nasce ali
   // ── modo Medir (§12) ──
@@ -101,21 +101,40 @@ export default function Editor3D({
     };
 
     /**
-     * O PLANO DO ARRASTE. Sem Shift, a tela passeia pelo palco (plano
-     * horizontal); com Shift, sobe e desce num plano de frente pra câmera. São
-     * os dois movimentos que existem numa parede de LED, e separar por tecla
-     * evita a tela subir sozinha quando a pessoa quis só andar.
+     * A TRAVA DO ARRASTE, e a regra é uma frase: **cada modificador deixa UM
+     * eixo livre**.
      *
-     * ⚠️ REANCORA NA POSIÇÃO ATUAL, e é o que permite trocar de plano NO MEIO do
-     * gesto: segurar o Shift depois de já ter pegado a tela troca pra vertical
-     * sem que ela pule de lugar. Sem isso, quem não descobriu a tecla antes de
-     * clicar teria que largar e recomeçar.
+     *   · sem tecla — a tela anda no chão (dois eixos livres);
+     *   · `Shift`   — só a ALTURA se move. X e Z ficam exatamente onde estavam;
+     *   · `Ctrl`    — só o COMPRIMENTO DA PAREDE se move: ela desliza pro lado
+     *                 sem subir e sem avançar. É a trava de quem está emendando
+     *                 tela com tela.
+     *
+     * ⚠️ TRAVA DE VERDADE, não só "plano de arraste". O plano vertical de antes
+     * ainda deixava a tela escorregar de lado enquanto se tentava levantá-la — e
+     * quem segura Shift quer levantar, não passear.
+     *
+     * ⚠️ REANCORA NA POSIÇÃO ATUAL, e é o que permite trocar de trava NO MEIO do
+     * gesto: segurar o Shift depois de já ter pegado a tela muda pra altura sem
+     * que ela pule de lugar, e soltar volta pro chão preservando o que subiu.
      */
-    const escolherPlano = (e, vertical) => {
-      if (!pegada || pegada.vertical === vertical) return;
-      pegada.vertical = vertical;
+    const travaDe = (e, ladoK) => {
+      if (e.shiftKey) return { modo: "altura", eixos: [false, true, false] };
+      // livre só no eixo do comprimento da própria tela (a coluna `lado`)
+      if (e.ctrlKey || e.metaKey) {
+        return { modo: "comprimento", eixos: [0, 1, 2].map((k) => k === ladoK) };
+      }
+      return { modo: "chao", eixos: [true, false, true] };
+    };
+
+    const escolherPlano = (e) => {
+      if (!pegada) return;
+      const t = travaDe(e, pegada.ladoK);
+      if (pegada.modo === t.modo) return;
+      pegada.modo = t.modo;
+      pegada.eixos = t.eixos;
       pegada.centro = pegada.atual;
-      pegada.normal = vertical ? cena.olharDaCamera() : [0, 1, 0];
+      pegada.normal = t.modo === "altura" ? cena.olharDaCamera() : [0, 1, 0];
       const agarrado = cena.pontoNoPlano(e, pegada.centro, pegada.normal);
       // a DIFERENÇA entre onde pegou e o centro: sem ela a tela pula pro
       // ponteiro no primeiro pixel de arraste, e some de onde estava
@@ -135,8 +154,12 @@ export default function Editor3D({
       // (plano horizontal); com Shift, sobe e desce num plano de frente pra
       // câmera. São os dois movimentos que existem numa parede de LED, e separar
       // por tecla evita a tela subir sozinha quando a pessoa quis só andar.
-      pegada = { id, centro, atual: centro, vertical: null, normal: null, off: null, moveu: false };
-      escolherPlano(e, !!e.shiftKey);
+      // o eixo do COMPRIMENTO da tela sai da matriz dela (a coluna `lado`): é o
+      // que a trava do Ctrl deixa livre, e ele muda quando o LED gira
+      const m = (cb.current.paineis ?? []).find((x) => x.id === id)?.matriz;
+      const ladoK = m && Math.abs(m[0]) < Math.abs(m[2]) ? 2 : 0;
+      pegada = { id, centro, atual: centro, ladoK, modo: null, eixos: null, normal: null, off: null, moveu: false };
+      escolherPlano(e);
       cena.travarOrbita(true);
       cb.current.onPainelSelecionar?.(id);
     };
@@ -144,14 +167,19 @@ export default function Editor3D({
     const onMove = (e) => {
       if (Math.abs(e.clientX - x0) > 5 || Math.abs(e.clientY - y0) > 5) arrastou = true;
       if (pegada) {
-        escolherPlano(e, !!e.shiftKey); // dá pra trocar de plano no meio do gesto
+        escolherPlano(e); // dá pra trocar de trava no meio do gesto
         const p = cena.pontoNoPlano(e, pegada.centro, pegada.normal);
         if (!p) return;
         pegada.moveu = true;
-        pegada.atual = [0, 1, 2].map((k) => p[k] + pegada.off[k]);
+        // EIXO TRAVADO SEGURA O VALOR ATUAL, não o de quando pegou: trocar de
+        // trava no meio do gesto preserva o que já foi feito na trava anterior.
+        pegada.atual = [0, 1, 2].map((k) =>
+          (pegada.eixos[k] ? p[k] + pegada.off[k] : pegada.atual[k]));
         // o `mmPorPixel` viaja junto: é o que deixa o ímã do mesmo tamanho na
         // mão em qualquer zoom, e converter tela em mundo é conta da vista
-        cb.current.onPainelArrastar?.(pegada.id, pegada.atual, cena.mmPorPixel(pegada.centro));
+        cb.current.onPainelArrastar?.(
+          pegada.id, pegada.atual, cena.mmPorPixel(pegada.centro), pegada.eixos,
+        );
         return;
       }
       if (cb.current.modo !== "montar") return;

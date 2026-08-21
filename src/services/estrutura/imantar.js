@@ -22,7 +22,7 @@
 import { alcance, caixaNoMundo } from "./colisao.js";
 import { nivelDoChao } from "./metricas.js";
 import { conectoresNoMundo } from "./montagem.js";
-import { caixaDoPainel, meiasNoMundo, paineisNoMundo } from "./paineis.js";
+import { caixaDoPainel, eixosDoPainel, meiasNoMundo, paineisNoMundo } from "./paineis.js";
 
 // a grade fina do desenho: no campo se mede em centímetro inteiro, e posição
 // solta na terceira casa deixa a medida do Caderno com um resto que ninguém pediu
@@ -100,24 +100,112 @@ export function planosDeImante(montagem, telas = [], exceto = null) {
 }
 
 /**
- * Onde a tela realmente encosta: a posição imantada, eixo por eixo.
+ * Os NOVE PONTOS de uma tela: as quatro quinas, os quatro meios de borda e o
+ * centro — os oito puxadores da moldura, mais o miolo.
  *
- * Pra cada eixo, o app compara TRÊS pontos do painel — borda de cá, centro,
- * borda de lá — com os planos de lá e fica com a menor correção que caiba no
- * alcance do ímã. Não achou nada perto? cai na grade, que é melhor que deixar o
- * número solto na casa do milímetro.
+ * São os pontos que alguém realmente casa quando encosta duas paredes: quina com
+ * quina pra emendar, meio de borda com meio de borda pra centralizar uma tela
+ * menor na maior, centro com centro pra sobrepor. Ficam no PLANO DA FACE de LED
+ * (na profundidade do centro): a espessura é nominal e não é coisa que se alinha.
+ */
+export function pontosDaTela(centro, medidas, olha) {
+  const eixos = eixosDoPainel(olha);
+  if (!eixos || !medidas || !centro) return [];
+  const out = [];
+  for (const a of [-1, 0, 1]) {
+    for (const b of [-1, 0, 1]) {
+      const dl = (a * medidas.larguraMm) / 2;
+      const dc = (b * medidas.alturaMm) / 2;
+      out.push([0, 1, 2].map((k) => arred(centro[k] + eixos.lado[k] * dl + eixos.cima[k] * dc)));
+    }
+  }
+  return out;
+}
+
+/**
+ * Os pontos em que uma tela gruda em OUTRA TELA.
  *
- * @returns {{ pos: number[], presos: boolean[] }} `presos[k]` diz se aquele eixo
- *   grudou em alguma coisa — é o que a aba mostra pro técnico saber que colou.
+ * ⚠️ SÓ TELAS, de propósito (decisão do dono, 20/08). Entre telas o encaixe é
+ * RIGOROSO — parede com parede é emenda, e emenda que erra 3 cm no desenho é
+ * emenda que não fecha no galpão. Com a ESTRUTURA a régua continua sendo a dos
+ * planos, que é mais frouxa e é o que se quer: encostar num truss é apoiar, não
+ * casar quina. Mesmo motor, duas fontes de candidato.
+ */
+export function pontosDeImante(montagem, telas = [], exceto = null) {
+  const out = [];
+  for (const item of paineisNoMundo(montagem, telas)) {
+    if (!item.matriz || !item.medidas || item.painel.id === exceto) continue;
+    out.push(...pontosDaTela(
+      [item.matriz[12], item.matriz[13], item.matriz[14]], item.medidas, item.painel.olha,
+    ));
+  }
+  return out;
+}
+
+/**
+ * Onde a tela realmente encosta.
+ *
+ * DUAS RÉGUAS, nesta ordem:
+ *
+ * 1. PONTO A PONTO, contra as outras telas: o par (meu ponto, ponto de lá) mais
+ *    próximo dentro do alcance vence, e a correção vale nos três eixos de uma
+ *    vez. É o que faz quina casar com quina em vez de "quase" — e é mais
+ *    previsível que o alinhamento por eixo, que podia pegar o X de uma parede e
+ *    o Z de outra sem ninguém pedir;
+ * 2. POR PLANO, contra a estrutura e o piso: pra cada eixo, o app compara três
+ *    pontos do painel — borda de cá, centro, borda de lá — com os planos de lá.
+ *    Mais frouxo de propósito: encostar num truss é apoiar, não casar quina.
+ *
+ * Não achou nada perto? cai na grade, que é melhor que deixar o número solto na
+ * casa do milímetro.
+ *
+ * `eixos` é a TRAVA (Shift/Ctrl): eixo travado não se move e não gruda em nada —
+ * o ímã não pode desfazer a trava que o técnico está segurando com o dedo.
+ *
+ * @returns {{ pos, presos, ponto }} `presos[k]` diz se aquele eixo grudou; `ponto`
+ *   diz que o encaixe foi quina-com-quina, que é o que a aba anuncia diferente.
  */
 export function imantar(planos, medidas, olha, pos, opcoes = {}) {
-  const { passoMm = PASSO_PADRAO_MM, imaMm = IMA_MM, ligado = true } = opcoes;
+  const {
+    passoMm = PASSO_PADRAO_MM, imaMm = IMA_MM, ligado = true,
+    pontos = null, eixos = [true, true, true],
+  } = opcoes;
   const meias = meiasNoMundo(medidas, olha);
   const out = [...pos];
   const presos = [false, false, false];
-  if (!meias) return { pos: out.map((v) => Math.round(v)), presos };
+  if (!meias) return { pos: out.map((v) => Math.round(v)), presos, ponto: false };
 
+  // ── 1. ponto a ponto (tela × tela) ──
+  if (ligado && pontos?.length) {
+    const meus = pontosDaTela(pos, medidas, olha);
+    let melhor = null;
+    for (const meu of meus) {
+      for (const alvo of pontos) {
+        let d2 = 0;
+        const delta = [0, 0, 0];
+        for (let k = 0; k < 3; k++) {
+          if (!eixos[k]) continue; // eixo travado não conta nem na distância
+          delta[k] = alvo[k] - meu[k];
+          d2 += delta[k] * delta[k];
+        }
+        if (d2 <= imaMm * imaMm && (melhor === null || d2 < melhor.d2)) melhor = { d2, delta };
+      }
+    }
+    if (melhor) {
+      for (let k = 0; k < 3; k++) {
+        if (!eixos[k]) continue;
+        out[k] = arred(pos[k] + melhor.delta[k]);
+        presos[k] = true;
+      }
+      return { pos: out, presos, ponto: true };
+    }
+  }
+
+  // ── 2. por plano (tela × estrutura, tela × piso) ──
   for (let k = 0; k < 3; k++) {
+    // eixo TRAVADO não se move: nem gruda, nem arredonda na grade. A trava é do
+    // dedo do técnico, e ímã que a desfaz é ímã que atrapalha.
+    if (!eixos[k]) { out[k] = pos[k]; continue; }
     let melhor = null;
     if (ligado) {
       for (const desvio of [-meias[k], 0, meias[k]]) {
@@ -134,7 +222,7 @@ export function imantar(planos, medidas, olha, pos, opcoes = {}) {
       out[k] = Math.round(pos[k] / passoMm) * passoMm;
     }
   }
-  return { pos: out, presos };
+  return { pos: out, presos, ponto: false };
 }
 
 // ── a trena ──────────────────────────────────────────────────

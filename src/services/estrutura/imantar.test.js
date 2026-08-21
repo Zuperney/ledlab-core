@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import {
   IMA_MM, PASSO_PADRAO_MM, imantar, imantarPonto, maisProximo, medir, planosDeImante,
-  pontosNotaveis,
+  pontosDaTela, pontosDeImante, pontosNotaveis,
 } from "./imantar.js";
 import { adicionarPainel, adicionarPecaLivre, novaMontagem } from "./montagem.js";
 import { medidasDaTela, meiasNoMundo } from "./paineis.js";
@@ -159,5 +159,83 @@ describe("a trena", () => {
 
   it("sem as duas pontas não há medida", () => {
     expect(medir([0, 0, 0], null)).toBeNull();
+  });
+});
+
+// ══ OS NOVE PONTOS: tela × tela é encaixe RIGOROSO ═══════════
+describe("pontosDaTela — os oito puxadores da moldura, mais o miolo", () => {
+  it("são nove, no plano da face, e a espessura não entra", () => {
+    const pts = pontosDaTela([0, 500, 0], MEDIDAS, "N");
+    expect(pts).toHaveLength(9);
+    expect(pts.every((p) => p[2] === 0)).toBe(true); // tudo na profundidade do centro
+    expect(pts).toContainEqual([0, 500, 0]); // o centro
+    expect(pts).toContainEqual([1000, 0, 0]); // uma quina de baixo
+    expect(pts).toContainEqual([0, 1000, 0]); // meio da borda de cima
+  });
+
+  it("acompanham o giro do LED: olhando pro leste, a largura mora no Z", () => {
+    const pts = pontosDaTela([0, 500, 0], MEDIDAS, "L");
+    expect(pts.every((p) => p[0] === 0)).toBe(true);
+    expect(pts.map((p) => p[2]).sort((a, b) => a - b)[0]).toBe(-1000);
+  });
+
+  it("a tela que está sendo movida não entra nos próprios pontos", () => {
+    const m = comTela([0, 500, 0]);
+    expect(pontosDeImante(m, [tela()], null)).toHaveLength(9);
+    expect(pontosDeImante(m, [tela()], "pn1")).toHaveLength(0);
+  });
+});
+
+describe("o ímã ponto a ponto", () => {
+  const vizinha = comTela([0, 500, 0]);           // pontos em x ∈ {-1000, 0, 1000}
+  const pontos = () => pontosDeImante(vizinha, [tela()], "movel");
+
+  // quina com quina, nos TRÊS eixos de uma vez — é o que emenda parede de verdade
+  it("casa a quina e corrige os três eixos numa tacada", () => {
+    const bruto = [2060, 540, 30];
+    const r = imantar(planosDeImante(vizinha, [tela()], "movel"), MEDIDAS, "N", bruto, { pontos: pontos() });
+    expect(r.pos).toEqual([2000, 500, 0]); // encostada exata na vizinha
+    expect(r.ponto).toBe(true);
+    expect(r.presos).toEqual([true, true, true]);
+  });
+
+  it("longe demais não casa ponto: cai na régua dos planos", () => {
+    const bruto = [20000 + 37, 9000 + 43, 20000];
+    const r = imantar(planosDeImante(vizinha, [tela()], "movel"), MEDIDAS, "N", bruto, { pontos: pontos() });
+    expect(r.ponto).toBe(false);
+    expect(r.pos[0] % PASSO_PADRAO_MM).toBe(0);
+  });
+
+  it("desligado, nem ponto nem plano", () => {
+    const r = imantar(planosDeImante(vizinha, [tela()], "movel"), MEDIDAS, "N", [2060, 540, 30], { pontos: pontos(), ligado: false });
+    expect(r.ponto).toBe(false);
+    expect(r.presos.every((p) => p === false)).toBe(true);
+  });
+});
+
+// ⚠️ A TRAVA É DO DEDO DO TÉCNICO: ímã que a desfaz é ímã que atrapalha
+describe("a trava de eixo (Shift / Ctrl)", () => {
+  const vizinha = comTela([0, 500, 0]);
+  const opts = (eixos) => ({ pontos: pontosDeImante(vizinha, [tela()], "movel"), eixos });
+  const planos = () => planosDeImante(vizinha, [tela()], "movel");
+
+  it("Shift (só altura): X e Z ficam exatamente onde estavam", () => {
+    const r = imantar(planos(), MEDIDAS, "N", [2060, 540, 30], opts([false, true, false]));
+    expect(r.pos[0]).toBe(2060); // nem gruda, nem arredonda na grade
+    expect(r.pos[2]).toBe(30);
+    expect(r.pos[1]).toBe(500); // a altura, essa sim, casa com a vizinha
+    expect(r.presos).toEqual([false, true, false]);
+  });
+
+  it("Ctrl (só chão): a altura não se mexe nem por ímã", () => {
+    const r = imantar(planos(), MEDIDAS, "N", [2060, 540, 30], opts([true, false, true]));
+    expect(r.pos[1]).toBe(540);
+    expect([r.pos[0], r.pos[2]]).toEqual([2000, 0]);
+    expect(r.presos).toEqual([true, false, true]);
+  });
+
+  it("tudo travado não move nada", () => {
+    const r = imantar(planos(), MEDIDAS, "N", [2060, 540, 30], opts([false, false, false]));
+    expect(r.pos).toEqual([2060, 540, 30]);
   });
 });

@@ -47,7 +47,7 @@ import {
   problemasDosPaineis, telaMensuravel,
 } from "../../services/estrutura/paineis.js";
 import {
-  IMA_MM, imantar, imantarPonto, medir, planosDeImante, pontosNotaveis,
+  IMA_MM, imantar, imantarPonto, medir, planosDeImante, pontosDeImante, pontosNotaveis,
 } from "../../services/estrutura/imantar.js";
 import { paletaDaEstrutura } from "../../services/estrutura/cores.js";
 import { conectoresLivres, matrizApoiada } from "../../services/estrutura/montagem.js";
@@ -173,6 +173,13 @@ export default function ProjectEstrutura({ project, patch }) {
     (acao) => setEstado((s) => (s.erro ? s : { ...s, hist: executar(s.hist, acao) })),
     [],
   );
+  // a mesma coisa, mas a ação é MONTADA a partir do estado corrente: é o que
+  // deixa dois comandos no mesmo quadro se somarem em vez de um apagar o outro
+  const rodarSobre = useCallback((fabrica) => setEstado((s) => {
+    if (s.erro) return s;
+    const acao = fabrica(s.hist.montagem);
+    return acao ? { ...s, hist: executar(s.hist, acao) } : s;
+  }), []);
   const mexerHist = useCallback((fn) => setEstado((s) => ({ ...s, hist: fn(s.hist) })), []);
 
   // a vista guardada mora no IndexedDB, não no projeto (ver estrutura/imagem.js)
@@ -364,6 +371,14 @@ export default function ProjectEstrutura({ project, patch }) {
     () => planosDeImante(montagem, project?.telas ?? [], arrasto?.id ?? null),
     [montagem, project?.telas, arrasto?.id],
   );
+  // TELA × TELA é encaixe RIGOROSO: os nove pontos de cada parede (quinas, meios
+  // de borda e centro). Parede com parede é emenda, e emenda que erra 3 cm no
+  // desenho é emenda que não fecha no galpão. Com a estrutura vale a régua dos
+  // planos, mais frouxa — encostar num truss é apoiar, não casar quina.
+  const pontos = useMemo(
+    () => pontosDeImante(montagem, project?.telas ?? [], arrasto?.id ?? null),
+    [montagem, project?.telas, arrasto?.id],
+  );
 
   // ── a TRENA (§12) ──────────────────────────────────────────
   const notaveis = useMemo(
@@ -534,25 +549,28 @@ export default function ProjectEstrutura({ project, patch }) {
     const bruto = [ponto[0], chao + medidas.alturaMm / 2, ponto[2]];
     const { pos } = imantar(planos, medidas, olha, bruto, {
       ligado: ima,
+      pontos,
       imaMm: Math.max(IMA_MM, IMA_PX * (apiRef.current?.mmPorPixel?.(bruto) ?? 0)),
     });
     const id = genId("pn");
     rodar({ tipo: ACOES.PAINEL_NOVO, id, telaId: telaEscolhida.id, olha, pos });
     setPainelSel(id);
-  }, [telaEscolhida, montagem, planos, ima, rodar]);
+  }, [telaEscolhida, montagem, planos, pontos, ima, rodar]);
 
   // O ARRASTE NÃO PASSA PELO HISTÓRICO. Ele mexe num estado de vista, 60 vezes
   // por segundo; o comando entra inteiro no soltar do botão (ver `soltarTela`).
-  const arrastarTela = useCallback((id, pos, mmPorPixel = 0) => {
+  const arrastarTela = useCallback((id, pos, mmPorPixel = 0, eixos) => {
     const item = paineis.find((x) => x.painel.id === id);
     if (!item?.medidas) return;
     const preso = imantar(planos, item.medidas, item.painel.olha, pos, {
       ligado: ima,
+      pontos,
+      eixos,
       imaMm: Math.max(IMA_MM, IMA_PX * mmPorPixel),
     });
-    arrastoRef.current = { id, pos: preso.pos, presos: preso.presos };
+    arrastoRef.current = { id, pos: preso.pos, presos: preso.presos, ponto: preso.ponto, eixos };
     setArrasto(arrastoRef.current);
-  }, [paineis, planos, ima]);
+  }, [paineis, planos, pontos, ima]);
 
   const soltarTela = useCallback((id) => {
     const a = arrastoRef.current;
@@ -575,23 +593,42 @@ export default function ProjectEstrutura({ project, patch }) {
   }, [paineis, painelSel, rodar]);
 
   /**
-   * SUBIR E DESCER PELO TECLADO, e não é enfeite do arraste.
+   * O AJUSTE FINO PELO TECLADO — o mouse posiciona, a seta acerta.
    *
-   * Levantar uma parede com o mouse depende do Shift, e tecla que ninguém
-   * descobre é tecla que não existe: sem as setas, quem não achou o Shift nunca
-   * tira a tela do chão. Aqui a altura é EXATA — 10 cm por toque, 1 m com Shift
-   * —, que é como se ajusta cota de içamento.
+   * Passo EXATO: 10 cm por toque, 1 m com Shift. É como se ajusta cota de
+   * içamento, e é o que o arraste não dá por melhor que seja o ímã. Também é a
+   * saída de quem não descobriu o Shift: sem as setas, tirar a tela do chão
+   * dependia de uma tecla que ninguém vê.
+   *
+   *   ↑ ↓        sobem e descem
+   *   ← →        andam no chão, pro lado que a câmera chama de lado
+   *   Ctrl + ↑ ↓ andam no chão pra frente e pra trás (Ctrl é sempre "no chão")
    */
-  const subirTela = useCallback((mm) => {
-    const item = paineis.find((x) => x.painel.id === painelSel);
-    window.__subir = { mm, painelSel, achou: !!item, matriz: item?.matriz?.slice(12, 15), n: paineis.length };
-    if (!item?.matriz) return;
-    rodar({
-      tipo: ACOES.PAINEL,
-      id: painelSel,
-      mudanca: { pos: [item.matriz[12], Math.round(item.matriz[13] + mm), item.matriz[14]] },
+  const mexerTela = useCallback((delta) => {
+    // ⚠️ LÊ A POSIÇÃO DE DENTRO DO ESTADO, não da renderização. Duas setas no
+    // mesmo quadro (repetição de tecla) partiriam as duas da MESMA posição
+    // antiga, e a segunda apagaria a primeira: dez toques andariam 10 cm.
+    rodarSobre((m) => {
+      const item = paineisNoMundo(m, project?.telas ?? []).find((x) => x.painel.id === painelSel);
+      if (!item?.matriz) return null;
+      return {
+        tipo: ACOES.PAINEL,
+        id: painelSel,
+        mudanca: { pos: [0, 1, 2].map((k) => Math.round(item.matriz[12 + k] + delta[k])) },
+      };
     });
-  }, [paineis, painelSel, rodar]);
+  }, [painelSel, project?.telas, rodarSobre]);
+
+  /** o passo da seta no plano do chão, no eixo que a CÂMERA chama de lado/frente */
+  const passoNoChao = useCallback((mm, paraOLado) => {
+    const olhar = apiRef.current?.olhar?.() ?? [0, 0, 1];
+    // o "lado" é o olhar girado 90°; a direção dominante vira eixo do mundo pra
+    // seta andar reto, e não em diagonal
+    const dir = paraOLado ? [olhar[2], 0, -olhar[0]] : olhar;
+    const eixo = Math.abs(dir[0]) >= Math.abs(dir[2]) ? 0 : 2;
+    const sinal = Math.sign(dir[eixo]) || 1;
+    return [0, 1, 2].map((k) => (k === eixo ? mm * sinal : 0));
+  }, []);
 
   const tirarTela = useCallback(() => {
     if (!painelSel) return;
@@ -630,7 +667,8 @@ export default function ProjectEstrutura({ project, patch }) {
         (e.shiftKey ? refazer : desfazer)();
         return;
       }
-      if (cmd) return; // o resto dos atalhos é sem modificador
+      // ⚠️ as SETAS vêm antes do corte do `cmd`: Ctrl+seta é ajuste fino no chão
+      if (cmd && !(painelSel && e.key.startsWith("Arrow"))) return;
       // SHIFT+R, e não Ctrl+R: o Ctrl+R do navegador recarrega a página e o
       // `preventDefault` não segura em todo lugar. Recarregar no meio de uma
       // montagem leva o desfazer junto — atalho que às vezes apaga trabalho não
@@ -640,9 +678,18 @@ export default function ProjectEstrutura({ project, patch }) {
         else if (modo === "montar") setTilt((t) => t + 1);
         return;
       }
-      if (painelSel && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      if (painelSel && e.key.startsWith("Arrow")) {
         e.preventDefault(); // seta solta rola a página, e a tela sai de vista
-        subirTela((e.key === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 1000 : 100));
+        const passo = e.shiftKey ? 1000 : 100;
+        const cima = e.key === "ArrowUp", baixo = e.key === "ArrowDown";
+        if (cima || baixo) {
+          const s = cima ? 1 : -1;
+          // Ctrl é sempre "no chão", igual no arraste: com ele a seta anda pra
+          // frente e pra trás em vez de subir
+          mexerTela(cmd ? passoNoChao(passo * s, false) : [0, passo * s, 0]);
+        } else {
+          mexerTela(passoNoChao(passo * (e.key === "ArrowRight" ? 1 : -1), true));
+        }
         return;
       }
       if (e.key.toLowerCase() === "v") { setVerMomentaneo(true); return; }
@@ -684,7 +731,8 @@ export default function ProjectEstrutura({ project, patch }) {
     };
   }, [
     isMobile, erro, modo, desfazer, refazer, apagarSelecionadas, girarSelecionadas,
-    tombarSelecionadas, selecionadas.length, painelSel, girarTela, tirarTela, subirTela,
+    tombarSelecionadas, selecionadas.length, painelSel, girarTela, tirarTela, mexerTela,
+    passoNoChao,
   ]);
 
   // A imagem que vai pro Caderno é capturada AQUI e guardada no aparelho. Não dá
@@ -929,12 +977,23 @@ export default function ProjectEstrutura({ project, patch }) {
         {arrasto?.presos?.some(Boolean) && (
           <span style={{ ...chip, borderColor: T.acc, color: T.acM }}>
             <Magnet size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
-            Colado em <b>{["X", "altura", "Z"].filter((_, i) => arrasto.presos[i]).join(" · ")}</b>
+            {arrasto.ponto
+              ? <>Quina <b>colada na tela vizinha</b></>
+              : <>Colado em <b>{["X", "altura", "Z"].filter((_, i) => arrasto.presos[i]).join(" · ")}</b></>}
           </span>
+        )}
+        {/* A TRAVA PRECISA SE VER. Modificador segurado sem eco na tela é o tipo
+            de coisa que o técnico só descobre quando a tela não vai pra onde ele
+            empurrou. */}
+        {arrasto?.eixos && !arrasto.eixos[0] && !arrasto.eixos[2] && (
+          <StatusPill color={T.acM} label="Shift — só a altura" />
+        )}
+        {arrasto?.eixos && !arrasto.eixos[1] && arrasto.eixos.filter(Boolean).length === 1 && (
+          <StatusPill color={T.acM} label="Ctrl — só o comprimento" />
         )}
         {r.pecas > 0 && !r.peso.conferido && <StatusPill color={T.amb} label="Peso não conferido" />}
         {verMomentaneo && modo === "montar" && <StatusPill color={T.acM} label="Ver — solte o V para montar" />}
-        {ctrl && !verMomentaneo && <StatusPill color={T.acM} label="Conta-gotas — clique numa peça" />}
+        {ctrl && montando && !verMomentaneo && <StatusPill color={T.acM} label="Conta-gotas — clique numa peça" />}
         <HelpTip title="Estrutura">
           <p><b>A aba tem quatro modos</b>, e cada um com um gesto só: <b>Montar</b> a treliça, pôr as <b>Telas</b>, <b>Medir</b> distância e <b>Ver</b> sem mexer em nada.</p>
           <p><b>Para montar:</b> escolha a peça no catálogo ao lado do desenho e <b>clique no piso</b> — ela nasce ali, apoiada. Para emendar, passe o ponteiro num <b>ponto claro</b> da estrutura (ele mostra a peça em fantasma, onde ela vai ficar) e clique.</p>
@@ -942,9 +1001,11 @@ export default function ProjectEstrutura({ project, patch }) {
           <p><b>R</b> · no <b>cubo</b>, leva a <b>face cega</b> (a que a seta marca) pra próxima direção livre do plano do chão. Na <b>barra</b> e na <b>sapata</b>, gira no próprio eixo: a peça não sai do lugar, muda só qual face leva a escada.</p>
           <p><b>Shift+R</b> · no <b>cubo</b>, leva a face cega pra <b>cima ou pra baixo</b>. Na <b>barra solta</b>, tomba 90° — é assim que uma barra em pé vira barra deitada, e ela cai apoiada no piso.</p>
           <p><b>As telas são soltas.</b> No modo <b>Telas</b>, escolha a tela na lista ao lado do desenho e <b>clique no piso</b>: ela nasce em pé, no chão, virada pra você. Depois é só <b>arrastar</b> pra passear pelo palco, <b>R</b> pra virar o LED e <b>Delete</b> pra tirar.</p>
-          <p><b>Pra levantar a tela do chão</b> tem dois jeitos: segurar <b>Shift</b> enquanto arrasta (dá pra segurar no meio do gesto) ou usar as <b>setas ↑ ↓</b> — 10 cm por toque, 1 m com Shift. As setas dão a cota exata, que é como se ajusta altura de içamento.</p>
+          <p><b>Cada modificador deixa um eixo livre.</b> Solto, a tela anda no chão. Com <b>Shift</b>, só a <b>altura</b> se mexe — X e Z ficam exatamente onde estavam. Com <b>Ctrl</b>, só o <b>comprimento da parede</b>: ela desliza pro lado sem subir e sem avançar, que é a trava de quem está emendando tela com tela. Dá pra trocar de trava no meio do arraste, sem largar.</p>
+          <p><b>As setas fazem o ajuste fino</b>, com cota exata: <b>↑ ↓</b> sobem e descem, <b>← →</b> andam no chão pros lados e <b>Ctrl + ↑ ↓</b> andam pra frente e pra trás. 10 cm por toque, 1 m com <b>Shift</b>. O mouse posiciona, a seta acerta.</p>
           <p>A tela precisa existir na aba <b>Dados</b>, com <b>gabinete escolhido</b> — é de lá que saem a medida e o peso. Tela sem gabinete aparece apagada na lista.</p>
-          <p><b>O ímã</b> encosta a borda da tela no que já está no desenho: em outra tela, numa peça da treliça, ou no piso. Assim duas paredes ficam emendadas de verdade, e não "quase". Desligue no botão do ímã se quiser posicionar livre — aí ela para na grade de 10 cm.</p>
+          <p><b>O ímã tem duas réguas.</b> Entre <b>tela e tela</b> ele é rigoroso: cada parede tem <b>nove pontos</b> — as quatro quinas, os quatro meios de borda e o centro —, e o que estiver mais perto casa quina com quina, nos três eixos de uma vez. É o que emenda parede de verdade, e não "quase". Entre <b>tela e treliça</b> (e com o piso) a régua é mais frouxa, por borda e por meio: encostar num truss é apoiar, não casar quina.</p>
+          <p>Desligue no botão do <b>ímã</b> se quiser posicionar livre — aí a tela para na grade de 10 cm. E eixo travado no <b>Shift</b> ou no <b>Ctrl</b> não gruda em nada: a trava é sua, e o ímã não desfaz o que o seu dedo está segurando.</p>
           <p><b>A trena:</b> no modo <b>Medir</b>, clique em dois pontos e a distância aparece no desenho, em metro. Os cliques <b>grudam</b> nos pontos que importam — nó da treliça, quina de tela. O terceiro clique começa uma medida nova, e <b>Esc</b> apaga. A medida fica visível nos outros modos e <b>sai na imagem do Caderno</b>, se você capturar com ela na tela.</p>
           <p><b>O peso das telas aparece separado:</b> quanto a treliça pesa por si, quanto está <b>suspenso</b> e quanto está <b>apoiado no chão</b> — parede no piso não pendura em nada. Isso sai na folha do Caderno, com a lista das telas. O app continua sem dizer se aguenta.</p>
           <p><b>Isto é um preview de montagem</b>, não a montagem. O app não sabe de clamp, de sapata nem de ponto de içamento — a tela vai onde você puser, e conferir se aquilo se prende é do rigger.</p>
@@ -1044,7 +1105,7 @@ export default function ProjectEstrutura({ project, patch }) {
                 onChaoTela={emTelas && telaEscolhida ? nascerTela : undefined}
                 medida={medidaNaCena}
                 onMedir={medindo ? pontaDaTrena : undefined}
-                contaGotas={ctrl}
+                contaGotas={ctrl && montando}
                 onContaGotas={contaGotas}
                 mostrarGrade={grade}
                 conectores={montando && !ctrl ? livres : null}
@@ -1114,7 +1175,7 @@ export default function ProjectEstrutura({ project, patch }) {
               })}
               {painelSel && (
                 <span style={{ fontSize: 11, color: T.dim }}>
-                  arraste move · Shift+arraste ou ↑↓ sobe · R vira o LED · Delete tira
+                  arraste move · Shift sobe · Ctrl desliza · setas ajustam · R vira o LED · Delete tira
                 </span>
               )}
             </div>
