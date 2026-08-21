@@ -173,7 +173,7 @@ export function imantar(planos, medidas, olha, pos, opcoes = {}) {
   const meias = meiasNoMundo(medidas, olha);
   const out = [...pos];
   const presos = [false, false, false];
-  if (!meias) return { pos: out.map((v) => Math.round(v)), presos, ponto: false };
+  if (!meias) return { pos: out.map((v) => Math.round(v)), presos, ponto: false, ancora: null };
 
   // ── 1. ponto a ponto (tela × tela) ──
   if (ligado && pontos?.length) {
@@ -188,7 +188,7 @@ export function imantar(planos, medidas, olha, pos, opcoes = {}) {
           delta[k] = alvo[k] - meu[k];
           d2 += delta[k] * delta[k];
         }
-        if (d2 <= imaMm * imaMm && (melhor === null || d2 < melhor.d2)) melhor = { d2, delta };
+        if (d2 <= imaMm * imaMm && (melhor === null || d2 < melhor.d2)) melhor = { d2, delta, alvo };
       }
     }
     if (melhor) {
@@ -197,7 +197,9 @@ export function imantar(planos, medidas, olha, pos, opcoes = {}) {
         out[k] = arred(pos[k] + melhor.delta[k]);
         presos[k] = true;
       }
-      return { pos: out, presos, ponto: true };
+      // a ÂNCORA sai junto pra vista acender o ponto que pegou: ímã que gruda
+      // sem dizer onde é ímã que parece bug.
+      return { pos: out, presos, ponto: true, ancora: melhor.alvo };
     }
   }
 
@@ -222,7 +224,7 @@ export function imantar(planos, medidas, olha, pos, opcoes = {}) {
       out[k] = Math.round(pos[k] / passoMm) * passoMm;
     }
   }
-  return { pos: out, presos, ponto: false };
+  return { pos: out, presos, ponto: false, ancora: null };
 }
 
 // ── a trena ──────────────────────────────────────────────────

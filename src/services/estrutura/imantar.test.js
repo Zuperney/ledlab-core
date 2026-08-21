@@ -199,6 +199,17 @@ describe("o ímã ponto a ponto", () => {
     expect(r.presos).toEqual([true, true, true]);
   });
 
+  // a ÂNCORA é o que a vista acende: ímã que gruda sem dizer onde parece bug
+  it("devolve o PONTO que pegou, pra vista poder acender ele", () => {
+    const r = imantar(planosDeImante(vizinha, [tela()], "movel"), MEDIDAS, "N", [2060, 540, 30], { pontos: pontos() });
+    expect(r.ancora).toEqual([1000, 0, 0]); // a quina de baixo-direita da vizinha
+  });
+
+  it("sem encaixe de ponto não há âncora pra acender", () => {
+    const r = imantar(planosDeImante(vizinha, [tela()], "movel"), MEDIDAS, "N", [20037, 9043, 20000], { pontos: pontos() });
+    expect(r.ancora).toBeNull();
+  });
+
   it("longe demais não casa ponto: cai na régua dos planos", () => {
     const bruto = [20000 + 37, 9000 + 43, 20000];
     const r = imantar(planosDeImante(vizinha, [tela()], "movel"), MEDIDAS, "N", bruto, { pontos: pontos() });

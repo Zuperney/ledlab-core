@@ -154,6 +154,58 @@ export function criarCena(canvas, cores) {
   const matSeta = new MeshBasicMaterial({ color: cores.selecao });
   let malhaSetas = null;
 
+  // ── os PONTOS DE ÍMÃ da tela (E5) ──────────────────────────
+  // Nove por parede: as quatro quinas, os quatro meios de borda e o centro. Sem
+  // eles o técnico via a tela pular e não via pra ONDE ela estava pulando — ímã
+  // invisível parece bug, não ajuda.
+  //
+  // ⚠️ A COR SEGUE A SUPERFÍCIE, e é lei do manual (§2.1: sobre lime a tinta é
+  // SEMPRE preta). A tela que está sendo arrastada é a selecionada, e a
+  // selecionada é LIME — ponto lime nela seria invisível. Então:
+  //   · pontos da tela que se move  → tinta PRETA (a superfície é lime);
+  //   · pontos das telas de destino → LIME (a superfície é o escuro do painel).
+  // Uma cor só não resolve as duas: o par de superfícies é claro e escuro.
+  const geoPonto = new SphereGeometry(55, 10, 10);
+  const geoAncora = new SphereGeometry(95, 14, 14);
+  const matPontoMeu = new MeshBasicMaterial({ color: cores.tinta ?? "#111111", depthTest: false });
+  const matPontoAlvo = new MeshBasicMaterial({ color: cores.selecao, depthTest: false });
+  let malhaMeus = null;
+  let malhaAlvos = null;
+  let malhaAncora = null;
+
+  function limparPontosDeIma() {
+    for (const m of [malhaMeus, malhaAlvos, malhaAncora]) {
+      if (!m) continue;
+      scene.remove(m);
+      m.dispose?.();
+    }
+    malhaMeus = null;
+    malhaAlvos = null;
+    malhaAncora = null;
+  }
+
+  /**
+   * @param {{meus: number[][], alvos: number[][], ancora: number[]|null}|null} dados
+   */
+  function mostrarPontosDeIma(dados) {
+    limparPontosDeIma();
+    const bolas = (lista, material, geo, ordem) => {
+      if (!lista?.length) return null;
+      const m = new InstancedMesh(geo, material, lista.length);
+      m.frustumCulled = false;
+      m.renderOrder = ordem;
+      lista.forEach((p, i) => m.setMatrixAt(i, mat4.makeTranslation(p[0], p[1], p[2])));
+      m.instanceMatrix.needsUpdate = true;
+      scene.add(m);
+      return m;
+    };
+    malhaAlvos = bolas(dados?.alvos, matPontoAlvo, geoPonto, 4);
+    malhaMeus = bolas(dados?.meus, matPontoMeu, geoPonto, 4);
+    // a ÂNCORA é o ponto que PEGOU: maior, pra dizer "foi aqui" sem texto
+    malhaAncora = bolas(dados?.ancora ? [dados.ancora] : null, matPontoAlvo, geoAncora, 5);
+    solicitar();
+  }
+
   // ── a TRENA (E5) ──────────────────────────────────────
   // Dois pontos, a reta entre eles e o número em cima. `depthTest: false` de
   // propósito: quem mede o vão de um pórtico mede ATRAVÉS da treliça, e uma
@@ -753,6 +805,7 @@ export function criarCena(canvas, cores) {
       conectores: malhaConectores?.visible ?? false,
       fantasma: fantasma?.visible ?? false,
       setas: malhaSetas?.visible ?? false,
+      pontos: [malhaMeus?.visible, malhaAlvos?.visible, malhaAncora?.visible],
     };
     // o PAINEL fica: ele é parte do que foi montado, não andaime de tela
     // Some com os ANDAIMES DA TELA. Grade, marcadores de conector e prévia
@@ -762,6 +815,9 @@ export function criarCena(canvas, cores) {
     if (malhaConectores) malhaConectores.visible = false;
     if (fantasma) fantasma.visible = false;
     if (malhaSetas) malhaSetas.visible = false;
+    // os pontos de ímã são ANDAIME DA TELA: ajudam a encostar, e no papel viram
+    // sujeira em cima do desenho
+    [malhaMeus, malhaAlvos, malhaAncora].forEach((m) => { if (m) m.visible = false; });
 
     if (fundo) scene.background = new Color(fundo);
     renderer.setSize(largura, altura, false);
@@ -775,6 +831,9 @@ export function criarCena(canvas, cores) {
     if (malhaConectores) malhaConectores.visible = antes.conectores;
     if (fantasma) fantasma.visible = antes.fantasma;
     if (malhaSetas) malhaSetas.visible = antes.setas;
+    [malhaMeus, malhaAlvos, malhaAncora].forEach((m, i) => {
+      if (m) m.visible = antes.pontos[i] ?? true;
+    });
     renderer.setSize(antes.l, antes.a, false);
     camera.aspect = antes.l / antes.a;
     camera.updateProjectionMatrix();
@@ -790,6 +849,11 @@ export function criarCena(canvas, cores) {
     matTrena.dispose();
     matPonta.dispose();
     geoPonta.dispose();
+    limparPontosDeIma();
+    geoPonto.dispose();
+    geoAncora.dispose();
+    matPontoMeu.dispose();
+    matPontoAlvo.dispose();
     limparPaineis();
     matPainel.dispose();
     matPainelSel.dispose();
@@ -820,7 +884,7 @@ export function criarCena(canvas, cores) {
     trocarTema, capturar, destruir, solicitar,
     mostrarConectores, conectorEm, realcarConector, mostrarFantasma, limparFantasma, mostrarSetas,
     mostrarPaineis, painelEm, pontoNoPlano, pontoDeCena, olharDaCamera, travarOrbita, mostrarMedida,
-    mmPorPixel,
+    mmPorPixel, mostrarPontosDeIma,
     mostrarGrade: (v) => { grade.visible = v; solicitar(); },
   };
 }

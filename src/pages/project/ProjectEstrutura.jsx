@@ -47,7 +47,8 @@ import {
   problemasDosPaineis, telaMensuravel,
 } from "../../services/estrutura/paineis.js";
 import {
-  IMA_MM, imantar, imantarPonto, medir, planosDeImante, pontosDeImante, pontosNotaveis,
+  IMA_MM, imantar, imantarPonto, medir, planosDeImante, pontosDaTela, pontosDeImante,
+  pontosNotaveis,
 } from "../../services/estrutura/imantar.js";
 import { paletaDaEstrutura } from "../../services/estrutura/cores.js";
 import { conectoresLivres, matrizApoiada } from "../../services/estrutura/montagem.js";
@@ -380,6 +381,24 @@ export default function ProjectEstrutura({ project, patch }) {
     [montagem, project?.telas, arrasto?.id],
   );
 
+  /**
+   * OS PONTOS DESENHADOS. Ímã invisível parece bug: o técnico via a tela pular e
+   * não via pra ONDE. Com a tela selecionada, os nove pontos dela e os das
+   * vizinhas aparecem, e o que PEGOU acende maior.
+   *
+   * Só no modo Telas e só com tela selecionada — nove bolinhas por parede em
+   * cima do desenho o tempo todo seria ruído, não ajuda.
+   */
+  const pontosIma = useMemo(() => {
+    if (!emTelas || !painelAtivo?.matriz || !painelAtivo.medidas) return null;
+    const centro = [painelAtivo.matriz[12], painelAtivo.matriz[13], painelAtivo.matriz[14]];
+    return {
+      meus: pontosDaTela(centro, painelAtivo.medidas, painelAtivo.painel.olha),
+      alvos: pontosDeImante(montagem, project?.telas ?? [], painelAtivo.painel.id),
+      ancora: arrasto?.ancora ?? null,
+    };
+  }, [emTelas, painelAtivo, montagem, project?.telas, arrasto?.ancora]);
+
   // ── a TRENA (§12) ──────────────────────────────────────────
   const notaveis = useMemo(
     () => pontosNotaveis(montagem, project?.telas ?? []),
@@ -568,7 +587,9 @@ export default function ProjectEstrutura({ project, patch }) {
       eixos,
       imaMm: Math.max(IMA_MM, IMA_PX * mmPorPixel),
     });
-    arrastoRef.current = { id, pos: preso.pos, presos: preso.presos, ponto: preso.ponto, eixos };
+    arrastoRef.current = {
+      id, pos: preso.pos, presos: preso.presos, ponto: preso.ponto, ancora: preso.ancora, eixos,
+    };
     setArrasto(arrastoRef.current);
   }, [paineis, planos, pontos, ima]);
 
@@ -1005,6 +1026,7 @@ export default function ProjectEstrutura({ project, patch }) {
           <p><b>As setas fazem o ajuste fino</b>, com cota exata: <b>↑ ↓</b> sobem e descem, <b>← →</b> andam no chão pros lados e <b>Ctrl + ↑ ↓</b> andam pra frente e pra trás. 10 cm por toque, 1 m com <b>Shift</b>. O mouse posiciona, a seta acerta.</p>
           <p>A tela precisa existir na aba <b>Dados</b>, com <b>gabinete escolhido</b> — é de lá que saem a medida e o peso. Tela sem gabinete aparece apagada na lista.</p>
           <p><b>O ímã tem duas réguas.</b> Entre <b>tela e tela</b> ele é rigoroso: cada parede tem <b>nove pontos</b> — as quatro quinas, os quatro meios de borda e o centro —, e o que estiver mais perto casa quina com quina, nos três eixos de uma vez. É o que emenda parede de verdade, e não "quase". Entre <b>tela e treliça</b> (e com o piso) a régua é mais frouxa, por borda e por meio: encostar num truss é apoiar, não casar quina.</p>
+          <p><b>Os pontos aparecem no desenho</b> assim que você seleciona uma tela: os dela em <b>preto</b> (porque a tela selecionada é lime, e sobre lime a tinta é preta) e os das vizinhas em <b>lime</b>, que é o que se enxerga no escuro do painel. Quando o ímã pega, o ponto que pegou <b>acende maior</b> — é como você vê pra onde ela grudou, em vez de só ver ela pular.</p>
           <p>Desligue no botão do <b>ímã</b> se quiser posicionar livre — aí a tela para na grade de 10 cm. E eixo travado no <b>Shift</b> ou no <b>Ctrl</b> não gruda em nada: a trava é sua, e o ímã não desfaz o que o seu dedo está segurando.</p>
           <p><b>A trena:</b> no modo <b>Medir</b>, clique em dois pontos e a distância aparece no desenho, em metro. Os cliques <b>grudam</b> nos pontos que importam — nó da treliça, quina de tela. O terceiro clique começa uma medida nova, e <b>Esc</b> apaga. A medida fica visível nos outros modos e <b>sai na imagem do Caderno</b>, se você capturar com ela na tela.</p>
           <p><b>O peso das telas aparece separado:</b> quanto a treliça pesa por si, quanto está <b>suspenso</b> e quanto está <b>apoiado no chão</b> — parede no piso não pendura em nada. Isso sai na folha do Caderno, com a lista das telas. O app continua sem dizer se aguenta.</p>
@@ -1103,6 +1125,7 @@ export default function ProjectEstrutura({ project, patch }) {
                 onPainelArrastar={emTelas ? arrastarTela : undefined}
                 onPainelSoltar={emTelas ? soltarTela : undefined}
                 onChaoTela={emTelas && telaEscolhida ? nascerTela : undefined}
+                pontosIma={pontosIma}
                 medida={medidaNaCena}
                 onMedir={medindo ? pontaDaTrena : undefined}
                 contaGotas={ctrl && montando}

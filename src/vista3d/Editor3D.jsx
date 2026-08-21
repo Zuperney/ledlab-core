@@ -23,6 +23,9 @@ const coresDoTema = (porPeca = null) => ({
   gradeEixo: T.bdA,
   peca: T.mut,
   selecao: T.acc,
+  // a tinta que se escreve SOBRE o lime (manual §2.1: sempre preta). É a cor dos
+  // pontos de ímã da tela que está sendo movida — ela é a selecionada, logo lime.
+  tinta: T.accInk,
   conflito: T.red,
   porPeca,
 });
@@ -52,6 +55,7 @@ export default function Editor3D({
   onPainelArrastar, // (id, [x,y,z], mmPorPixel, eixosLivres) — 60×/s, fora do histórico
   onPainelSoltar, // (id) — o arraste virou UM comando só
   onChaoTela, // ([x,y,z]) — clique no piso vazio: a tela escolhida nasce ali
+  pontosIma = null, // { meus, alvos, ancora } — os nove pontos de encaixe (§12)
   // ── modo Medir (§12) ──
   medida = null, // { a, b, texto } da trena, ou null
   onMedir, // ([x,y,z]) — mais uma ponta
@@ -287,6 +291,7 @@ export default function Editor3D({
   useEffect(() => { cenaRef.current?.mostrarSetas(setas ?? []); }, [setas]);
   useEffect(() => { cenaRef.current?.mostrarPaineis(paineis ?? []); }, [paineis]);
   useEffect(() => { cenaRef.current?.mostrarMedida(medida ?? null); }, [medida]);
+  useEffect(() => { cenaRef.current?.mostrarPontosDeIma(pontosIma ?? null); }, [pontosIma]);
   useEffect(() => { cenaRef.current?.definirCores(cores ?? null); }, [cores]);
   useEffect(() => { cenaRef.current?.mostrarGrade(mostrarGrade); }, [mostrarGrade]);
   useEffect(() => { cenaRef.current?.mostrarConectores(conectores ?? []); }, [conectores]);
