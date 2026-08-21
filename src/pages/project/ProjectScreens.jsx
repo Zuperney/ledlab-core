@@ -8,7 +8,7 @@
 //
 // Aqui é só o AGRUPAMENTO e o LAYOUT. O cabeamento de cada Screen fica na aba Cabos.
 import { useRef, useState, useMemo, useEffect } from "react";
-import { Layers, Plus, Wand2, Trash2, X, AlertTriangle } from "lucide-react";
+import { Layers, Plus, Wand2, Trash2, X, AlertTriangle, Scissors, Merge } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { useConfirm } from "../../store/UIContext.jsx";
 import { T } from "../../ui/tokens.js";
@@ -19,7 +19,7 @@ import HelpTip from "../../components/HelpTip.jsx";
 import { genId } from "../../services/ids.js";
 import { overlappingIds, snapAxis, gapsAround } from "../../services/layout.js";
 import { dimOf, modelKey } from "../../services/canvasCabling.js";
-import { makeScreen, unassignedTelas, screenTelas, screenSize, screenResolucao, arrangeScreen, addTela, removeTela, oneScreenPerTela, vaoOf } from "../../services/screens.js";
+import { makeScreen, unassignedTelas, screenTelas, screenSize, screenResolucao, arrangeScreen, addTela, removeTela, oneScreenPerTela, vaoOf, cortesDe, quantasPartes, partirTela, juntarTela } from "../../services/screens.js";
 
 // cor por modelo de gabinete (estável no projeto): mesma cor = a cadeia pode
 // encadear entre as telas. Numa Screen que mistura modelos, isso mostra o que junta.
@@ -36,6 +36,9 @@ export default function ProjectScreens({ project, patch }) {
   const [sel, setSel] = useState(null);
   const [wrapW, setWrapW] = useState(320);
   const [drag, setDrag] = useState(null);
+  // modo Partir: enquanto ligado, o clique corta em vez de arrastar
+  const [partindo, setPartindo] = useState(false);
+  const [mira, setMira] = useState(null); // a divisão sob o ponteiro, no modo Partir
   const wrapRef = useRef(null);
   const dragRef = useRef(null);
 
@@ -106,6 +109,40 @@ export default function ProjectScreens({ project, patch }) {
   // VÃO: a folga padrão da Screen. Entra no encaixe do arraste (toda folga sai do
   // mesmo tamanho), no auto-arrumar e na entrada de tela nova.
   const vao = vaoOf(active);
+
+  // ── PARTIR A TELA (corte de processamento) ──────────────────
+  // A tela é uma só no palco; o corte diz onde o PROCESSAMENTO divide ela. É o
+  // que substitui o velho truque de duplicar a tela e chamar de "parte 1" e
+  // "parte 2" — que funcionava no desenho e mentia no peso, na área e na
+  // elétrica. Ver `services/screens.js`.
+  const telaSel = sel ? membros.find((t) => t.id === sel) : null;
+  const cortesSel = telaSel ? cortesDe(active, telaSel) : null;
+  const cortar = (telaId, eixo, indice) =>
+    setScreens(screens.map((s) => (s.id === active.id ? partirTela(s, telaId, eixo, indice) : s)));
+  const juntar = (telaId) =>
+    setScreens(screens.map((s) => (s.id === active.id ? juntarTela(s, telaId) : s)));
+
+  /**
+   * Onde o clique quer cortar: a divisão entre gabinetes mais próxima do
+   * ponteiro, na vertical OU na horizontal — a que estiver mais perto.
+   *
+   * Divisão de BORDA não conta (0 e cols/rows): cortar na borda não parte nada,
+   * e oferecer isso seria um clique que não faz nada.
+   */
+  const cortePerto = (tela, e) => {
+    const p = posOf(tela);
+    const el = e.currentTarget.getBoundingClientRect();
+    const resX = parseFloat(tela.gabinete?.resX) || 128;
+    const resY = parseFloat(tela.gabinete?.resY) || 128;
+    const px = (e.clientX - el.left) / scale, py = (e.clientY - el.top) / scale;
+    const cx = Math.round(px / resX), cy = Math.round(py / resY);
+    const dx = Math.abs(px - cx * resX), dy = Math.abs(py - cy * resY);
+    const valeX = cx > 0 && cx < (tela.cols || 1);
+    const valeY = cy > 0 && cy < (tela.rows || 1);
+    if (valeX && (!valeY || dx <= dy)) return { eixo: "x", indice: cx, pos: p.x + cx * resX };
+    if (valeY) return { eixo: "y", indice: cy, pos: p.y + cy * resY };
+    return null;
+  };
   // cotas de px do vão: da tela em arraste (ou da selecionada) pros vizinhos que
   // ela encara — é o que responde "quanto de folga tem aqui" sem contar gabinete.
   const rectOf = (t) => { const p = posOf(t), d = dimOf(t); return { x: p.x, y: p.y, w: d.w, h: d.h }; };
@@ -132,6 +169,14 @@ export default function ProjectScreens({ project, patch }) {
   const onDown = (e, t) => {
     e.preventDefault();
     setSel(t.id);
+    // NO MODO PARTIR O CLIQUE CORTA, não arrasta: sem isso o gesto de cortar
+    // mexeria a tela de lugar junto, e o técnico perderia a montagem por tentar
+    // partir uma parede.
+    if (partindo) {
+      const alvo = cortePerto(t, e);
+      if (alvo) cortar(t.id, alvo.eixo, alvo.indice);
+      return;
+    }
     e.currentTarget.setPointerCapture(e.pointerId);
     const p = posOf(t), d = dimOf(t);
     const others = membros.filter((x) => x.id !== t.id).map((x) => ({ p: posOf(x), d: dimOf(x) }));
@@ -142,8 +187,14 @@ export default function ProjectScreens({ project, patch }) {
       thr: 9 / scale,
     };
   };
-  const onMove = (e) => { const c = dragRef.current; if (c) setDrag({ id: c.id, ...dragAt(c, e) }); };
+  const onMove = (e, t) => {
+    // a MIRA: no modo Partir o ponteiro realça a divisão que o clique vai cortar
+    if (partindo) { setMira(t ? { telaId: t.id, ...(cortePerto(t, e) || {}) } : null); return; }
+    const c = dragRef.current;
+    if (c) setDrag({ id: c.id, ...dragAt(c, e) });
+  };
   const onUp = (e) => {
+    if (partindo) return;
     const c = dragRef.current; if (!c) return;
     const f = dragAt(c, e);
     dragRef.current = null;
@@ -176,6 +227,23 @@ export default function ProjectScreens({ project, patch }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <input value={active.nome} onChange={(e) => patchScreen(active.id, { nome: e.target.value })}
             style={{ flex: 1, minWidth: 0, background: T.card2, border: `1px solid ${T.bd}`, borderRadius: 8, color: T.txt, fontWeight: 600, fontSize: 15, padding: "7px 10px" }} />
+          {/* PARTIR: o corte de processamento. Só aparece com tela selecionada —
+              botão que não pode agir é botão que ensina errado. */}
+          <button
+            style={{ ...iconBtn, ...(partindo ? { borderColor: T.acc, color: T.acM } : {}) }}
+            onClick={() => { setPartindo((v) => !v); setMira(null); }}
+            disabled={!telaSel}
+            aria-pressed={partindo}
+            title={telaSel
+              ? "Partir a tela: clique na divisão entre gabinetes pra cortar. O processamento trata cada parte como um sistema à parte."
+              : "Selecione uma tela para partir"}
+            aria-label="Partir a tela"
+          ><Scissors size={15} /></button>
+          {cortesSel && (
+            <button style={iconBtn} onClick={() => juntar(telaSel.id)}
+              title={`Juntar ${telaSel.nome}: tira todos os cortes e ela volta a ser uma parte só`}
+              aria-label="Juntar a tela"><Merge size={15} /></button>
+          )}
           <button style={iconBtn} onClick={arrangeActive} disabled={!membros.length} title="Auto-arrumar: agrupa por modelo, empilha as faixas e aplica o vão — você ajusta arrastando" aria-label="Auto-arrumar"><Wand2 size={15} /></button>
           <button style={{ ...iconBtn, color: T.red }} onClick={() => deleteScreen(active.id)} title="Excluir esta Screen" aria-label="Excluir Screen"><Trash2 size={15} /></button>
         </div>
@@ -192,6 +260,20 @@ export default function ProjectScreens({ project, patch }) {
           {/* o vão muda O QUE A SCREEN É (a montagem), então mora aqui no conteúdo —
               não em ajustes de exibição. Arrastar encaixa nele; o auto-arrumar aplica.
               Ele é DESENHO: separa as telas na figura e no papel, e nunca vira pixel. */}
+          {/* quantas PARTES a Screen tem, quando alguma tela é partida — é o
+              chip que torna o corte visível sem abrir o mapa */}
+          {membros.some((t) => quantasPartes(active, t) > 1) && (
+            <span style={{ color: T.acM, fontSize: 11.5, whiteSpace: "nowrap" }}>
+              {membros.filter((t) => quantasPartes(active, t) > 1)
+                .map((t) => `${t.nome} · partida em ${quantasPartes(active, t)}`)
+                .join(" · ")}
+            </span>
+          )}
+          {partindo && (
+            <span style={{ color: T.dim, fontSize: 11.5, whiteSpace: "nowrap" }}>
+              clique na divisão entre gabinetes — de novo no corte pra tirar
+            </span>
+          )}
           <label style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, color: T.mut, fontSize: 12, whiteSpace: "nowrap" }}>
             Vão (px)
             <NumField value={vao} onChange={(v) => patchScreen(active.id, { vao: Math.max(0, v) })}
@@ -226,16 +308,63 @@ export default function ProjectScreens({ project, patch }) {
                 const p = posOf(t), d = dimOf(t), col = colorOfModel(t), over = overlapIds.has(t.id);
                 const small = d.w * scale < 60;
                 return (
-                  <div key={t.id} onPointerDown={(e) => onDown(e, t)} onPointerMove={onMove} onPointerUp={onUp}
+                  <div key={t.id} onPointerDown={(e) => onDown(e, t)} onPointerMove={(e) => onMove(e, t)} onPointerUp={onUp}
+                    onPointerLeave={() => partindo && setMira(null)}
                     style={{ position: "absolute", left: p.x * scale, top: p.y * scale, width: d.w * scale, height: d.h * scale,
                       background: (over ? T.red : col) + "26", border: `1.5px solid ${over ? T.red : col}`,
-                      outline: sel === t.id ? `2px solid ${T.acL}` : "none", borderRadius: 3, cursor: "grab", touchAction: "none",
+                      outline: sel === t.id ? `2px solid ${T.acL}` : "none", borderRadius: 3,
+                      cursor: partindo ? "crosshair" : "grab", touchAction: "none",
                       overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 1 }}>
+                    {/* a GRADE de gabinetes só aparece no modo Partir: é a régua
+                        do gesto, e fora dele seria ruído em cima do desenho */}
+                    {partindo && (
+                      <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
+                        backgroundImage: `linear-gradient(to right, ${T.dim2} 1px, transparent 1px), linear-gradient(to bottom, ${T.dim2} 1px, transparent 1px)`,
+                        backgroundSize: `${(parseFloat(t.gabinete?.resX) || 128) * scale}px ${(parseFloat(t.gabinete?.resY) || 128) * scale}px`,
+                        opacity: 0.5 }} />
+                    )}
                     {!small && <span style={{ color: T.txt, fontSize: 11, fontWeight: 600, padding: "0 3px", textAlign: "center", lineHeight: 1.15 }}>{t.nome}</span>}
                     {!small && d.h * scale > 34 && <span style={{ color: T.mut, fontSize: 9 }}>{t.cols}×{t.rows}</span>}
                   </div>
                 );
               })}
+              {/* OS CORTES DE PROCESSAMENTO, sempre visíveis. Eles continuam
+                  desenhados fora do modo Partir porque são parte do que a Screen
+                  É — some a linha, some a explicação de por que a porta para ali. */}
+              {membros.flatMap((t) => {
+                const c = cortesDe(active, t);
+                if (!c) return [];
+                const p = posOf(t), d = dimOf(t);
+                const resX = parseFloat(t.gabinete?.resX) || 128, resY = parseFloat(t.gabinete?.resY) || 128;
+                const linha = (k, st) => (
+                  <div key={k} style={{ position: "absolute", pointerEvents: "none", zIndex: 4, background: T.acc, ...st }} />
+                );
+                return [
+                  ...c.x.map((cx) => linha(`${t.id}x${cx}`, {
+                    left: (p.x + cx * resX) * scale - 1, top: p.y * scale, width: 2, height: d.h * scale,
+                  })),
+                  ...c.y.map((cy) => linha(`${t.id}y${cy}`, {
+                    left: p.x * scale, top: (p.y + cy * resY) * scale - 1, width: d.w * scale, height: 2,
+                  })),
+                ];
+              })}
+
+              {/* A MIRA: a divisão que o próximo clique corta. Sem ela, cortar é
+                  adivinhar onde o ponteiro caiu. */}
+              {partindo && mira?.eixo && (() => {
+                const t = membros.find((x) => x.id === mira.telaId);
+                if (!t) return null;
+                const p = posOf(t), d = dimOf(t);
+                const vert = mira.eixo === "x";
+                return (
+                  <div style={{ position: "absolute", pointerEvents: "none", zIndex: 5, background: T.acM, opacity: 0.85,
+                    left: vert ? mira.pos * scale - 1.5 : p.x * scale,
+                    top: vert ? p.y * scale : mira.pos * scale - 1.5,
+                    width: vert ? 3 : d.w * scale,
+                    height: vert ? d.h * scale : 3 }} />
+                );
+              })()}
+
               {/* cota do vão: linha tracejada + o número em px, no meio da folga */}
               {cotas.map((g) => (
                 <div key={g.dir} style={{ position: "absolute", pointerEvents: "none", zIndex: 3,
@@ -287,6 +416,10 @@ export default function ProjectScreens({ project, patch }) {
         Screens do jeito da controladora
         <HelpTip title="Como montar as Screens" align="left">
           Você monta as Screens do jeito que configuraria na controladora — junte só o que vai no <b style={{ color: T.txt }}>mesmo sistema</b>. O cabeamento de cada Screen fica na aba Cabeamento. A montagem física fica no galpão; o canvas de conteúdo, na aba Composição.
+          <br /><br />
+          <b style={{ color: T.txt }}>Partir a tela</b> (tesoura) é pra quando o <b style={{ color: T.txt }}>processamento</b> divide a parede: selecione a tela, ligue a tesoura e clique na <b style={{ color: T.txt }}>divisão entre gabinetes</b> — clicar de novo no corte tira. A partir daí <b style={{ color: T.txt }}>nenhuma porta atravessa o corte</b>: o cabeamento trata cada parte como um sistema à parte, e o mapa desenha a linha. O corte pode ser desigual (10 + 6), e dá pra cortar na vertical e na horizontal.
+          <br /><br />
+          A tela continua <b style={{ color: T.txt }}>inteira no cadastro</b> — peso, área e elétrica seguem falando de uma parede só, porque no palco ela é uma só. O corte é de <b style={{ color: T.txt }}>vídeo</b>: os circuitos de AC continuam correndo pela tela toda. No Caderno as partes aparecem como <b style={{ color: T.txt }}>P1</b>, <b style={{ color: T.txt }}>P2</b>, na porta e no mapa de pixels.
           <br /><br />
           <b style={{ color: T.txt }}>Vão (px)</b> é a folga padrão entre telas: com ele definido, arrastar encaixa exatamente nessa distância (ou em encostado), o auto-arrumar separa tudo por ela e a tela nova entra respeitando-a — é o que evita três vãos parecidos e nenhum igual. A cota em px aparece no canvas na tela selecionada, medindo a folga até os vizinhos que ela encara. Os campos numéricos aceitam conta: <b style={{ color: T.txt }}>1920/2</b>, <b style={{ color: T.txt }}>192*3</b>.
         </HelpTip>

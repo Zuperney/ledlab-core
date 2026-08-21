@@ -3,7 +3,7 @@
 // pra caber na largura do documento e desenha com a camada compartilhada CablingLayer no
 // modo PRINT (estilo SmartLCT, dono 02/08): região pastel + serpentina azul + entrada
 // verde + fim vermelho — sem números por gabinete (esses ficam na aba/Diagramação).
-import { screenCells, screenPorts, cellPortIndex } from "../services/screenCabling.js";
+import { screenCells, screenPorts, cellPortIndex, linhasDeCorte } from "../services/screenCabling.js";
 import { useCablePalette } from "../hooks/useCablePalette.js";
 import CablingLayer from "./CablingLayer.jsx";
 
@@ -27,11 +27,17 @@ export default function ScreenCableMap({ screen, telas, kind = "sinal", numberin
   const put = (c) => ({ k: cellKey(c), x: (c.x - minX) * scale, y: (c.y - minY) * scale, w: c.w * scale, h: c.h * scale });
   const drawCells = cells.map((c) => ({ ...put(c), port: portOf[cellKey(c)] ?? null }));
   const drawPorts = ports.map((port) => port.map(put));
+  // o corte de processamento vai IMPRESSO: quem monta no galpão segue o papel, e
+  // uma porta que para no meio da parede sem linha nenhuma lê como erro de mapa
+  const limites = linhasDeCorte(screen, telas).map((l) => ({
+    x1: (l.x1 - minX) * scale, y1: (l.y1 - minY) * scale,
+    x2: (l.x2 - minX) * scale, y2: (l.y2 - minY) * scale,
+  }));
 
   return (
     <svg viewBox={`-6 -6 ${W + 12} ${H + 12}`} width={W + 12}
       style={{ width: "100%", maxWidth: W + 12, height: "auto", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, display: "block" }}>
-      <CablingLayer cells={drawCells} ports={drawPorts} colorOf={colorOf} print />
+      <CablingLayer cells={drawCells} ports={drawPorts} colorOf={colorOf} limites={limites} print />
     </svg>
   );
 }

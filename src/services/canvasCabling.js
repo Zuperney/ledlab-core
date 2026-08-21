@@ -20,9 +20,36 @@ export const dimOf = (t) => ({
   h: (t?.rows || 1) * (parseFloat(t?.gabinete?.resY) || 128),
 });
 
+// ── PARTES: a tela cortada dentro da Screen ────────────────
+//
+// O corte é a declaração de onde o PROCESSAMENTO divide a parede (ver
+// `screens.js`). Aqui ele vira uma chave de agrupamento: onde o motor agrupava
+// por `telaId`, passa a agrupar por `parte`. É a feature inteira — o resto da
+// mecânica (serpentina, blocos, orçamento) não sabe que o corte existe.
+
+/**
+ * Em que parte da tela cai o gabinete (c, r).
+ *
+ * `n` numera em ORDEM DE LEITURA (esquerda→direita, cima→baixo), que é como o
+ * técnico conta parte no galpão. Tela inteira devolve `n: 0` — o zero é o "não
+ * tem parte", e é ele que mantém o caminho sem corte idêntico ao de sempre.
+ */
+export function parteDaCelula(cortes, c, r) {
+  if (!cortes) return { ix: 0, iy: 0, n: 0 };
+  const ix = cortes.x.filter((k) => k <= c).length;
+  const iy = cortes.y.filter((k) => k <= r).length;
+  return { ix, iy, n: iy * (cortes.x.length + 1) + ix + 1 };
+}
+
+/** a chave de agrupamento do gabinete: a tela, ou a parte dela quando há corte */
+export const parteKey = (telaId, parteN) => (parteN > 0 ? `${telaId}#${parteN}` : telaId);
+
 // Um gabinete de cada tela, já na coordenada do canvas (origem sup-esq, como o
 // NovaLCT). Tela sem posição no canvas fica de fora.
-export function canvasCells(telas, positions) {
+//
+// `cortes` é opcional: `{ telaId → {x,y} }` já saneado (ver `cortesDe`). Sem ele,
+// toda célula sai com `parteN: 0` e a chave de agrupamento é o próprio `telaId`.
+export function canvasCells(telas, positions, cortes = null) {
   const cells = [];
   for (const t of telas || []) {
     const p = positions?.[t.id];
@@ -30,9 +57,15 @@ export function canvasCells(telas, positions) {
     const resX = parseFloat(t.gabinete?.resX) || 128;
     const resY = parseFloat(t.gabinete?.resY) || 128;
     const model = modelKey(t);
+    const corte = cortes?.[t.id] || null;
     for (let r = 0; r < (t.rows || 1); r++)
-      for (let c = 0; c < (t.cols || 1); c++)
-        cells.push({ telaId: t.id, c, r, x: p.x + c * resX, y: p.y + r * resY, w: resX, h: resY, model });
+      for (let c = 0; c < (t.cols || 1); c++) {
+        const { n } = parteDaCelula(corte, c, r);
+        cells.push({
+          telaId: t.id, c, r, x: p.x + c * resX, y: p.y + r * resY, w: resX, h: resY, model,
+          parteN: n, parte: parteKey(t.id, n),
+        });
+      }
   }
   return cells;
 }
@@ -72,11 +105,13 @@ export function snakeCells(cells, routing = "updown", corner = "bl") {
 // cabo comprido a mais; a varredura por faixas do snakeCells cruzava o vão a
 // cada faixa). A ordem das telas segue a posição no canvas, no mesmo eixo e
 // sentido do routing/corner; dentro de cada tela a serpentina é a de sempre.
-export function snakeCellsPorTela(cells, routing = "updown", corner = "bl") {
+export function snakeCellsPorTela(cells, routing = "updown", corner = "bl", porParte = true) {
+  const chave = (cell) => (porParte && cell.parte) || cell.telaId;
   const byTela = new Map();
   for (const cell of cells) {
-    if (!byTela.has(cell.telaId)) byTela.set(cell.telaId, []);
-    byTela.get(cell.telaId).push(cell);
+    const k = chave(cell);
+    if (!byTela.has(k)) byTela.set(k, []);
+    byTela.get(k).push(cell);
   }
   if (byTela.size <= 1) return snakeCells(cells, routing, corner);
   const rightStart = corner === "br" || corner === "tr";
@@ -90,6 +125,29 @@ export function snakeCellsPorTela(cells, routing = "updown", corner = "bl") {
     return (revPrim ? -p : p) || min(a, secondary) - min(b, secondary);
   });
   return groups.flatMap((group) => snakeCells(group, routing, corner));
+}
+
+/**
+ * Separa os gabinetes em ILHAS que o orçamento NÃO pode atravessar.
+ *
+ * ⚠️ O CORTE É LIMITE DURO, e é aqui que ele se cumpre. A serpentina tela-a-tela
+ * devolve uma lista só, e o `balancedChunks` corta por contagem — então um cabo
+ * emendaria o fim de P1 no começo de P2 e desfaria justamente o limite que o
+ * técnico declarou. Cada parte é orçada sozinha.
+ *
+ * Gabinete de tela INTEIRA fica todo numa ilha só: ali a regra de sempre
+ * continua valendo (no máximo 1 cabo cruza entre telas da Screen), porque
+ * atravessar tela dentro do mesmo processamento é normal — atravessar corte não.
+ */
+export function ilhasDeCorte(cells) {
+  const inteiras = [];
+  const porParte = new Map();
+  for (const c of cells || []) {
+    if (!(c.parteN > 0)) { inteiras.push(c); continue; }
+    if (!porParte.has(c.parte)) porParte.set(c.parte, []);
+    porParte.get(c.parte).push(c);
+  }
+  return [...(inteiras.length ? [inteiras] : []), ...porParte.values()];
 }
 
 // caixa de cada tela a partir das cells — telaId → {x1,y1,x2,y2}. Com o conjunto
@@ -127,11 +185,13 @@ export function panelIds(rects) {
 // um painel contínuo e podem dividir os mesmos blocos; VÃO entre caixas separa
 // aglomerados — um bloco retangular que atravessasse o vão cobraria o vão na
 // régua de área E viraria cabo cruzando o palco. Devolve listas de cells.
-export function clusterTelas(cells) {
+export function clusterTelas(cells, porParte = true) {
+  const chave = (c) => (porParte && c.parte) || c.telaId;
   const byTela = new Map();
   for (const c of cells) {
-    if (!byTela.has(c.telaId)) byTela.set(c.telaId, []);
-    byTela.get(c.telaId).push(c);
+    const k = chave(c);
+    if (!byTela.has(k)) byTela.set(k, []);
+    byTela.get(k).push(c);
   }
   const grupos = [...byTela.values()];
   if (grupos.length <= 1) return grupos;
@@ -142,12 +202,17 @@ export function clusterTelas(cells) {
   };
   const boxes = grupos.map(bbox);
   const toca = (a, b) => a.x1 <= b.x2 + 1 && b.x1 <= a.x2 + 1 && a.y1 <= b.y2 + 1 && b.y1 <= a.y2 + 1;
+  // ⚠️ DUAS PARTES DA MESMA TELA NUNCA SE FUNDEM. Elas se tocam por definição —
+  // o corte passa entre elas —, e sem esta exceção o toque desfaria na hora o
+  // limite que o técnico acabou de declarar. Telas DIFERENTES encostadas
+  // continuam virando um painel só, como sempre.
+  const mesmaTela = (i, j) => grupos[i][0]?.telaId === grupos[j][0]?.telaId;
   // union-find simples sobre as telas
   const pai = grupos.map((_, i) => i);
   const raiz = (i) => (pai[i] === i ? i : (pai[i] = raiz(pai[i])));
   for (let i = 0; i < grupos.length; i++)
     for (let j = i + 1; j < grupos.length; j++)
-      if (toca(boxes[i], boxes[j])) pai[raiz(i)] = raiz(j);
+      if (!mesmaTela(i, j) && toca(boxes[i], boxes[j])) pai[raiz(i)] = raiz(j);
   const out = new Map();
   grupos.forEach((g, i) => {
     const r = raiz(i);

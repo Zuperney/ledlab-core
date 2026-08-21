@@ -12,8 +12,8 @@
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
 import { cableMeta, cablePorts, balancedChunks, buildAuto, portOffset, ampCabTipico } from "./cabling.js";
 import { acTone } from "./electricalCalc.js";
-import { canvasCells, snakeCellsPorTela, clusterTelas, portAreaPx, telaRects, panelIds, modelKey, orderCanvasPorts } from "./canvasCabling.js";
-import { screenTelas, screenOfTela, unassignedTelas, screenResolucao, screenSize } from "./screens.js";
+import { canvasCells, snakeCellsPorTela, clusterTelas, ilhasDeCorte, portAreaPx, telaRects, panelIds, modelKey, orderCanvasPorts, dimOf } from "./canvasCabling.js";
+import { screenTelas, screenOfTela, unassignedTelas, cortesDe, nomeDaParte, quantasPartes, screenResolucao, screenSize } from "./screens.js";
 
 const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
 const cfgOf = (screen, kind) => (kind === "ac" ? screen?.ac : screen?.sinal) || {};
@@ -45,9 +45,42 @@ function blockPorts(cells, tela, budget, strategy, routing, corner, numbering) {
     .filter((port) => port.length);
 }
 
-// os gabinetes da Screen em coordenada de canvas (origem própria) — a base do desenho
+/** os cortes da Screen, já saneados: `telaId → {x,y}`. Vazio = nenhuma tela partida. */
+export function cortesDaScreen(screen, telas) {
+  const out = {};
+  for (const t of screenTelas(screen, telas)) {
+    const c = cortesDe(screen, t);
+    if (c) out[t.id] = c;
+  }
+  return out;
+}
+
+// os gabinetes da Screen em coordenada de canvas (origem própria) — a base do
+// desenho. Cada célula já vem com a PARTE em que caiu (ver `parteDaCelula`): é
+// só metadado até alguém agrupar por ela.
 export function screenCells(screen, telas) {
-  return canvasCells(screenTelas(screen, telas), screen?.pos || {});
+  return canvasCells(screenTelas(screen, telas), screen?.pos || {}, cortesDaScreen(screen, telas));
+}
+
+/**
+ * As linhas de corte da Screen em coordenada de canvas — pro desenho.
+ *
+ * Sem elas o técnico vê as portas pararem e não vê por quê. Vale pro mapa da aba
+ * e pro mapa do papel.
+ */
+export function linhasDeCorte(screen, telas) {
+  const out = [];
+  for (const t of screenTelas(screen, telas)) {
+    const cortes = cortesDe(screen, t);
+    const p = screen?.pos?.[t.id];
+    if (!cortes || !p) continue;
+    const resX = parseFloat(t.gabinete?.resX) || 128;
+    const resY = parseFloat(t.gabinete?.resY) || 128;
+    const d = dimOf(t);
+    for (const c of cortes.x) out.push({ x1: p.x + c * resX, y1: p.y, x2: p.x + c * resX, y2: p.y + d.h });
+    for (const r of cortes.y) out.push({ x1: p.x, y1: p.y + r * resY, x2: p.x + d.w, y2: p.y + r * resY });
+  }
+  return out;
 }
 
 // AUTO (não-livre): uma serpentina/bloco por MODELO de gabinete, escopado nas telas
@@ -66,14 +99,18 @@ export function screenAutoPorts(screen, telas, kind = "sinal", numbering = "row-
     const meta = metaOf(tela, cfg, kind);
     const budget = kind === "ac" ? meta.acBudget : meta.sinalBudget;
     if (kind === "sinal" && meta.sinalRule === "px") {
-      // serpentina tela-a-tela: no máximo 1 cabo cruza entre telas da Screen
-      ports.push(...balancedChunks(snakeCellsPorTela(group, routing, corner), budget));
+      // serpentina tela-a-tela: no máximo 1 cabo cruza entre telas da Screen —
+      // e NENHUM cruza corte, porque cada parte é uma ilha de orçamento
+      for (const ilha of ilhasDeCorte(group))
+        ports.push(...balancedChunks(snakeCellsPorTela(ilha, routing, corner), budget));
     } else {
       const strategy = ["linha", "coluna", "area"].includes(cfg.strategy) ? cfg.strategy : "area";
       // blocos por AGLOMERADO de telas encostadas: bloco retangular nunca
       // atravessa VÃO — o retângulo cobraria o vão na régua de área e o cabo
       // cruzaria o palco. Telas encostadas continuam um painel só.
-      for (const cluster of clusterTelas(group))
+      // O CORTE separa aglomerado do mesmo jeito, e só pro sinal: energia não
+      // tem motivo pra respeitar limite de processador (decisão do dono).
+      for (const cluster of clusterTelas(group, kind === "sinal"))
         ports.push(...blockPorts(cluster, tela, budget, strategy, routing, corner, numbering));
     }
   }
@@ -115,19 +152,33 @@ export function screenPortSummary(screen, telas, kind = "sinal", numbering = "ro
   const cfg = cfgOf(screen, kind);
   const ports = screenPorts(screen, telas, kind, numbering);
   const membros = screenTelas(screen, telas);
-  const nomeDe = (id) => membros.find((t) => t.id === id)?.nome;
   // PAINÉIS da Screen (telas encostadas, direta ou indiretamente). Sai das telas
   // TODAS, não das que a porta pegou: um cabo que liga só as pontas de um painel
   // contínuo tem BURACO no meio (a régua do retângulo cobra), não vão.
+  //
+  // ⚠️ POR TELA, não por parte: o corte é limite de PROCESSAMENTO, e a régua de
+  // vão × buraco olha o painel físico — que continua inteiro quando a tela é
+  // partida.
   const panels = panelIds(telaRects(screenCells(screen, telas)));
   return ports.map((port, pi) => {
     const telaDo = membros.find((t) => t.id === port[0]?.telaId);
     const m = metaOf(telaDo, cfg, kind);
     const telaIds = [...new Set(port.map((c) => c.telaId))];
+    // as PARTES que a porta percorre, na ordem em que ela passa. É o que a folha
+    // imprime: numa tela partida, "Tela A" sozinho não diz por onde o cabo entra.
+    const partes = [...new Map(port.map((c) => [c.parte ?? c.telaId, c])).values()];
     const f = port[0] || {};
     const base = {
       n: pi + 1, count: port.length, telaIds,
-      telas: telaIds.map((id) => nomeDe(id) || "sem nome"), cruza: telaIds.length > 1,
+      telas: partes.map((c) => nomeDaParte(membros.find((t) => t.id === c.telaId), c.parteN)),
+      cruza: telaIds.length > 1,
+      // cabo do modo LIVRE atravessando o corte: avisa, não bloqueia — mesma
+      // postura do `cruzaVao` e da peça sobreposta da Estrutura. No automático
+      // isso não acontece (cada parte é uma ilha de orçamento).
+      cruzaParte: partes.length > telaIds.length,
+      // a porta vive numa tela PARTIDA: a aba precisa saber pra escrever o nome
+      // da parte, senão "Porta 1 · 30 gab" não diz em qual metade da parede ela está
+      partida: partes.some((c) => c.parteN > 0),
       startX: f.x ?? 0, startY: f.y ?? 0,
     };
     if (kind === "ac") {
@@ -227,12 +278,20 @@ export function telasSemScreen(project) {
 export function screenGrid(screen, telas) {
   const membros = screenTelas(screen, telas);
   const gabs = screenCells(screen, telas).length;
+  // em quantas PARTES o processamento divide a Screen (§corte). 0 = nenhuma tela
+  // partida, e aí o caderno nem menciona.
+  const partes = membros.reduce((s, t) => s + quantasPartes(screen, t), 0);
+  const partida = membros.some((t) => quantasPartes(screen, t) > 1);
   const g = membros[0]?.gabinete || {};
   const resX = parseFloat(g.resX) || 128, resY = parseFloat(g.resY) || 128;
   const { w, h } = screenSize(screen, telas);
   const cols = Math.round(w / resX), rows = Math.round(h / resY);
   const umModelo = new Set(membros.map(modelKey)).size <= 1;
-  return { gabs, cols, rows, exato: umModelo && gabs > 0 && cols * rows === gabs };
+  return {
+    gabs, cols, rows,
+    partes: partida ? partes : 0,
+    exato: umModelo && gabs > 0 && cols * rows === gabs,
+  };
 }
 
 // Relatório: cada Screen com tamanho + resumo (numeração 1..N POR Screen, porque
@@ -299,10 +358,13 @@ export function telaPortSlices(project, telaId, kind = "sinal", numbering = "row
 // mapa de pixels de UMA Screen (1 linha/gabinete) — X/Y na coordenada da Screen (só
 // faz sentido pro sinal; é o que o operador digita no NovaLCT).
 export function screenPixelMapRows(screen, telas, numbering = "row-tb-lr") {
-  const nome = (id) => (telas || []).find((t) => t.id === id)?.nome || "";
+  const telaDe = (id) => (telas || []).find((t) => t.id === id);
   const rows = [];
+  // a coluna "Tela" nomeia a PARTE quando a tela é partida: é o que o operador
+  // confere contra o processador, e ali as duas metades são coisas diferentes
   screenPorts(screen, telas, "sinal", numbering).forEach((port, pi) => port.forEach((cell, seq) => rows.push({
-    porta: pi + 1, ordem: seq + 1, tela: nome(cell.telaId), col: cell.c + 1, row: cell.r + 1, x: cell.x, y: cell.y, w: cell.w, h: cell.h,
+    porta: pi + 1, ordem: seq + 1, tela: nomeDaParte(telaDe(cell.telaId), cell.parteN),
+    col: cell.c + 1, row: cell.r + 1, x: cell.x, y: cell.y, w: cell.w, h: cell.h,
   })));
   return rows;
 }

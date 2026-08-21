@@ -36,7 +36,7 @@ function Arrow({ a, b, size }) {
   return <path d={`M ${-size} ${-size * 0.85} L ${size} 0 L ${-size} ${size * 0.85} Z`} fill="#fff" transform={`translate(${mx},${my}) rotate(${ang})`} />;
 }
 
-export default function CablingLayer({ cells, ports, colorOf, showNumbers = true, arrows = true, numberSize = "sm", numberPos = "bl", portOffset = 0, onCellClick, activeCable = null, print = false }) {
+export default function CablingLayer({ cells, ports, colorOf, showNumbers = true, arrows = true, numberSize = "sm", numberPos = "bl", portOffset = 0, onCellClick, activeCable = null, print = false, limites = [] }) {
   const seqOf = {};
   ports.forEach((port) => port.forEach((cell, i) => { seqOf[cell.k] = i + 1; }));
   const nsize = NSIZE[numberSize] ?? NSIZE.sm;
@@ -108,6 +108,21 @@ export default function CablingLayer({ cells, ports, colorOf, showNumbers = true
           </g>
         );
       })}
+
+      {/* O CORTE DE PROCESSAMENTO, por cima de tudo. Sem esta linha o técnico vê
+          as portas pararem no meio da parede e não vê por quê — e "porta que
+          para sem motivo" é o que ele atribui a bug do app. */}
+      {limites.map((l, i) => (
+        <line
+          key={`corte${i}`}
+          x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+          stroke={print ? "#0f172a" : T.acc}
+          strokeWidth={Math.max(1.5, (cells[0]?.w || 20) * 0.07)}
+          strokeLinecap="round"
+          strokeDasharray={print ? undefined : `${Math.max(4, (cells[0]?.w || 20) * 0.28)} ${Math.max(3, (cells[0]?.w || 20) * 0.18)}`}
+          style={{ pointerEvents: "none" }}
+        />
+      ))}
     </>
   );
 }

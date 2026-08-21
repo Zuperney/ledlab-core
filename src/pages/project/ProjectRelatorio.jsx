@@ -161,6 +161,10 @@ export default function ProjectRelatorio({ project }) {
     return { resX, resY, hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true,
       // régua de área com porta atravessando vão: a escolha muda o número, então
       // vira premissa declarada no papel (mesma lei do overclock)
+      // cabo DESENHADO à mão atravessando o corte de processamento: no
+      // automático isso não acontece, então é escolha de quem desenhou — e
+      // escolha vai declarada no papel, não corrigida em silêncio
+      cruzaCorte: s.ports.some((p) => p.cruzaParte),
       vao: (scr?.sinal?.rule === "px" ? false : s.ports.some((p) => p.cruzaVao)) && (scr?.sinal?.vaoConta === true ? "conta" : "não conta") };
   };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
@@ -378,9 +382,18 @@ export default function ProjectRelatorio({ project }) {
                   {/* contagem REAL: a bbox da Screen inclui o vão entre telas afastadas, então a grade só sai quando a Screen é um retângulo cheio */}
                   <span>Gabinetes <b style={{ color: PRINT.ink }}>{s.grid.gabs}</b></span>
                   {s.grid.exato && <span>Grade da Screen <b style={{ color: PRINT.ink }}>{s.grid.cols} × {s.grid.rows}</b></span>}
+                  {/* PARTES: a tela é uma só no palco, mas o processamento
+                      divide ela. Só sai quando existe corte — Screen inteira
+                      nem menciona. */}
+                  {s.grid.partes > 0 && (
+                    <span title="A tela foi partida na aba Screens: cada parte é um sistema à parte pro processamento, e nenhuma porta atravessa o corte.">
+                      Partes <b style={{ color: PRINT.ink }}>{s.grid.partes}</b>
+                    </span>
+                  )}
                   <span>Total de portas <b style={{ color: PRINT.ink }}>{s.ports.length}</b></span>
                   {/* premissas declaradas: documento datado registra o que foi escolha */}
                   {sp.vao && <span>Vão no retângulo <b style={{ color: PRINT.ink }}>{sp.vao}</b> na cota da porta</span>}
+                  {sp.cruzaCorte && <span>Cabo desenhado <b style={{ color: PRINT.amb }}>atravessa o corte de processamento</b></span>}
                   {sp.overclock && <span>Overclock <b style={{ color: PRINT.amb }}>ligado — porta pode passar da capacidade nominal</b></span>}
                 </div>
                 {screensById[s.id] && <div style={{ marginBottom: 10 }}><ScreenCableMap screen={screensById[s.id]} telas={telas} kind="sinal" numbering={numbering} /></div>}

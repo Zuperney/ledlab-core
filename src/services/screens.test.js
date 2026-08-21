@@ -1,6 +1,6 @@
 ﻿// screens.test.js — Screens que o técnico monta à mão (agrupamento manual).
 import { describe, it, expect } from "vitest";
-import { makeScreen, unassignedTelas, screenOfTela, screenTelas, screenSize, screenResolucao, arrangeScreen, addTela, removeTela, oneScreenPerTela, dropTela, vaoOf } from "./screens.js";
+import { makeScreen, unassignedTelas, screenOfTela, screenTelas, screenSize, screenResolucao, arrangeScreen, addTela, removeTela, oneScreenPerTela, dropTela, vaoOf, cortesDe, quantasPartes, partirTela, juntarTela, nomeDaParte } from "./screens.js";
 
 const gabTira = { resX: "128", resY: "256" };
 const gabImag = { resX: "192", resY: "192" };
@@ -188,5 +188,60 @@ describe("screenResolucao — a resolução SEM o vão", () => {
 
   it("Screen vazia = 0 × 0, sem vão", () => {
     expect(screenResolucao(makeScreen("s1", "A"), telas)).toMatchObject({ w: 0, h: 0, temVao: false });
+  });
+});
+
+// ══ CORTES: partir a tela dentro da Screen ═══════════════════
+describe("cortesDe — saneado na leitura, nunca na escrita", () => {
+  const central = telas.find((t) => t.id === "central"); // 10 × 3
+
+  it("sem corte, é null — o caminho de sempre nem sabe da feature", () => {
+    expect(cortesDe({ id: "s" }, central)).toBeNull();
+    expect(cortesDe({ id: "s", cortes: { central: { x: [], y: [] } } }, central)).toBeNull();
+    expect(quantasPartes({ id: "s" }, central)).toBe(1);
+  });
+
+  // ⚠️ a tela encolheu na aba Dados: o corte na 8 simplesmente deixa de existir
+  it("corte fora do intervalo é descartado, e não deixa estado torto", () => {
+    const s = { id: "s", cortes: { central: { x: [0, 8, 10, 14, -2], y: [] } } };
+    expect(cortesDe(s, central).x).toEqual([8]); // 0 e 10+ não partem nada em 10 col
+    expect(cortesDe(s, { ...central, cols: 6 })).toBeNull(); // encolheu: some
+  });
+
+  it("repetido e fora de ordem entram limpos", () => {
+    const s = { id: "s", cortes: { central: { x: [7, 2, 7], y: [2, 1] } } };
+    expect(cortesDe(s, central)).toEqual({ x: [2, 7], y: [1, 2] });
+    expect(quantasPartes(s, central)).toBe(9); // 3 colunas × 3 faixas
+  });
+});
+
+describe("partir e juntar", () => {
+  it("o corte é toggle: clicar de novo tira", () => {
+    const um = partirTela(makeScreen("s", "A"), "central", "x", 4);
+    expect(um.cortes.central).toEqual({ x: [4], y: [] });
+    expect(partirTela(um, "central", "x", 4).cortes.central).toBeUndefined();
+  });
+
+  it("cortes entram ordenados e a chave some quando não sobra nenhum", () => {
+    let s = partirTela(makeScreen("s", "A"), "central", "x", 7);
+    s = partirTela(s, "central", "x", 2);
+    expect(s.cortes.central.x).toEqual([2, 7]);
+    expect(juntarTela(s, "central").cortes.central).toBeUndefined();
+  });
+
+  // corte órfão voltaria a valer se a mesma tela fosse readicionada depois
+  it("tirar a tela da Screen leva os cortes junto", () => {
+    let s = [{ ...makeScreen("s1", "A"), telaIds: ["central"], pos: { central: { x: 0, y: 0 } } }];
+    s = [partirTela(s[0], "central", "x", 4)];
+    expect(removeTela(s, "s1", "central")[0].cortes.central).toBeUndefined();
+    expect(dropTela(s, "central")[0].cortes.central).toBeUndefined();
+  });
+});
+
+describe("nomeDaParte", () => {
+  it("tela inteira mantém o nome puro — nada muda em quem não parte tela", () => {
+    expect(nomeDaParte({ nome: "Central" }, 0)).toBe("Central");
+    expect(nomeDaParte({ nome: "Central" }, 2)).toBe("Central · P2");
+    expect(nomeDaParte({}, 1)).toBe("sem nome · P1");
   });
 });

@@ -1,6 +1,6 @@
-// canvasCabling.test.js — a corrente atravessando telas no canvas do processador.
+﻿// canvasCabling.test.js — a corrente atravessando telas no canvas do processador.
 import { describe, it, expect } from "vitest";
-import { canvasCells, snakeCells, snakeCellsPorTela, clusterTelas, canvasPorts, portBboxPx, portAreaPx, telaRects, panelIds, orderCanvasPorts } from "./canvasCabling.js";
+import { canvasCells, snakeCells, snakeCellsPorTela, clusterTelas, canvasPorts, portBboxPx, portAreaPx, telaRects, panelIds, orderCanvasPorts, parteDaCelula, parteKey, ilhasDeCorte } from "./canvasCabling.js";
 import { packByModel } from "./layout.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -270,5 +270,72 @@ describe("portAreaPx — o VÃO só entra na cota se a Screen declarar", () => {
   it("porta vazia = 0 nos dois modos", () => {
     expect(portAreaPx([])).toBe(0);
     expect(portAreaPx(undefined, true)).toBe(0);
+  });
+});
+
+// ══ A PARTE: onde o corte vira chave de agrupamento ══════════
+describe("parteDaCelula — a parte sai da contagem de cortes", () => {
+  it("sem corte, a tela é uma parte só — e o zero é o 'não tem parte'", () => {
+    expect(parteDaCelula(null, 3, 1)).toEqual({ ix: 0, iy: 0, n: 0 });
+    expect(parteKey("t1", 0)).toBe("t1"); // chave idêntica à de antes da feature
+  });
+
+  it("um corte vertical: numera esquerda → direita", () => {
+    const c = { x: [4], y: [] };
+    expect(parteDaCelula(c, 3, 0).n).toBe(1);
+    expect(parteDaCelula(c, 4, 0).n).toBe(2); // o corte cai ANTES da coluna 4
+    expect(parteKey("t1", 2)).toBe("t1#2");
+  });
+
+  it("corte em cruz: ordem de leitura, esquerda→direita e cima→baixo", () => {
+    const c = { x: [4], y: [2] };
+    expect(parteDaCelula(c, 0, 0).n).toBe(1);
+    expect(parteDaCelula(c, 5, 0).n).toBe(2);
+    expect(parteDaCelula(c, 0, 3).n).toBe(3);
+    expect(parteDaCelula(c, 5, 3).n).toBe(4);
+  });
+});
+
+describe("ilhasDeCorte — o orçamento não atravessa o corte", () => {
+  const cell = (telaId, parteN, c) => ({ telaId, c, r: 0, parteN, parte: parteKey(telaId, parteN) });
+
+  it("tela partida vira uma ilha por parte", () => {
+    const ilhas = ilhasDeCorte([cell("a", 1, 0), cell("a", 2, 5), cell("a", 1, 1)]);
+    expect(ilhas.map((i) => i.length).sort()).toEqual([1, 2]);
+  });
+
+  // atravessar tela dentro do mesmo processamento é normal — atravessar corte não
+  it("telas inteiras ficam TODAS numa ilha só, como sempre foi", () => {
+    const ilhas = ilhasDeCorte([cell("a", 0, 0), cell("b", 0, 0), cell("c", 0, 0)]);
+    expect(ilhas).toHaveLength(1);
+    expect(ilhas[0]).toHaveLength(3);
+  });
+
+  it("mistura: as inteiras num pote, cada parte no seu", () => {
+    const ilhas = ilhasDeCorte([cell("a", 0, 0), cell("b", 1, 0), cell("b", 2, 9)]);
+    expect(ilhas).toHaveLength(3);
+  });
+});
+
+describe("clusterTelas e o corte", () => {
+  const parteCells = (telaId, parteN, x0) => [
+    { x: x0, y: 0 }, { x: x0 + 100, y: 0 },
+  ].map((c) => ({ ...c, w: 100, h: 100, telaId, parteN, parte: parteKey(telaId, parteN) }));
+
+  // ⚠️ elas SE TOCAM por definição (o corte passa entre elas): sem a exceção, o
+  // toque desfaria na hora o limite que o técnico acabou de declarar
+  it("duas partes da MESMA tela nunca se fundem, mesmo encostadas", () => {
+    const clusters = clusterTelas([...parteCells("a", 1, 0), ...parteCells("a", 2, 200)]);
+    expect(clusters).toHaveLength(2);
+  });
+
+  it("telas DIFERENTES encostadas continuam virando um painel só", () => {
+    const clusters = clusterTelas([...parteCells("a", 1, 0), ...parteCells("b", 1, 200)]);
+    expect(clusters).toHaveLength(1);
+  });
+
+  it("com porParte desligado (o AC), o corte não existe", () => {
+    const clusters = clusterTelas([...parteCells("a", 1, 0), ...parteCells("a", 2, 200)], false);
+    expect(clusters).toHaveLength(1);
   });
 });

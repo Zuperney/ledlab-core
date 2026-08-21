@@ -386,6 +386,41 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(encostadas).not.toContain('"DISPOSIÇÃO NO DESENHO"');
   });
 
+  // ⚠️ A TELA É UMA SÓ NO PALCO. O corte é do processamento: o cabeamento fala em
+  // partes, e as tabelas físicas seguem falando de uma parede só.
+  it("tela PARTIDA: o caderno declara as partes e as portas param no corte", () => {
+    const g128 = { ...gab, resX: 128, resY: 128 };
+    const parede = { id: "tA", nome: "Parede", cols: 16, rows: 3, gabinete: g128 };
+    const scr = (cortes) => ({
+      id: "s1", nome: "Screen 1", telaIds: ["tA"], pos: { tA: { x: 0, y: 0 } },
+      sinal: { rule: "px", strategy: "auto" }, ...(cortes ? { cortes } : {}),
+    });
+    const doc = (cortes) => JSON.stringify(buildRelatorioDoc({
+      project: { ...project, telas: [parede], screens: [scr(cortes)] },
+      tipo: "Completo", cfg, logo: null,
+    }).content);
+
+    // corte desigual na coluna 10: 10×3 = 30 gabinetes e 6×3 = 18
+    const partida = doc({ tA: { x: [10], y: [] } });
+    expect(partida).toContain('"PARTES"');
+    expect(partida).toContain('"text":"30"');
+    expect(partida).toContain('"text":"18"');
+    // o mapa de cabos desenha o limite (a linha do corte)
+    expect(partida).toContain('"PARTES"');
+
+    // sem corte o caderno nem menciona parte, e o orçamento reparte igual
+    const inteira = doc(null);
+    expect(inteira).not.toContain('"PARTES"');
+    expect(inteira).toContain('"text":"24"');
+    expect(inteira).not.toContain("· P1");
+
+    // ⚠️ O QUE SEPARA ISTO DE DUPLICAR A TELA: partir não move nenhum número
+    // físico. Mesmos gabinetes, mesmo peso, mesma área — é uma parede só.
+    const fisico = (j) => (j.match(/"text":"(48|6\.5 kg|11\.8 m²)"/g) || []).join("|");
+    expect(fisico(partida)).toBe(fisico(inteira));
+    expect(partida).toContain('"text":"48"'); // os 48 gabinetes seguem sendo 48
+  });
+
   it("porta atravessando VÃO: o caderno declara se o vazio entrou na cota", () => {
     // duas telas 128×256 (1×3) afastadas, um cabo desenhado cobrindo as duas
     const gab128 = { ...gab, resX: 128, resY: 256 };

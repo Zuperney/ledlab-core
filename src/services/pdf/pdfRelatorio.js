@@ -287,6 +287,10 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     return { resX, resY, hz: parseFloat(scr?.sinal?.hz) || 60, overclock: scr?.sinal?.overclock === true,
       // régua de área com porta atravessando vão: a escolha muda o número, então
       // vira premissa declarada no papel (mesma lei do overclock)
+      // cabo DESENHADO à mão atravessando o corte de processamento: no
+      // automático isso não acontece, então é escolha de quem desenhou — e
+      // escolha vai declarada no papel, não corrigida em silêncio
+      cruzaCorte: s.ports.some((p) => p.cruzaParte),
       vao: (scr?.sinal?.rule === "px" ? false : s.ports.some((p) => p.cruzaVao)) && (scr?.sinal?.vaoConta === true ? "conta" : "não conta") };
   };
   let secN = 0; const sec = () => ++secN; // numera as seções exibidas, na ordem
@@ -752,9 +756,13 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
               // afastadas, então a grade só sai quando é um retângulo cheio
               ["Gabinetes", String(s.grid.gabs)],
               ...(s.grid.exato ? [["Grade da Screen", `${s.grid.cols} × ${s.grid.rows}`]] : []),
+              // a tela é uma só no palco, mas o processamento divide ela — e
+              // nenhuma porta atravessa o corte (ver `screens.js`)
+              ...(s.grid.partes > 0 ? [["Partes", String(s.grid.partes)]] : []),
               ["Total de portas", String(s.ports.length)],
               // premissas declaradas: o que foi ESCOLHA sai no documento datado
               ...(sp.vao ? [["Vão no retângulo", sp.vao]] : []),
+              ...(sp.cruzaCorte ? [["Cabo desenhado", "atravessa o corte"]] : []),
               ...(sp.overclock ? [["Overclock", "ligado"]] : []),
             ]),
             ...mapNode(mapa),

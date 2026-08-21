@@ -21,7 +21,7 @@ import { useLedLabContext } from "../../store/AppContext.jsx";
 import { genId } from "../../services/ids.js";
 import { fileName } from "../../services/filenames.js";
 import { oneScreenPerTela, screenTelas } from "../../services/screens.js";
-import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV, neighborCell } from "../../services/screenCabling.js";
+import { screenPorts, screenPortSummary, screenCells, cellPortIndex, assignCell, autoAsCables, unassignedCount, projectPixelMapCSV, neighborCell, linhasDeCorte } from "../../services/screenCabling.js";
 import { equipSnapshot, screenEquipStatus } from "../../services/equipamentos.js";
 import { buildLoomexExport } from "../../services/loomex.js";
 import { downloadJSON } from "../../services/storage.js";
@@ -107,6 +107,9 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
   const vc = VOLT[(project.config || {}).vk] || VOLT["220_tri"];
   const balFases = isAc ? phaseBalance(summary, vc) : { temRodizio: false };
   const cells = active ? screenCells(active, telas) : [];
+  // o CORTE de processamento (aba Screens) desenhado aqui: é o limite que faz a
+  // porta parar no meio da parede, e sem a linha isso parece bug
+  const cortes = active ? linhasDeCorte(active, telas) : [];
   const faltam = mode === "livre" && active ? unassignedCount(active, telas, kind) : 0;
   const anyOver = summary.some((p) => p.over);
   const anyOc = summary.some((p) => p.oc); // overclock: acima do nominal POR ESCOLHA
@@ -311,7 +314,8 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                     showNumbers={(cr.numbers ?? true) && R(cells[0]?.w || 128) >= 22}
                     arrows={cr.arrows ?? true} numberSize={cr.numberSize} numberPos={cr.numberPos}
                     onCellClick={mode === "livre" ? (c) => clickCell(c.orig) : undefined}
-                    activeCable={mode === "livre" ? activeCable : null} />
+                    activeCable={mode === "livre" ? activeCable : null}
+                    limites={cortes.map((l) => ({ x1: R(l.x1), y1: R(l.y1), x2: R(l.x2), y2: R(l.y2) }))} />
                 </g>
               </svg>
               <div style={{ position: "absolute", right: 12, bottom: 12 }}>
@@ -331,7 +335,7 @@ export default function ScreenCabling({ project, patch, kind = "sinal", advOpen 
                     {isAc && balFases.temRodizio && <span style={{ fontFamily: "ui-monospace,monospace", fontSize: 11, fontWeight: 700, color: T.acM, background: T.sel, borderRadius: 5, padding: "1px 6px" }}>{phaseOf(p.n, vc)}</span>}
                     {p.oc && <ChevronsUp size={13} color={T.amb} style={{ flexShrink: 0 }} />}
                     <span style={{ color: p.over ? T.red : p.oc || p.warn ? T.amb : T.mut }}>{isAc ? `${p.load.toFixed(1)} A (${p.pct}%)` : `${p.pct}%`}</span>
-                    <span style={{ color: T.dim }}>· {p.count} gab{p.cruza ? ` · ${p.telas.join(" → ")}` : ""}</span>
+                    <span style={{ color: T.dim }}>· {p.count} gab{p.cruza || p.partida ? ` · ${p.telas.join(" → ")}` : ""}</span>
                     {mode === "livre" && <X size={13} color={T.dim} onClick={(e) => { e.stopPropagation(); removerCabo(i); }} style={{ cursor: "pointer" }} />}
                   </div>
                 );

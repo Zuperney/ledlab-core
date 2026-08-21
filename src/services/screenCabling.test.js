@@ -1,6 +1,6 @@
 ﻿// screenCabling.test.js — cabeamento de sinal por Screen (auto + livre).
 import { describe, it, expect } from "vitest";
-import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV, projectAcCabos, neighborCell, screenGrid } from "./screenCabling.js";
+import { screenAutoPorts, screenPorts, screenPortSummary, resolveCables, autoAsCables, assignCell, unassignedCount, cellPortIndex, screenCells, hasScreens, telasSemScreen, telaPortSlices, projectScreenReport, projectPixelMapCSV, projectAcCabos, neighborCell, screenGrid, screenPixelMapRows, linhasDeCorte } from "./screenCabling.js";
 
 const gabTira = { resX: "128", resY: "256", pwrMax: "200", fp: "0.9", conector: "PowerCON Azul/Branco" };
 const gabImag = { resX: "192", resY: "192", pwrMax: "150", fp: "0.9", conector: "PowerCON Azul/Branco" };
@@ -249,7 +249,7 @@ describe("cota da porta na régua de ÁREA — o vão fora, salvo declarado", ()
 describe("screenGrid — contagem real de gabinetes (o vão não conta)", () => {
   it("Screen encostada de um modelo: grade exata, gabs = soma das telas", () => {
     // 12 col × 3 lin de 128×256 = 36 gabinetes, retângulo cheio
-    expect(screenGrid(scTiras, telas)).toEqual({ gabs: 36, cols: 12, rows: 3, exato: true });
+    expect(screenGrid(scTiras, telas)).toEqual({ gabs: 36, cols: 12, rows: 3, partes: 0, exato: true });
   });
 
   it("VÃO entre telas: gabs continua o real e a grade sai de cena", () => {
@@ -270,7 +270,7 @@ describe("screenGrid — contagem real de gabinetes (o vão não conta)", () => 
   });
 
   it("Screen sem tela: 0 gabinetes, sem grade", () => {
-    expect(screenGrid({ id: "v", telaIds: [], pos: {} }, telas)).toEqual({ gabs: 0, cols: 0, rows: 0, exato: false });
+    expect(screenGrid({ id: "v", telaIds: [], pos: {} }, telas)).toEqual({ gabs: 0, cols: 0, rows: 0, partes: 0, exato: false });
   });
 });
 
@@ -482,5 +482,97 @@ describe("neighborCell — as setas do teclado no modo livre", () => {
 
   it("célula que não existe na Screen → null", () => {
     expect(neighborCell(cells, { telaId: "zz", c: 0, r: 0 }, "down")).toBeNull();
+  });
+});
+
+// ══ PARTIR A TELA DENTRO DA SCREEN ═══════════════════════════
+// Às vezes a tela é dividida DENTRO DO PROCESSAMENTO: a parede é uma só no palco,
+// mas o sinal entra por dois caminhos. O corte declara onde está o limite — e a
+// promessa é uma só: nenhuma porta atravessa o corte.
+describe("o corte parte a tela dentro da Screen", () => {
+  // Central sozinha: 10 col × 3 lin de 128×256. Budget = 20 gab/porta, então
+  // sem corte os 30 gabinetes saem em 2 portas (15 + 15) e a serpentina passeia
+  // pela tela inteira.
+  const so = { id: "sc", nome: "Central", telaIds: ["central"], pos: { central: { x: 0, y: 0 } }, sinal: { rule: "px", strategy: "auto" } };
+  const cortada = (x = [4]) => ({ ...so, cortes: { central: { x, y: [] } } });
+  const ladoDe = (cell, corte) => (cell.c < corte ? "esq" : "dir");
+
+  it("NENHUMA porta atravessa o corte — régua de px", () => {
+    const ports = screenAutoPorts(cortada(), telas);
+    expect(ports.reduce((n, p) => n + p.length, 0)).toBe(30); // não perde gabinete
+    for (const p of ports) expect(new Set(p.map((c) => ladoDe(c, 4))).size).toBe(1);
+  });
+
+  it("NENHUMA porta atravessa o corte — régua de área", () => {
+    const area = { ...cortada(), sinal: { rule: "area", strategy: "area" } };
+    const ports = screenAutoPorts(area, telas);
+    expect(ports.reduce((n, p) => n + p.length, 0)).toBe(30);
+    for (const p of ports) expect(new Set(p.map((c) => ladoDe(c, 4))).size).toBe(1);
+  });
+
+  // é o caso real: a parede não se divide ao meio, se divide onde a porta acaba
+  it("corte desigual devolve as duas partes com as contagens certas", () => {
+    const cells = screenCells(cortada([7]), telas);
+    const porParte = new Map();
+    for (const c of cells) porParte.set(c.parteN, (porParte.get(c.parteN) || 0) + 1);
+    expect([...porParte.entries()].sort()).toEqual([[1, 21], [2, 9]]); // 7×3 e 3×3
+  });
+
+  it("corte na horizontal também parte, e a numeração é em ordem de leitura", () => {
+    const emCruz = { ...so, cortes: { central: { x: [5], y: [1] } } };
+    const cells = screenCells(emCruz, telas);
+    const parteEm = (c, r) => cells.find((x) => x.c === c && x.r === r).parteN;
+    expect([parteEm(0, 0), parteEm(9, 0), parteEm(0, 2), parteEm(9, 2)]).toEqual([1, 2, 3, 4]);
+  });
+
+  // ⚠️ decisão do dono: energia não respeita limite de processador
+  it("o AC IGNORA o corte — os circuitos continuam como antes", () => {
+    const comAc = { ...so, ac: { strategy: "area" } };
+    const antes = screenAutoPorts(comAc, telas, "ac");
+    const depois = screenAutoPorts({ ...comAc, cortes: { central: { x: [4], y: [] } } }, telas, "ac");
+    const forma = (ps) => ps.map((p) => p.map((c) => `${c.c},${c.r}`).join("|"));
+    expect(forma(depois)).toEqual(forma(antes));
+  });
+
+  // o teste que garante que nada mudou pra quem não usa a feature
+  it("Screen SEM corte devolve exatamente as portas de sempre", () => {
+    const forma = (ps) => ps.map((p) => p.map((c) => `${c.telaId}:${c.c},${c.r}`).join("|"));
+    expect(forma(screenAutoPorts({ ...scTiras, cortes: {} }, telas))).toEqual(forma(screenAutoPorts(scTiras, telas)));
+    expect(screenCells(scTiras, telas).every((c) => c.parteN === 0)).toBe(true);
+  });
+
+  it("a porta é nomeada pela PARTE, não pela tela", () => {
+    const [p1] = screenPortSummary(cortada(), telas);
+    expect(p1.telas[0]).toMatch(/^Central · P[12]$/);
+    // sem corte, o nome puro — nenhuma folha muda em projeto que não parte tela
+    expect(screenPortSummary(so, telas)[0].telas).toEqual(["Central"]);
+  });
+
+  it("o mapa de pixels nomeia a parte na coluna Tela", () => {
+    expect(new Set(screenPixelMapRows(cortada(), telas).map((r) => r.tela)))
+      .toEqual(new Set(["Central · P1", "Central · P2"]));
+    expect(new Set(screenPixelMapRows(so, telas).map((r) => r.tela))).toEqual(new Set(["Central"]));
+  });
+
+  it("o caderno sabe em quantas partes a Screen está dividida", () => {
+    expect(screenGrid(cortada(), telas).partes).toBe(2);
+    expect(screenGrid(so, telas).partes).toBe(0); // sem corte, nem menciona
+  });
+
+  // avisa, não bloqueia — mesma postura do vão e da peça sobreposta da Estrutura
+  it("cabo do modo LIVRE atravessando o corte é MARCADO, não apagado", () => {
+    const cabo = [{ telaId: "central", c: 3, r: 0 }, { telaId: "central", c: 4, r: 0 }];
+    const livre = { ...cortada(), sinal: { rule: "px", strategy: "livre", cables: [cabo] } };
+    const [p] = screenPortSummary(livre, telas);
+    expect(p.count).toBe(2); // continua existindo
+    expect(p.cruzaParte).toBe(true);
+    expect(p.cruza).toBe(false); // não cruza TELA — cruza parte, que é outra coisa
+  });
+
+  it("as linhas de corte saem em coordenada de canvas, pro desenho", () => {
+    expect(linhasDeCorte(cortada(), telas)).toEqual([
+      { x1: 512, y1: 0, x2: 512, y2: 768 }, // 4 col × 128 px, altura da tela
+    ]);
+    expect(linhasDeCorte(so, telas)).toEqual([]);
   });
 });

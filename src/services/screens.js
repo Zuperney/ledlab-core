@@ -79,6 +79,88 @@ export function screenResolucao(screen, telas) {
   return { w, h, caixa, temVao: w !== caixa.w || h !== caixa.h };
 }
 
+// ── CORTES: partir a tela dentro da Screen ───────────────────
+//
+// Às vezes a tela precisa ser dividida DENTRO DO PROCESSAMENTO de vídeo: a
+// parede é uma só no palco, mas o sinal dela entra por dois caminhos. Sem isto,
+// o único jeito de representar isso era duplicar a tela no cadastro, encolher as
+// duas e chamar de "parte 1" e "parte 2" — o que funciona no desenho e mente em
+// todo o resto (peso, área e elétrica passam a contar uma parede que não existe).
+//
+// O corte é RETO (guilhotina), porque é assim que o processamento parte parede
+// de verdade. `x[i]` é o índice da coluna ANTES da qual cai um corte vertical;
+// `y[i]` idem pra linha. A PARTE não é guardada: sai da contagem de cortes à
+// esquerda e acima (ver `parteDaCelula`).
+//
+// ⚠️ O CORTE É LIMITE DE PROCESSAMENTO, NÃO FÍSICO. A tela continua inteira no
+// cadastro, o painel continua inteiro no palco, e a régua de vão × buraco não
+// muda. Quem respeita o corte é o cabeamento de SINAL — só ele.
+
+/**
+ * Os cortes de uma tela, SANEADOS na leitura.
+ *
+ * Corte fora do intervalo é descartado aqui, nunca na escrita: encolher a tela
+ * na aba Dados não pode deixar a Screen num estado torto, e um corte na coluna 8
+ * de uma tela que virou 6 simplesmente deixa de existir. Mesma régua do "encaixe
+ * apontando pra peça que não existe mais vira peça livre".
+ *
+ * @returns {{x: number[], y: number[]}|null} `null` quando a tela é inteira —
+ *   é o que deixa o caminho sem corte idêntico ao de sempre.
+ */
+export function cortesDe(screen, tela) {
+  const bruto = screen?.cortes?.[tela?.id];
+  if (!bruto) return null;
+  const limpa = (lista, limite) => [...new Set(
+    (Array.isArray(lista) ? lista : [])
+      .map((v) => Math.round(Number(v)))
+      .filter((v) => Number.isFinite(v) && v > 0 && v < limite),
+  )].sort((a, b) => a - b);
+  const x = limpa(bruto.x, tela?.cols || 1);
+  const y = limpa(bruto.y, tela?.rows || 1);
+  return x.length || y.length ? { x, y } : null;
+}
+
+/** em quantas partes a tela está dividida (1 = inteira) */
+export function quantasPartes(screen, tela) {
+  const c = cortesDe(screen, tela);
+  return c ? (c.x.length + 1) * (c.y.length + 1) : 1;
+}
+
+/**
+ * Liga/desliga um corte (toggle). `eixo` é "x" (corta colunas) ou "y" (linhas).
+ * Puro: devolve a Screen nova, e limpa a chave quando não sobra corte nenhum —
+ * Screen sem corte não carrega objeto vazio no arquivo.
+ */
+export function partirTela(screen, telaId, eixo, indice) {
+  const atual = screen?.cortes?.[telaId] || { x: [], y: [] };
+  const lista = Array.isArray(atual[eixo]) ? atual[eixo] : [];
+  const tem = lista.includes(indice);
+  const nova = tem ? lista.filter((v) => v !== indice) : [...lista, indice].sort((a, b) => a - b);
+  const daTela = { ...atual, [eixo]: nova };
+  const cortes = { ...(screen?.cortes || {}) };
+  if (daTela.x?.length || daTela.y?.length) cortes[telaId] = daTela;
+  else delete cortes[telaId];
+  return { ...screen, cortes };
+}
+
+/** tira TODOS os cortes de uma tela — ela volta a ser uma parte só */
+export function juntarTela(screen, telaId) {
+  const cortes = { ...(screen?.cortes || {}) };
+  delete cortes[telaId];
+  return { ...screen, cortes };
+}
+
+/**
+ * O nome da parte pro papel e pro mapa: "Tela A · P2".
+ *
+ * Tela sem corte devolve o nome puro, então nada muda em projeto que não usa a
+ * feature — nem uma linha de relatório.
+ */
+export function nomeDaParte(tela, parteN) {
+  const nome = tela?.nome?.trim() || "sem nome";
+  return parteN > 0 ? `${nome} · P${parteN}` : nome;
+}
+
 // vão padrão da Screen (px): a folga que o técnico deixa entre telas. 0 = encostadas.
 // Vive na Screen (cada Screen é um sistema, com a montagem dela) e só existe quando
 // alguém definiu — Screen antiga sem o campo continua encostando, como sempre.
@@ -121,7 +203,11 @@ export function dropTela(screens, telaId) {
 function stripTela(screen, telaId) {
   const pos = { ...(screen.pos || {}) };
   delete pos[telaId];
-  return { ...screen, telaIds: (screen.telaIds || []).filter((id) => id !== telaId), pos };
+  // os cortes saem junto: é o ponto ÚNICO por onde tela sai de Screen, e corte
+  // órfão voltaria a valer se a mesma tela fosse readicionada depois
+  const cortes = { ...(screen.cortes || {}) };
+  delete cortes[telaId];
+  return { ...screen, telaIds: (screen.telaIds || []).filter((id) => id !== telaId), pos, cortes };
 }
 
 // "criar 1 Screen por tela" (D4): pro técnico que não quer agrupar. makeId gera cada id.
