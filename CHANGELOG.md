@@ -2,6 +2,18 @@
 
 Histórico de versões do LedLab Core. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versionamento semântico. A nota curta que aparece dentro do app (aviso de atualização) fica em `src/nav.js` → `WHATS_NEW`.
 
+## [1.24.1] — 2026-09-05
+
+**Correção do Caderno de Design em PDF: a folha em branco, a folha partida — e a folha de Conteúdo enxuta.**
+
+- **Não sai mais prancha vazia.** O caderno emitia uma folha só com moldura e carimbo antes de uma seção (era a 04 no caderno de 05/09). A regra que decide a quebra de página contava a **moldura da prancha** — desenhada em toda folha — como se fosse conteúdo: a seção que já nascia sozinha no topo de uma página limpa quebrava de novo e deixava a anterior em branco.
+- **A folha de Conteúdo não transborda mais.** Num projeto de dez telas ela passava do fim da prancha e o resto caía numa folha seguinte quase vazia. A seção inteira cabe numa folha.
+- **A folha de Conteúdo é só o desenho** *(decisão do dono)*. As fichas **Painel de LED** e **Manual de conteúdo** saíram do papel: a do painel repetia o que a Visão Geral e o Vídeo/Resolução já dizem, e o conjunto era informação demais numa folha que é visual. Sem elas, o esquema das telas em escala comum ficou com a prancha quase inteira. O manual de vídeo segue vivo e editável em **Dados › Manual de conteúdo** — só não é impresso.
+
+Vale para o PDF nativo e para o Caderno na tela — os dois leem a mesma fonte.
+
+1.491 testes.
+
 ## [1.24.0] — 2026-08-20
 
 **As telas entram no desenho 3D como layout solto, o processamento ganha o corte dentro da Screen — e o vão sai da conta de resolução.**
