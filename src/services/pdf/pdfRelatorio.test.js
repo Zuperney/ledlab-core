@@ -482,15 +482,15 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     expect(j).toContain("12.768 × 168 px");
   });
 
-  it("Design ganha a folha de Conteúdo: esquema dos painéis + as duas fichas", () => {
+  it("Design ganha a folha de Conteúdo: SÓ o esquema dos painéis", () => {
     const j = JSON.stringify(buildRelatorioDoc({ project, tipo: "Design", cfg, logo: null }).content);
     expect(j).toContain("MANUAL DE VÍDEO");
-    expect(j).toContain("PAINEL DE LED");
-    expect(j).toContain("MANUAL DE CONTEÚDO");
-    expect(j).toContain("6,00 × 3,60 m  +  2,40 × 3,60 m"); // tamanho tela a tela, como no rider
-    expect(j).toContain("1040 × 624 px  +  416 × 624 px");
-    expect(j).toContain("DXV3 Normal Quality"); // padrão da casa quando o projeto não define
-    expect(j).toContain("<svg"); // o esquema dos painéis
+    expect(j).toContain("<svg"); // o esquema dos painéis, em escala comum
+    // as duas fichas saíram (dono, 05/09/2026): a do painel repetia as seções
+    // 01/02 e o conjunto era informação demais numa folha que é visual
+    expect(j).not.toContain("PAINEL DE LED");
+    expect(j).not.toContain("MANUAL DE CONTEÚDO");
+    expect(j).not.toContain("DXV3 Normal Quality");
     // e não polui os outros cadernos
     expect(JSON.stringify(buildRelatorioDoc({ project, tipo: "Completo", cfg, logo: null }).content)).not.toContain("MANUAL DE VÍDEO");
   });
@@ -547,6 +547,25 @@ describe("filtros por TIPO do caderno (paridade com o DOM)", () => {
     // Elétrico = 1 seção só, sem sumário e sem blocos → nenhuma marca
     const eletrico = JSON.stringify(build("Elétrico").content);
     expect(eletrico.match(/"headlineLevel":1/g)).toBeNull();
+  });
+
+  // REGRESSÃO (caderno de Design real, 05/09/2026): a folha 04 saiu VAZIA, só com
+  // o carimbo. O getPreviousNodesOnPage entrega junto o FUNDO da prancha (a
+  // moldura, desenhada em toda página) e o stack RAIZ do content (que começa na
+  // capa e atravessa o caderno) — a seção que já nascia no topo de uma página
+  // limpa "via conteúdo antes" e quebrava de novo, deixando a anterior em branco.
+  it("a moldura da prancha e o stack raiz NÃO contam como conteúdo da página", () => {
+    const doc = build("Completo");
+    const ctx = (prev) => ({ getPreviousNodesOnPage: () => prev });
+    const naPag4 = { headlineLevel: 1, startPosition: { pageNumber: 4 } };
+    const fundo = doc.background(4, { width: 841.89, height: 595.28 });
+    expect(fundo.id).toBeTruthy(); // o fundo se identifica pro pageBreakBefore
+    const raiz = { stack: true, startPosition: { pageNumber: 1 } };
+    expect(doc.pageBreakBefore(naPag4, ctx([raiz, { ...fundo, startPosition: { pageNumber: 4 } }]))).toBe(false);
+    // conteúdo de verdade na página continua quebrando
+    expect(doc.pageBreakBefore(naPag4, ctx([raiz, { table: {}, startPosition: { pageNumber: 4 } }]))).toBe(true);
+    // e tabela que VEIO da página anterior também é conteúdo desta
+    expect(doc.pageBreakBefore(naPag4, ctx([{ table: {}, startPosition: { pageNumber: 3 } }]))).toBe(true);
   });
 
   it("abertura de seção: 04 e 05 têm resumo geral (stats + tabela de Screens/telas)", () => {

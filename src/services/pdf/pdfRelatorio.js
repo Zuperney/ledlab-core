@@ -17,7 +17,7 @@ import { pixelMapPorts } from "../pixelMap.js";
 import { screenMapSvg, telaMapSvg, telasLayoutSvg, videoSchemaSvg } from "./pdfCableMap.js";
 import { tint } from "../cableScene.js";
 import { formatRange } from "../dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, FICHA_ABAIXO, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo, fichaPainel, fichaConteudo } from "../reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, STATUS_LABEL, FICHA_ABAIXO, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo } from "../reportContent.js";
 import { acTone, voltFull, phaseOf, phaseBalance } from "../electricalCalc.js";
 import { avisoEstruturaPdf, dadosDaFolha, plural, procedenciaDoPeso } from "../estrutura/folha.js";
 
@@ -162,6 +162,18 @@ function warnBox({ titulo, partes }, tone = "amber") {
 // gerava página em branco quando a seção anterior estourava só a margem
 // (folha 08/22 vazia no caderno real, 31/07).
 const bloco = (nodes) => ({ stack: nodes, headlineLevel: 1, margin: [0, 0, 0, 4] });
+
+// ⚠️ A MOLDURA NÃO É CONTEÚDO (folha 04 em branco no caderno real de 05/09).
+// O `getPreviousNodesOnPage` do pdfmake entrega TAMBÉM os nós que não são texto
+// da prancha: o fundo/moldura, desenhado em toda página, e o stack RAIZ do
+// `content`, que começa na capa e atravessa o caderno inteiro. Contando esses
+// dois, toda seção que já nascia no topo de uma página limpa "via conteúdo
+// antes" e quebrava de novo — deixando a folha anterior vazia, só com o carimbo.
+// Conta como conteúdo, então: nó que não é o fundo E que ou começa nesta página,
+// ou é conteúdo de verdade (texto/tabela/imagem) vindo da página anterior.
+const FUNDO_ID = "prancha-fundo";
+const temConteudo = (n, cur) => n.id !== FUNDO_ID
+  && !(n.stack && n.startPosition && cur.startPosition && n.startPosition.pageNumber !== cur.startPosition.pageNumber);
 
 // nó de mapa pro conteúdo: o gerador devolve {svg,width,height} ou null (sem células)
 const mapNode = (m) => (m ? [{ svg: m.svg, width: m.width, margin: [0, 0, 0, 6] }] : []);
@@ -501,34 +513,22 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
 
   // ── CONTEÚDO · MANUAL DE VÍDEO — só no Design ──
   // A folha que vai pro pessoal que MONTA o vídeo: o esquema dos painéis em
-  // escala comum (resolução em cima, tamanho embaixo) e as duas fichas — o que
-  // existe no palco e o que tem que ser entregue. Modelo de rider, de propósito:
-  // é o formato que designer de conteúdo já sabe ler.
-  const fichaBox = (titulo, linhas) => ({
-    width: "*",
-    stack: [
-      { text: titulo.toUpperCase(), bold: true, fontSize: 8, color: PRINT.ink, characterSpacing: 0.8, margin: [0, 0, 0, 5] },
-      ...linhas.map(([r, v]) => ({
-        columns: [
-          { width: 96, text: r, fontSize: 7.5, color: PRINT.dim, characterSpacing: 0.4, margin: [0, 1.5, 0, 0] },
-          { width: "*", text: v, font: "PlexMono", fontSize: 8.5, color: PRINT.ink },
-        ],
-        margin: [0, 2.5, 0, 2.5],
-      })),
-    ],
-    margin: [10, 8, 10, 8],
-  });
+  // escala comum, resolução em cima e tamanho em metros embaixo. Modelo de
+  // rider, de propósito: é o formato que designer de conteúdo já sabe ler.
+  //
+  // SÓ O DESENHO (decisão do dono, 05/09/2026). As duas fichas que ficavam
+  // embaixo saíram: a do PAINEL repetia o que as seções 01 e 02 já dizem, e o
+  // dono considerou o conjunto informação demais pra uma folha que é visual.
+  // Sem ficha, o esquema fica com a prancha quase inteira — 340 pt de teto
+  // (465,3 úteis − ~77 de cabeçalho, parágrafo e margem) e a seção nunca passa
+  // de uma folha, que era o outro defeito do caderno de 05/09.
   const conteudoSecao = !showCanvas ? [] : (() => {
     const sn = sec();
-    const esquema = videoSchemaSvg(telas, { maxWidth: 748, maxHeight: 260 });
+    const esquema = videoSchemaSvg(telas, { maxWidth: 748, maxHeight: 340 });
     return [
       sectionHead(sn, "Conteúdo", "Manual de vídeo", DISC.video),
-      { text: "O painel como o conteúdo vai encontrar: cada tela em escala comum, com a resolução em cima e o tamanho em metros embaixo. As fichas fecham o combinado — o que existe no palco e o que precisa ser entregue.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 10] },
+      { text: "O painel como o conteúdo vai encontrar: cada tela em escala comum, com a resolução em cima e o tamanho em metros embaixo.", fontSize: 8.5, color: PRINT.mut, margin: [0, 0, 0, 10] },
       ...(esquema ? [{ svg: esquema.svg, width: esquema.width, margin: [0, 0, 0, 12] }] : []),
-      {
-        columns: [fichaBox("Painel de LED", fichaPainel(project)), fichaBox("Manual de conteúdo", fichaConteudo(project))],
-        columnGap: 16,
-      },
     ];
   })();
 
@@ -1446,8 +1446,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // página 1 = fundo da capa; demais = a MOLDURA da prancha (o carimbo fecha
     // a caixa por dentro, no footer)
     background: (page, pageSize) => (page === 1
-      ? { canvas: [{ type: "rect", x: 0, y: 0, w: pageSize.width, h: pageSize.height, color: COVER_BG }] }
-      : { canvas: [{ type: "rect", x: FR, y: FR, w: pageSize.width - 2 * FR, h: pageSize.height - 2 * FR, lineWidth: 1.4, lineColor: PRINT.ink }] }),
+      ? { id: FUNDO_ID, canvas: [{ type: "rect", x: 0, y: 0, w: pageSize.width, h: pageSize.height, color: COVER_BG }] }
+      : { id: FUNDO_ID, canvas: [{ type: "rect", x: FR, y: FR, w: pageSize.width - 2 * FR, h: pageSize.height - 2 * FR, lineWidth: 1.4, lineColor: PRINT.ink }] }),
     // rodapé em TODA página (menos a capa): o CARIMBO da prancha
     footer: (current, total) => (current === 1 ? null : carimbo(current, total)),
     content: (() => {
@@ -1473,8 +1473,8 @@ export function buildRelatorioDoc({ project, tipo = "Completo", cfg, logo, logoP
     // quebra SÓ quando a página atual já tem conteúdo — nunca nasce página vazia.
     // Assinatura do pdfmake atual: (nodeInfo, { getPreviousNodesOnPage, ... }) —
     // getters preguiçosos, NÃO os quatro arrays posicionais da doc antiga.
-    pageBreakBefore: (cur, ctx) =>
-      cur.headlineLevel === 1 && ((ctx && ctx.getPreviousNodesOnPage ? ctx.getPreviousNodesOnPage() : []) || []).length > 0,
+    pageBreakBefore: (cur, ctx) => cur.headlineLevel === 1
+      && ((ctx && ctx.getPreviousNodesOnPage ? ctx.getPreviousNodesOnPage() : []) || []).some((n) => temConteudo(n, cur)),
   };
 }
 

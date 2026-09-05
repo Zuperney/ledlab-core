@@ -15,7 +15,7 @@ import { cableMeta, cablePorts, bboxArea, portOffset } from "../../services/cabl
 import { hasScreens, projectScreenReport, telasSemScreen, projectAcCabos } from "../../services/screenCabling.js";
 import { pixelMapPorts } from "../../services/pixelMap.js";
 import { formatRange, formatFull } from "../../services/dates.js";
-import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo, fichaPainel, fichaConteudo } from "../../services/reportContent.js";
+import { GLOSSARIO, CRITERIOS, NORMAS, REFERENCIAS, AVISO_AC, DISC, fmtPeso, fmtFases, portLabel, videoOf, distVisaoGroups, canvasResumo } from "../../services/reportContent.js";
 import { videoSchemaSvg } from "../../services/pdf/pdfCableMap.js";
 import { AVISO_ESTRUTURA, dadosDaFolha, plural, procedenciaDoPeso } from "../../services/estrutura/folha.js";
 import { lerImagem } from "../../services/estrutura/imagem.js";
@@ -294,26 +294,16 @@ export default function ProjectRelatorio({ project }) {
           </section>
         )}
 
+        {/* SÓ O DESENHO (dono, 05/09/2026): as fichas "Painel de LED" e "Manual de
+            conteúdo" saíram — a do painel repetia as seções 01/02 e o conjunto
+            era informação demais numa folha que é visual. Espelha o PDF nativo. */}
         {showCards && (() => { const esquema = videoSchemaSvg(telas, { maxWidth: 1040, maxHeight: 340, fs: 9 }); return (
           <section style={{ marginBottom: 22 }}>
             <SectionHead n={sec()} title="Conteúdo" tag="Manual de vídeo" color={DISC.video} Icon={Monitor} />
-            <p style={{ color: PRINT.mut, fontSize: 12 }}>O painel como o conteúdo vai encontrar: cada tela em escala comum, com a resolução em cima e o tamanho em metros embaixo. As fichas fecham o combinado — o que existe no palco e o que precisa ser entregue.</p>
+            <p style={{ color: PRINT.mut, fontSize: 12 }}>O painel como o conteúdo vai encontrar: cada tela em escala comum, com a resolução em cima e o tamanho em metros embaixo.</p>
             {/* o MESMO desenho do PDF nativo (services/pdf/pdfCableMap.js) — nome de
                 tela já sai escapado de lá; duplicar em JSX era o caminho pra divergir */}
             {esquema && <div style={{ margin: "8px 0 14px" }} dangerouslySetInnerHTML={{ __html: esquema.svg }} />}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
-              {[["Painel de LED", fichaPainel(project)], ["Manual de conteúdo", fichaConteudo(project)]].map(([titulo, linhas]) => (
-                <div key={titulo} style={{ border: `1px solid ${PRINT.line}`, borderRadius: 8, padding: "10px 13px", breakInside: "avoid" }}>
-                  <div style={{ ...th, borderBottom: "none", padding: "0 0 6px" }}>{titulo}</div>
-                  {linhas.map(([r, v]) => (
-                    <div key={r} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "3px 0" }}>
-                      <span style={{ flex: "0 0 120px", fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.04em", color: PRINT.dim }}>{r}</span>
-                      <span style={{ flex: 1, fontFamily: "ui-monospace, monospace", fontSize: 12, color: PRINT.ink }}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
           </section>
         ); })()}
 
