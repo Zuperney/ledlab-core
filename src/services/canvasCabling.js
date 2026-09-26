@@ -11,14 +11,17 @@
 // Estas são as PEÇAS; o cabeamento por Screen (auto/livre) e as funções de projeto
 // (relatório, mapa de pixels) vivem em services/screenCabling.js.
 import { cableMeta, balancedChunks, serpOrder } from "./cabling.js";
+import { celulasDaTela, dimTela, blocosDe, modelKeyGab, temBlocos } from "./blocos.js";
 
-export const modelKey = (t) => `${parseFloat(t?.gabinete?.resX) || 128}x${parseFloat(t?.gabinete?.resY) || 128}`;
+// modelo da TELA: o do gabinete; numa tela de blocos mistos, os modelos juntos
+// ("128x256+128x128") — serve pra agrupar/colorir tela, nunca pra cabear (a porta
+// olha o modelo de cada CÉLULA).
+export const modelKey = (t) => (temBlocos(t)
+  ? [...new Set(blocosDe(t).map((b) => modelKeyGab(b.gabinete)))].join("+")
+  : modelKeyGab(t?.gabinete));
 
-// resolução real da tela em pixels (gabinete vazio = 128, mesma regra do draw)
-export const dimOf = (t) => ({
-  w: (t?.cols || 1) * (parseFloat(t?.gabinete?.resX) || 128),
-  h: (t?.rows || 1) * (parseFloat(t?.gabinete?.resY) || 128),
-});
+// resolução real da tela em pixels, DE PÉ (gabinete vazio = 128, mesma regra do draw)
+export const dimOf = (t) => dimTela(t);
 
 // ── PARTES: a tela cortada dentro da Screen ────────────────
 //
@@ -44,6 +47,18 @@ export function parteDaCelula(cortes, c, r) {
 /** a chave de agrupamento do gabinete: a tela, ou a parte dela quando há corte */
 export const parteKey = (telaId, parteN) => (parteN > 0 ? `${telaId}#${parteN}` : telaId);
 
+/**
+ * A "tela" que responde pelo orçamento de um grupo de células do MESMO modelo.
+ *
+ * O orçamento (px/porta, corrente) é do GABINETE, não da tela — e numa tela de
+ * blocos mistos a tela não tem um gabinete só. Por isso ele sai da célula.
+ */
+export function telaDoModelo(cells, telas) {
+  const cel = cells?.[0];
+  const tela = (telas || []).find((t) => t.id === cel?.telaId);
+  return { ...(tela || {}), gabinete: cel?.gabinete || tela?.gabinete || {} };
+}
+
 // Um gabinete de cada tela, já na coordenada do canvas (origem sup-esq, como o
 // NovaLCT). Tela sem posição no canvas fica de fora.
 //
@@ -54,18 +69,17 @@ export function canvasCells(telas, positions, cortes = null) {
   for (const t of telas || []) {
     const p = positions?.[t.id];
     if (!p) continue;
-    const resX = parseFloat(t.gabinete?.resX) || 128;
-    const resY = parseFloat(t.gabinete?.resY) || 128;
-    const model = modelKey(t);
     const corte = cortes?.[t.id] || null;
-    for (let r = 0; r < (t.rows || 1); r++)
-      for (let c = 0; c < (t.cols || 1); c++) {
-        const { n } = parteDaCelula(corte, c, r);
-        cells.push({
-          telaId: t.id, c, r, x: p.x + c * resX, y: p.y + r * resY, w: resX, h: resY, model,
-          parteN: n, parte: parteKey(t.id, n),
-        });
-      }
+    for (const cel of celulasDaTela(t)) {
+      const { n } = parteDaCelula(corte, cel.c, cel.r);
+      cells.push({
+        telaId: t.id, c: cel.c, r: cel.r, x: p.x + cel.x, y: p.y + cel.y, w: cel.w, h: cel.h, model: cel.model,
+        // bloco só aparece em tela de blocos: a célula legada fica idêntica à de sempre
+        ...(temBlocos(t) ? { bloco: cel.bloco } : {}),
+        gabinete: cel.gabinete,
+        parteN: n, parte: parteKey(t.id, n),
+      });
+    }
   }
   return cells;
 }
@@ -293,9 +307,8 @@ export function canvasPorts(telas, positions, opts = {}) {
     byModel.get(cell.model).push(cell);
   }
   const ports = [];
-  for (const [model, group] of byModel) {
-    const tela = (telas || []).find((t) => modelKey(t) === model);
-    const budget = cableMeta(tela)[budgetKey] || 1;
+  for (const group of byModel.values()) {
+    const budget = cableMeta(telaDoModelo(group, telas))[budgetKey] || 1;
     ports.push(...balancedChunks(snakeCellsPorTela(group, routing, corner), budget));
   }
   return orderCanvasPorts(ports, numbering);

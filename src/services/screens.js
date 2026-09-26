@@ -11,6 +11,7 @@
 // é escolha dele. Cada Screen tem origem própria (0,0), igual no NovaLCT.
 import { extensaoCoberta, packByModel } from "./layout.js";
 import { dimOf, modelKey } from "./canvasCabling.js";
+import { blocosDe } from "./blocos.js";
 
 // id vem de fora (genId no componente) pra manter isto puro/testável. sinal começa
 // vazio → régua/disposição caem no padrão (Área / regra do retângulo). AC é criado
@@ -110,13 +111,18 @@ export function screenResolucao(screen, telas) {
 export function cortesDe(screen, tela) {
   const bruto = screen?.cortes?.[tela?.id];
   if (!bruto) return null;
+  // corte por coluna/linha só existe em tela de UM bloco: com blocos, "a coluna 3"
+  // não diz de qual bloco. O Split por partes móveis (fase 4) substitui isto.
+  const blocos = blocosDe(tela);
+  if (blocos.length !== 1) return null;
+  const { cols, rows } = blocos[0];
   const limpa = (lista, limite) => [...new Set(
     (Array.isArray(lista) ? lista : [])
       .map((v) => Math.round(Number(v)))
       .filter((v) => Number.isFinite(v) && v > 0 && v < limite),
   )].sort((a, b) => a - b);
-  const x = limpa(bruto.x, tela?.cols || 1);
-  const y = limpa(bruto.y, tela?.rows || 1);
+  const x = limpa(bruto.x, cols || 1);
+  const y = limpa(bruto.y, rows || 1);
   return x.length || y.length ? { x, y } : null;
 }
 

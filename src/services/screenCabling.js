@@ -12,10 +12,16 @@
 // corre quando a Screen mistura telas distantes. Numeração 1..N por Screen.
 import { cableMeta, cablePorts, balancedChunks, buildAuto, portOffset, ampCabTipico } from "./cabling.js";
 import { acTone } from "./electricalCalc.js";
-import { canvasCells, snakeCellsPorTela, clusterTelas, ilhasDeCorte, portAreaPx, telaRects, panelIds, modelKey, orderCanvasPorts, dimOf } from "./canvasCabling.js";
+import { blocosDe } from "./blocos.js";
+import { canvasCells, snakeCellsPorTela, clusterTelas, ilhasDeCorte, portAreaPx, telaRects, panelIds, modelKey, orderCanvasPorts, dimOf, telaDoModelo } from "./canvasCabling.js";
 import { screenTelas, screenOfTela, unassignedTelas, cortesDe, nomeDaParte, quantasPartes, screenResolucao, screenSize } from "./screens.js";
 
-const cellKey = (c) => `${c.telaId}:${c.c},${c.r}`;
+// chave do gabinete: tela + grade; numa tela de BLOCOS o bloco entra junto (c/r é
+// do bloco, e dois blocos têm a sua própria coluna 0). Legado: a chave de sempre.
+const cellKey = (c) => `${c.telaId}:${c.c},${c.r}${c.bloco > 0 ? `@${c.bloco}` : ""}`;
+// referência salva de um gabinete (modo livre) — o bloco só vai quando existe
+const cellRef = (c) => ({ telaId: c.telaId, c: c.c, r: c.r, ...(c.bloco > 0 ? { bloco: c.bloco } : {}) });
+const mesmaCelula = (a, b) => a.telaId === b.telaId && a.c === b.c && a.r === b.r && (a.bloco || 0) === (b.bloco || 0);
 const cfgOf = (screen, kind) => (kind === "ac" ? screen?.ac : screen?.sinal) || {};
 // meta do gabinete com a config de SINAL vinda da Screen (bits/régua), não da tela
 const metaOf = (tela, cfg, kind) => (kind === "ac" ? cableMeta(tela) : cableMeta(tela, cfg));
@@ -32,7 +38,8 @@ function groupByModel(cells) {
 // gabinetes reais. Buracos entram no retângulo (é a regra do retângulo) e caem fora
 // da lista de gabinetes reais da porta.
 function blockPorts(cells, tela, budget, strategy, routing, corner, numbering) {
-  const resX = parseFloat(tela?.gabinete?.resX) || 128, resY = parseFloat(tela?.gabinete?.resY) || 128;
+  const g = cells[0]?.gabinete || tela?.gabinete;
+  const resX = parseFloat(g?.resX) || 128, resY = parseFloat(g?.resY) || 128;
   let minX = Infinity, minY = Infinity;
   for (const c of cells) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); }
   const byPos = new Map(); let maxC = 0, maxR = 0;
@@ -74,8 +81,9 @@ export function linhasDeCorte(screen, telas) {
     const cortes = cortesDe(screen, t);
     const p = screen?.pos?.[t.id];
     if (!cortes || !p) continue;
-    const resX = parseFloat(t.gabinete?.resX) || 128;
-    const resY = parseFloat(t.gabinete?.resY) || 128;
+    const g = blocosDe(t)[0].gabinete; // corte só existe em tela de um bloco (cortesDe)
+    const resX = parseFloat(g?.resX) || 128;
+    const resY = parseFloat(g?.resY) || 128;
     const d = dimOf(t);
     for (const c of cortes.x) out.push({ x1: p.x + c * resX, y1: p.y, x2: p.x + c * resX, y2: p.y + d.h });
     for (const r of cortes.y) out.push({ x1: p.x, y1: p.y + r * resY, x2: p.x + d.w, y2: p.y + r * resY });
@@ -94,8 +102,9 @@ export function screenAutoPorts(screen, telas, kind = "sinal", numbering = "row-
   const routing = cfg.routing || "updown", corner = cfg.corner || "bl";
   const membros = screenTelas(screen, telas);
   const ports = [];
-  for (const [model, group] of groupByModel(screenCells(screen, telas))) {
-    const tela = membros.find((t) => modelKey(t) === model);
+  for (const group of groupByModel(screenCells(screen, telas)).values()) {
+    // o orçamento é do GABINETE do grupo (tela de blocos mistos não tem um só)
+    const tela = telaDoModelo(group, membros);
     const meta = metaOf(tela, cfg, kind);
     const budget = kind === "ac" ? meta.acBudget : meta.sinalBudget;
     if (kind === "sinal" && meta.sinalRule === "px") {
@@ -122,8 +131,7 @@ export function screenAutoPorts(screen, telas, kind = "sinal", numbering = "row-
 function acFromSignal(screen, telas, numbering) {
   const membros = screenTelas(screen, telas);
   return screenPorts(screen, telas, "sinal", numbering).flatMap((port) => {
-    const tela = membros.find((t) => t.id === port[0]?.telaId);
-    const { acBudget } = cableMeta(tela);
+    const { acBudget } = cableMeta(telaDoModelo(port, membros));
     return balancedChunks(port, acBudget);
   });
 }
@@ -161,7 +169,7 @@ export function screenPortSummary(screen, telas, kind = "sinal", numbering = "ro
   // partida.
   const panels = panelIds(telaRects(screenCells(screen, telas)));
   return ports.map((port, pi) => {
-    const telaDo = membros.find((t) => t.id === port[0]?.telaId);
+    const telaDo = telaDoModelo(port, membros);
     const m = metaOf(telaDo, cfg, kind);
     const telaIds = [...new Set(port.map((c) => c.telaId))];
     // as PARTES que a porta percorre, na ordem em que ela passa. É o que a folha
@@ -218,17 +226,17 @@ export function autoAsCables(screen, telas, kind = "sinal", numbering = "row-tb-
   const fallback = kind === "ac" ? "area" : (cfg.rule === "px" ? "auto" : "area");
   const strategy = !cfg.strategy || cfg.strategy === "livre" ? fallback : cfg.strategy;
   return screenPorts({ ...screen, [kind]: { ...cfg, strategy } }, telas, kind, numbering)
-    .map((port) => port.map((c) => ({ telaId: c.telaId, c: c.c, r: c.r })));
+    .map((port) => port.map(cellRef));
 }
 
 // clique num gabinete no modo livre: se já está no cabo ativo → tira (toggle);
 // senão → tira de qualquer cabo e põe no ativo (um gabinete pertence a 1 cabo só).
 export function assignCell(cables, activeIdx, cell) {
-  const same = (c) => c.telaId === cell.telaId && c.c === cell.c && c.r === cell.r;
+  const same = (c) => mesmaCelula(c, cell);
   const inActive = (cables[activeIdx] || []).some(same);
   const cleaned = cables.map((cab) => cab.filter((c) => !same(c)));
   if (inActive) return cleaned;
-  cleaned[activeIdx] = [...(cleaned[activeIdx] || []), { telaId: cell.telaId, c: cell.c, r: cell.r }];
+  cleaned[activeIdx] = [...(cleaned[activeIdx] || []), cellRef(cell)];
   return cleaned;
 }
 
@@ -237,7 +245,7 @@ export function assignCell(cables, activeIdx, cell) {
 // Por ser por geometria (e não por c/r), atravessa telas encostadas mesmo com
 // gabinetes de dimensões diferentes; buraco entre telas ou borda → null.
 export function neighborCell(cells, from, dir) {
-  const cell = cells.find((c) => c.telaId === from.telaId && c.c === from.c && c.r === from.r);
+  const cell = cells.find((c) => mesmaCelula(c, from));
   if (!cell) return null;
   const dx = dir === "left" ? -1 : dir === "right" ? 1 : 0;
   const dy = dir === "up" ? -1 : dir === "down" ? 1 : 0;
