@@ -3,6 +3,7 @@
 // (área/peso/potência) e agregação elétrica do projeto inteiro.
 
 import { calcScreen, typicalPerTile, VOLT } from "./electricalCalc.js";
+import { blocosDe, temBlocos, celulasDaTela, dimTela, medidaFisica } from "./blocos.js";
 
 export const MONTHS_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 export const MONTHS_LONG = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -48,8 +49,25 @@ export function groupByMonth(projects) {
 
 const num = (v) => parseFloat(v) || 0;
 
-// Roll-up físico de uma tela.
+// Roll-up físico de uma tela. Tela de BLOCOS soma bloco a bloco (cada um com o seu
+// gabinete); a legada segue a conta de sempre. `pixels` é DE PÉ (o que o
+// processador vê); `dim` é a medida FÍSICA — deitada troca largura por altura.
 export function screenRollup(tela) {
+  if (temBlocos(tela)) {
+    const blocos = blocosDe(tela);
+    const gab = blocos.reduce((s, b) => s + b.cols * b.rows, 0);
+    const d = dimTela(tela);
+    const f = medidaFisica(tela);
+    const soma = (campo) => blocos.reduce((s, b) => s + b.cols * b.rows * num(b.gabinete?.[campo]), 0);
+    return {
+      gab,
+      // total = pixels REAIS (buraco entre blocos não é LED), não a caixa
+      pixels: { largura: d.w, altura: d.h, total: celulasDaTela(tela).reduce((s, c) => s + c.w * c.h, 0) },
+      dim: { largura_m: f.w / 1000, altura_m: f.h / 1000, area_m2: f.area_mm2 / 1e6 },
+      peso_kg: soma("peso"),
+      pwrMax_w: soma("pwrMax"),
+    };
+  }
   const g = tela.gabinete || {};
   const gab = (tela.cols || 0) * (tela.rows || 0);
   const pixels = {
@@ -61,6 +79,8 @@ export function screenRollup(tela) {
     largura_m: ((tela.cols || 0) * num(g.dimW)) / 1000,
     altura_m: ((tela.rows || 0) * num(g.dimH)) / 1000,
   };
+  // montagem deitada (90° anti-horário): a medida física gira, o pixel não
+  if (tela.deitada) [dim.largura_m, dim.altura_m] = [dim.altura_m, dim.largura_m];
   dim.area_m2 = dim.largura_m * dim.altura_m;
   return {
     gab,
@@ -93,14 +113,23 @@ export function aggregateElectrical(project, { vk, brilho, conteudo }) {
   let W = 0, S = 0, typW = 0, typS = 0;
 
   for (const tela of project.telas || []) {
-    const g = tela.gabinete || {};
-    const gab = (tela.cols || 0) * (tela.rows || 0);
-    const pf = num(g.fp) || 0.85;
-    const pwrMax = num(g.pwrMax);
-
-    const peak = calcScreen({ tiles: gab, pwrPerTile: pwrMax, pf, vk });
-    const typPerTile = typicalPerTile(pwrMax, g.pwrBlack, brilho, conteudo);
-    const typ = calcScreen({ tiles: gab, pwrPerTile: typPerTile, pf, vk });
+    // cada bloco com o SEU gabinete (fp, potência); a tela soma os blocos. Tela
+    // legada é um bloco só — a conta de sempre.
+    const partes = blocosDe(tela).map((b) => {
+      const g = b.gabinete || {};
+      const gab = b.cols * b.rows;
+      const pf = num(g.fp) || 0.85;
+      const pwrMax = num(g.pwrMax);
+      const typPerTile = typicalPerTile(pwrMax, g.pwrBlack, brilho, conteudo);
+      return {
+        gab,
+        peak: calcScreen({ tiles: gab, pwrPerTile: pwrMax, pf, vk }),
+        typ: calcScreen({ tiles: gab, pwrPerTile: typPerTile, pf, vk }),
+      };
+    });
+    const gab = partes.reduce((s, p) => s + p.gab, 0);
+    const peak = partes.length === 1 ? partes[0].peak : somaCalc(partes.map((p) => p.peak), vc);
+    const typ = partes.length === 1 ? partes[0].typ : somaCalc(partes.map((p) => p.typ), vc);
 
     perTela.push({ tela, gab, peak, typ });
     W += peak.W; S += peak.S;
@@ -120,5 +149,16 @@ export function aggregateElectrical(project, { vk, brilho, conteudo }) {
     typW, typS, typKva: (typS / 1000).toFixed(2), typI,
     gerador: gerador.toFixed(1),
     geradorPct: gerador > 0 ? Math.round((typS / 1000 / gerador) * 100) : 0,
+  };
+}
+
+// soma de vários calcScreen (os blocos de uma tela mista) no mesmo formato
+function somaCalc(lista, vc) {
+  const W = lista.reduce((s, c) => s + c.W, 0);
+  const S = lista.reduce((s, c) => s + c.S, 0);
+  const I = parseFloat((S / vc.div).toFixed(1));
+  return {
+    vc, W, S, kVA: (S / 1000).toFixed(2), I,
+    steps: [`S = Σ blocos = ${Math.round(S).toLocaleString()} VA`, `I = ${Math.round(S)} ÷ (${vc.dl}) = ${I} A`],
   };
 }
